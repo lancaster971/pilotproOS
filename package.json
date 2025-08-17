@@ -1,0 +1,67 @@
+{
+  "name": "pilotpros-operating-system",
+  "version": "1.0.0",
+  "description": "PilotProOS - Business Process Operating System",
+  "main": "backend/src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:ai-agent\" \"npm run dev:n8n\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:ai-agent": "cd ai-agent && npm run dev",
+    "dev:n8n": "./start-n8n-postgres.sh",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:ai-agent",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:ai-agent": "cd ai-agent && npm run build",
+    "start": "npm run start:all",
+    "start:all": "concurrently \"npm run start:backend\" \"npm run start:ai-agent\" \"npm run start:n8n\"",
+    "start:backend": "cd backend && npm start",
+    "start:ai-agent": "cd ai-agent && npm start",
+    "start:n8n": "./start-n8n-postgres.sh",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../ai-agent && npm install",
+    "docker:build": "docker build -f docker/Dockerfile -t pilotpros:latest .",
+    "docker:run": "docker run -d --name pilotpros-client -p 80:80 -p 443:443 pilotpros:latest",
+    "docker:stop": "docker stop pilotpros-client && docker rm pilotpros-client",
+    "deploy:scripts": "./scripts/deploy-client.sh",
+    "deploy:quick": "./scripts/01-system-setup.sh && ./scripts/02-application-deploy.sh && ./scripts/03-security-hardening.sh && ./scripts/04-workflow-automation.sh",
+    "n8n:setup": "./scripts/setup-n8n-postgres.sh",
+    "n8n:start": "./start-n8n-postgres.sh",
+    "n8n:stop": "pkill -f 'npx n8n'",
+    "dev:setup": "./scripts/setup-developer-access.sh",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:integration",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:integration": "./scripts/test-integration.sh",
+    "test:postgresql": "./scripts/test-postgresql-integration.sh"
+  },
+  "dependencies": {
+    "concurrently": "^7.6.0",
+    "n8n": "^1.106.3"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "ai-agent"
+  ],
+  "keywords": [
+    "business-automation",
+    "workflow-os",
+    "process-automation",
+    "enterprise-appliance",
+    "ai-assistant",
+    "containerized-platform",
+    "plug-and-play",
+    "smb-automation"
+  ],
+  "author": "PilotPro Team",
+  "license": "Commercial",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pilotpro/pilotpros.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

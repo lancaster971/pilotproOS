@@ -1,0 +1,91 @@
+{
+  "name": "Customer Onboarding Process",
+  "description": "Automated customer registration and welcome sequence",
+  "tags": ["customer", "onboarding", "automation"],
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "new-customer",
+        "method": "POST",
+        "responseCode": 200,
+        "responseData": "Customer onboarding initiated successfully"
+      },
+      "name": "New Customer Registration",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "customer-onboarding"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate and process customer data\nconst customerData = items[0].json;\n\n// Validation\nif (!customerData.email || !customerData.name) {\n  throw new Error('Missing required customer information: email and name');\n}\n\nif (!customerData.email.includes('@')) {\n  throw new Error('Invalid email format');\n}\n\n// Process customer data\ncustomerData.processed_at = new Date().toISOString();\ncustomerData.status = 'validated';\ncustomerData.customer_id = 'CUST_' + Date.now();\ncustomerData.onboarding_step = 'welcome_email';\n\n// Log for business analytics\nconsole.log(`Customer onboarding: ${customerData.name} (${customerData.email})`);\n\nreturn items;"
+      },
+      "name": "Validate Customer Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "subject": "Benvenuto nella nostra piattaforma! 🎉",
+        "emailType": "html",
+        "message": "<h2>Ciao {{$json.name}}!</h2><p>Benvenuto nella nostra piattaforma di automazione aziendale.</p><p><strong>Il tuo ID cliente:</strong> {{$json.customer_id}}</p><p>Il tuo account è stato configurato correttamente e puoi iniziare subito ad utilizzare i nostri servizi.</p><p>Se hai domande, il nostro team di supporto è sempre disponibile.</p><p>Cordiali saluti,<br>Il Team</p>",
+        "toEmail": "={{$json.email}}"
+      },
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Update customer status to completed\nconst customerData = items[0].json;\n\ncustomerData.onboarding_completed = true;\ncustomerData.completed_at = new Date().toISOString();\ncustomerData.status = 'active';\n\n// Business metrics for analytics\ncustomerData.process_type = 'customer_onboarding';\ncustomerData.business_impact = 'new_customer_acquired';\n\nconsole.log(`Customer onboarding completed: ${customerData.customer_id}`);\n\nreturn items;"
+      },
+      "name": "Complete Onboarding",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "New Customer Registration": {
+      "main": [
+        [
+          {
+            "node": "Validate Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Complete Onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  }
+}
