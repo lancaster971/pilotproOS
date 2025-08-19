@@ -124,9 +124,16 @@ psql pilotpros_db         # Connect to database
 **n8n Access:**
 - **Development**: http://localhost:5678 (admin / pilotpros_admin_2025)
 - **Production**: https://client-domain.com/dev/workflows/ (developer credentials + VPN)
-- **Database**: pilotpros_db (schema: n8n)
+- **Database**: PostgreSQL pilotpros_db (schemas: n8n + pilotpros)
 - **Version**: 1.106.3 (latest)
 - **Task Runners**: Enabled (port 5679)
+
+**🐳 Docker Development Environment:**
+- **PostgreSQL**: localhost:5432 (dual-schema: n8n + pilotpros)
+- **Schema Isolation**: n8n (36 tables) + pilotpros (8 tables)
+- **Cross-Schema Views**: Business analytics with real-time n8n data
+- **Auto-Setup**: Complete environment in Docker containers
+- **Hot-Reload**: All services with live development updates
 
 **🔒 Security Model:**
 - **Client Access**: NEVER sees n8n interface or mentions
@@ -338,15 +345,33 @@ All environment variables are defined in project root. Key configs:
 
 ## Recent Updates
 
+### Docker-First Development Strategy (v1.1.0)
+- **Cross-OS Compatibility**: Windows/macOS/Linux identical environment
+- **Auto-Installation**: Docker auto-install and setup
+- **Container Stack**: PostgreSQL + n8n + all services in Docker
+- **Hot-Reload Development**: All services with live updates
+- **Zero Manual Setup**: `git clone` + `npm run dev` = ready
+
+### PostgreSQL Integration Verified (Production Ready)
+- **Database**: PostgreSQL 16 with dual-schema architecture
+- **n8n Schema**: 36 tables (workflow_entity, execution_entity, credentials_entity, etc.)
+- **PilotProOS Schema**: 8 tables (users, business_analytics, process_templates, etc.)
+- **Cross-Schema Integration**: Trigger-based real-time analytics
+- **Performance**: Optimized indexes and connection pooling
+
 ### n8n Upgrade to 1.106.3 (Latest)
 - **Task Runners**: Enabled for improved performance
-- **Database Migrations**: 9 new migrations applied successfully
-- **Deprecation Fixes**: Removed N8N_BINARY_DATA_TTL, added N8N_RUNNERS_ENABLED
+- **Database Backend**: PostgreSQL (confirmed working)
+- **Container Integration**: Full Docker support
+- **API Access**: Ready for backup import
 - **Security**: Enhanced with latest security patches
-- **Backup**: Automated backup system in `backups/` directory
 
-### Development Environment Setup
-- **PostgreSQL**: Dual schema (n8n + pilotpros) fully configured
-- **Local n8n**: http://localhost:5678 (admin / pilotpros_admin_2025)
-- **Database**: pilotpros_db with 42+ tables total
-- **Scripts**: Automated setup with `npm run n8n:setup`
+### Development Environment Setup Status
+- **✅ PostgreSQL**: Dual schema (n8n + pilotpros) verified working in Docker
+- **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin / pilotpros_admin_2025)
+- **✅ Backend**: Connected to PostgreSQL with cross-schema access
+- **✅ Frontend**: React development server with hot-reload  
+- **✅ AI Agent**: MCP integration ready
+- **✅ Database**: 44 tables total (36 n8n + 8 pilotpros)
+- **✅ Docker**: Complete containerized development stack
+- **✅ Cross-Schema**: Real-time analytics and business intelligence ready

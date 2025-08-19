@@ -16,7 +16,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies with dev dependencies
-RUN npm ci
+RUN npm install
 
 # Install nodemon globally for hot reload
 RUN npm install -g nodemon

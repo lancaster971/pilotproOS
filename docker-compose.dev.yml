@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database per Sviluppo
   postgres-dev:
@@ -34,7 +32,7 @@ services:
 
   # n8n Workflow Engine - Development
   n8n-dev:
-    image: n8n/n8n:1.106.3
+    image: docker.n8n.io/n8nio/n8n:1.106.3
     container_name: pilotpros-n8n-dev
     restart: unless-stopped
     depends_on:
