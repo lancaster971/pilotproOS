@@ -1,0 +1,207 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (completamente isolato nel progetto)
+  postgres:
+    image: postgres:16-alpine
+    container_name: pilotpros-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pilotpros_db
+      POSTGRES_USER: pilotpros_user
+      POSTGRES_PASSWORD: pilotpros_secure_pass_2025
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - pilotpros-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pilotpros_user -d pilotpros_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # n8n Workflow Engine
+  n8n:
+    image: n8n/n8n:1.106.3
+    container_name: pilotpros-n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # PostgreSQL Configuration
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: pilotpros_db
+      DB_POSTGRESDB_USER: pilotpros_user
+      DB_POSTGRESDB_PASSWORD: pilotpros_secure_pass_2025
+      DB_POSTGRESDB_SCHEMA: n8n
+      DB_POSTGRESDB_POOL_SIZE: 10
+      DB_POSTGRESDB_SSL_MODE: disable
+      
+      # n8n Server Configuration
+      N8N_PORT: 5678
+      N8N_HOST: 0.0.0.0
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: pilotpros_admin_2025
+      
+      # Webhooks
+      WEBHOOK_URL: http://localhost:5678
+      N8N_PAYLOAD_SIZE_MAX: 16
+      
+      # Performance
+      EXECUTIONS_TIMEOUT: 300
+      EXECUTIONS_TIMEOUT_MAX: 3600
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_MAX_AGE: 336
+      
+      # Features
+      N8N_METRICS: true
+      N8N_LOG_LEVEL: info
+      N8N_LOG_OUTPUT: console
+      
+      # Privacy
+      N8N_DIAGNOSTICS_ENABLED: false
+      N8N_VERSION_NOTIFICATIONS_ENABLED: false
+      N8N_ANONYMOUS_TELEMETRY: false
+      N8N_PERSONALIZATION_ENABLED: false
+      
+      # Security
+      N8N_SECURE_COOKIE: false
+      N8N_COOKIE_SAME_SITE: strict
+      
+      # Binary Data
+      N8N_DEFAULT_BINARY_DATA_MODE: filesystem
+      
+      # UI
+      N8N_HIDE_USAGE_PAGE: true
+      N8N_TEMPLATES_ENABLED: false
+      
+      # Task Runners (v1.106.3)
+      N8N_RUNNERS_ENABLED: true
+      
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+      - ./logs/n8n:/var/log/n8n
+    ports:
+      - "5678:5678"
+    networks:
+      - pilotpros-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: pilotpros-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      HOST: 0.0.0.0
+      
+      # PostgreSQL Connection
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: pilotpros_db
+      DB_USER: pilotpros_user
+      DB_PASSWORD: pilotpros_secure_pass_2025
+      
+      # n8n Integration
+      N8N_URL: http://n8n:5678
+      N8N_ADMIN_USER: admin
+      N8N_ADMIN_PASSWORD: pilotpros_admin_2025
+      
+      # Security
+      JWT_SECRET: pilotpros_jwt_secret_key_2025_super_secure
+      BCRYPT_ROUNDS: 12
+      
+    volumes:
+      - ./backend:/app
+      - ./logs/backend:/app/logs
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    networks:
+      - pilotpros-network
+
+  # Frontend Development Server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: pilotpros-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_APP_NAME: PilotProOS
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - pilotpros-network
+    depends_on:
+      - backend
+
+  # AI Agent MCP
+  ai-agent:
+    build:
+      context: ./ai-agent
+      dockerfile: ../docker/ai-agent.Dockerfile
+    container_name: pilotpros-ai-agent
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: pilotpros_db
+      DB_USER: pilotpros_user
+      DB_PASSWORD: pilotpros_secure_pass_2025
+      
+      # n8n Integration
+      N8N_URL: http://n8n:5678
+      N8N_ADMIN_USER: admin
+      N8N_ADMIN_PASSWORD: pilotpros_admin_2025
+      
+    volumes:
+      - ./ai-agent:/app
+      - ./logs/ai-agent:/app/logs
+      - /app/node_modules
+    ports:
+      - "3002:3002"
+    networks:
+      - pilotpros-network
+
+networks:
+  pilotpros-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

@@ -13,44 +13,55 @@ PilotProOS is a containerized Business Process Operating System - a comprehensiv
 
 ## Development Commands
 
-### Root-level Commands (Workspace Management)
+### Root-level Commands (Cross-OS Development)
 ```bash
-# Install all dependencies across workspaces
-npm run install:all
+# 🚀 CROSS-OS DEVELOPMENT (Works on Windows/macOS/Linux)
+npm run dev               # Auto-detects: Docker → PostgreSQL stack, No Docker → SQLite
+npm run dev:docker        # Force Docker development stack (PostgreSQL + full environment)
+npm run dev:local         # Force local development (SQLite + npm services)
 
-# Development (all services concurrently including n8n)
-npm run dev
+# 📦 ENVIRONMENT SETUP
+npm run install:all       # Install all dependencies across workspaces
+npm run setup             # Auto-setup development environment
+npm run reset             # Reset development environment (clean slate)
 
-# Development (individual services)
-npm run dev:frontend  # Port 3000 (Vite dev server)
-npm run dev:backend   # Port 3001 (Express API)
-npm run dev:ai-agent  # Port 3002 (AI Agent API)
-npm run dev:n8n       # Port 5678 (n8n workflow engine)
+# 🔄 BACKUP & MIGRATION
+npm run import:backup     # Import workflow/credentials backup (from BU_Hostinger)
+npm run export:backup     # Export current setup to backup files
+npm run migrate:postgres  # Migrate from SQLite to PostgreSQL
 
-# n8n Management
-npm run n8n:setup     # Complete PostgreSQL + n8n setup
-npm run n8n:start     # Start n8n with PostgreSQL
-npm run n8n:stop      # Stop n8n server
+# 🐳 DOCKER DEVELOPMENT STACK
+npm run docker:dev        # Start full Docker development environment
+npm run docker:logs       # View all container logs
+npm run docker:reset      # Reset Docker environment + database
+npm run docker:psql       # Connect to PostgreSQL container
 
-# Build all
-npm run build
+# 🚀 TRADITIONAL DEVELOPMENT (OS-dependent)
+npm run dev:frontend      # Port 3000 (Vite dev server)
+npm run dev:backend       # Port 3001 (Express API)
+npm run dev:ai-agent      # Port 3002 (AI Agent API)
+npm run dev:n8n           # Port 5678 (n8n workflow engine)
 
-# Production deployment
-npm run start:all     # Includes n8n server
+# ⚙️ N8N MANAGEMENT (Local Installation)
+npm run n8n:setup         # Complete PostgreSQL + n8n setup (macOS/Linux only)
+npm run n8n:start         # Start n8n with PostgreSQL
+npm run n8n:stop          # Stop n8n server
 
-# Docker deployment
-npm run docker:build
-npm run docker:run
+# 🏗️ BUILD & PRODUCTION
+npm run build             # Build all services
+npm run start:all         # Production start (includes n8n server)
 
-# Quick deployment (all 4 scripts)
-npm run deploy:quick
+# 🌐 CLIENT DEPLOYMENT (Sanitized)
+npm run deploy:client     # Deploy to client server (completely anonymous)
+npm run package:client    # Package client deployment bundle
+npm run build:image       # Build client deployment image
 
-# Testing
+# 🧪 TESTING
 npm run test              # All tests
 npm run test:backend      # Jest backend tests
 npm run test:frontend     # Vitest frontend tests
 npm run test:integration  # Full system integration tests
-npm run test:postgresql   # PostgreSQL integration tests
+npm run test:docker       # Docker stack integration tests
 ```
 
 ### Frontend (React/TypeScript/Vite)
@@ -127,6 +138,85 @@ psql pilotpros_db         # Connect to database
 - **Client Access**: NEVER sees n8n interface or mentions
 - **Developer Access**: VPN + authentication + IP whitelist
 - **Business Translation**: All technical terms translated by backend middleware
+
+## Cross-OS Development Strategy
+
+### 🚀 Multi-Environment Architecture
+
+**DEVELOPMENT**: Cross-platform compatibility for any developer
+**PRODUCTION**: Sanitized client deployment with complete technology hiding
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DEVELOPMENT ENVIRONMENTS                           │
+│                                                                             │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  │
+│  │    DOCKER STACK     │  │   LOCAL INSTALL     │  │   SQLITE FALLBACK   │  │
+│  │  (Cross-Platform)   │  │  (OS-Dependent)     │  │     (Portable)      │  │
+│  │                     │  │                     │  │                     │  │
+│  │ 🐳 PostgreSQL       │  │ 🍺 Homebrew PG      │  │ 📁 SQLite File      │  │
+│  │ 🐳 n8n Container    │  │ 📦 npx n8n          │  │ 📦 npx n8n          │  │
+│  │ 🐳 Backend/Frontend │  │ 📱 npm run services │  │ 📱 npm run services │  │
+│  │                     │  │                     │  │                     │  │
+│  │ ✅ Windows/Mac/Linux│  │ ⚠️ macOS/Linux only │  │ ✅ Any OS + Node.js │  │
+│  │ ✅ Zero setup       │  │ ❌ Manual DB setup  │  │ ✅ File-based       │  │
+│  │ ✅ Production-like  │  │ ✅ Native speed     │  │ ⚠️ Limited features │  │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENT DEPLOYMENT                                │
+│                        (Complete Anonimization)                            │
+│                                                                             │
+│  🌐 Ubuntu Server + Docker → "Business Automation Platform"                │
+│  🚫 Client NEVER sees: PostgreSQL, n8n, Docker, technical terms            │
+│  ✅ Single command deploy: curl install.sh | bash -s domain.com            │
+│  ⏱️ 5-minute setup: Domain → Working business platform                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 🔄 Auto-Detection Development Flow
+
+```bash
+# Smart npm run dev behavior:
+if (docker available && docker-compose.dev.yml exists):
+    → Launch Docker stack (PostgreSQL + containers)
+    → "🐳 Docker development environment starting..."
+    
+elif (local PostgreSQL detected):
+    → Launch local services (existing behavior)
+    → "🔧 Local PostgreSQL development environment..."
+    
+else:
+    → Fallback to SQLite (portable mode)
+    → "📁 SQLite development mode (portable)..."
+
+# Always results in:
+# ✅ Frontend: http://localhost:3000
+# ✅ Backend: http://localhost:3001  
+# ✅ n8n: http://localhost:5678
+# ✅ Database: PostgreSQL or SQLite (transparent to dev)
+```
+
+### 📦 Environment Portability
+
+**Developer Onboarding**:
+1. `git clone` the repository
+2. `npm run dev` → Auto-detects best environment
+3. Immediate development ready
+
+**Client Deployment**:
+1. `curl deploy-script | bash -s client-domain.com`
+2. Complete "Business Platform" in 5 minutes
+3. Zero technical terminology exposed
+
+**Backup Import/Export**:
+```bash
+npm run import:backup    # Load BU_Hostinger workflow backup
+npm run export:backup    # Create portable backup files
+npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
+```
 
 ## Code Architecture
 
