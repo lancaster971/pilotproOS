@@ -13,56 +13,50 @@ PilotProOS is a containerized Business Process Operating System - a comprehensiv
 
 ## Development Commands
 
-### Root-level Commands (Cross-OS Development)
+### Root-level Commands (Docker-First Cross-OS Development)
 ```bash
-# 🚀 CROSS-OS DEVELOPMENT (Works on Windows/macOS/Linux)
-npm run dev               # Auto-detects: Docker → PostgreSQL stack, No Docker → SQLite
-npm run dev:docker        # Force Docker development stack (PostgreSQL + full environment)
-npm run dev:local         # Force local development (SQLite + npm services)
+# 🚀 DOCKER-FIRST DEVELOPMENT (Auto-installs Docker if missing)
+npm run dev               # Ensures Docker installed → Starts complete stack
+npm run setup             # Install all Node.js dependencies
+npm run reset             # Clean reset: stop containers + reinstall
 
-# 📦 ENVIRONMENT SETUP
-npm run install:all       # Install all dependencies across workspaces
-npm run setup             # Auto-setup development environment
-npm run reset             # Reset development environment (clean slate)
+# 🐳 DOCKER MANAGEMENT
+npm run docker:stop       # Stop all development containers
+npm run docker:reset      # Reset containers + database + restart
+npm run docker:logs       # View all container logs in real-time
+npm run docker:psql       # Connect to PostgreSQL database directly
+npm run docker:clean      # Remove all containers, volumes, and images
 
-# 🔄 BACKUP & MIGRATION
+# 🔄 BACKUP & DATA
 npm run import:backup     # Import workflow/credentials backup (from BU_Hostinger)
 npm run export:backup     # Export current setup to backup files
-npm run migrate:postgres  # Migrate from SQLite to PostgreSQL
-
-# 🐳 DOCKER DEVELOPMENT STACK
-npm run docker:dev        # Start full Docker development environment
-npm run docker:logs       # View all container logs
-npm run docker:reset      # Reset Docker environment + database
-npm run docker:psql       # Connect to PostgreSQL container
-
-# 🚀 TRADITIONAL DEVELOPMENT (OS-dependent)
-npm run dev:frontend      # Port 3000 (Vite dev server)
-npm run dev:backend       # Port 3001 (Express API)
-npm run dev:ai-agent      # Port 3002 (AI Agent API)
-npm run dev:n8n           # Port 5678 (n8n workflow engine)
-
-# ⚙️ N8N MANAGEMENT (Local Installation)
-npm run n8n:setup         # Complete PostgreSQL + n8n setup (macOS/Linux only)
-npm run n8n:start         # Start n8n with PostgreSQL
-npm run n8n:stop          # Stop n8n server
 
 # 🏗️ BUILD & PRODUCTION
-npm run build             # Build all services
-npm run start:all         # Production start (includes n8n server)
+npm run build             # Build all services for production
+npm run start:all         # Production start (non-Docker mode)
 
 # 🌐 CLIENT DEPLOYMENT (Sanitized)
 npm run deploy:client     # Deploy to client server (completely anonymous)
 npm run package:client    # Package client deployment bundle
 npm run build:image       # Build client deployment image
 
-# 🧪 TESTING
-npm run test              # All tests
-npm run test:backend      # Jest backend tests
-npm run test:frontend     # Vitest frontend tests
-npm run test:integration  # Full system integration tests
-npm run test:docker       # Docker stack integration tests
+# 🧪 TESTING (All in Docker)
+npm run test              # Run all tests in Docker containers
+npm run test:backend      # Backend tests in container
+npm run test:frontend     # Frontend tests in container
+npm run test:integration  # Integration tests in container
 ```
+
+**🐳 Complete Docker Stack Includes:**
+- **PostgreSQL 16** with dual schema (n8n + pilotpros)
+- **n8n 1.106.3** with task runners enabled
+- **Backend API** with hot reload
+- **Frontend React** with hot reload  
+- **AI Agent MCP** with hot reload
+- **PgAdmin** for database management (optional)
+
+**✅ Cross-OS Guarantee:**
+Any developer with Node.js can run `npm run dev` and get identical environment on Windows/macOS/Linux.
 
 ### Frontend (React/TypeScript/Vite)
 ```bash
@@ -176,27 +170,29 @@ psql pilotpros_db         # Connect to database
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 🔄 Auto-Detection Development Flow
+### 🔄 Docker-First Development Flow
 
 ```bash
-# Smart npm run dev behavior:
-if (docker available && docker-compose.dev.yml exists):
-    → Launch Docker stack (PostgreSQL + containers)
-    → "🐳 Docker development environment starting..."
+# Docker-First npm run dev behavior:
+if (docker not installed):
+    → Auto-install Docker for current OS
+    → "🚀 Installing Docker Desktop for cross-OS development..."
     
-elif (local PostgreSQL detected):
-    → Launch local services (existing behavior)
-    → "🔧 Local PostgreSQL development environment..."
+if (docker not running):
+    → Auto-start Docker
+    → "🐳 Starting Docker Desktop..."
     
-else:
-    → Fallback to SQLite (portable mode)
-    → "📁 SQLite development mode (portable)..."
+always:
+    → Launch complete Docker stack
+    → "🚀 Starting PilotProOS Docker Development Stack..."
 
 # Always results in:
-# ✅ Frontend: http://localhost:3000
-# ✅ Backend: http://localhost:3001  
-# ✅ n8n: http://localhost:5678
-# ✅ Database: PostgreSQL or SQLite (transparent to dev)
+# ✅ Frontend: http://localhost:3000 (React with hot-reload)
+# ✅ Backend: http://localhost:3001 (Express with hot-reload)
+# ✅ AI Agent: http://localhost:3002 (MCP with hot-reload)
+# ✅ n8n: http://localhost:5678 (admin / pilotpros_admin_2025)
+# ✅ Database: localhost:5432 (PostgreSQL with dual schema)
+# ✅ PgAdmin: http://localhost:5050 (database management)
 ```
 
 ### 📦 Environment Portability
