@@ -40,6 +40,7 @@
   "dependencies": {
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
+    "dotenv": "^17.2.1",
     "n8n": "^1.106.3"
   },
   "devDependencies": {

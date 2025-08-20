@@ -7,16 +7,21 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { config } from 'dotenv';
 import chalk from 'chalk';
 import ora from 'ora';
+
+// Load environment variables from .env
+config();
 
 const ROOT_DIR = process.cwd();
 const BACKUP_DIR = join(ROOT_DIR, 'BU_Hostinger');
 const WORKFLOWS_FILE = join(BACKUP_DIR, 'workflows.json');
 const CREDENTIALS_FILE = join(BACKUP_DIR, 'credentials.json');
 
-// n8n API configuration
+// n8n API configuration from .env
 const N8N_URL = process.env.N8N_URL || 'http://localhost:5678';
+const N8N_API_KEY = process.env.N8N_API_KEY;
 const N8N_USER = process.env.N8N_ADMIN_USER || 'admin';
 const N8N_PASSWORD = process.env.N8N_ADMIN_PASSWORD || 'pilotpros_admin_2025';
 
@@ -32,12 +37,20 @@ const log = {
 // Check if n8n is running and accessible
 async function checkN8nConnection() {
     try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Use API key if available, otherwise fall back to basic auth
+        if (N8N_API_KEY) {
+            headers['X-N8N-API-KEY'] = N8N_API_KEY;
+        } else {
+            headers['Authorization'] = `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`;
+        }
+        
         const response = await fetch(`${N8N_URL}/api/v1/workflows`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`,
-                'Content-Type': 'application/json'
-            }
+            headers
         });
         
         if (!response.ok) {
@@ -91,18 +104,28 @@ async function importCredentials(credentials) {
     let skipped = 0;
     let errors = 0;
     
+    // Prepare headers with API key
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (N8N_API_KEY) {
+        headers['X-N8N-API-KEY'] = N8N_API_KEY;
+    } else {
+        headers['Authorization'] = `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`;
+    }
+    
     for (const credential of credentials) {
         try {
-            // Remove the ID to let n8n assign a new one
+            // Clean credential data - remove read-only fields
             const credentialData = { ...credential };
             delete credentialData.id;
+            delete credentialData.createdAt;
+            delete credentialData.updatedAt;
             
             const response = await fetch(`${N8N_URL}/api/v1/credentials`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`,
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify(credentialData)
             });
             
@@ -140,18 +163,41 @@ async function importWorkflows(workflows) {
     let skipped = 0;
     let errors = 0;
     
+    // Prepare headers with API key
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (N8N_API_KEY) {
+        headers['X-N8N-API-KEY'] = N8N_API_KEY;
+    } else {
+        headers['Authorization'] = `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`;
+    }
+    
     for (const workflow of workflows) {
         try {
-            // Remove the ID to let n8n assign a new one
-            const workflowData = { ...workflow };
-            delete workflowData.id;
+            // Map to exact n8n 1.106.3 schema (only required fields)
+            const workflowData = {
+                name: workflow.name,
+                nodes: workflow.nodes || [],
+                connections: workflow.connections || {},
+                settings: workflow.settings || {}
+            };
+            
+            // Add optional fields only if they exist and are not null/empty
+            if (workflow.staticData && Object.keys(workflow.staticData).length > 0) {
+                workflowData.staticData = workflow.staticData;
+            }
+            if (workflow.pinData && Object.keys(workflow.pinData).length > 0) {
+                workflowData.pinData = workflow.pinData;
+            }
+            if (workflow.meta && Object.keys(workflow.meta).length > 0) {
+                workflowData.meta = workflow.meta;
+            }
             
             const response = await fetch(`${N8N_URL}/api/v1/workflows`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`,
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify(workflowData)
             });
             
@@ -165,10 +211,7 @@ async function importWorkflows(workflows) {
                     try {
                         await fetch(`${N8N_URL}/api/v1/workflows/${result.id}/activate`, {
                             method: 'POST',
-                            headers: {
-                                'Authorization': `Basic ${Buffer.from(`${N8N_USER}:${N8N_PASSWORD}`).toString('base64')}`,
-                                'Content-Type': 'application/json'
-                            }
+                            headers
                         });
                     } catch (activateError) {
                         console.error(`\nFailed to activate workflow "${workflow.name}": ${activateError.message}`);
