@@ -32,7 +32,7 @@ services:
 
   # n8n Workflow Engine - Development
   n8n-dev:
-    image: docker.n8n.io/n8nio/n8n:1.106.3
+    image: docker.n8n.io/n8nio/n8n:1.107.3
     container_name: pilotpros-n8n-dev
     restart: unless-stopped
     depends_on:
@@ -53,9 +53,7 @@ services:
       # n8n Server Configuration
       N8N_PORT: 5678
       N8N_HOST: 0.0.0.0
-      N8N_BASIC_AUTH_ACTIVE: true
-      N8N_BASIC_AUTH_USER: admin
-      N8N_BASIC_AUTH_PASSWORD: pilotpros_admin_2025
+      N8N_BASIC_AUTH_ACTIVE: false
       
       # Development-specific
       N8N_LOG_LEVEL: debug
@@ -92,7 +90,7 @@ services:
       N8N_HIDE_USAGE_PAGE: false
       N8N_TEMPLATES_ENABLED: true  # Templates enabled in dev
       
-      # Task Runners (v1.106.3)
+      # Task Runners (v1.107.3)
       N8N_RUNNERS_ENABLED: true
       
       # Development editor settings
