@@ -13,6 +13,7 @@
     "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f",
     "docker:psql": "docker-compose -f docker-compose.dev.yml exec postgres-dev psql -U pilotpros_user -d pilotpros_db",
     "docker:clean": "docker-compose -f docker-compose.dev.yml down -v --rmi all --remove-orphans",
+    "n8n:auto-setup": "node scripts/n8n-auto-setup.js",
     "import:backup": "node scripts/import-backup.js",
     "export:backup": "node scripts/export-backup.js",
     "build": "npm run build:backend && npm run build:frontend && npm run build:ai-agent",

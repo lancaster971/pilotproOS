@@ -206,13 +206,15 @@ always:
 
 **Developer Onboarding**:
 1. `git clone` the repository
-2. `npm run dev` → Auto-detects best environment
-3. Immediate development ready
+2. `npm run dev` → Auto-detects Docker, installs if needed, starts complete stack
+3. Immediate development ready with PostgreSQL + n8n
 
-**Client Deployment**:
-1. `curl deploy-script | bash -s client-domain.com`
-2. Complete "Business Platform" in 5 minutes
-3. Zero technical terminology exposed
+**Client Deployment** (Completely Sanitized):
+1. `curl https://install.pilotpro.com/setup | bash` 
+2. Client provides: domain, email, name, company
+3. Script installs "Business Automation Platform" (never mentions Docker/PostgreSQL/n8n)
+4. n8n auto-configures silently with client data (NO telemetry/updates flagged)
+5. Client sees only: "✅ Business Platform Ready at https://domain.com"
 
 **Backup Import/Export**:
 ```bash
