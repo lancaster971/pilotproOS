@@ -9,6 +9,25 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Business sanitization utilities
+import { 
+  sanitizeBusinessData, 
+  getBusinessStatus,
+  getBusinessHealthStatus,
+  categorizeBusinessProcess,
+  sanitizeErrorMessage,
+  formatBusinessDuration,
+  generateBusinessInsights
+} from './utils/business-terminology.js';
+
+import { 
+  businessSanitizer,
+  sanitizeBusinessParams,
+  validateBusinessData,
+  businessOperationLogger,
+  businessErrorHandler
+} from './middleware/business-sanitizer.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -93,6 +112,12 @@ app.use('/api/', apiLimiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+// Business sanitization middleware stack
+app.use(businessOperationLogger());
+app.use(sanitizeBusinessParams());
+app.use(validateBusinessData());
+app.use(businessSanitizer());
+
 // Request logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
@@ -153,8 +178,8 @@ app.get('/api/business/processes', async (req, res) => {
         w.id as process_id,
         w.name as process_name,
         w.active as is_active,
-        w.created_at as created_date,
-        w.updated_at as last_modified,
+        w."createdAt" as created_date,
+        w."updatedAt" as last_modified,
         
         -- Business analytics from our schema
         COALESCE(ba.success_rate, 0) as success_rate,
@@ -168,8 +193,8 @@ app.get('/api/business/processes', async (req, res) => {
         (
           SELECT COUNT(*) 
           FROM n8n.execution_entity e 
-          WHERE e.workflow_id = w.id 
-          AND e.started_at >= CURRENT_DATE
+          WHERE e."workflowId" = w.id 
+          AND e."startedAt" >= CURRENT_DATE
         ) as executions_today,
         
         -- Health status
@@ -183,7 +208,7 @@ app.get('/api/business/processes', async (req, res) => {
       FROM n8n.workflow_entity w
       LEFT JOIN pilotpros.business_analytics ba ON w.id = ba.n8n_workflow_id
       WHERE w.active = true
-      ORDER BY ba.business_impact_score DESC NULLS LAST, w.updated_at DESC
+      ORDER BY ba.business_impact_score DESC NULLS LAST, w."updatedAt" DESC
     `);
     
     res.json({
@@ -431,6 +456,724 @@ app.post('/api/business/processes/:id/trigger', async (req, res) => {
 });
 
 // ============================================================================
+// EXTENDED BUSINESS API ENDPOINTS (Complete n8n Data with Sanitization)
+// ============================================================================
+
+// Process Details API - Complete process information
+app.get('/api/business/process-details/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { include_steps = 'true', include_history = 'false' } = req.query;
+    
+    // Query principale per il processo con tutti i dati n8n
+    const processQuery = `
+      SELECT 
+        w.id as process_id,
+        w.name as process_name,
+        w.active as is_active,
+        w."createdAt" as created_date,
+        w."updatedAt" as last_modified,
+        w.nodes,
+        w.connections,
+        w.settings,
+        w."staticData",
+        w."pinData",
+        w."versionId",
+        w."triggerCount",
+        w.meta,
+        w."isArchived",
+        
+        -- Business analytics cross-schema
+        ba.success_rate,
+        ba.avg_duration_ms,
+        ba.total_executions,
+        ba.last_execution,
+        ba.trend_direction,
+        ba.business_impact_score,
+        
+        -- Real-time metrics from n8n
+        (
+          SELECT COUNT(*) 
+          FROM n8n.execution_entity e 
+          WHERE e."workflowId" = w.id 
+          AND e."startedAt" >= CURRENT_DATE
+        ) as executions_today,
+        
+        (
+          SELECT COUNT(*) 
+          FROM n8n.execution_entity e 
+          WHERE e."workflowId" = w.id 
+          AND e."startedAt" >= NOW() - INTERVAL '7 days'
+        ) as executions_this_week,
+        
+        (
+          SELECT COUNT(*) 
+          FROM n8n.execution_entity e 
+          WHERE e."workflowId" = w.id 
+          AND e.finished = true 
+          AND e.status = 'success'
+          AND e."startedAt" >= NOW() - INTERVAL '7 days'
+        ) as successful_executions_week,
+        
+        -- Latest execution info
+        (
+          SELECT e.status
+          FROM n8n.execution_entity e 
+          WHERE e."workflowId" = w.id 
+          ORDER BY e."startedAt" DESC 
+          LIMIT 1
+        ) as latest_run_status,
+        
+        (
+          SELECT e."startedAt"
+          FROM n8n.execution_entity e 
+          WHERE e."workflowId" = w.id 
+          ORDER BY e."startedAt" DESC 
+          LIMIT 1
+        ) as latest_run_time
+        
+      FROM n8n.workflow_entity w
+      LEFT JOIN pilotpros.business_analytics ba ON w.id = ba.n8n_workflow_id
+      WHERE w.id = $1
+    `;
+    
+    const processResult = await dbPool.query(processQuery, [id]);
+    
+    if (processResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Business process not found',
+        message: 'The requested process does not exist or you do not have access to it',
+        suggestions: [
+          'Verify the process ID is correct',
+          'Check if the process has been archived',
+          'Contact support if you believe this is an error'
+        ]
+      });
+    }
+    
+    const process = processResult.rows[0];
+    
+    // Calcola health status business
+    const weeklySuccessRate = process.executions_this_week > 0 
+      ? (process.successful_executions_week / process.executions_this_week) * 100 
+      : (process.success_rate || 0);
+    
+    const healthStatus = getBusinessHealthStatus(weeklySuccessRate);
+    
+    // Categorizza il processo automaticamente
+    const category = categorizeBusinessProcess(process.process_name, process.nodes || []);
+    
+    // Build business response
+    const businessProcess = {
+      processId: process.process_id,
+      processName: process.process_name,
+      category: category,
+      isActive: process.is_active,
+      isArchived: process.is_archived,
+      
+      // Timeline business
+      timeline: {
+        createdDate: process.created_date,
+        lastModified: process.last_modified,
+        lastActivity: process.latest_run_time,
+        version: process.version_id
+      },
+      
+      // Performance metrics business-friendly
+      performance: {
+        healthStatus: healthStatus,
+        successRate: Math.round(weeklySuccessRate * 10) / 10,
+        averageDuration: formatBusinessDuration(process.avg_duration_ms),
+        averageDurationMs: process.avg_duration_ms || 0,
+        totalExecutions: process.total_executions || 0,
+        executionsToday: process.executions_today || 0,
+        executionsThisWeek: process.executions_this_week || 0,
+        reliability: weeklySuccessRate >= 95 ? 'Excellent' : 
+                    weeklySuccessRate >= 85 ? 'Good' : 
+                    weeklySuccessRate >= 70 ? 'Fair' : 'Needs Attention'
+      },
+      
+      // Business insights auto-generated
+      insights: generateBusinessInsights({
+        successRate: weeklySuccessRate,
+        avgDurationMs: process.avg_duration_ms,
+        totalExecutions: process.total_executions,
+        executionsToday: process.executions_today
+      }),
+      
+      // Latest activity business context
+      latestActivity: {
+        lastRun: process.latest_run_time,
+        lastRunStatus: process.latest_run_status ? getBusinessStatus(process.latest_run_status) : null,
+        trend: process.trend_direction || 'stable',
+        triggerCount: process.trigger_count || 0
+      },
+      
+      // Business impact metrics
+      businessImpact: {
+        score: process.business_impact_score || 0,
+        estimatedTimeSaved: process.total_executions ? 
+          `${Math.round(process.total_executions * 5 / 60)} hours` : '0 hours',
+        estimatedCostSavings: process.total_executions ? 
+          `€${Math.round(process.total_executions * 2.5)}` : '€0',
+        businessValue: process.business_impact_score > 7 ? 'High' : 
+                      process.business_impact_score > 4 ? 'Medium' : 'Low'
+      }
+    };
+    
+    // Include process steps se richiesto (sanitized)
+    if (include_steps === 'true' && process.nodes) {
+      businessProcess.processSteps = sanitizeProcessSteps(process.nodes, process.connections);
+    }
+    
+    // Include recent runs per context
+    businessProcess.recentRuns = await getRecentProcessRuns(id, 5);
+    
+    res.json({
+      data: businessProcess,
+      summary: {
+        status: process.is_active ? 'Active and Running' : 'Inactive',
+        performance: healthStatus.label,
+        usage: process.executions_today > 0 ? 'Recently Active' : 'Not Used Today',
+        recommendation: weeklySuccessRate < 70 ? 'Review and optimize' : 'Performing well'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching process details:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve process details',
+      message: 'Unable to access business process information',
+      suggestions: [
+        'Try refreshing the page',
+        'Check your network connection',
+        'Contact technical support if the issue persists'
+      ]
+    });
+  }
+});
+
+// Integration Health API - Connection status and credentials health
+app.get('/api/business/integration-health', async (req, res) => {
+  try {
+    const { include_usage = 'true' } = req.query;
+    
+    // Query per credenziali con usage statistics
+    const credentialsQuery = `
+      SELECT 
+        c.id as connection_id,
+        c.name as connection_name,
+        c.type as service_type,
+        c."createdAt" as created_date,
+        c."updatedAt" as last_modified,
+        c."isManaged" as is_managed,
+        
+        -- Usage statistics from executions
+        (
+          SELECT COUNT(DISTINCT w.id)
+          FROM n8n.workflow_entity w
+          WHERE w.nodes::text LIKE '%' || c.type || '%'
+        ) as workflows_using,
+        
+        (
+          SELECT COUNT(*)
+          FROM n8n.execution_entity e
+          JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+          WHERE w.nodes::text LIKE '%' || c.type || '%'
+          AND e."startedAt" >= NOW() - INTERVAL '7 days'
+        ) as executions_this_week,
+        
+        (
+          SELECT COUNT(*)
+          FROM n8n.execution_entity e
+          JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+          WHERE w.nodes::text LIKE '%' || c.type || '%'
+          AND e."startedAt" >= NOW() - INTERVAL '7 days'
+          AND e.status = 'error'
+        ) as errors_this_week,
+        
+        -- Last successful usage
+        (
+          SELECT MAX(e."startedAt")
+          FROM n8n.execution_entity e
+          JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+          WHERE w.nodes::text LIKE '%' || c.type || '%'
+          AND e.status = 'success'
+        ) as last_successful_use
+        
+      FROM n8n.credentials_entity c
+      ORDER BY c."updatedAt" DESC
+    `;
+    
+    const credentialsResult = await dbPool.query(credentialsQuery);
+    
+    // Process each credential into business format
+    const connections = credentialsResult.rows.map(cred => {
+      const errorRate = cred.executions_this_week > 0 
+        ? (cred.errors_this_week / cred.executions_this_week) * 100 
+        : 0;
+      
+      // Determine health status
+      let healthStatus;
+      if (errorRate === 0 && cred.executions_this_week > 0) {
+        healthStatus = { label: 'Excellent', color: 'green', icon: '✅' };
+      } else if (errorRate < 5) {
+        healthStatus = { label: 'Good', color: 'blue', icon: '👍' };
+      } else if (errorRate < 20) {
+        healthStatus = { label: 'Fair', color: 'yellow', icon: '⚠️' };
+      } else {
+        healthStatus = { label: 'Needs Attention', color: 'red', icon: '🔧' };
+      }
+      
+      // Business service type mapping
+      const serviceTypeMap = {
+        'gmail': 'Email Service',
+        'slack': 'Team Communication',
+        'googleSheets': 'Spreadsheet Service',
+        'airtable': 'Database Service',
+        'httpRequest': 'Web Service',
+        'webhook': 'Integration Endpoint',
+        'ftp': 'File Transfer',
+        'mysql': 'Database Connection',
+        'postgres': 'Database Connection'
+      };
+      
+      return {
+        connectionId: cred.connection_id,
+        connectionName: cred.connection_name,
+        serviceType: serviceTypeMap[cred.service_type] || 'External Service',
+        technicalType: cred.service_type, // For debugging only
+        
+        // Health metrics
+        health: {
+          status: healthStatus,
+          errorRate: Math.round(errorRate * 10) / 10,
+          reliability: 100 - errorRate,
+          lastSuccessfulUse: cred.last_successful_use
+        },
+        
+        // Usage metrics
+        usage: {
+          workflowsUsing: cred.workflows_using || 0,
+          executionsThisWeek: cred.executions_this_week || 0,
+          errorsThisWeek: cred.errors_this_week || 0,
+          isActive: cred.executions_this_week > 0
+        },
+        
+        // Management info
+        management: {
+          isManaged: cred.is_managed,
+          createdDate: cred.created_date,
+          lastModified: cred.last_modified,
+          status: cred.executions_this_week > 0 ? 'Active' : 'Inactive'
+        }
+      };
+    });
+    
+    // Calculate overall statistics
+    const totalConnections = connections.length;
+    const activeConnections = connections.filter(c => c.usage.isActive).length;
+    const healthyConnections = connections.filter(c => c.health.errorRate < 5).length;
+    const needsAttention = connections.filter(c => c.health.errorRate > 20).length;
+    
+    res.json({
+      data: connections,
+      summary: {
+        totalConnections,
+        activeConnections,
+        healthyConnections,
+        needsAttention,
+        overallHealth: needsAttention === 0 ? 'Excellent' : 
+                      needsAttention < totalConnections * 0.1 ? 'Good' : 'Needs Review'
+      },
+      insights: [
+        activeConnections > 0 ? 
+          `${activeConnections} of ${totalConnections} connections are actively used` : 
+          'No connections have been used recently',
+        healthyConnections === totalConnections ? 
+          'All connections are performing well' : 
+          `${needsAttention} connections need attention`,
+        totalConnections > 5 ? 
+          'You have a well-connected automation ecosystem' : 
+          'Consider adding more integrations to expand automation capabilities'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching integration health:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve integration health',
+      message: 'Unable to access connection status information',
+      suggestions: [
+        'Check if the business process engine is running',
+        'Verify database connectivity',
+        'Contact technical support for assistance'
+      ]
+    });
+  }
+});
+
+// Advanced Analytics API - Comprehensive business insights
+app.get('/api/business/automation-insights', async (req, res) => {
+  try {
+    const { period = '7d', include_predictions = 'false' } = req.query;
+    
+    // Determine time interval
+    const intervalMap = {
+      '1d': '1 day',
+      '7d': '7 days', 
+      '30d': '30 days',
+      '90d': '90 days'
+    };
+    const interval = intervalMap[period] || '7 days';
+    
+    // Comprehensive analytics query
+    const analyticsQuery = `
+      WITH process_stats AS (
+        SELECT 
+          COUNT(DISTINCT w.id) as total_processes,
+          COUNT(DISTINCT CASE WHEN w.active = true THEN w.id END) as active_processes,
+          COUNT(DISTINCT CASE WHEN w."isArchived" = true THEN w.id END) as archived_processes
+        FROM n8n.workflow_entity w
+      ),
+      execution_stats AS (
+        SELECT 
+          COUNT(*) as total_executions,
+          COUNT(CASE WHEN e.status = 'success' THEN 1 END) as successful_executions,
+          COUNT(CASE WHEN e.status = 'error' THEN 1 END) as failed_executions,
+          COUNT(CASE WHEN e.finished = false THEN 1 END) as running_executions,
+          AVG(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as avg_duration_ms,
+          MIN(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as min_duration_ms,
+          MAX(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as max_duration_ms
+        FROM n8n.execution_entity e
+        WHERE e."startedAt" >= NOW() - INTERVAL '${interval}'
+      ),
+      daily_trends AS (
+        SELECT 
+          DATE(e."startedAt") as execution_date,
+          COUNT(*) as daily_executions,
+          COUNT(CASE WHEN e.status = 'success' THEN 1 END) as daily_successes,
+          AVG(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as daily_avg_duration
+        FROM n8n.execution_entity e
+        WHERE e."startedAt" >= NOW() - INTERVAL '${interval}'
+        GROUP BY DATE(e."startedAt")
+        ORDER BY execution_date DESC
+      ),
+      top_processes AS (
+        SELECT 
+          w.id,
+          w.name,
+          COUNT(e.id) as execution_count,
+          COUNT(CASE WHEN e.status = 'success' THEN 1 END) as success_count,
+          AVG(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as avg_duration
+        FROM n8n.workflow_entity w
+        LEFT JOIN n8n.execution_entity e ON w.id = e."workflowId"
+          AND e."startedAt" >= NOW() - INTERVAL '${interval}'
+        WHERE w.active = true
+        GROUP BY w.id, w.name
+        ORDER BY execution_count DESC
+        LIMIT 10
+      )
+      SELECT 
+        -- Process overview
+        ps.total_processes,
+        ps.active_processes, 
+        ps.archived_processes,
+        
+        -- Execution metrics
+        es.total_executions,
+        es.successful_executions,
+        es.failed_executions,
+        es.running_executions,
+        es.avg_duration_ms,
+        es.min_duration_ms,
+        es.max_duration_ms,
+        
+        -- Trends (as JSON)
+        (SELECT json_agg(dt ORDER BY dt.execution_date DESC) FROM daily_trends dt) as daily_trends,
+        
+        -- Top processes (as JSON)
+        (SELECT json_agg(tp ORDER BY tp.execution_count DESC) FROM top_processes tp) as top_processes
+        
+      FROM process_stats ps, execution_stats es
+    `;
+    
+    const analyticsResult = await dbPool.query(analyticsQuery);
+    const data = analyticsResult.rows[0];
+    
+    // Calculate business metrics
+    const successRate = data.total_executions > 0 
+      ? (data.successful_executions / data.total_executions * 100) 
+      : 0;
+    
+    const errorRate = data.total_executions > 0 
+      ? (data.failed_executions / data.total_executions * 100) 
+      : 0;
+    
+    const automationEfficiency = data.active_processes > 0 
+      ? (data.total_executions / data.active_processes) 
+      : 0;
+    
+    // Business impact calculations
+    const estimatedTimeSaved = data.successful_executions * 5; // 5 minutes per successful execution
+    const estimatedCostSavings = estimatedTimeSaved * 0.5; // €0.50 per minute saved
+    const businessImpactScore = Math.min(10, (successRate / 10) + (automationEfficiency / 100));
+    
+    // Process daily trends for business insights
+    const trends = data.daily_trends || [];
+    const trendDirection = trends.length > 1 ? 
+      (trends[0].daily_executions > trends[trends.length - 1].daily_executions ? 'increasing' : 'decreasing') : 
+      'stable';
+    
+    res.json({
+      // Overview metrics
+      overview: {
+        totalProcesses: parseInt(data.total_processes) || 0,
+        activeProcesses: parseInt(data.active_processes) || 0,
+        archivedProcesses: parseInt(data.archived_processes) || 0,
+        automationCoverage: data.total_processes > 0 ? 
+          Math.round((data.active_processes / data.total_processes) * 100) : 0
+      },
+      
+      // Performance metrics
+      performance: {
+        totalExecutions: parseInt(data.total_executions) || 0,
+        successfulExecutions: parseInt(data.successful_executions) || 0,
+        failedExecutions: parseInt(data.failed_executions) || 0,
+        currentlyRunning: parseInt(data.running_executions) || 0,
+        successRate: Math.round(successRate * 10) / 10,
+        errorRate: Math.round(errorRate * 10) / 10,
+        averageDuration: formatBusinessDuration(data.avg_duration_ms),
+        efficiency: automationEfficiency > 100 ? 'High' : 
+                   automationEfficiency > 50 ? 'Good' : 
+                   automationEfficiency > 10 ? 'Fair' : 'Low'
+      },
+      
+      // Business impact
+      businessImpact: {
+        timeSavedMinutes: estimatedTimeSaved,
+        timeSavedHours: Math.round(estimatedTimeSaved / 60),
+        costSavings: `€${Math.round(estimatedCostSavings)}`,
+        businessImpactScore: Math.round(businessImpactScore * 10) / 10,
+        roi: estimatedCostSavings > 0 ? 'Positive' : 'Calculating',
+        productivity: automationEfficiency > 50 ? 'High Impact' : 'Growing Impact'
+      },
+      
+      // Trends and insights
+      trends: {
+        direction: trendDirection,
+        dailyData: trends.slice(0, 7), // Last 7 days
+        weekOverWeek: trends.length > 7 ? 
+          Math.round(((trends[0]?.daily_executions || 0) / (trends[7]?.daily_executions || 1) - 1) * 100) : 0
+      },
+      
+      // Top performing processes
+      topPerformers: (data.top_processes || []).map(proc => ({
+        processName: proc.name,
+        executionCount: proc.execution_count,
+        successRate: proc.execution_count > 0 ? 
+          Math.round((proc.success_count / proc.execution_count) * 100) : 0,
+        averageDuration: formatBusinessDuration(proc.avg_duration),
+        businessValue: proc.execution_count > 100 ? 'High' : 
+                      proc.execution_count > 20 ? 'Medium' : 'Low'
+      })),
+      
+      // Business insights
+      insights: [
+        successRate >= 95 ? 
+          '🎯 Excellent automation performance - processes are highly reliable' :
+          successRate >= 80 ?
+          '👍 Good automation performance with room for optimization' :
+          '⚠️ Automation reliability needs attention - review failing processes',
+          
+        data.total_executions > 1000 ?
+          '📈 High automation usage indicates strong business value' :
+          data.total_executions > 100 ?
+          '📊 Growing automation adoption - continue expanding' :
+          '🚀 Early stage automation - focus on key processes first',
+          
+        estimatedTimeSaved > 480 ? // 8 hours
+          `💰 Significant time savings: ${Math.round(estimatedTimeSaved / 60)} hours saved` :
+          `⏱️ Time savings growing: ${Math.round(estimatedTimeSaved / 60)} hours saved this period`,
+          
+        data.active_processes < 5 ?
+          '🎯 Consider adding more processes to increase automation coverage' :
+          data.active_processes > 20 ?
+          '🏆 Comprehensive automation ecosystem - excellent coverage' :
+          '📈 Good automation foundation - continue expanding strategically'
+      ],
+      
+      recommendations: generateBusinessRecommendations({
+        successRate,
+        errorRate, 
+        automationEfficiency,
+        totalProcesses: data.active_processes,
+        totalExecutions: data.total_executions
+      })
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching automation insights:', error);
+    res.status(500).json({
+      error: 'Failed to generate automation insights',
+      message: 'Unable to analyze business automation performance',
+      suggestions: [
+        'Try selecting a different time period',
+        'Check if there is sufficient automation data',
+        'Contact support for detailed analytics assistance'
+      ]
+    });
+  }
+});
+
+// ============================================================================
+// HELPER FUNCTIONS FOR EXTENDED APIS
+// ============================================================================
+
+// Sanitize process steps (nodes) for business consumption
+function sanitizeProcessSteps(nodes, connections = {}) {
+  if (!Array.isArray(nodes)) return [];
+  
+  return nodes.map((node, index) => {
+    const stepType = getBusinessStepType(node.type);
+    
+    return {
+      stepId: node.name,
+      stepName: node.name || `Step ${index + 1}`,
+      stepType: stepType,
+      position: node.position || { x: 0, y: 0 },
+      description: getStepDescription(node.type),
+      isStartStep: index === 0, // Simplified logic
+      isEndStep: index === nodes.length - 1,
+      configuration: sanitizeStepConfiguration(node.parameters || {})
+    };
+  });
+}
+
+function getBusinessStepType(nodeType) {
+  const businessTypes = {
+    'n8n-nodes-base.webhook': { type: 'Integration Trigger', icon: '🔗' },
+    'n8n-nodes-base.cron': { type: 'Scheduled Trigger', icon: '⏰' },
+    'n8n-nodes-base.manualTrigger': { type: 'Manual Trigger', icon: '🚀' },
+    'n8n-nodes-base.set': { type: 'Data Processor', icon: '⚙️' },
+    'n8n-nodes-base.function': { type: 'Custom Logic', icon: '🧮' },
+    'n8n-nodes-base.if': { type: 'Decision Point', icon: '🔀' },
+    'n8n-nodes-base.httpRequest': { type: 'External Service', icon: '🌐' },
+    'n8n-nodes-base.gmail': { type: 'Email Service', icon: '📧' },
+    'n8n-nodes-base.slack': { type: 'Team Communication', icon: '💬' }
+  };
+  
+  return businessTypes[nodeType] || { type: 'Process Step', icon: '📋' };
+}
+
+function getStepDescription(nodeType) {
+  const descriptions = {
+    'n8n-nodes-base.webhook': 'Receives data from external systems',
+    'n8n-nodes-base.cron': 'Runs automatically on a schedule', 
+    'n8n-nodes-base.manualTrigger': 'Started manually by user',
+    'n8n-nodes-base.set': 'Processes and transforms data',
+    'n8n-nodes-base.function': 'Executes custom business logic',
+    'n8n-nodes-base.if': 'Makes decisions based on conditions',
+    'n8n-nodes-base.httpRequest': 'Communicates with external services',
+    'n8n-nodes-base.gmail': 'Sends or processes emails',
+    'n8n-nodes-base.slack': 'Sends team notifications'
+  };
+  
+  return descriptions[nodeType] || 'Performs a business operation';
+}
+
+function sanitizeStepConfiguration(parameters) {
+  const sanitized = {};
+  const safeFields = ['httpMethod', 'email', 'subject', 'message', 'channel', 'operation'];
+  
+  for (const [key, value] of Object.entries(parameters)) {
+    if (safeFields.includes(key) && typeof value === 'string') {
+      if (key === 'url' && value.includes('token=')) {
+        sanitized[key] = value.replace(/token=[^&]+/g, 'token=***');
+      } else {
+        sanitized[key] = value;
+      }
+    }
+  }
+  
+  return sanitized;
+}
+
+async function getRecentProcessRuns(processId, limit = 5) {
+  try {
+    const query = `
+      SELECT 
+        e.id as run_id,
+        e."startedAt" as start_time,
+        e."stoppedAt" as end_time,
+        e.finished as is_completed,
+        e.status,
+        e.mode,
+        CASE 
+          WHEN e."stoppedAt" IS NOT NULL THEN 
+            EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000
+          ELSE NULL
+        END as duration_ms
+      FROM n8n.execution_entity e
+      WHERE e."workflowId" = $1
+      ORDER BY e."startedAt" DESC
+      LIMIT $2
+    `;
+    
+    const result = await dbPool.query(query, [processId, limit]);
+    
+    return result.rows.map(row => ({
+      runId: row.run_id,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      isCompleted: row.is_completed,
+      businessStatus: getBusinessStatus(row.status),
+      duration: formatBusinessDuration(row.duration_ms),
+      mode: row.mode === 'manual' ? 'Manual Start' : 'Automatic Start'
+    }));
+  } catch (error) {
+    console.error('Error fetching recent runs:', error);
+    return [];
+  }
+}
+
+function generateBusinessRecommendations(metrics) {
+  const recommendations = [];
+  
+  if (metrics.successRate < 80) {
+    recommendations.push({
+      priority: 'high',
+      category: 'Performance',
+      title: 'Improve Process Reliability',
+      description: 'Review and fix processes with high error rates',
+      action: 'Identify failing processes and optimize their configuration'
+    });
+  }
+  
+  if (metrics.totalProcesses < 5) {
+    recommendations.push({
+      priority: 'medium',
+      category: 'Growth',
+      title: 'Expand Automation Coverage',
+      description: 'Add more business processes to increase automation benefits',
+      action: 'Identify manual tasks that can be automated'
+    });
+  }
+  
+  if (metrics.automationEfficiency > 100) {
+    recommendations.push({
+      priority: 'low',
+      category: 'Optimization',
+      title: 'Optimize High-Usage Processes',
+      description: 'Fine-tune frequently used processes for better performance',
+      action: 'Review and optimize the most active automation processes'
+    });
+  }
+  
+  return recommendations;
+}
+
+// ============================================================================
 // AI AGENT HELPER FUNCTIONS
 // ============================================================================
 
@@ -609,29 +1352,27 @@ async function logConversation(query, intent, response, context, db) {
 // ERROR HANDLING & GRACEFUL SHUTDOWN
 // ============================================================================
 
-// Global error handler
-app.use((error, req, res, next) => {
-  console.error('❌ Unhandled error:', error);
-  
-  res.status(500).json({
-    error: 'Internal system error',
-    message: 'Business process system encountered an issue',
-    timestamp: new Date().toISOString(),
-    // Only show details in development
-    details: process.env.NODE_ENV === 'development' ? error.message : undefined
-  });
-});
+// Business error handler (sanitized)
+app.use(businessErrorHandler());
 
-// 404 handler
+// 404 handler with updated endpoint list
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Endpoint not found',
+    error: 'Business operation not found',
     message: 'The requested business operation is not available',
     availableEndpoints: [
       '/api/business/processes',
       '/api/business/process-runs', 
       '/api/business/analytics',
+      '/api/business/process-details/:id',
+      '/api/business/integration-health',
+      '/api/business/automation-insights',
       '/api/ai-agent/chat'
+    ],
+    suggestions: [
+      'Check the URL spelling',
+      'Verify you have access to this operation',
+      'Use one of the available endpoints above'
     ]
   });
 });

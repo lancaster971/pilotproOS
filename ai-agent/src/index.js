@@ -56,8 +56,8 @@ class PilotProOSAIAgent {
   async startMCPServer() {
     logger.info('🔄 Starting MCP server from PilotProMT...');
     
-    // Start MCP server using existing codebase
-    this.mcpProcess = spawn('node', ['../src/index.ts'], {
+    // Start MCP server using existing codebase with tsx for TypeScript execution
+    this.mcpProcess = spawn('npx', ['tsx', './src/index.ts'], {
       cwd: process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
@@ -91,8 +91,8 @@ class PilotProOSAIAgent {
     logger.info('🔗 Connecting to MCP server...');
     
     const transport = new StdioClientTransport({
-      command: 'node',
-      args: ['../src/index.ts'],
+      command: 'npx',
+      args: ['tsx', './src/index.ts'],
       env: {
         ...process.env,
         MCP_MODE: 'pilotpros'

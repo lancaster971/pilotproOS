@@ -420,3 +420,14 @@ All environment variables are defined in project root. Key configs:
 - **✅ Client Deployment**: Complete sanitization system ready for production
 - **✅ Hostinger Migration**: 29 workflows + 19 credentials successfully imported from production
 - **✅ Database Tools**: Complete SQLite/PostgreSQL migration scripts with ID preservation
+
+## 📚 **DOCUMENTATION COMPLETA**
+
+Per informazioni dettagliate consultare la documentazione tecnica completa in `/docs/`:
+
+- **`docs/architecture.md`** - Architettura 3-layer dettagliata con Clean Architecture
+- **`docs/deployment.md`** - Sistema deployment 4-script enterprise (5 minuti)  
+- **`docs/ai-agent.md`** - AI Agent conversazionale con NLP italiano
+- **`docs/postgresql-setup.md`** - Configurazione PostgreSQL per n8n integration
+
+**NOTA IMPORTANTE**: I docs/ contengono l'architettura COMPLETA del sistema con tutti i dettagli implementativi, script di deployment, configurazioni di sicurezza, e specifiche tecniche avanzate. Consultare sempre i docs/ prima di modificare il sistema.
