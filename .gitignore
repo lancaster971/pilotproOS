@@ -124,4 +124,5 @@ temp/
 
 # Docker
 .dockerignore
-Dockerfile.localcookies.txt
+Dockerfile.local
+cookies.txt
