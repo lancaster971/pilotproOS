@@ -30,6 +30,7 @@ npm run docker:clean      # Remove all containers, volumes, and images
 # 🔄 BACKUP & DATA
 npm run import:backup     # Import workflow/credentials backup (from BU_Hostinger)
 npm run export:backup     # Export current setup to backup files
+npm run n8n:auto-setup    # Auto-configure n8n with client data (silent setup)
 
 # 🏗️ BUILD & PRODUCTION
 npm run build             # Build all services for production
@@ -127,6 +128,8 @@ psql pilotpros_db         # Connect to database
 - **Database**: PostgreSQL pilotpros_db (schemas: n8n + pilotpros)
 - **Version**: 1.106.3 (latest)
 - **Task Runners**: Enabled (port 5679)
+- **API Authentication**: Supports both N8N_API_KEY and basic auth (user/password) for backup import
+- **Environment Variables**: Automatic .env loading with dotenv for N8N_URL, N8N_API_KEY, N8N_ADMIN_*
 
 **🐳 Docker Development Environment:**
 - **PostgreSQL**: localhost:5432 (dual-schema: n8n + pilotpros)
@@ -223,6 +226,12 @@ npm run export:backup    # Create portable backup files
 npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
 ```
 
+**BU_Hostinger Production Backup**:
+- **database.sqlite.gz**: Compressed SQLite production database from Hostinger deployment
+- **workflows.json**: Exported workflow definitions with complete node configurations
+- **credentials.json**: Encrypted credential data for workflow authentication
+- **Purpose**: Real production data for testing backup import system and migration validation
+
 ## Code Architecture
 
 ### Fundamental Principle: Business Abstraction
@@ -307,6 +316,17 @@ The system deploys as a single Docker container containing all services. Use the
 3. `scripts/03-security-hardening.sh` - Security configuration
 4. `scripts/04-workflow-automation.sh` - Business templates
 
+**Client Installation Sanitization System**:
+Complete client deployment sanitization with zero technical exposure:
+
+- **install-pilotpro-os.sh**: Professional "PilotPro OS" branding installation script
+- **n8n-silent-setup.js**: Automated headless n8n configuration with client data
+- **pilotpro-os-setup.sh**: Business-friendly setup process (domain, email, name, company)
+- **Container Anonymization**: "business-database", "automation-engine", "business-api" naming
+- **Complete Technology Hiding**: Client never sees Docker, PostgreSQL, n8n, or technical terms
+- **Auto-Configuration**: n8n owner account, frontend branding, database schemas created automatically
+- **Telemetry Disabled**: All n8n telemetry, updates, and surveys automatically disabled
+
 **Environment Configuration**:
 All environment variables are defined in project root. Key configs:
 - Database: PostgreSQL connection with dual schema
@@ -368,6 +388,23 @@ All environment variables are defined in project root. Key configs:
 - **API Access**: Ready for backup import
 - **Security**: Enhanced with latest security patches
 
+### Enhanced Backup Import System with n8n 1.106.3 Support (Latest)
+- **Modern Authentication**: N8N_API_KEY support with fallback to basic auth (user/password)
+- **Environment Management**: Added dotenv ^17.2.1 for professional .env configuration
+- **Schema Compatibility**: Full n8n 1.106.3 workflow/credential field mapping
+- **BU_Hostinger Integration**: Real production database backup (database.sqlite.gz) for testing
+- **Import Reliability**: Enhanced error handling, clean data preparation, consistent API auth
+- **Professional Logging**: chalk ^5.3.0 colors and ora ^7.0.1 spinners for user feedback
+
+### Complete Client Installation Sanitization System (Latest)
+- **Professional Branding**: "PilotPro OS" installation script (install-pilotpro-os.sh)
+- **Silent n8n Setup**: Automated headless configuration (n8n-silent-setup.js) with client data
+- **Technology Hiding**: Container names "business-database", "automation-engine", "business-api"
+- **Auto-Configuration**: n8n owner account, frontend branding, database schemas created silently
+- **Telemetry Disabled**: All n8n updates, surveys, privacy checkboxes automatically disabled
+- **Client Experience**: One command → working "Business Platform" with zero technical exposure
+- **Security Improvements**: Added cookies.txt to .gitignore, fixed malformed entries
+
 ### Development Environment Setup Status
 - **✅ PostgreSQL**: Dual schema (n8n + pilotpros) verified working in Docker
 - **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin / pilotpros_admin_2025)
@@ -377,3 +414,5 @@ All environment variables are defined in project root. Key configs:
 - **✅ Database**: 44 tables total (36 n8n + 8 pilotpros)
 - **✅ Docker**: Complete containerized development stack
 - **✅ Cross-Schema**: Real-time analytics and business intelligence ready
+- **✅ Backup System**: BU_Hostinger production data import verified working
+- **✅ Client Deployment**: Complete sanitization system ready for production
