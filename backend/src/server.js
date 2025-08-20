@@ -28,6 +28,11 @@ import {
   businessErrorHandler
 } from './middleware/business-sanitizer.js';
 
+// Database compatibility layer
+import { DatabaseCompatibilityService } from './services/database-compatibility.service.js';
+import { N8nFieldMapper } from './utils/n8n-field-mapper.js';
+import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -64,6 +69,26 @@ dbPool.connect((err, client, release) => {
   } else {
     console.log('✅ PostgreSQL connected (pilotpros_db)');
     release();
+  }
+});
+
+// ============================================================================
+// DATABASE COMPATIBILITY INITIALIZATION
+// ============================================================================
+
+// Initialize compatibility layer
+const compatibilityService = new DatabaseCompatibilityService(dbPool);
+const fieldMapper = new N8nFieldMapper();
+const compatibilityMonitor = new CompatibilityMonitor(compatibilityService, fieldMapper);
+
+// Initialize compatibility on startup
+compatibilityService.initialize().then(success => {
+  if (success) {
+    const version = compatibilityService.detectedVersion;
+    fieldMapper.updateVersion(version);
+    console.log(`🔄 Backend compatible with n8n ${version}`);
+  } else {
+    console.warn('⚠️ Running with fallback compatibility mode');
   }
 });
 
@@ -118,6 +143,9 @@ app.use(sanitizeBusinessParams());
 app.use(validateBusinessData());
 app.use(businessSanitizer());
 
+// Compatibility monitoring middleware
+app.use(compatibilityMonitor.middleware());
+
 // Request logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
@@ -170,54 +198,28 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Business Processes API (anonimized workflows)
+// Business Processes API (anonimized workflows) - WITH COMPATIBILITY
 app.get('/api/business/processes', async (req, res) => {
   try {
-    const result = await dbPool.query(`
-      SELECT 
-        w.id as process_id,
-        w.name as process_name,
-        w.active as is_active,
-        w."createdAt" as created_date,
-        w."updatedAt" as last_modified,
-        
-        -- Business analytics from our schema
-        COALESCE(ba.success_rate, 0) as success_rate,
-        COALESCE(ba.avg_duration_ms, 0) as avg_duration_ms,
-        COALESCE(ba.total_executions, 0) as total_executions,
-        ba.last_execution,
-        ba.trend_direction,
-        ba.business_impact_score,
-        
-        -- Real-time metrics
-        (
-          SELECT COUNT(*) 
-          FROM n8n.execution_entity e 
-          WHERE e."workflowId" = w.id 
-          AND e."startedAt" >= CURRENT_DATE
-        ) as executions_today,
-        
-        -- Health status
-        CASE 
-          WHEN COALESCE(ba.success_rate, 0) >= 98 THEN 'Excellent'
-          WHEN COALESCE(ba.success_rate, 0) >= 85 THEN 'Good'
-          WHEN COALESCE(ba.success_rate, 0) >= 70 THEN 'Fair'
-          ELSE 'Needs Attention'
-        END as health_status
-        
-      FROM n8n.workflow_entity w
-      LEFT JOIN pilotpros.business_analytics ba ON w.id = ba.n8n_workflow_id
-      WHERE w.active = true
-      ORDER BY ba.business_impact_score DESC NULLS LAST, w."updatedAt" DESC
-    `);
+    // Use compatibility service for cross-version query
+    const result = await compatibilityService.getWorkflowsCompatible();
     
     res.json({
-      data: result.rows,
-      total: result.rows.length,
+      data: result.rows || [],
+      total: result.rows?.length || 0,
       summary: {
-        active: result.rows.length,
-        totalExecutionsToday: result.rows.reduce((sum, row) => sum + (row.executions_today || 0), 0),
-        avgSuccessRate: result.rows.reduce((sum, row) => sum + (row.success_rate || 0), 0) / result.rows.length || 0
+        active: result.rows?.length || 0,
+        totalExecutionsToday: result.rows?.reduce((sum, row) => sum + (row.executions_today || 0), 0) || 0,
+        avgSuccessRate: result.rows?.length > 0 ? 
+          result.rows.reduce((sum, row) => sum + (row.success_rate || 0), 0) / result.rows.length : 0
+      },
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/processes',
+        sanitized: true,
+        businessTerminology: true,
+        n8nCompatibility: compatibilityService.detectedVersion
       }
     });
   } catch (error) {
@@ -314,46 +316,29 @@ app.get('/api/business/process-runs', async (req, res) => {
   }
 });
 
-// Business Analytics API
+// Business Analytics API - WITH COMPATIBILITY
 app.get('/api/business/analytics', async (req, res) => {
   try {
-    const result = await dbPool.query(`
-      SELECT 
-        -- Process overview
-        COUNT(DISTINCT w.id) as total_processes,
-        COUNT(DISTINCT CASE WHEN w.active = true THEN w.id END) as active_processes,
-        
-        -- Execution metrics
-        COUNT(e.id) as total_executions,
-        COUNT(CASE WHEN e.finished = true AND e.data->>'error' IS NULL THEN 1 END) as successful_executions,
-        COUNT(CASE WHEN e.finished = false OR e.data->>'error' IS NOT NULL THEN 1 END) as failed_executions,
-        
-        -- Performance metrics
-        AVG(EXTRACT(EPOCH FROM (e.stopped_at - e.started_at)) * 1000) as avg_duration_ms,
-        
-        -- Business metrics (estimated from execution data)
-        COUNT(CASE WHEN e.data->>'type' = 'customer_onboarding' THEN 1 END) as customers_processed,
-        COUNT(CASE WHEN e.data->>'type' = 'order_processing' THEN 1 END) as orders_processed,
-        COUNT(CASE WHEN e.data->>'type' = 'support_ticket' THEN 1 END) as tickets_processed,
-        
-        -- Time saved calculation (assumendo 5 minuti per operazione manuale)
-        COUNT(CASE WHEN e.finished = true THEN 1 END) * 5 as minutes_saved
-        
-      FROM n8n.workflow_entity w
-      LEFT JOIN n8n.execution_entity e ON w.id = e.workflow_id
-      WHERE e.started_at >= NOW() - INTERVAL '7 days' OR e.started_at IS NULL
-    `);
+    // Use compatibility service for cross-version analytics
+    const result = await compatibilityService.getAnalyticsCompatible();
     
-    const data = result.rows[0];
+    const data = result.rows?.[0] || {
+      total_processes: 0,
+      active_processes: 0, 
+      total_executions: 0,
+      successful_executions: 0,
+      avg_duration_ms: 0
+    };
+    
     const successRate = data.total_executions > 0 
       ? (data.successful_executions / data.total_executions * 100) 
       : 0;
     
     res.json({
       overview: {
-        totalProcesses: parseInt(data.total_processes),
-        activeProcesses: parseInt(data.active_processes),
-        totalExecutions: parseInt(data.total_executions),
+        totalProcesses: parseInt(data.total_processes) || 0,
+        activeProcesses: parseInt(data.active_processes) || 0,
+        totalExecutions: parseInt(data.total_executions) || 0,
         successRate: Math.round(successRate * 10) / 10,
         avgDurationSeconds: Math.round((data.avg_duration_ms || 0) / 1000)
       },
@@ -363,7 +348,7 @@ app.get('/api/business/analytics', async (req, res) => {
         ordersProcessed: parseInt(data.orders_processed || 0),
         ticketsProcessed: parseInt(data.tickets_processed || 0),
         timeSavedHours: Math.round((data.minutes_saved || 0) / 60),
-        estimatedCostSavings: Math.round((data.minutes_saved || 0) * 0.5) // €0.50 per minuto risparmiato
+        estimatedCostSavings: Math.round((data.minutes_saved || 0) * 0.5)
       },
       
       insights: [
@@ -378,13 +363,37 @@ app.get('/api/business/analytics', async (req, res) => {
         data.minutes_saved > 0 ?
           `Your automation saved approximately ${Math.round(data.minutes_saved / 60)} hours of manual work this week` :
           'Start using automation to save time on manual processes'
-      ]
+      ],
+      
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/analytics',
+        sanitized: true,
+        businessTerminology: true,
+        n8nCompatibility: compatibilityService.detectedVersion
+      }
     });
   } catch (error) {
     console.error('❌ Error fetching business analytics:', error);
     res.status(500).json({ 
       error: 'Failed to fetch business analytics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Process encountered an issue. Technical support has been notified.',
+      timestamp: new Date().toISOString(),
+      requestId: 'unknown',
+      suggestions: [
+        'Try refreshing the analytics data',
+        'Check date range parameters', 
+        'Try again in a few moments',
+        'Contact technical support if needed'
+      ],
+      technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      _metadata: {
+        system: 'Business Process Operating System',
+        endpoint: '/api/business/analytics',
+        error: true,
+        n8nCompatibility: compatibilityService?.detectedVersion || 'unknown'
+      }
     });
   }
 });
@@ -1355,6 +1364,63 @@ async function logConversation(query, intent, response, context, db) {
 // Business error handler (sanitized)
 app.use(businessErrorHandler());
 
+// ============================================================================
+// COMPATIBILITY MONITORING ENDPOINTS
+// ============================================================================
+
+// System compatibility status  
+app.get('/api/system/compatibility', async (req, res) => {
+  try {
+    const status = await compatibilityService.getHealthStatus();
+    const testResults = await fieldMapper.testCompatibility(compatibilityService.db);
+    
+    res.json({
+      compatibility: {
+        status: status.compatibility,
+        version: status.detectedVersion,
+        isReady: status.isReady,
+        lastCheck: status.lastCheck
+      },
+      schemaInfo: testResults,
+      supportedVersions: status.supportedVersions,
+      _metadata: {
+        system: 'Business Process Operating System',
+        endpoint: '/api/system/compatibility',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Compatibility check failed',
+      message: error.message
+    });
+  }
+});
+
+// Compatibility health check for monitoring
+app.get('/api/system/compatibility/health', async (req, res) => {
+  try {
+    const status = await compatibilityService.getHealthStatus();
+    
+    res.json({
+      status: status.isReady ? 'healthy' : 'degraded',
+      n8nVersion: status.detectedVersion,
+      isReady: status.isReady,
+      lastCheck: status.lastCheck,
+      _metadata: {
+        system: 'Business Process Operating System',
+        endpoint: '/api/system/compatibility/health',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
 // 404 handler with updated endpoint list
 app.use((req, res) => {
   res.status(404).json({
@@ -1367,7 +1433,9 @@ app.use((req, res) => {
       '/api/business/process-details/:id',
       '/api/business/integration-health',
       '/api/business/automation-insights',
-      '/api/ai-agent/chat'
+      '/api/ai-agent/chat',
+      '/api/system/compatibility',
+      '/api/system/compatibility/health'
     ],
     suggestions: [
       'Check the URL spelling',

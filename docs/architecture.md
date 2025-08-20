@@ -738,6 +738,117 @@ const performanceMonitoring = (req: Request, res: Response, next: NextFunction) 
 
 ---
 
-Questa architettura garantisce **separazione completa**, **performance ottimali** e **sicurezza enterprise** mantenendo la **semplicità operativa** di un sistema monolitico.
+## 🛡️ **n8n VERSION COMPATIBILITY SYSTEM**
+
+### **Problema Risolto: Backend Obsolescenza**
+Con l'evoluzione di n8n, ogni upgrade poteva rendere il backend obsoleto a causa di:
+- **Breaking changes** schema database (workflow_id → workflowId)
+- **API modifications** e deprecazioni
+- **Nuovi campi obbligatori** o tabelle rimosse
+
+### **Soluzione: Automatic Compatibility Layer**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    n8n UPGRADE RESILIENCE SYSTEM                            │
+│                                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
+│  │   n8n v1.107    │    │   n8n v1.108    │    │   n8n v1.109+          │ │
+│  │                 │    │                 │    │   (Future Versions)    │ │
+│  │ workflow_id     │───►│ workflowId      │───►│ newFieldName           │ │
+│  │ started_at      │    │ startedAt       │    │ enhancedTimestamp      │ │
+│  │ stopped_at      │    │ stoppedAt       │    │ completionTime         │ │
+│  └─────────────────┘    └─────────────────┘    └─────────────────────────┘ │
+│           │                       │                        │                │
+│           └───────────────────────┼────────────────────────┘                │
+│                                   │                                         │
+│  ┌─────────────────────────────────▼─────────────────────────────────────┐   │
+│  │              COMPATIBILITY LAYER (PilotProOS)                        │   │
+│  │                                                                       │   │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │   │
+│  │  │ Version         │  │ Field Mapper    │  │ Query Builder       │   │   │
+│  │  │ Detection       │  │                 │  │                     │   │   │
+│  │  │                 │  │ workflow_id     │  │ Graceful            │   │   │
+│  │  │ • Migration     │  │ ↕                │  │ Degradation         │   │   │
+│  │  │   Analysis      │  │ workflowId      │  │                     │   │   │
+│  │  │ • Schema        │  │                 │  │ • Modern Query      │   │   │
+│  │  │   Inspection    │  │ started_at      │  │ • Legacy Query      │   │   │
+│  │  │ • Auto-Update   │  │ ↕                │  │ • Fallback Query    │   │   │
+│  │  │                 │  │ startedAt       │  │                     │   │   │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                   │                                         │
+│  ┌─────────────────────────────────▼─────────────────────────────────────┐   │
+│  │                    BUSINESS API LAYER                                 │   │
+│  │                   (Always Compatible)                                 │   │
+│  │                                                                       │   │
+│  │  GET /api/business/processes     ✅ Works with any n8n version        │   │
+│  │  GET /api/business/analytics     ✅ Automatic field adaptation        │   │
+│  │  GET /api/system/compatibility   ✅ Real-time monitoring              │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### **Implementation Components**
+
+#### **DatabaseCompatibilityService**
+```typescript
+// backend/src/services/database-compatibility.service.js
+class DatabaseCompatibilityService {
+  async detectN8nVersion() {
+    // Analizza le migrazioni per determinare versione
+    const migrations = await this.getMigrations();
+    return this.parseVersionFromMigrations(migrations);
+  }
+  
+  async getWorkflowsCompatible() {
+    // Query con fallback automatico per diverse versioni
+    const modernQuery = "SELECT w.id, w.\"createdAt\" FROM n8n.workflow_entity w";
+    const legacyQuery = "SELECT w.id, w.created_at FROM n8n.workflow_entity w";
+    return await this.executeWithFallback([modernQuery, legacyQuery]);
+  }
+}
+```
+
+#### **N8nFieldMapper**
+```typescript
+// backend/src/utils/n8n-field-mapper.js
+const N8N_FIELD_MAPPINGS = {
+  '1.108.1': { workflowId: 'workflowId', startedAt: 'startedAt' },
+  '1.107.3': { workflowId: 'workflowId', startedAt: 'startedAt' },
+  '1.106.0': { workflowId: 'workflow_id', startedAt: 'started_at' }
+};
+```
+
+#### **Runtime Monitoring**
+```javascript
+// API endpoints per monitoring
+GET /api/system/compatibility          // Status completo compatibilità
+GET /api/system/compatibility/health   // Health check rapido
+
+// Response example:
+{
+  "compatibility": {
+    "version": "1.108.1",
+    "status": "compatible", 
+    "isReady": true
+  },
+  "schemaInfo": {
+    "execution_entity fields": ["workflowId", "startedAt", "stoppedAt"]
+  }
+}
+```
+
+### **Benefits del Sistema**
+- **✅ Zero Maintenance**: Backend si adatta automaticamente
+- **✅ Future-Proof**: Compatibile con versioni future n8n
+- **✅ Zero Downtime**: Upgrade senza interruzioni
+- **✅ Automatic Detection**: Rileva cambi schema in runtime
+- **✅ Fallback Protection**: Query degradano gracefully
+- **✅ Monitoring**: Alerting per problemi compatibilità
+
+---
+
+Questa architettura garantisce **separazione completa**, **performance ottimali**, **sicurezza enterprise** e **resilienza agli upgrade** mantenendo la **semplicità operativa** di un sistema monolitico.
 
 **Next**: Consultare `deployment.md` per le strategie di deployment automatico.

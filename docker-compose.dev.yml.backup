@@ -32,7 +32,7 @@ services:
 
   # n8n Workflow Engine - Development
   n8n-dev:
-    image: n8nio/n8n:1.108.1
+    image: docker.n8n.io/n8nio/n8n:1.107.3
     container_name: pilotpros-n8n-dev
     restart: unless-stopped
     depends_on:

@@ -1108,4 +1108,190 @@ echo "🎯 PostgreSQL Integration: All tests passed!"
 
 ---
 
-**🎯 La configurazione PostgreSQL per n8n è semplice ma potente - trasforma n8n da tool standalone a enterprise-grade workflow engine perfettamente integrato con PilotProOS business intelligence.**
+## 🔄 **n8n UPGRADE & MIGRATION MANAGEMENT**
+
+### **Migration Handling Strategy**
+
+PilotProOS gestisce automaticamente le migrazioni n8n garantendo **zero impact** sul business layer durante upgrade.
+
+#### **Migration Monitoring System**
+```sql
+-- Query per monitoring migrazioni n8n
+SELECT 
+    name as migration_name,
+    TO_TIMESTAMP(timestamp/1000) as migration_date,
+    CASE 
+        WHEN timestamp > 1750000000000 THEN 'v1.108+'
+        WHEN timestamp > 1745000000000 THEN 'v1.107+'  
+        WHEN timestamp > 1740000000000 THEN 'v1.106+'
+        ELSE 'Legacy'
+    END as estimated_version
+FROM n8n.migrations 
+ORDER BY timestamp DESC 
+LIMIT 10;
+
+-- Esempio output dopo upgrade 1.107.3 → 1.108.1:
+-- CreateDataStoreTables1754475614601     | 2025-08-20 | v1.108+
+-- LinkRoleToUserTable1750252139168      | 2025-08-20 | v1.108+  
+-- AddRolesTables1750252139167           | 2025-08-20 | v1.108+
+-- AddScopeTables1750252139166           | 2025-08-20 | v1.108+
+```
+
+#### **Automatic Version Detection**
+```typescript
+// backend/src/services/database-compatibility.service.js
+class DatabaseCompatibilityService {
+  async detectN8nVersion() {
+    const latestMigrations = await this.db.query(`
+      SELECT name FROM n8n.migrations 
+      ORDER BY timestamp DESC LIMIT 10
+    `);
+    
+    // Version detection basata su migration signatures
+    if (migrations.some(m => m.name.includes('CreateDataStoreTables'))) {
+      return '1.108.1'; // Latest detected
+    } else if (migrations.some(m => m.name.includes('AddInputsOutputsToTestCase'))) {
+      return '1.107.3';
+    }
+    // ... other version detection logic
+  }
+}
+```
+
+#### **Schema Adaptation After Upgrades**
+```typescript
+// Automatic field mapping per nuove versioni
+const N8N_FIELD_MAPPINGS = {
+  '1.108.1': {
+    execution_entity: {
+      workflowId: 'workflowId',      // Confirmed same as 1.107.3
+      startedAt: 'startedAt',        // No changes in this upgrade
+      stoppedAt: 'stoppedAt'
+    },
+    // New tables in 1.108.1:
+    data_store: {                    // New table from CreateDataStoreTables
+      id: 'id',
+      key: 'key', 
+      value: 'value'
+    },
+    roles: {                         // New table from AddRolesTables
+      id: 'id',
+      name: 'name',
+      scope: 'scope'
+    }
+  }
+};
+```
+
+### **Upgrade Verification Tests**
+
+#### **Pre-Upgrade Database Analysis**
+```bash
+#!/bin/bash
+# scripts/pre-upgrade-analysis.sh
+
+echo "🔍 Pre-upgrade database analysis..."
+
+# Count current data
+WORKFLOWS=$(psql -t -c "SELECT COUNT(*) FROM n8n.workflow_entity;")
+CREDENTIALS=$(psql -t -c "SELECT COUNT(*) FROM n8n.credentials_entity;") 
+EXECUTIONS=$(psql -t -c "SELECT COUNT(*) FROM n8n.execution_entity;")
+
+echo "📊 Current data:"
+echo "  Workflows: $WORKFLOWS"
+echo "  Credentials: $CREDENTIALS" 
+echo "  Executions: $EXECUTIONS"
+
+# Check schema health
+echo "🏗️ Schema analysis:"
+psql -c "\dt n8n.*" | wc -l
+echo "  n8n tables: $(psql -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'n8n';")"
+
+# Save pre-upgrade state
+cat > /tmp/pre-upgrade-state.json << EOF
+{
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "workflows": $WORKFLOWS,
+  "credentials": $CREDENTIALS,
+  "executions": $EXECUTIONS,
+  "n8n_tables": $(psql -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'n8n';")
+}
+EOF
+
+echo "✅ Pre-upgrade analysis completed"
+```
+
+#### **Post-Upgrade Validation**
+```bash
+#!/bin/bash
+# scripts/post-upgrade-validation.sh
+
+echo "✅ Post-upgrade validation..."
+
+# Load pre-upgrade state
+PRE_STATE=$(cat /tmp/pre-upgrade-state.json)
+PRE_WORKFLOWS=$(echo "$PRE_STATE" | jq '.workflows')
+PRE_CREDENTIALS=$(echo "$PRE_STATE" | jq '.credentials')
+
+# Check current state
+POST_WORKFLOWS=$(psql -t -c "SELECT COUNT(*) FROM n8n.workflow_entity;")
+POST_CREDENTIALS=$(psql -t -c "SELECT COUNT(*) FROM n8n.credentials_entity;")
+
+echo "📊 Data preservation check:"
+echo "  Workflows: $PRE_WORKFLOWS → $POST_WORKFLOWS"
+echo "  Credentials: $PRE_CREDENTIALS → $POST_CREDENTIALS"
+
+# Verify new schema elements
+echo "🆕 New schema elements:"
+psql -c "SELECT name FROM n8n.migrations WHERE timestamp > $(date -d '1 hour ago' +%s)000;"
+
+# Test backend compatibility 
+echo "🔧 Backend compatibility:"
+COMPAT_STATUS=$(curl -s http://localhost:3001/api/system/compatibility/health | jq -r '.status')
+echo "  Status: $COMPAT_STATUS"
+
+if [ "$POST_WORKFLOWS" = "$PRE_WORKFLOWS" ] && [ "$COMPAT_STATUS" = "healthy" ]; then
+    echo "✅ Upgrade validation PASSED"
+    exit 0
+else
+    echo "❌ Upgrade validation FAILED"
+    exit 1
+fi
+```
+
+### **Migration Troubleshooting**
+
+#### **Common Upgrade Issues & Solutions**
+```bash
+# Issue 1: Migration timeout
+# Solution: Increase migration timeout
+docker exec n8n-container psql -c "SET statement_timeout = '10min';"
+
+# Issue 2: Lock conflicts during migration  
+# Solution: Stop conflicting processes temporarily
+docker stop pilotpros-backend-dev
+
+# Issue 3: Schema permission errors
+# Solution: Grant migration permissions
+psql -c "GRANT ALL PRIVILEGES ON SCHEMA n8n TO pilotpros_user;"
+
+# Issue 4: Disk space during migration
+# Solution: Clean old data before upgrade
+psql -c "DELETE FROM n8n.execution_entity WHERE createdAt < NOW() - INTERVAL '90 days';"
+```
+
+#### **Emergency Recovery Procedures**
+```sql
+-- Recovery dal backup in caso di migration fallita
+DROP SCHEMA n8n CASCADE;
+-- Restore dal backup
+\i /opt/pilotpros/backups/pre_upgrade_latest.sql
+
+-- Verify recovery
+SELECT COUNT(*) FROM n8n.workflow_entity;  -- Should match pre-upgrade count
+SELECT COUNT(*) FROM pilotpros.business_analytics;  -- Business data intact
+```
+
+---
+
+**🎯 La configurazione PostgreSQL per n8n è semplice ma potente - trasforma n8n da tool standalone a enterprise-grade workflow engine perfettamente integrato con PilotProOS business intelligence e **immune agli upgrade**.**

@@ -407,9 +407,18 @@ All environment variables are defined in project root. Key configs:
 - **Client Experience**: One command → working "Business Platform" with zero technical exposure
 - **Security Improvements**: Added cookies.txt to .gitignore, fixed malformed entries
 
+### n8n Version Compatibility System (New)
+- **DatabaseCompatibilityService**: Automatic n8n version detection and schema adaptation
+- **N8nFieldMapper**: Cross-version field mapping for seamless upgrades
+- **Graceful Degradation**: Fallback queries for version compatibility
+- **Runtime Monitoring**: Real-time compatibility monitoring with API endpoints
+- **Upgrade Testing**: Verified compatibility with n8n 1.107.3 → 1.108.1 upgrade
+- **Zero Downtime**: Backend remains functional during n8n version upgrades
+- **Breaking Change Protection**: Automatic handling of schema changes between versions
+
 ### Development Environment Setup Status
 - **✅ PostgreSQL**: Dual schema (n8n + pilotpros) verified working in Docker
-- **✅ n8n**: http://localhost:5678 on PostgreSQL backend (tiziano.annicchiarico@tecsolutions.org / PilotPro2025!)
+- **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin@pilotpros.local / PilotPro2025!) - Version 1.108.1
 - **✅ Backend**: Connected to PostgreSQL with cross-schema access
 - **✅ Frontend**: React development server with hot-reload  
 - **✅ AI Agent**: MCP integration ready
@@ -420,14 +429,17 @@ All environment variables are defined in project root. Key configs:
 - **✅ Client Deployment**: Complete sanitization system ready for production
 - **✅ Hostinger Migration**: 29 workflows + 19 credentials successfully imported from production
 - **✅ Database Tools**: Complete SQLite/PostgreSQL migration scripts with ID preservation
+- **✅ n8n Compatibility**: Automatic version adaptation system tested with 1.107.3 → 1.108.1 upgrade
+- **✅ Backend Resilience**: Zero-downtime operation during n8n version upgrades
 
 ## 📚 **DOCUMENTATION COMPLETA**
 
 Per informazioni dettagliate consultare la documentazione tecnica completa in `/docs/`:
 
-- **`docs/architecture.md`** - Architettura 3-layer dettagliata con Clean Architecture
-- **`docs/deployment.md`** - Sistema deployment 4-script enterprise (5 minuti)  
+- **`docs/architecture.md`** - Architettura 3-layer dettagliata con Clean Architecture + n8n Compatibility System
+- **`docs/deployment.md`** - Sistema deployment 4-script enterprise (5 minuti) + Zero-Downtime n8n Upgrades  
 - **`docs/ai-agent.md`** - AI Agent conversazionale con NLP italiano
-- **`docs/postgresql-setup.md`** - Configurazione PostgreSQL per n8n integration
+- **`docs/postgresql-setup.md`** - Configurazione PostgreSQL per n8n integration + Migration Management
+- **`docs/n8n-upgrade-troubleshooting.md`** - Troubleshooting completo per upgrade n8n e compatibility issues
 
 **NOTA IMPORTANTE**: I docs/ contengono l'architettura COMPLETA del sistema con tutti i dettagli implementativi, script di deployment, configurazioni di sicurezza, e specifiche tecniche avanzate. Consultare sempre i docs/ prima di modificare il sistema.

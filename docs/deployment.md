@@ -2163,6 +2163,177 @@ echo "✅ Performance benchmark complete"
 
 ---
 
-Questa strategia di deployment garantisce **setup rapido**, **sicurezza enterprise** e **anonimizzazione completa** per qualsiasi cliente, con **automazione totale** del processo.
+## 🔄 **n8n UPGRADE STRATEGY & COMPATIBILITY**
 
-**Next**: Consultare `security.md` per dettagli approfonditi sulla sicurezza e anonimizzazione.
+### **Zero-Downtime n8n Upgrade Procedure**
+
+Il sistema PilotProOS è stato progettato per gestire **upgrade automatici di n8n** senza impatti sul business e senza downtime.
+
+#### **Procedura Upgrade Sicura**
+```bash
+#!/bin/bash
+# scripts/upgrade-n8n.sh - Safe n8n Upgrade Procedure
+
+# 1. Pre-upgrade verification
+echo "🔍 Pre-upgrade verification..."
+CURRENT_VERSION=$(docker exec pilotpros-n8n-dev n8n --version)
+WORKFLOWS_COUNT=$(curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" http://localhost:5678/api/v1/workflows | jq '.data | length')
+echo "Current n8n: $CURRENT_VERSION"
+echo "Workflows: $WORKFLOWS_COUNT"
+
+# 2. Database backup (automatic)
+echo "💾 Creating database backup..."
+BACKUP_FILE="/opt/pilotpros/backups/pre_upgrade_$(date +%Y%m%d_%H%M%S).sql"
+docker exec postgres-container pg_dump -U pilotpros_user pilotpros_db > "$BACKUP_FILE"
+echo "✅ Backup created: $BACKUP_FILE"
+
+# 3. Pull new n8n version
+echo "📦 Pulling latest n8n version..."
+docker pull n8nio/n8n:latest
+
+# 4. Update docker-compose and restart
+echo "🔄 Updating n8n container..."
+sed -i "s/n8nio\/n8n:.*/n8nio\/n8n:latest/" docker-compose.dev.yml
+docker-compose up -d n8n-dev
+
+# 5. Wait for migration completion
+echo "⏳ Waiting for n8n migration..."
+sleep 60
+
+# 6. Verify upgrade success
+NEW_VERSION=$(docker exec pilotpros-n8n-dev n8n --version)
+NEW_WORKFLOWS_COUNT=$(curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" http://localhost:5678/api/v1/workflows | jq '.data | length')
+
+echo "🎯 Upgrade Results:"
+echo "Old version: $CURRENT_VERSION → New version: $NEW_VERSION"
+echo "Workflows preserved: $WORKFLOWS_COUNT → $NEW_WORKFLOWS_COUNT"
+
+# 7. Test backend compatibility
+echo "🧪 Testing backend compatibility..."
+BACKEND_STATUS=$(curl -s http://localhost:3001/api/system/compatibility/health | jq -r '.status')
+echo "Backend compatibility: $BACKEND_STATUS"
+
+if [ "$BACKEND_STATUS" = "healthy" ] && [ "$WORKFLOWS_COUNT" = "$NEW_WORKFLOWS_COUNT" ]; then
+    echo "✅ n8n upgrade completed successfully!"
+    echo "✅ All workflows preserved"
+    echo "✅ Backend compatibility maintained"
+else
+    echo "⚠️ Upgrade completed with warnings - review logs"
+fi
+```
+
+#### **Compatibility Verification Checklist**
+```bash
+# Post-upgrade verification checklist
+[ ] n8n container started successfully
+[ ] New version confirmed (docker exec pilotpros-n8n-dev n8n --version)
+[ ] Database migrations completed (check logs)
+[ ] All workflows preserved (API count match)
+[ ] Backend compatibility status: healthy
+[ ] Business API endpoints responding
+[ ] No compatibility errors in backend logs
+[ ] Frontend can access business processes
+```
+
+#### **Rollback Procedure (if needed)**
+```bash
+#!/bin/bash
+# scripts/rollback-n8n.sh - Emergency Rollback
+
+echo "🚨 Rolling back n8n to previous version..."
+
+# 1. Stop current container
+docker stop pilotpros-n8n-dev && docker rm pilotpros-n8n-dev
+
+# 2. Restore database from backup
+echo "🔄 Restoring database..."
+LATEST_BACKUP=$(ls -t /opt/pilotpros/backups/pre_upgrade_*.sql | head -1)
+docker exec postgres-container psql -U pilotpros_user -d pilotpros_db < "$LATEST_BACKUP"
+
+# 3. Revert docker-compose version
+git checkout docker-compose.dev.yml
+
+# 4. Restart with previous version
+docker-compose up -d n8n-dev
+
+echo "✅ Rollback completed"
+```
+
+### **Monitoring & Alerting per Upgrade**
+
+#### **Automated Upgrade Monitoring**
+```javascript
+// backend/src/services/upgrade-monitor.service.js
+class UpgradeMonitorService {
+  async checkForNewVersions() {
+    // Controlla nuove versioni n8n disponibili
+    const latestVersion = await this.getLatestN8nVersion();
+    const currentVersion = await this.getCurrentVersion();
+    
+    if (latestVersion !== currentVersion) {
+      await this.notifyUpgradeAvailable(currentVersion, latestVersion);
+    }
+  }
+  
+  async performUpgradeCompatibilityCheck(newVersion) {
+    // Pre-verifica compatibilità prima dell'upgrade
+    const compatibilityReport = await this.analyzeVersionChanges(newVersion);
+    return compatibilityReport;
+  }
+}
+```
+
+#### **CI/CD Integration**
+```yaml
+# .github/workflows/n8n-compatibility-test.yml
+name: n8n Compatibility Test
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Weekly check on Monday
+
+jobs:
+  test-n8n-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Test with latest n8n
+        run: |
+          docker pull n8nio/n8n:latest
+          docker-compose -f docker-compose.test.yml up -d
+          npm run test:n8n-compatibility
+          
+      - name: Test with next n8n
+        run: |
+          docker pull n8nio/n8n:next  
+          docker-compose -f docker-compose.test.yml up -d
+          npm run test:n8n-compatibility
+```
+
+### **Production Upgrade Strategy**
+
+#### **Blue-Green Deployment per n8n Upgrade**
+```bash
+# Production upgrade con zero downtime
+# 1. Deploy nuovo stack con n8n aggiornato
+# 2. Sync database tra stacks
+# 3. Switch traffic gradualmente
+# 4. Verifica completa prima di removal stack precedente
+```
+
+#### **Automated Backup & Recovery**
+```bash
+# Backup automatico pre-upgrade
+*/30 * * * * /opt/pilotpros/scripts/auto-backup.sh pre-upgrade
+
+# Recovery automatico in caso di failure
+if [ "$UPGRADE_FAILED" = "true" ]; then
+    /opt/pilotpros/scripts/auto-rollback.sh
+fi
+```
+
+---
+
+Questa strategia di deployment garantisce **setup rapido**, **sicurezza enterprise**, **anonimizzazione completa** e **resilienza agli upgrade n8n** per qualsiasi cliente, con **automazione totale** del processo.
+
+**Next**: Consultare `postgresql-setup.md` per dettagli sulla gestione delle migrazioni database.
