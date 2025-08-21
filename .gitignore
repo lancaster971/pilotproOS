@@ -126,6 +126,12 @@ temp/
 .dockerignore
 Dockerfile.local
 cookies.txt
-.backup
+# Backup files
 *.backup
+*.backup-*
+**/backups/
 /tmp/*
+
+# Database backups
+*.sql.backup
+*.sqlite.backup
