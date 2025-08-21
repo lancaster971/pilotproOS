@@ -126,3 +126,6 @@ temp/
 .dockerignore
 Dockerfile.local
 cookies.txt
+.backup
+*.backup
+/tmp/*
