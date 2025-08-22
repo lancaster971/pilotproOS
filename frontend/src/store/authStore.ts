@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Se l'API non è disponibile, usa login mock per development
       if (error.code === 'ERR_NETWORK' || error.response?.status === 404 || error.response?.status === 401) {
         // Mock login per development
-        if (email === 'admin@pilotpro.local' && password === 'admin123') {
+        if (email === 'admin@pilotpro.com' && password === 'admin123') {
           const mockToken = 'dev-token-' + Date.now()
           const mockUser = {
             id: '1',

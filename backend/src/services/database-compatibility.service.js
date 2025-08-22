@@ -204,8 +204,7 @@ class DatabaseCompatibilityService {
           AND e."${startedAtField}" >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
-      WHERE w.active = true
-      ORDER BY w."${updatedAtField}" DESC`,
+      ORDER BY w.active DESC, w."${updatedAtField}" DESC`,
       
       // Legacy query (v1.106-)
       `SELECT 
@@ -221,8 +220,7 @@ class DatabaseCompatibilityService {
           AND e.started_at >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
-      WHERE w.active = true
-      ORDER BY w.updated_at DESC`,
+      ORDER BY w.active DESC, w.updated_at DESC`,
       
       // Ultimate fallback (basic)
       `SELECT 

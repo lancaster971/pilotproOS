@@ -1,259 +1,196 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    /* Control Room Theme - Light (non usato, app sempre dark) */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --primary: 142 71% 45%;  /* Verde #4ade80 */
-    --primary-foreground: 0 0% 0%;
-    --secondary: 240 4% 46%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 5% 26%;
-    --muted-foreground: 240 4% 64%;
-    --accent: 142 71% 45%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 10%;
-    --input: 240 6% 10%;
-    --ring: 142 71% 45%;
-    --radius: 0.375rem;
-  }
-
-  .dark {
-    /* Control Room Theme - Dark (principale) */
-    --background: 0 0% 0%;  /* Nero puro #000000 */
-    --foreground: 0 0% 98%;  /* Bianco quasi puro */
-    --card: 240 6% 10%;  /* Grigio molto scuro #18181b */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 4%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 142 71% 45%;  /* Verde #4ade80 */
-    --primary-foreground: 0 0% 0%;
-    --secondary: 240 4% 46%;  /* Grigio medio */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 6% 10%;  /* Grigio scuro */
-    --muted-foreground: 240 5% 64%;  /* Grigio chiaro */
-    --accent: 142 71% 45%;  /* Verde accent */
-    --accent-foreground: 0 0% 0%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 6% 20%;  /* Bordi visibili */
-    --input: 240 6% 20%;
-    --ring: 142 71% 45%;
-  }
+:root {
+  --primary-50: #f0fdf9;
+  --primary-100: #ccfdf3;
+  --primary-200: #99fae8;
+  --primary-300: #5df4d6;
+  --primary-400: #26d8be;
+  --primary-500: #0db88a;
+  --primary-600: #059669;
+  --primary-700: #047857;
+  --primary-800: #065f46;
+  --primary-900: #064e3b;
+  
+  --secondary-50: #fdf4ff;
+  --secondary-100: #fae8ff;
+  --secondary-200: #f5d0fe;
+  --secondary-300: #f0abfc;
+  --secondary-400: #e879f9;
+  --secondary-500: #d946ef;
+  --secondary-600: #c026d3;
+  --secondary-700: #a21caf;
+  --secondary-800: #86198f;
+  --secondary-900: #701a75;
 }
 
-@layer base {
-  /* Font Weight Globale - CRITICO per il design */
-  * {
-    font-weight: 300 !important;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  body {
-    font-feature-settings: "rlig" 1, "calt" 1;
-    @apply bg-black text-white;  /* Sfondo nero, testo bianco */
-  }
-  
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Custom scrollbar - stile Control Room */
-  ::-webkit-scrollbar {
-    width: 0.5rem;
-    height: 0.5rem;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.5);
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: rgb(39, 39, 42);
-    border-radius: 0.25rem;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgb(63, 63, 70);
-  }
+html {
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-@layer components {
-  /* Glassmorphism card - Control Room style */
-  .glass-card {
-    background: rgba(24, 24, 27, 0.7);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(74, 222, 128, 0.1);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
-  }
-  
-  /* Card Control Room style */
-  .control-card {
-    background: #0a0a0a;
-    border: 1px solid #1a1a1a;
-    border-radius: 0.375rem;
-  }
-  
-  .control-card:hover {
-    border-color: rgba(74, 222, 128, 0.3);
-    box-shadow: 0 0 20px rgba(74, 222, 128, 0.1);
-  }
-  
-  /* Premium gradient backgrounds */
-  .gradient-primary {
-    background: linear-gradient(to bottom right, #4ade80, #22c55e, #16a34a);
-  }
-  
-  .gradient-dark {
-    background: linear-gradient(to bottom right, #18181b, #09090b, #000000);
-  }
-  
-  /* Animated gradient background - Verde */
-  .animated-gradient {
-    background: linear-gradient(270deg, #4ade80, #22c55e, #4ade80);
-    background-size: 400% 400%;
-    animation: gradient-shift 10s ease infinite;
-  }
-  
-  @keyframes gradient-shift {
-    0% { background-position: 0% 50% }
-    50% { background-position: 100% 50% }
-    100% { background-position: 0% 50% }
-  }
-  
-  /* Text gradients - Verde */
-  .text-gradient {
-    background: linear-gradient(to right, #4ade80, #22c55e);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  
-  /* Loading skeleton */
-  .skeleton {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    background: rgb(24, 24, 27);
-    border-radius: 0.25rem;
-  }
-  
-  /* Status indicators - Control Room style */
-  .status-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 9999px;
-  }
-  
-  .status-success {
-    background: rgb(74, 222, 128);  /* Verde */
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
-  }
-  
-  .status-error {
-    background: rgb(239, 68, 68);
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
-  }
-  
-  .status-warning {
-    background: rgb(251, 191, 36);
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-  }
-  
-  .status-running {
-    background: rgb(59, 130, 246);
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
-  }
-  
-  /* Control Room Button */
-  .btn-control {
-    @apply bg-transparent border border-green-500/30 text-green-400;
-    @apply hover:bg-green-500/10 hover:border-green-500/50;
-    @apply px-4 py-2 rounded-md transition-all duration-200;
-    @apply font-medium text-sm;
-  }
-  
-  .btn-control-primary {
-    @apply bg-green-500 text-black border-green-500;
-    @apply hover:bg-green-400 hover:border-green-400;
-    @apply px-4 py-2 rounded-md transition-all duration-200;
-    @apply font-semibold text-sm;
-  }
-  
-  /* Badge Control Room */
-  .badge-control {
-    @apply inline-flex items-center px-2 py-1 rounded-md;
-    @apply text-xs font-medium;
-    @apply bg-gray-900 border border-gray-800 text-gray-400;
-  }
-  
-  .badge-success {
-    @apply bg-green-500/10 border-green-500/30 text-green-400;
-  }
-  
-  .badge-error {
-    @apply bg-red-500/10 border-red-500/30 text-red-400;
-  }
-  
-  .badge-warning {
-    @apply bg-yellow-500/10 border-yellow-500/30 text-yellow-400;
-  }
+body {
+  margin: 0;
+  padding: 0;
+  background: #000000;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-@layer utilities {
-  /* Animation delays */
-  .animation-delay-100 {
-    animation-delay: 100ms;
-  }
-  
-  .animation-delay-200 {
-    animation-delay: 200ms;
-  }
-  
-  .animation-delay-300 {
-    animation-delay: 300ms;
-  }
-  
-  /* Perspective for 3D effects */
-  .perspective-1000 {
-    perspective: 1000px;
-  }
-  
-  /* Transform style for 3D */
-  .transform-3d {
-    transform-style: preserve-3d;
-  }
-  
-  /* Control Room specific utilities */
-  .border-control {
-    border-color: rgba(74, 222, 128, 0.2);
-  }
-  
-  .glow-green {
-    box-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
-  }
-  
-  .text-control-muted {
-    color: #6b7280;
-  }
+/* Control Room Theme - Green & Black */
+.control-card {
+  @apply bg-gray-900 border border-gray-800 rounded-lg shadow-lg;
+  @apply hover:border-green-500/30 transition-all duration-200;
+}
 
-  /* Animazione neon per i badge */
-  @keyframes neonGlow {
-    0% {
-      box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 0 30px rgba(34, 197, 94, 0.1);
-    }
-    100% {
-      box-shadow: 0 0 40px rgba(34, 197, 94, 0.8), 0 0 80px rgba(34, 197, 94, 0.5), 0 0 120px rgba(34, 197, 94, 0.3);
-    }
-  }
+.control-card:hover {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+}
+
+.btn-control {
+  @apply px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-green-500/50;
+  @apply text-white rounded-lg transition-all duration-200 flex items-center gap-2;
+  @apply hover:shadow-lg hover:shadow-green-500/10;
+}
+
+.btn-control-primary {
+  @apply px-4 py-2 bg-green-600 hover:bg-green-500 border border-green-500;
+  @apply text-white rounded-lg transition-all duration-200 flex items-center gap-2;
+  @apply hover:shadow-lg hover:shadow-green-500/25;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent;
+}
+
+.glass-card {
+  backdrop-filter: blur(16px);
+  background: rgba(17, 25, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-success {
+  @apply bg-green-500;
+  animation: pulse-success 2s infinite;
+}
+
+.status-error {
+  @apply bg-red-500;
+  animation: pulse-error 2s infinite;
+}
+
+.status-warning {
+  @apply bg-yellow-500;
+  animation: pulse-warning 2s infinite;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.5s infinite;
+}
+
+.badge-control {
+  @apply px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium;
+}
+
+@keyframes pulse-success {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulse-error {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes skeleton-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+/* Dark mode overrides */
+.dark .control-card {
+  @apply bg-gray-900 border-gray-800;
+}
+
+.dark .btn-control {
+  @apply bg-gray-800 border-gray-700 text-white;
+}
+
+.dark .btn-control:hover {
+  @apply bg-gray-700 border-green-500/50;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
