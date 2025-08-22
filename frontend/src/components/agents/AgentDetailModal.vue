@@ -312,47 +312,49 @@ const loadTimeline = async () => {
   try {
     console.log('🔄 Loading REAL timeline data for workflow:', props.workflowId)
     
-    // Try multiple backend endpoints for real data
-    const endpoints = [
-      `/api/tenant/${props.tenantId}/agents/workflow/${props.workflowId}/timeline`,
-      `/api/business/process-details/${props.workflowId}`,
-      `/api/business/processes/${props.workflowId}/executions`
-    ]
+    // Use REAL backend endpoint that exists and works
+    const endpoint = `/api/business/process-details/${props.workflowId}`
     
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`🔍 Trying backend endpoint: ${endpoint}`)
-        const response = await fetch(`http://localhost:3001${endpoint}`)
-        
-        if (response.ok) {
-          const realData = await response.json()
-          console.log('✅ REAL data from backend:', realData)
-          
-          // Transform backend data to timeline format
-          timelineData.value = {
-            workflowName: realData.workflowName || realData.name || `Workflow ${props.workflowId}`,
-            status: realData.active ? 'active' : 'inactive',
-            lastExecution: realData.lastExecution || {
-              id: `exec_${props.workflowId}_latest`,
-              executedAt: new Date().toISOString(),
-              duration: 0
-            },
-            businessContext: realData.businessContext || null,
-            timeline: realData.timeline || realData.steps || []
-          }
-          
-          console.log('✅ Timeline data loaded from backend')
-          return
-        } else {
-          console.warn(`⚠️ Endpoint ${endpoint} returned ${response.status}`)
-        }
-      } catch (endpointError) {
-        console.warn(`⚠️ Endpoint ${endpoint} failed:`, endpointError)
-      }
+    console.log(`🔍 Loading from REAL backend endpoint: ${endpoint}`)
+    const response = await fetch(`http://localhost:3001${endpoint}`)
+    
+    if (!response.ok) {
+      throw new Error(`Backend API returned ${response.status}: ${response.statusText}`)
     }
     
-    // If all endpoints fail
-    throw new Error(`No backend endpoint available for workflow ${props.workflowId} timeline data`)
+    const realData = await response.json()
+    console.log('✅ REAL data from backend:', realData)
+    
+    // Transform REAL backend data to timeline format
+    timelineData.value = {
+      workflowName: realData.data.processName,
+      status: realData.data.isActive ? 'active' : 'inactive',
+      lastExecution: {
+        id: realData.data.latestActivity?.lastRun || 'no_executions',
+        executedAt: realData.data.timeline?.lastModified || new Date().toISOString(),
+        duration: realData.data.performance?.averageDurationMs || 0,
+        status: realData.data.latestActivity?.lastRunStatus || 'unknown'
+      },
+      businessContext: {
+        processId: realData.data.processId,
+        category: realData.data.category?.label,
+        healthStatus: realData.data.performance?.healthStatus?.label,
+        businessImpact: realData.data.businessImpact?.score
+      },
+      timeline: realData.data.processSteps?.map((step, index) => ({
+        nodeId: step.stepId,
+        nodeName: step.stepName,
+        nodeType: step.stepType?.type,
+        status: 'success', // Default since no execution data yet
+        executionTime: 0,
+        customOrder: index + 1,
+        summary: step.description,
+        inputData: step.configuration,
+        outputData: null
+      })) || []
+    }
+    
+    console.log('✅ Real timeline data transformed:', timelineData.value.timeline.length, 'steps')
     
   } catch (err: any) {
     error.value = `Backend API Error: ${err.message}`

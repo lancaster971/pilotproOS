@@ -52,47 +52,42 @@
       </div>
     </header>
 
+
     <div class="flex">
-      <!-- Sidebar - same navigation pattern as n8n -->
-      <aside
-        :class="[
-          'transition-transform duration-300 z-40',
-          uiStore.sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-          'fixed lg:static w-64 bg-gray-900 border-r border-gray-800 min-h-screen'
-        ]"
-      >
+      <!-- Simple Fixed Sidebar -->
+      <aside class="w-60 bg-gray-900 border-r border-gray-700 min-h-screen flex-shrink-0">
         <div class="p-6">
+          <!-- Logo -->
+          <div class="flex items-center gap-3 mb-8 pb-4 border-b border-gray-800">
+            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-sm">P</span>
+            </div>
+            <div>
+              <h1 class="text-white font-semibold text-sm">PilotPro</h1>
+              <p class="text-gray-400 text-xs">Control Center</p>
+            </div>
+          </div>
+
+          <!-- Navigation -->
           <nav class="space-y-2">
             <router-link
               v-for="item in navigationItems"
               :key="item.name"
               :to="item.path"
-              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-              :class="[
-                $route.path === item.path 
-                  ? 'bg-green-600 text-white' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              ]"
+              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white"
+              :class="[$route.path === item.path ? 'bg-green-600 text-white' : '']"
             >
               <component :is="item.icon" class="h-5 w-5" />
-              {{ item.label }}
+              <span class="text-sm">{{ item.label }}</span>
             </router-link>
           </nav>
-          
-          <!-- Sidebar footer -->
-          <div class="mt-8 pt-4 border-t border-gray-800">
-            <div class="text-center">
-              <p class="text-xs text-gray-500">PilotPro Control Center</p>
-              <p class="text-xs text-gray-400">v1.0.0</p>
-            </div>
-          </div>
         </div>
       </aside>
 
       <!-- Main content area -->
-      <main class="flex-1 lg:ml-0 transition-all duration-300">
+      <main class="flex-1">
         <div class="p-6">
-          <router-view />
+          <slot />
         </div>
       </main>
     </div>
@@ -123,26 +118,12 @@ const router = useRouter()
 
 // Local state
 const showUserMenu = ref(false)
-const isMobile = ref(false)
 
-// Check if mobile on mount
-onMounted(() => {
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 1024
-  }
-  
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-  
-  return () => {
-    window.removeEventListener('resize', checkMobile)
-  }
-})
-
-// Navigation items - same structure as n8n sidebar
+// Navigation items
 const navigationItems = [
   { name: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { name: 'workflows', path: '/workflows', label: 'Workflows', icon: GitBranch },
+  { name: 'workflow-visual', path: '/workflows/visual', label: 'Visual Flow', icon: GitBranch },
   { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
   { name: 'stats', path: '/stats', label: 'Statistics', icon: BarChart3 },
   { name: 'database', path: '/database', label: 'Database', icon: Database },

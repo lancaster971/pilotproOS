@@ -223,6 +223,7 @@ import MainLayout from '../components/layout/MainLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useWorkflowsStore } from '../stores/workflows'
 import { useUIStore } from '../stores/ui'
+import webSocketService from '../services/websocket'
 import type { Execution } from '../types'
 
 // Stores
@@ -271,43 +272,56 @@ const refreshExecutions = async () => {
   isLoading.value = true
   
   try {
-    // Mock executions data based on our backend
-    executions.value = [
-      {
-        id: 'exec_001',
-        workflow_id: '1',
-        workflow_name: 'TRY Backend',
-        status: 'success',
-        mode: 'manual',
-        started_at: new Date().toISOString(),
-        stopped_at: new Date(Date.now() + 2340).toISOString(),
-        duration_ms: 2340,
-      },
-      {
-        id: 'exec_002',
-        workflow_id: '1',
-        workflow_name: 'TRY Backend',
-        status: 'running',
-        mode: 'webhook',
-        started_at: new Date(Date.now() - 300000).toISOString(),
-      },
-      {
-        id: 'exec_003',
-        workflow_id: '2',
-        workflow_name: 'Email Processing',
-        status: 'success',
-        mode: 'trigger',
-        started_at: new Date(Date.now() - 1800000).toISOString(),
-        stopped_at: new Date(Date.now() - 1796340).toISOString(),
-        duration_ms: 3660,
+    // Fetch real executions from backend API
+    const response = await fetch('http://localhost:3001/api/business/process-runs', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
       }
-    ]
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Map backend data to our frontend format
+    executions.value = (data.data || []).map((run: any) => ({
+      id: run.run_id,
+      workflow_id: run.process_id,
+      workflow_name: run.process_name,
+      status: mapBackendStatus(run.business_status),
+      mode: run.is_completed ? 'webhook' : 'manual',
+      started_at: run.start_time,
+      stopped_at: run.end_time,
+      duration_ms: run.duration_ms,
+      business_status: run.business_status,
+      issue_description: run.issue_description
+    }))
     
   } catch (error: any) {
     uiStore.showToast('Errore', 'Impossibile caricare le executions', 'error')
     console.error('Failed to load executions:', error)
+    
+    // Fallback to empty array on error
+    executions.value = []
   } finally {
     isLoading.value = false
+  }
+}
+
+// Helper to map backend status to frontend status
+const mapBackendStatus = (businessStatus: string): string => {
+  switch (businessStatus) {
+    case 'Completed Successfully':
+      return 'success'
+    case 'Requires Attention':
+      return 'error'
+    case 'In Progress':
+      return 'running'
+    default:
+      return 'waiting'
   }
 }
 
@@ -379,9 +393,9 @@ const formatDuration = (ms?: number) => {
 // Auto-refresh setup
 watch(autoRefresh, (enabled) => {
   if (enabled) {
-    refreshInterval = setInterval(refreshExecutions, 5000) // Every 5 seconds
-  } else if (refreshInterval) {
-    clearInterval(refreshInterval)
+    webSocketService.startAutoRefresh('executions', refreshExecutions, 5000)
+  } else {
+    webSocketService.stopAutoRefresh('executions')
   }
 })
 
@@ -391,13 +405,20 @@ onMounted(() => {
   workflowsStore.fetchWorkflows() // For workflow filter
   
   if (autoRefresh.value) {
-    refreshInterval = setInterval(refreshExecutions, 5000)
+    webSocketService.startAutoRefresh('executions', refreshExecutions, 5000)
   }
+  
+  // Listen for real-time execution events
+  window.addEventListener('execution:started', refreshExecutions)
+  window.addEventListener('execution:completed', refreshExecutions)
 })
 
 onUnmounted(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval)
-  }
+  // Stop auto-refresh
+  webSocketService.stopAutoRefresh('executions')
+  
+  // Clean up event listeners
+  window.removeEventListener('execution:started', refreshExecutions)
+  window.removeEventListener('execution:completed', refreshExecutions)
 })
 </script>

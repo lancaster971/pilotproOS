@@ -224,51 +224,61 @@ const severityFilter = ref<'all' | 'critical' | 'high' | 'medium' | 'low'>('all'
 const categoryFilter = ref<'all' | 'system' | 'workflow' | 'database' | 'security' | 'performance'>('all')
 const showOnlyUnread = ref(false)
 
-const alertStats = ref({
-  total: 15,
-  unread: 3,
-  critical: 1,
-  active: 8
+// Real data from API
+const alertsData = ref<any>({
+  errors: [],
+  notifications: []
 })
 
-const alerts = ref<Alert[]>([
-  {
-    id: '1',
-    type: 'warning',
-    severity: 'high',
-    title: 'High Memory Usage Detected',
-    message: 'System memory usage has exceeded 80% for the past 15 minutes',
-    source: 'monitoring.memory',
-    timestamp: new Date().toISOString(),
+// Computed stats from real data
+const alertStats = computed(() => {
+  const allAlerts = [...alertsData.value.errors, ...alertsData.value.notifications]
+  const unreadAlerts = allAlerts.filter((a: any) => !a.seen)
+  const criticalAlerts = alertsData.value.errors?.filter((e: any) => 
+    e.message?.toLowerCase().includes('critical') || e.message?.toLowerCase().includes('error')
+  ).length || 0
+  
+  return {
+    total: allAlerts.length,
+    unread: unreadAlerts.length,
+    critical: criticalAlerts,
+    active: alertsData.value.errors?.length || 0
+  }
+})
+
+// Transform backend data into Alert format
+const alerts = computed(() => {
+  const errorAlerts = (alertsData.value.errors || []).map((error: any) => ({
+    id: error.id || `error-${error.workflowId}-${error.executionId}`,
+    type: 'error',
+    severity: error.message?.toLowerCase().includes('critical') ? 'critical' : 'high',
+    title: `Workflow Error: ${error.workflowId}`,
+    message: error.message || 'Unknown error occurred',
+    source: `workflow.${error.workflowId}`,
+    timestamp: error.date || new Date().toISOString(),
     isRead: false,
     isActive: true,
-    category: 'system'
-  },
-  {
-    id: '2',
-    type: 'success',
-    severity: 'low',
-    title: 'Backup Completed Successfully',
-    message: 'Daily automated backup completed without errors',
-    source: 'backup.scheduler',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    isRead: false,
+    category: 'workflow',
+    count: error.errorCount || 1
+  }))
+  
+  const notificationAlerts = (alertsData.value.notifications || []).map((notif: any) => ({
+    id: notif.id,
+    type: mapNotificationType(notif.notification_type || notif.type),
+    severity: mapNotificationSeverity(notif.notification_type || notif.type),
+    title: notif.title || notif.notification_type || 'System Notification',
+    message: notif.message || 'System notification',
+    source: 'system.notification',
+    timestamp: notif.created_at || new Date().toISOString(),
+    isRead: notif.seen || false,
     isActive: false,
     category: 'system'
-  },
-  {
-    id: '3',
-    type: 'error',
-    severity: 'critical',
-    title: 'Database Connection Lost',
-    message: 'Temporary connection loss to PostgreSQL database, auto-reconnect successful',
-    source: 'database.connection',
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-    isRead: true,
-    isActive: false,
-    category: 'database'
-  }
-])
+  }))
+  
+  return [...errorAlerts, ...notificationAlerts].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  )
+})
 
 // Computed
 const filteredAlerts = computed(() => {
@@ -283,33 +293,36 @@ const filteredAlerts = computed(() => {
   })
 })
 
+// Helper functions for mapping backend data
+const mapNotificationType = (type: string) => {
+  if (type?.includes('error')) return 'error'
+  if (type?.includes('warning')) return 'warning'
+  if (type?.includes('success')) return 'success'
+  return 'info'
+}
+
+const mapNotificationSeverity = (type: string) => {
+  if (type?.includes('error') || type?.includes('critical')) return 'critical'
+  if (type?.includes('warning') || type?.includes('high')) return 'high'
+  if (type?.includes('medium')) return 'medium'
+  return 'low'
+}
+
 // Methods
 const refreshAlerts = async () => {
   isLoading.value = true
   
   try {
-    // Simulate alert refresh
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Add a new system check alert
-    alerts.value.unshift({
-      id: `alert-${Date.now()}`,
-      type: 'info',
-      severity: 'low',
-      title: 'System Health Check',
-      message: 'Routine system health check completed successfully',
-      source: 'monitoring.health',
-      timestamp: new Date().toISOString(),
-      isRead: false,
-      isActive: false,
-      category: 'system'
-    })
-    
-    alertStats.value.total = alerts.value.length
-    alertStats.value.unread = alerts.value.filter(a => !a.isRead).length
-    
-    uiStore.showToast('Aggiornamento', 'Alerts aggiornati', 'success')
+    // Fetch real alerts from backend
+    const response = await fetch('http://localhost:3001/api/business/alerts')
+    if (response.ok) {
+      alertsData.value = await response.json()
+      uiStore.showToast('Aggiornamento', 'Alerts aggiornati con dati reali', 'success')
+    } else {
+      throw new Error('Failed to fetch alerts')
+    }
   } catch (error: any) {
+    console.error('Failed to load alerts:', error)
     uiStore.showToast('Errore', 'Impossibile caricare alerts', 'error')
   } finally {
     isLoading.value = false

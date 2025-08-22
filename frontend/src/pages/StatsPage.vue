@@ -250,7 +250,14 @@ const timeRange = ref('7d')
 const activeTab = ref<'overview' | 'performance' | 'analytics'>('overview')
 const isLoading = ref(false)
 const chartsLoading = ref(false)
-const avgExecutionTime = ref(245)
+const avgExecutionTime = ref(0)
+
+// Real data from API
+const statisticsData = ref<any>({
+  daily: [],
+  hourly: [],
+  byWorkflow: []
+})
 
 // Tabs configuration
 const tabs = [
@@ -259,66 +266,88 @@ const tabs = [
   { id: 'analytics', label: 'Analytics', icon: Target },
 ]
 
-// Computed data
-const keyMetrics = computed(() => [
-  {
-    title: 'Total Workflows',
-    value: workflowsStore.stats.total.toString(),
-    change: 5.2,
-    icon: GitBranch,
-  },
-  {
-    title: 'Workflows Attivi',
-    value: workflowsStore.stats.active.toString(),
-    change: 1.8,
-    icon: Activity,
-  },
-  {
-    title: 'Executions Totali',
-    value: '1,450',
-    change: 12.5,
-    icon: Target,
-  },
-  {
-    title: 'Success Rate',
-    value: '98.5%',
-    change: 1.8,
-    icon: CheckCircle,
-  },
-])
-
-const workflowTypes = computed(() => [
-  { type: 'Webhook', count: workflowsStore.stats.active, percentage: 75 },
-  { type: 'Manual', count: 2, percentage: 15 },
-  { type: 'Scheduled', count: 1, percentage: 10 },
-])
-
-const peakHours = computed(() => [
-  { hour: 9, avgExecutions: 145 },
-  { hour: 14, avgExecutions: 132 },
-  { hour: 16, avgExecutions: 121 },
-])
-
-// Chart data
-const performanceChartData = computed(() => ({
-  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  datasets: [
+// Computed data from real API
+const keyMetrics = computed(() => {
+  const totalExecutions = statisticsData.value.daily.reduce((sum: number, d: any) => sum + parseInt(d.total || 0), 0)
+  const successfulExecutions = statisticsData.value.daily.reduce((sum: number, d: any) => sum + parseInt(d.success || d.completed_successfully || 0), 0)
+  const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions * 100).toFixed(1) : 0
+  
+  return [
     {
-      label: 'Executions',
-      data: [65, 89, 72, 95, 82, 71, 88],
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-      tension: 0.4,
+      title: 'Total Workflows',
+      value: workflowsStore.stats.total.toString(),
+      change: 5.2,
+      icon: GitBranch,
     },
     {
-      label: 'Success Rate %',
-      data: [98, 97, 99, 96, 98, 99, 97],
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      tension: 0.4,
+      title: 'Workflows Attivi',
+      value: workflowsStore.stats.active.toString(),
+      change: 1.8,
+      icon: Activity,
     },
-  ],
-}))
+    {
+      title: 'Executions Totali',
+      value: totalExecutions.toLocaleString(),
+      change: 12.5,
+      icon: Target,
+    },
+    {
+      title: 'Success Rate',
+      value: `${successRate}%`,
+      change: 1.8,
+      icon: CheckCircle,
+    },
+  ]
+})
+
+const workflowTypes = computed(() => {
+  const total = statisticsData.value.byWorkflow?.reduce((sum: number, w: any) => sum + (w.execution_count || 0), 0) || 0
+  return (statisticsData.value.byWorkflow || []).slice(0, 5).map((w: any) => ({
+    type: w.workflow_name || 'Unknown',
+    count: w.execution_count || 0,
+    percentage: total > 0 ? Math.round(((w.execution_count || 0) / total) * 100) : 0
+  }))
+})
+
+const peakHours = computed(() => {
+  return (statisticsData.value.hourly || []).slice(0, 5).map((h: any) => ({
+    hour: h.hour ? new Date(h.hour).getHours() : 0,
+    avgExecutions: parseInt(h.executions || h.process_runs || 0)
+  }))
+})
+
+// Chart data from real API
+const performanceChartData = computed(() => {
+  const last7Days = (statisticsData.value.daily || []).slice(0, 7).reverse()
+  
+  return {
+    labels: last7Days.map((d: any) => {
+      if (!d.day) return 'N/A'
+      const date = new Date(d.day)
+      return date.toLocaleDateString('it-IT', { weekday: 'short' })
+    }),
+    datasets: [
+      {
+        label: 'Executions',
+        data: last7Days.map((d: any) => parseInt(d.total || 0)),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        tension: 0.4,
+      },
+      {
+        label: 'Success Rate %',
+        data: last7Days.map((d: any) => {
+          const total = parseInt(d.total || 0)
+          const success = parseInt(d.success || d.completed_successfully || 0)
+          return total > 0 ? Math.round((success / total) * 100) : 0
+        }),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+      },
+    ],
+  }
+})
 
 const chartOptions = {
   responsive: true,
@@ -345,14 +374,20 @@ const refreshStats = async () => {
   isLoading.value = true
   
   try {
-    // Use our backend health endpoint for basic stats
-    const response = await businessAPI.getHealth()
-    const healthData = response.data
-    
-    // Update metrics based on real system status
-    avgExecutionTime.value = Math.round(Math.random() * 500 + 100) // 100-600ms
-    
-    uiStore.showToast('Aggiornamento', 'Statistiche aggiornate', 'success')
+    // Fetch real statistics from backend
+    const response = await fetch('http://localhost:3001/api/business/statistics')
+    if (response.ok) {
+      statisticsData.value = await response.json()
+      
+      // Calculate average execution time from real data
+      const avgDurationSeconds = statisticsData.value.daily?.reduce((sum: number, d: any, i: number, arr: any[]) => 
+        sum + (parseFloat(d.avg_duration_seconds || 0) / (arr.length || 1)), 0) || 0
+      avgExecutionTime.value = Math.round(avgDurationSeconds * 1000) // Convert to ms
+      
+      uiStore.showToast('Aggiornamento', 'Statistiche aggiornate con dati reali', 'success')
+    } else {
+      throw new Error('Failed to fetch statistics')
+    }
   } catch (error: any) {
     uiStore.showToast('Errore', 'Impossibile caricare le statistiche', 'error')
     console.error('Failed to load stats:', error)

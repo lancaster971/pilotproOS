@@ -146,7 +146,7 @@
                 </div>
               </div>
               <div>
-                <p class="text-2xl font-bold text-white">0</p>
+                <p class="text-2xl font-bold text-white">{{ executionsToday }}</p>
                 <p class="text-sm text-gray-400">Esecuzioni (24h)</p>
               </div>
             </div>
@@ -158,7 +158,7 @@
                 </div>
               </div>
               <div>
-                <p class="text-2xl font-bold text-white">100%</p>
+                <p class="text-2xl font-bold text-white">{{ successRate }}%</p>
                 <p class="text-sm text-gray-400">Success Rate</p>
               </div>
             </div>
@@ -254,7 +254,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
@@ -262,6 +262,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { businessAPI } from '../services/api'
+import webSocketService from '../services/websocket'
 
 // Stores
 const authStore = useAuthStore()
@@ -269,8 +270,10 @@ const router = useRouter()
 
 // Local state
 const sidebarOpen = ref(true)
-const workflowCount = ref(1)
-const activeWorkflows = ref(1)
+const workflowCount = ref(0)
+const activeWorkflows = ref(0)
+const executionsToday = ref(0)
+const successRate = ref(0)
 
 // Methods
 const doLogout = () => {
@@ -280,27 +283,44 @@ const doLogout = () => {
 
 const loadData = async () => {
   try {
-    // REAL BACKEND API CALL - NO MOCK DATA
-    console.log('🔄 Loading REAL data from PilotProOS backend...')
+    console.log('🔄 Loading ALL REAL data from PilotProOS backend...')
     
-    const response = await fetch('http://localhost:3001/api/business/processes')
-    
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`)
+    // Load workflows data
+    const processesResponse = await fetch('http://localhost:3001/api/business/processes')
+    if (!processesResponse.ok) {
+      throw new Error(`Processes API error: ${processesResponse.status}`)
     }
+    const processesData = await processesResponse.json()
+    console.log('✅ Processes data:', processesData)
     
-    const data = await response.json()
-    console.log('✅ Real backend data loaded:', data)
+    // Load analytics data 
+    const analyticsResponse = await fetch('http://localhost:3001/api/business/analytics')
+    if (!analyticsResponse.ok) {
+      throw new Error(`Analytics API error: ${analyticsResponse.status}`)
+    }
+    const analyticsData = await analyticsResponse.json()
+    console.log('✅ Analytics data:', analyticsData)
     
-    // Use REAL data from our backend
-    workflowCount.value = data.total || 0
-    activeWorkflows.value = data.summary?.active || 0
+    // Load automation insights
+    const insightsResponse = await fetch('http://localhost:3001/api/business/automation-insights')
+    if (!insightsResponse.ok) {
+      throw new Error(`Insights API error: ${insightsResponse.status}`)
+    }
+    const insightsData = await insightsResponse.json()
+    console.log('✅ Insights data:', insightsData)
     
-    console.log(`📊 Real stats: ${workflowCount.value} workflows, ${activeWorkflows.value} active`)
+    // Use ALL REAL data from backend
+    workflowCount.value = processesData.total || 0
+    activeWorkflows.value = processesData.summary?.active || 0
+    
+    // Update with analytics data
+    executionsToday.value = analyticsData.overview?.totalExecutions || 0
+    successRate.value = analyticsData.overview?.successRate || 0
+    
+    console.log(`📊 Complete real stats: ${workflowCount.value} workflows, ${activeWorkflows.value} active, ${executionsToday.value} executions, ${successRate.value}% success`)
     
   } catch (error: any) {
-    console.error('❌ Backend API call failed:', error)
-    // Show error, don't hide with mock data
+    console.error('❌ Backend API calls failed:', error)
     workflowCount.value = 0
     activeWorkflows.value = 0
   }
@@ -309,5 +329,21 @@ const loadData = async () => {
 // Lifecycle
 onMounted(() => {
   loadData()
+  
+  // Start auto-refresh every 5 seconds
+  webSocketService.startAutoRefresh('dashboard', loadData, 5000)
+  
+  // Listen for real-time events
+  window.addEventListener('stats:update', loadData)
+  window.addEventListener('workflow:updated', loadData)
+})
+
+onUnmounted(() => {
+  // Stop auto-refresh when leaving the page
+  webSocketService.stopAutoRefresh('dashboard')
+  
+  // Clean up event listeners
+  window.removeEventListener('stats:update', loadData)
+  window.removeEventListener('workflow:updated', loadData)
 })
 </script>

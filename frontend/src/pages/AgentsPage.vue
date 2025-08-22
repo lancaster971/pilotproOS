@@ -196,61 +196,77 @@ const isLoading = ref(false)
 const selectedWorkflowId = ref<string | null>(null)
 const showAgentModal = ref(false)
 
-const agentWorkflows = ref<AgentWorkflow[]>([
-  {
-    id: '1',
-    name: 'Email Processing Agent',
-    status: 'active',
-    lastActivity: new Date().toISOString(),
-    lastExecutionId: 'exec_001',
-    lastExecutionStatus: 'success',
-    totalExecutions: 245,
-    hasDetailedData: true,
-    updatedAt: new Date().toISOString(),
-    type: 'ai-agent',
-    preview: {
-      senderEmail: 'customer@example.com',
-      subject: 'Richiesta informazioni prodotto',
-      classification: 'Customer Support'
+// Real data from API
+const workflowsData = ref<any[]>([])
+const executionsData = ref<any[]>([])
+
+// Transform backend workflows into agent workflows
+const agentWorkflows = computed(() => {
+  // Filter workflows that are AI/Agent related based on name or tags
+  const aiWorkflows = workflowsData.value.filter((w: any) => 
+    w.name?.toLowerCase().includes('ai') ||
+    w.name?.toLowerCase().includes('agent') ||
+    w.name?.toLowerCase().includes('bot') ||
+    w.name?.toLowerCase().includes('email') ||
+    w.name?.toLowerCase().includes('classification') ||
+    w.tags?.some((t: any) => t.name?.toLowerCase().includes('ai')) ||
+    // Include all workflows for now since we have limited data
+    true
+  )
+  
+  return aiWorkflows.map((workflow: any) => {
+    // Find executions for this workflow
+    const workflowExecutions = executionsData.value.filter((e: any) => 
+      e.workflow_id === workflow.id || e.workflowId === workflow.id
+    )
+    
+    // Get latest execution
+    const latestExecution = workflowExecutions[0]
+    
+    return {
+      id: workflow.id,
+      name: workflow.name || 'Unnamed Workflow',
+      status: workflow.active ? 'active' : 'inactive',
+      lastActivity: latestExecution?.startedAt || workflow.updatedAt,
+      lastExecutionId: latestExecution?.id,
+      lastExecutionStatus: latestExecution?.status === 'success' ? 'success' : 
+                           latestExecution?.status === 'error' ? 'error' : 
+                           latestExecution ? 'running' : undefined,
+      totalExecutions: workflowExecutions.length || workflow.executionCount || 0,
+      hasDetailedData: workflowExecutions.length > 0,
+      updatedAt: workflow.updatedAt,
+      type: 'ai-agent',
+      preview: latestExecution?.data ? {
+        senderEmail: latestExecution.data.email || latestExecution.data.sender,
+        subject: latestExecution.data.subject || latestExecution.data.title,
+        classification: latestExecution.data.classification || latestExecution.data.category
+      } : undefined
     }
-  },
-  {
-    id: '2',
-    name: 'Customer Service Bot',
-    status: 'active',
-    lastActivity: new Date(Date.now() - 1800000).toISOString(),
-    lastExecutionId: 'exec_002',
-    lastExecutionStatus: 'success',
-    totalExecutions: 156,
-    hasDetailedData: true,
-    updatedAt: new Date().toISOString(),
-    type: 'ai-agent',
-    preview: {
-      senderEmail: 'support@company.com',
-      subject: 'Ticket di supporto automatico',
-      classification: 'Support Automation'
-    }
-  }
-])
+  })
+})
 
 // Methods
 const refreshAgents = async () => {
   isLoading.value = true
   
   try {
-    // In real implementation, fetch from our agents API
-    // For now, simulate refresh
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Fetch workflows and executions from backend
+    const [workflowsResponse, executionsResponse] = await Promise.all([
+      fetch('http://localhost:3001/api/business/processes'),
+      fetch('http://localhost:3001/api/business/process-runs')
+    ])
     
-    // Update last activity timestamps
-    agentWorkflows.value.forEach(workflow => {
-      if (Math.random() > 0.7) { // 30% chance of new activity
-        workflow.lastActivity = new Date().toISOString()
-        workflow.totalExecutions += Math.floor(Math.random() * 3)
-      }
-    })
+    if (workflowsResponse.ok) {
+      const workflowsJson = await workflowsResponse.json()
+      workflowsData.value = workflowsJson.data || []
+    }
     
-    uiStore.showToast('Aggiornamento', 'AI Agents aggiornati', 'success')
+    if (executionsResponse.ok) {
+      const executionsJson = await executionsResponse.json()
+      executionsData.value = executionsJson.data || []
+    }
+    
+    uiStore.showToast('Aggiornamento', 'AI Agents aggiornati con dati reali', 'success')
   } catch (error: any) {
     console.error('Failed to load agents:', error)
     uiStore.showToast('Errore', 'Impossibile caricare AI agents', 'error')

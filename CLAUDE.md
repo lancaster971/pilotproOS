@@ -46,6 +46,13 @@ npm run test              # Run all tests in Docker containers
 npm run test:backend      # Backend tests in container
 npm run test:frontend     # Frontend tests in container
 npm run test:integration  # Integration tests in container
+
+# 🔄 REAL-TIME DATA TESTING
+npm run test:api          # Test all backend API endpoints
+npm run test:websocket    # Test WebSocket server connections
+npm run monitor:db        # Monitor real-time database changes
+npm run generate:data     # Generate test data in PostgreSQL
+npm run check:mock        # Find remaining mock data in frontend
 ```
 
 **🐳 Complete Docker Stack Includes:**

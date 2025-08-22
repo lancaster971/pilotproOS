@@ -1,349 +1,397 @@
 # PilotProOS - Next Steps
 
-**Status**: Vue 3 + TypeScript frontend completato, backend real data integrato  
+**Status**: Real-Time Data Integration Phase - Eliminazione TUTTI i dati mock  
 **Data**: 2025-08-22  
-**Versione**: v1.2.0  
+**Versione**: v1.3.0  
 
 ---
 
-## 🎯 **SISTEMA ATTUALE COMPLETATO**
+## 🎯 **SISTEMA ATTUALE - STATO**
 
-### ✅ **Frontend Vue 3 + TypeScript (100% Funzionante)**
-- **Stack n8n-compatible**: Vue 3.4.21 + TypeScript + Pinia + Vue Router
-- **Pages complete**: Login, Dashboard, Workflows, Executions, Stats, Security, AI Agents, Alerts, Scheduler
-- **Real data integration**: ZERO mock data - solo chiamate API backend reali
-- **AgentDetailModal**: Componente killer timeline step-by-step (backend-ready)
-- **Navigation**: Vue Router con auth guards completo
-- **State management**: Pinia stores reattivi
-- **Docker compatible**: Vite + Vue perfetta compatibilità container
+### ✅ **COMPLETATO**
 
-### ✅ **Backend Real Data (100% Funzionante)**
-- **Database**: PostgreSQL con 29 workflows reali importati da Hostinger
-- **API endpoint**: `/api/business/processes` restituisce tutti i 29 workflows
-- **Business terminology**: Complete anonymization workflow → business process
-- **DatabaseCompatibilityService**: Updated per restituire lista completa
-- **n8n integration**: Backend connesso a n8n 1.108.1 su PostgreSQL
+#### **Frontend Vue 3 + TypeScript**
+- Stack n8n-compatible: Vue 3.4.21 + TypeScript + Pinia + Vue Router
+- 10 Pages complete con routing e navigation
+- Parziale integrazione dati reali (Dashboard, Workflows, Executions)
+
+#### **Backend PostgreSQL Integration**
+- Database: PostgreSQL dual-schema (n8n + pilotpros)
+- 29 workflows reali + 50+ executions nel database
+- API endpoints funzionanti:
+  - ✅ `/api/business/processes` - Tutti i workflows
+  - ✅ `/api/business/process-runs` - Tutte le executions 
+  - ✅ `/api/business/analytics` - Analytics aggregati
+  - ✅ `/api/business/process-details/:id` - Dettagli processo
+  - ✅ `/api/business/integration-health` - Health connections
+  - ✅ `/api/business/automation-insights` - Insights avanzati
+
+### ⚠️ **PROBLEMA ATTUALE**
+- **6 pagine su 10 usano ancora DATI MOCK/STATICI**
+- **NO real-time updates** (solo refresh manuale)
+- **NO WebSocket** per notifiche live
 
 ---
 
-## 🚀 **PROSSIMI STEP DA IMPLEMENTARE**
+## 🔴 **PAGINE CON DATI MOCK DA SISTEMARE**
 
-### **PRIORITÀ 1 - Backend API Timeline (Critical)**
+| Pagina | Stato Attuale | Dati Necessari dal DB |
+|--------|--------------|----------------------|
+| **StatsPage** | Grafici hardcoded | `n8n.execution_entity` aggregati per ora/giorno |
+| **SecurityPage** | Mock users/tables | `n8n.user`, `n8n.role`, `pilotpros.audit_logs` |
+| **AlertsPage** | Alerts statici | `n8n.execution_entity` WHERE status='error' |
+| **SchedulerPage** | Schedule fissi | `n8n.workflow_entity` con CRON triggers |
+| **AgentsPage** | Agents statici | `n8n.execution_data` per timeline |
+| **DatabasePage** | Info statiche | `information_schema.tables` stats |
 
-#### **Implementare `/api/tenant/{tenantId}/agents/workflow/{workflowId}/timeline`**
+---
+
+## 🚀 **PIANO IMPLEMENTAZIONE - REAL-TIME DATA**
+
+### **FASE 1 - Nuovi Endpoint nel server.js (Query dirette PostgreSQL)**
+
+#### **1. Statistics Endpoint**
 ```javascript
-// backend/src/controllers/agents.controller.js
-app.get('/api/tenant/:tenantId/agents/workflow/:workflowId/timeline', async (req, res) => {
-  const { tenantId, workflowId } = req.params
+// GET /api/business/statistics
+app.get('/api/business/statistics', async (req, res) => {
+  // Query executions per day/hour
+  const dailyStats = await dbPool.query(`
+    SELECT 
+      DATE(e."startedAt") as day,
+      COUNT(*) as total,
+      COUNT(CASE WHEN e.status = 'success' THEN 1 END) as success,
+      COUNT(CASE WHEN e.status = 'error' THEN 1 END) as errors,
+      AVG(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt"))) as avg_duration
+    FROM n8n.execution_entity e
+    WHERE e."startedAt" >= NOW() - INTERVAL '30 days'
+    GROUP BY DATE(e."startedAt")
+    ORDER BY day DESC
+  `)
   
-  try {
-    // Query execution data from n8n.execution_entity
-    const executions = await dbPool.query(`
-      SELECT 
-        e.id,
-        e."startedAt",
-        e."stoppedAt", 
-        e.data,
-        w.name as workflow_name
-      FROM n8n.execution_entity e
-      JOIN n8n.workflow_entity w ON e."workflowId" = w.id
-      WHERE w.id = $1
-      ORDER BY e."startedAt" DESC
-      LIMIT 1
-    `, [workflowId])
-    
-    if (executions.rows.length === 0) {
-      return res.json({ 
-        success: false, 
-        message: 'No executions found for this workflow' 
-      })
-    }
-    
-    const execution = executions.rows[0]
-    
-    // Parse execution data to timeline format
-    const timeline = parseExecutionToTimeline(execution.data)
-    
-    res.json({
-      success: true,
-      data: {
-        workflowName: execution.workflow_name,
-        status: 'active',
-        lastExecution: {
-          id: execution.id,
-          executedAt: execution.startedAt,
-          duration: execution.stoppedAt ? 
-            new Date(execution.stoppedAt) - new Date(execution.startedAt) : 0
-        },
-        businessContext: extractBusinessContext(execution.data),
-        timeline: timeline
-      }
-    })
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to load timeline' })
-  }
+  res.json({ daily: dailyStats.rows })
 })
 ```
 
-#### **Parser Functions da Implementare**
-```javascript
-// Parse n8n execution data to timeline steps
-function parseExecutionToTimeline(executionData) {
-  const steps = []
+#### **2. Security Endpoint**
+```javascript  
+// GET /api/business/security
+app.get('/api/business/security', async (req, res) => {
+  // Users and roles
+  const users = await dbPool.query(`
+    SELECT u.id, u.email, u."firstName", u."lastName", 
+           u."createdAt", u."lastLogin", r.name as role
+    FROM n8n.user u
+    LEFT JOIN n8n.role r ON u."globalRoleId" = r.id
+    ORDER BY u."createdAt" DESC
+  `)
   
-  // Extract nodes and execution data
-  if (executionData && executionData.resultData) {
-    const runData = executionData.resultData.runData
-    
-    Object.keys(runData).forEach((nodeName, index) => {
-      const nodeData = runData[nodeName][0]
-      
-      steps.push({
-        nodeId: `node_${index}`,
-        nodeName: nodeName,
-        nodeType: nodeData.source?.[0]?.type || 'unknown',
-        status: nodeData.error ? 'error' : 'success',
-        executionTime: nodeData.executionTime || 0,
-        customOrder: extractShowOrder(nodeName), // Extract show-N from node notes
-        summary: generateNodeSummary(nodeName, nodeData),
-        inputData: nodeData.data?.main?.[0] || null,
-        outputData: nodeData.data?.main?.[0] || null
-      })
-    })
-  }
+  // Audit logs
+  const audit = await dbPool.query(`
+    SELECT * FROM pilotpros.audit_logs 
+    ORDER BY created_at DESC LIMIT 100
+  `)
   
-  return steps.filter(step => step.customOrder) // Only show-N steps
-}
-
-// Extract business context from execution
-function extractBusinessContext(executionData) {
-  const context = {}
-  
-  // Look for email data in execution
-  if (executionData && executionData.resultData) {
-    const runData = executionData.resultData.runData
-    
-    Object.values(runData).forEach(nodeExecution => {
-      const data = nodeExecution[0]?.data?.main?.[0]?.json
-      
-      if (data) {
-        // Extract email info
-        if (data.mittente || data.sender) {
-          context.senderEmail = data.mittente || data.sender?.emailAddress?.address
-        }
-        if (data.oggetto || data.subject) {
-          context.subject = data.oggetto || data.subject
-        }
-        if (data.order_reference) {
-          context.orderId = data.order_reference
-        }
-        if (data.categoria || data.classification) {
-          context.classification = data.categoria || data.classification
-        }
-      }
-    })
-  }
-  
-  return context
-}
+  res.json({ users: users.rows, audit: audit.rows })
+})
 ```
 
-### **PRIORITÀ 2 - Enhanced Business APIs**
-
-#### **Implementare Executions API Real**
+#### **3. Alerts Endpoint**
 ```javascript
-// /api/business/process-runs (executions with business terminology)
-app.get('/api/business/process-runs', async (req, res) => {
-  const executions = await dbPool.query(`
+// GET /api/business/alerts  
+app.get('/api/business/alerts', async (req, res) => {
+  // Recent errors
+  const errors = await dbPool.query(`
     SELECT 
-      e.id as execution_id,
-      w.name as process_name,
-      w.id as process_id,
-      e."startedAt" as started_at,
-      e."stoppedAt" as stopped_at,
-      e.finished,
-      CASE 
-        WHEN e.finished = true AND e.data->>'error' IS NULL THEN 'success'
-        WHEN e.finished = false OR e.data->>'error' IS NOT NULL THEN 'error'
-        ELSE 'running'
-      END as status,
-      EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000 as duration_ms
+      e.id, e."workflowId", w.name as workflow_name,
+      e."startedAt", e.status, e.mode
     FROM n8n.execution_entity e
     JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+    WHERE e.status = 'error' 
     ORDER BY e."startedAt" DESC
     LIMIT 50
   `)
   
-  res.json({
-    data: executions.rows,
-    total: executions.rows.length,
-    _metadata: {
-      system: 'Business Process Operating System',
-      endpoint: '/api/business/process-runs',
-      sanitized: true
-    }
-  })
+  res.json({ alerts: errors.rows })
 })
 ```
 
-#### **Business Analytics API**
+#### **4. Schedules Endpoint**  
 ```javascript
-// /api/business/analytics
-app.get('/api/business/analytics', async (req, res) => {
-  const analytics = await dbPool.query(`
+// GET /api/business/schedules
+app.get('/api/business/schedules', async (req, res) => {
+  // Workflows with CRON triggers
+  const scheduled = await dbPool.query(`
     SELECT 
-      COUNT(DISTINCT w.id) as total_processes,
-      COUNT(DISTINCT CASE WHEN w.active = true THEN w.id END) as active_processes,
-      COUNT(e.id) as total_executions,
-      COUNT(CASE WHEN e.finished = true AND e.data->>'error' IS NULL THEN 1 END) as successful_executions,
-      ROUND(
-        COUNT(CASE WHEN e.finished = true AND e.data->>'error' IS NULL THEN 1 END)::numeric / 
-        NULLIF(COUNT(e.id), 0) * 100, 2
-      ) as success_rate
+      w.id, w.name, w.active,
+      w.nodes::text as nodes_json
     FROM n8n.workflow_entity w
-    LEFT JOIN n8n.execution_entity e ON w.id = e."workflowId"
-    WHERE e."startedAt" >= NOW() - INTERVAL '7 days' OR e."startedAt" IS NULL
+    WHERE w.nodes::text LIKE '%n8n-nodes-base.cron%'
+    AND w.active = true
   `)
   
-  res.json({
-    data: analytics.rows[0],
-    _metadata: {
-      system: 'Business Process Operating System',
-      endpoint: '/api/business/analytics'
+  // Parse CRON expressions from nodes
+  const schedules = scheduled.rows.map(w => {
+    const nodes = JSON.parse(w.nodes_json)
+    const cronNode = nodes.find(n => n.type === 'n8n-nodes-base.cron')
+    return {
+      workflow_id: w.id,
+      workflow_name: w.name,
+      cron_expression: cronNode?.parameters?.cronExpression || 'N/A',
+      active: w.active
     }
   })
+  
+  res.json({ schedules })
 })
 ```
 
-### **PRIORITÀ 3 - AI Agent MCP Integration**
-
-#### **Ripristinare AI Agent Service**
+#### **5. Database Info Endpoint**
 ```javascript
-// ai-agent/src/index.js - Fix MCP connection
-const mcpClient = new MCPClient({
-  serverPath: '../src/index.ts',
-  capabilities: ['tools', 'resources', 'prompts']
-})
-
-// Business language processing
-app.post('/api/ai-agent/chat', async (req, res) => {
-  const { query, context } = req.body
+// GET /api/business/database-info
+app.get('/api/business/database-info', async (req, res) => {
+  // Table sizes and stats
+  const tables = await dbPool.query(`
+    SELECT 
+      schemaname, tablename,
+      pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+      n_live_tup as row_count
+    FROM pg_stat_user_tables
+    WHERE schemaname IN ('n8n', 'pilotpros')
+    ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+  `)
   
-  // Route Italian business queries to MCP tools
-  const intent = await parseBusinessIntent(query)
-  const mcpCalls = await routeToMCPTools(intent)
-  const results = await mcpClient.executeCalls(mcpCalls)
-  const response = await generateBusinessResponse(results, intent)
+  res.json({ tables: tables.rows })
+})
+```
+
+#### **6. Agents Timeline Endpoint**
+```javascript
+// GET /api/tenant/:tenantId/agents/workflow/:workflowId/timeline
+app.get('/api/tenant/:tenantId/agents/workflow/:workflowId/timeline', async (req, res) => {
+  const { workflowId } = req.params
+  
+  // Get execution data (execution_data has the details)
+  const execution = await dbPool.query(`
+    SELECT 
+      e.id, e."startedAt", e."stoppedAt",
+      ed.data, ed."workflowData",
+      w.name as workflow_name
+    FROM n8n.execution_entity e
+    LEFT JOIN n8n.execution_data ed ON e.id = ed."executionId"
+    JOIN n8n.workflow_entity w ON e."workflowId" = w.id  
+    WHERE w.id = $1
+    ORDER BY e."startedAt" DESC
+    LIMIT 1
+  `, [workflowId])
+  
+  if (execution.rows.length === 0) {
+    return res.json({ success: false, message: 'No executions found' })
+  }
+  
+  // Parse execution data for timeline
+  const data = execution.rows[0]
+  const executionData = data.data ? JSON.parse(data.data) : null
   
   res.json({
-    textResponse: response.text,
-    visualData: response.charts,
-    actionSuggestions: response.suggestions
+    success: true,
+    data: {
+      workflowName: data.workflow_name,
+      timeline: parseExecutionToTimeline(executionData)
+    }
   })
 })
 ```
 
-### **PRIORITÀ 4 - Frontend Enhancements**
+---
 
-#### **Charts Real Data Integration**
-```typescript
-// src/pages/DashboardPage.vue - Real charts
-const loadChartData = async () => {
-  try {
-    const response = await fetch('http://localhost:3001/api/business/analytics')
-    const data = await response.json()
-    
-    // Update Chart.js with real data
-    activityChartData.value = {
-      labels: getLastWeekDays(),
-      datasets: [{
-        label: 'Process Executions',
-        data: await getExecutionsByDay(),
-        borderColor: '#10b981'
-      }]
-    }
-  } catch (error) {
-    console.error('Failed to load chart data:', error)
-  }
-}
-```
+### **FASE 2 - WebSocket Server per Real-Time Updates**
 
-#### **Real-time Updates**
-```typescript
-// WebSocket integration for live updates
-const websocket = new WebSocket('ws://localhost:3001/ws')
+```javascript
+// backend/src/websocket.js
+const WebSocket = require('ws')
+const wss = new WebSocket.Server({ port: 3002 })
 
-websocket.onmessage = (event) => {
-  const update = JSON.parse(event.data)
+wss.on('connection', (ws) => {
+  console.log('New WebSocket client connected')
   
-  if (update.type === 'workflow_execution') {
-    // Update workflow stats in real-time
-    workflowsStore.updateExecutionCount(update.workflowId)
+  // Send initial data
+  ws.send(JSON.stringify({ 
+    type: 'connected', 
+    timestamp: new Date() 
+  }))
+  
+  // Setup interval for live updates
+  const interval = setInterval(async () => {
+    // Query latest executions
+    const latest = await dbPool.query(`
+      SELECT * FROM n8n.execution_entity 
+      ORDER BY "startedAt" DESC LIMIT 1
+    `)
+    
+    ws.send(JSON.stringify({
+      type: 'execution_update',
+      data: latest.rows[0]
+    }))
+  }, 5000)
+  
+  ws.on('close', () => clearInterval(interval))
+})
+```
+
+---
+
+### **FASE 3 - Frontend: Rimuovere TUTTI i Dati Mock**
+
+#### **StatsPage - Rimuovere dati hardcoded**
+```typescript
+// Prima (MOCK)
+const keyMetrics = computed(() => [
+  { label: 'Total Workflows', value: '24', change: '+12%' },
+  { label: 'Active Agents', value: '8', change: '+3' }
+])
+
+// Dopo (REAL DATA)
+const keyMetrics = ref([])
+
+onMounted(async () => {
+  const response = await fetch('http://localhost:3001/api/business/statistics')
+  const data = await response.json()
+  keyMetrics.value = data.metrics
+})
+```
+
+#### **SecurityPage - Rimuovere mock users**
+```typescript
+// Prima (MOCK)
+const mockTables = [
+  { name: 'users', records: 245, size: '1.2 MB' }
+]
+
+// Dopo (REAL DATA)
+const users = ref([])
+const auditLogs = ref([])
+
+onMounted(async () => {
+  const response = await fetch('http://localhost:3001/api/business/security')
+  const data = await response.json()
+  users.value = data.users
+  auditLogs.value = data.audit
+})
+```
+
+---
+
+### **FASE 4 - Auto-Refresh System**
+
+```typescript
+// composables/useAutoRefresh.ts
+export const useAutoRefresh = (fetchFn: Function, interval: number = 5000) => {
+  const isRefreshing = ref(false)
+  let intervalId: NodeJS.Timeout
+  
+  const startRefresh = () => {
+    intervalId = setInterval(async () => {
+      if (!document.hidden) { // Solo se tab è visibile
+        isRefreshing.value = true
+        await fetchFn()
+        isRefreshing.value = false
+      }
+    }, interval)
   }
+  
+  const stopRefresh = () => {
+    if (intervalId) clearInterval(intervalId)
+  }
+  
+  onMounted(() => startRefresh())
+  onUnmounted(() => stopRefresh())
+  
+  return { isRefreshing, startRefresh, stopRefresh }
 }
 ```
 
-### **PRIORITÀ 5 - Production Deployment**
+---
 
-#### **Docker Production Build**
-```dockerfile
-# Dockerfile.production
-FROM node:20-alpine as build
-WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm ci --only=production
-COPY frontend/ .
-RUN npm run build
+### **FASE 5 - Testing & Optimization**
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
-```
-
-#### **Environment Configuration**
 ```bash
-# .env.production
-VITE_API_URL=https://your-domain.com/api
-VITE_WS_URL=wss://your-domain.com/ws
-NODE_ENV=production
+# Test all endpoints
+curl http://localhost:3001/api/business/statistics
+curl http://localhost:3001/api/business/security
+curl http://localhost:3001/api/business/alerts
+curl http://localhost:3001/api/business/schedules
+curl http://localhost:3001/api/business/database-info
+
+# Test WebSocket
+wscat -c ws://localhost:3002
 ```
 
 ---
 
 ## 📋 **CHECKLIST IMPLEMENTAZIONE**
 
-### **Backend APIs da Completare**
-- [ ] `/api/tenant/{tenantId}/agents/workflow/{workflowId}/timeline` - Timeline execution data
-- [ ] `/api/business/process-runs` - Executions con business terminology  
-- [ ] `/api/business/analytics` - Business analytics aggregati
-- [ ] `/api/business/process-details/{id}` - Dettagli specifici processo
-- [ ] WebSocket endpoint per real-time updates
+### **✅ Backend Endpoints Completati**
+- [x] `/api/business/processes` - Workflows
+- [x] `/api/business/process-runs` - Executions
+- [x] `/api/business/analytics` - Analytics
+- [x] `/api/business/process-details/:id` - Dettagli
+- [x] `/api/business/integration-health` - Health
+- [x] `/api/business/automation-insights` - Insights
 
-### **Frontend Features da Completare**
-- [ ] Chart.js integration con dati backend reali
-- [ ] Real-time updates via WebSocket
-- [ ] Error handling improvements
-- [ ] Loading states optimization
-- [ ] Mobile responsive enhancements
+### **🔴 Backend Endpoints da Implementare**
+- [ ] `/api/business/statistics` - Stats per grafici
+- [ ] `/api/business/security` - Users e audit logs
+- [ ] `/api/business/alerts` - Errori e notifiche
+- [ ] `/api/business/schedules` - CRON schedules
+- [ ] `/api/business/database-info` - DB stats
+- [ ] `/api/tenant/:tenantId/agents/workflow/:workflowId/timeline`
+- [ ] WebSocket server su porta 3002
 
-### **AI Agent Integration**
-- [ ] Fix MCP client connection issues
-- [ ] Italian business query processing
-- [ ] Integration con AgentDetailModal
-- [ ] Business response generation
+### **🔴 Frontend Pages da Aggiornare**
+- [x] Dashboard (partial real data)
+- [x] Workflows (real data)
+- [x] Executions (real data)
+- [ ] Stats (remove hardcoded charts)
+- [ ] Security (remove mock users)
+- [ ] Alerts (remove static alerts)
+- [ ] Scheduler (remove fixed schedules)
+- [ ] Agents (add timeline API)
+- [ ] Database (add real stats)
 
-### **Production Readiness**
-- [ ] Docker production build
-- [ ] Environment configuration
-- [ ] Security headers
-- [ ] Performance optimization
-- [ ] Deployment scripts
+### **🔴 Real-Time Features**
+- [ ] WebSocket server setup
+- [ ] Auto-refresh composable
+- [ ] Live notifications
+- [ ] Real-time metrics dashboard
 
 ---
 
-## 🎯 **NEXT IMMEDIATE ACTION**
+## 🎯 **NEXT IMMEDIATE ACTIONS**
 
-**Start with**: Implementare backend timeline API per rendere funzionale il componente killer AgentDetailModal con dati reali dalle executions n8n.
+### **1. Implementare i 6 nuovi endpoints nel server.js**
+Aggiungi al file `backend/src/server.js`:
+- `/api/business/statistics` 
+- `/api/business/security`
+- `/api/business/alerts`
+- `/api/business/schedules`
+- `/api/business/database-info`
+- `/api/tenant/:tenantId/agents/workflow/:workflowId/timeline`
 
-Il sistema frontend Vue 3 è completo e pronto - serve solo il backend timeline API per completare la killer feature!
+### **2. Setup WebSocket Server**
+Creare `backend/src/websocket.js` per real-time updates
+
+### **3. Update Frontend Pages**
+Rimuovere TUTTI i dati mock da:
+- StatsPage
+- SecurityPage
+- AlertsPage
+- SchedulerPage
+- AgentsPage
+- DatabasePage
+
+### **4. Implementare Auto-Refresh**
+Creare composable `useAutoRefresh` e applicare a tutte le pagine
+
+---
+
+**OBIETTIVO FINALE**: Sistema 100% real-time con ZERO dati mock, tutto dal database PostgreSQL condiviso con n8n!

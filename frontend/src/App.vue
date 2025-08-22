@@ -1,11 +1,23 @@
 <template>
-  <div id="app" class="min-h-screen bg-black text-white">
+  <div id="app" class="dark min-h-screen bg-black text-white">
     <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
-// Simple App.vue without complex logic
+import { onMounted, onUnmounted } from 'vue'
+import webSocketService from './services/websocket'
+
+// Initialize WebSocket connection when app mounts
+onMounted(() => {
+  console.log('🚀 Initializing WebSocket connection...')
+  // WebSocket service auto-connects on instantiation
+})
+
+// Clean up when app unmounts
+onUnmounted(() => {
+  webSocketService.disconnect()
+})
 </script>
 
 <style>
