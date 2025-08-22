@@ -263,17 +263,13 @@ const refreshDatabase = async () => {
   isLoading.value = true
   
   try {
-    // Fetch real database info from backend
-    const response = await fetch('http://localhost:3001/api/business/database-info')
-    if (response.ok) {
-      databaseData.value = await response.json()
-      uiStore.showToast('Aggiornamento', 'Database info aggiornate con dati reali', 'success')
-    } else {
-      throw new Error('Failed to fetch database info')
-    }
+    // Fetch real database info from backend using businessAPI
+    const response = await businessAPI.get('/database-info')
+    databaseData.value = response.data
+    uiStore.showToast('Aggiornamento', 'Informazioni database aggiornate con successo', 'success')
   } catch (error: any) {
     console.error('Failed to load database stats:', error)
-    uiStore.showToast('Errore', 'Impossibile caricare dati database', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare dati database', 'error')
   } finally {
     isLoading.value = false
   }

@@ -209,7 +209,7 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   RefreshCw, Download, TrendingUp, Timer, PieChart, Clock,
-  Database, BarChart3, Zap, Target, Loader2
+  Database, BarChart3, Zap, Target, Loader2, GitBranch, Activity, CheckCircle
 } from 'lucide-vue-next'
 import {
   Chart as ChartJS,
@@ -374,22 +374,18 @@ const refreshStats = async () => {
   isLoading.value = true
   
   try {
-    // Fetch real statistics from backend
-    const response = await fetch('http://localhost:3001/api/business/statistics')
-    if (response.ok) {
-      statisticsData.value = await response.json()
-      
-      // Calculate average execution time from real data
-      const avgDurationSeconds = statisticsData.value.daily?.reduce((sum: number, d: any, i: number, arr: any[]) => 
-        sum + (parseFloat(d.avg_duration_seconds || 0) / (arr.length || 1)), 0) || 0
-      avgExecutionTime.value = Math.round(avgDurationSeconds * 1000) // Convert to ms
-      
-      uiStore.showToast('Aggiornamento', 'Statistiche aggiornate con dati reali', 'success')
-    } else {
-      throw new Error('Failed to fetch statistics')
-    }
+    // Fetch real statistics from backend using businessAPI
+    const response = await businessAPI.get('/statistics')
+    statisticsData.value = response.data
+    
+    // Calculate average execution time from real data
+    const avgDurationSeconds = statisticsData.value.daily?.reduce((sum: number, d: any, i: number, arr: any[]) => 
+      sum + (parseFloat(d.avg_duration_seconds || 0) / (arr.length || 1)), 0) || 0
+    avgExecutionTime.value = Math.round(avgDurationSeconds * 1000) // Convert to ms
+    
+    uiStore.showToast('Aggiornamento', 'Statistiche aggiornate con successo', 'success')
   } catch (error: any) {
-    uiStore.showToast('Errore', 'Impossibile caricare le statistiche', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare le statistiche', 'error')
     console.error('Failed to load stats:', error)
   } finally {
     isLoading.value = false

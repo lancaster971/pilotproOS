@@ -210,6 +210,7 @@ import {
 import MainLayout from '../components/layout/MainLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+import { businessAPI } from '../services/api'
 import type { Alert } from '../types'
 
 // Stores
@@ -313,17 +314,13 @@ const refreshAlerts = async () => {
   isLoading.value = true
   
   try {
-    // Fetch real alerts from backend
-    const response = await fetch('http://localhost:3001/api/business/alerts')
-    if (response.ok) {
-      alertsData.value = await response.json()
-      uiStore.showToast('Aggiornamento', 'Alerts aggiornati con dati reali', 'success')
-    } else {
-      throw new Error('Failed to fetch alerts')
-    }
+    // Fetch real alerts from backend using businessAPI
+    const response = await businessAPI.get('/alerts')
+    alertsData.value = response.data
+    uiStore.showToast('Aggiornamento', 'Alerts aggiornati con successo', 'success')
   } catch (error: any) {
     console.error('Failed to load alerts:', error)
-    uiStore.showToast('Errore', 'Impossibile caricare alerts', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare alerts', 'error')
   } finally {
     isLoading.value = false
   }

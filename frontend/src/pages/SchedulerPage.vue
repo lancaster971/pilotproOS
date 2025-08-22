@@ -256,29 +256,23 @@ const refreshScheduler = async () => {
   isLoading.value = true
   
   try {
-    // Fetch real schedules data from backend
-    const response = await fetch('http://localhost:3001/api/business/schedules')
-    if (response.ok) {
-      schedulesData.value = await response.json()
-      
-      // Update scheduler status based on active schedules
-      const hasActiveSchedules = schedulesData.value.schedules?.some((s: any) => s.enabled || s.active)
-      schedulerStatus.value.isRunning = hasActiveSchedules || false
-      
-      // Update last sync from most recent execution
-      if (schedulesData.value.executions?.length > 0) {
-        const lastExec = schedulesData.value.executions[0]
-        schedulerStatus.value.lastSync = lastExec.startedAt || lastExec.started_at || new Date().toISOString()
-      }
-      
-      uiStore.showToast('Aggiornamento', 'Scheduler data aggiornato con dati reali', 'success')
-    } else {
-      throw new Error('Failed to fetch schedules')
+    // Fetch real schedules data from backend using businessAPI
+    const response = await businessAPI.get('/schedules')
+    schedulesData.value = response.data
+    
+    // Update scheduler status based on active schedules
+    const hasActiveSchedules = schedulesData.value.schedules?.some((s: any) => s.enabled || s.active)
+    schedulerStatus.value.isRunning = hasActiveSchedules || false
+    
+    // Update last sync from most recent execution
+    if (schedulesData.value.executions?.length > 0) {
+      const lastExec = schedulesData.value.executions[0]
+      schedulerStatus.value.lastSync = lastExec.startedAt || lastExec.started_at || new Date().toISOString()
     }
     
     // Try to get system uptime from health endpoint
     try {
-      const healthResponse = await businessAPI.getHealth()
+      const healthResponse = await businessAPI.get('/health')
       const healthData = healthResponse.data
       
       if (healthData.uptime) {
@@ -291,9 +285,11 @@ const refreshScheduler = async () => {
     } catch (e) {
       // Health endpoint might not be available, ignore
     }
+    
+    uiStore.showToast('Aggiornamento', 'Dati scheduler aggiornati con successo', 'success')
   } catch (error: any) {
     console.error('Failed to load scheduler data:', error)
-    uiStore.showToast('Errore', 'Impossibile caricare scheduler data', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare dati scheduler', 'error')
   } finally {
     isLoading.value = false
   }

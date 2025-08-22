@@ -167,6 +167,7 @@ import {
 import MainLayout from '../components/layout/MainLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+import { businessAPI } from '../services/api'
 import type { SecurityLog } from '../types'
 
 // Stores
@@ -309,22 +310,18 @@ const refreshSecurity = async () => {
   isLoading.value = true
   
   try {
-    // Fetch security data (users, audit logs, roles)
-    const securityResponse = await fetch('http://localhost:3001/api/business/security')
-    if (securityResponse.ok) {
-      securityData.value = await securityResponse.json()
-    }
+    // Fetch security data (users, audit logs, roles) using businessAPI
+    const securityResponse = await businessAPI.get('/security')
+    securityData.value = securityResponse.data
     
     // Fetch database info for tables
-    const dbResponse = await fetch('http://localhost:3001/api/business/database-info')
-    if (dbResponse.ok) {
-      databaseData.value = await dbResponse.json()
-    }
+    const dbResponse = await businessAPI.get('/database-info')
+    databaseData.value = dbResponse.data
     
-    uiStore.showToast('Aggiornamento', 'Security data aggiornati con dati reali', 'success')
+    uiStore.showToast('Aggiornamento', 'Dati di sicurezza aggiornati con successo', 'success')
   } catch (error: any) {
     console.error('Failed to load security data:', error)
-    uiStore.showToast('Errore', 'Impossibile caricare dati security', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare dati di sicurezza', 'error')
   } finally {
     isLoading.value = false
   }

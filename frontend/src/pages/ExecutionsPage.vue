@@ -223,6 +223,7 @@ import MainLayout from '../components/layout/MainLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useWorkflowsStore } from '../stores/workflows'
 import { useUIStore } from '../stores/ui'
+import { businessAPI } from '../services/api'
 import webSocketService from '../services/websocket'
 import type { Execution } from '../types'
 
@@ -272,19 +273,9 @@ const refreshExecutions = async () => {
   isLoading.value = true
   
   try {
-    // Fetch real executions from backend API
-    const response = await fetch('http://localhost:3001/api/business/process-runs', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    // Fetch real executions from backend API using businessAPI
+    const response = await businessAPI.get('/process-runs')
+    const data = response.data
     
     // Map backend data to our frontend format
     executions.value = (data.data || []).map((run: any) => ({
@@ -300,8 +291,12 @@ const refreshExecutions = async () => {
       issue_description: run.issue_description
     }))
     
+    if (executions.value.length > 0) {
+      uiStore.showToast('Aggiornamento', `${executions.value.length} executions caricate`, 'success')
+    }
+    
   } catch (error: any) {
-    uiStore.showToast('Errore', 'Impossibile caricare le executions', 'error')
+    uiStore.showToast('Errore', error.response?.data?.error || 'Impossibile caricare le executions', 'error')
     console.error('Failed to load executions:', error)
     
     // Fallback to empty array on error
