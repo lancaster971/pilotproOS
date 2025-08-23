@@ -218,7 +218,7 @@
                   <div v-for="(workflow, index) in topWorkflows" :key="workflow.process_name" 
                     class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                     <div class="flex items-center gap-3">
-                      <div :class="`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-500'}`">
+                      <div :class="`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-green-500' : index === 1 ? 'bg-green-600' : 'bg-green-700'}`">
                         {{ index + 1 }}
                       </div>
                       <div>
@@ -299,7 +299,7 @@
                   </div>
                   <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <div class="w-3 h-3 rounded-full bg-gray-500"></div>
                       <span class="text-sm text-gray-300">Fallite</span>
                     </div>
                     <Badge :value="failedExecutions" severity="danger" />
@@ -394,7 +394,7 @@
                 <div class="p-4 pb-2 border-b border-gray-700/50">
                   <div class="flex items-center justify-between">
                     <div>
-                      <h3 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                      <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
                         Live Activity
                       </h3>
                       <p class="text-xs text-gray-400 mt-1">Servizi attivi</p>
@@ -430,7 +430,7 @@
             <template #header>
               <div class="p-4 pb-2 border-b border-gray-700/50">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-bold bg-gradient-to-r from-orange-400 to-red-300 bg-clip-text text-transparent">
+                  <h3 class="text-lg font-bold bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
                     System Health Overview
                   </h3>
                   <Badge :value="`${overallHealthScore}% Health`" :severity="overallHealthScore > 85 ? 'success' : 'warning'" />
@@ -504,7 +504,7 @@
             <template #header>
               <div class="p-4 pb-2 border-b border-gray-700/50">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
+                  <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent">
                     Business Insights (AI Generated)
                   </h3>
                   <Badge :value="`${businessInsights.length} Insights`" severity="warning" class="text-xs" />
@@ -514,7 +514,7 @@
             <template #content>
               <div class="space-y-2 p-3">
                 <div v-for="(insight, index) in businessInsights" :key="index" 
-                  class="p-3 bg-gray-800/30 rounded border-l-2 border-blue-500">
+                  class="p-3 bg-gray-800/30 rounded border-l-2 border-green-500">
                   <p class="text-sm text-gray-300 leading-tight line-clamp-2">{{ cleanInsight(insight) }}</p>
                 </div>
               </div>
@@ -675,10 +675,10 @@ const executionTrendData = ref({
   }, {
     label: 'Esecuzioni Fallite',
     data: [],
-    borderColor: '#ef4444',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: '#6b7280',
+    backgroundColor: 'rgba(107, 114, 128, 0.1)',
     borderWidth: 3,
-    pointBackgroundColor: '#ef4444',
+    pointBackgroundColor: '#6b7280',
     pointBorderColor: '#fff',
     pointBorderWidth: 2,
     pointRadius: 5,
@@ -693,7 +693,7 @@ const successDistributionData = ref({
   labels: ['Successo', 'Fallite'],
   datasets: [{
     data: [0, 0],
-    backgroundColor: ['#10b981', '#ef4444'],
+    backgroundColor: ['#10b981', '#6b7280'],
     borderWidth: 0
   }]
 })
@@ -848,8 +848,8 @@ const hourlyChartOptions = ref({
 // Helper Functions
 const getSuccessColor = (rate: number) => {
   if (rate >= 95) return '#10b981'
-  if (rate >= 80) return '#f59e0b'
-  return '#ef4444'
+  if (rate >= 80) return '#10b981'
+  return '#6b7280'
 }
 
 const getSuccessSeverity = (rate: number) => {
@@ -874,16 +874,16 @@ const getHealthSeverity = (color: string) => {
 
 const getHealthColor = (score: number) => {
   if (score >= 90) return '#10b981'
-  if (score >= 70) return '#f59e0b'
-  return '#ef4444'
+  if (score >= 70) return '#10b981'
+  return '#6b7280'
 }
 
 const getEventColor = (type: string) => {
   switch(type) {
     case 'success': return 'bg-green-500'
-    case 'error': return 'bg-red-500'
-    case 'warning': return 'bg-yellow-500'
-    case 'info': return 'bg-blue-500'
+    case 'error': return 'bg-gray-500'
+    case 'warning': return 'bg-green-600'
+    case 'info': return 'bg-green-400'
     default: return 'bg-gray-500'
   }
 }
@@ -969,7 +969,7 @@ const loadData = async () => {
       // Update business metrics
       businessMetrics.value = [
         { label: 'Efficienza', value: successRate.value, color: '#10b981' },
-        { label: 'ROI', value: insightsData.businessImpact?.businessImpactScore || 0, color: '#3b82f6' }
+        { label: 'ROI', value: insightsData.businessImpact?.businessImpactScore || 0, color: '#10b981' }
       ]
       
       // Update success distribution chart
