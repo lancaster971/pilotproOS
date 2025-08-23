@@ -121,11 +121,11 @@
                       <p class="text-xs text-gray-500">Fallimenti</p>
                     </div>
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-blue-400">{{ Math.round(totalExecutions / 30) }}</p>
+                      <p class="text-lg font-bold text-green-400">{{ Math.round(totalExecutions / 30) }}</p>
                       <p class="text-xs text-gray-500">Media/giorno</p>
                     </div>
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-purple-400">{{ avgDurationFormatted }}</p>
+                      <p class="text-lg font-bold text-green-300">{{ avgDurationFormatted }}</p>
                       <p class="text-xs text-gray-500">Durata media</p>
                     </div>
                   </div>
@@ -150,7 +150,7 @@
                 <Chart type="bar" :data="hourlyChartData" :options="hourlyChartOptions" class="h-64" />
                 <div class="grid grid-cols-3 gap-2 p-3 mt-2">
                   <div class="text-center">
-                    <p class="text-sm font-bold text-blue-400">{{ peakHour }}:00</p>
+                    <p class="text-sm font-bold text-green-400">{{ peakHour }}:00</p>
                     <p class="text-xs text-gray-500">Ora di punta</p>
                   </div>
                   <div class="text-center">
@@ -158,7 +158,7 @@
                     <p class="text-xs text-gray-500">Media oraria</p>
                   </div>
                   <div class="text-center">
-                    <p class="text-sm font-bold text-purple-400">{{ totalHours }}</p>
+                    <p class="text-sm font-bold text-green-300">{{ totalHours }}</p>
                     <p class="text-xs text-gray-500">Ore attive</p>
                   </div>
                 </div>
@@ -253,7 +253,7 @@
                       <p class="text-xs text-gray-400">Healthy</p>
                     </div>
                     <div class="text-center p-2 bg-gray-800/30 rounded-lg">
-                      <p class="text-lg font-bold text-blue-400">{{ activeConnections }}</p>
+                      <p class="text-lg font-bold text-green-400">{{ activeConnections }}</p>
                       <p class="text-xs text-gray-400">Active</p>
                     </div>
                     <div class="text-center p-2 bg-gray-800/30 rounded-lg">
@@ -379,7 +379,7 @@
                       </div>
                       
                       <div class="text-center p-3 bg-gray-800/30 rounded">
-                        <p class="text-lg font-bold text-blue-400">{{ Math.round(successRate) }}%</p>
+                        <p class="text-lg font-bold text-green-400">{{ Math.round(successRate) }}%</p>
                         <p class="text-xs text-gray-500">Success Rate</p>
                       </div>
                     </div>
@@ -702,7 +702,7 @@ const miniChartData = ref({
   labels: ['', '', '', '', ''],
   datasets: [{
     data: [0, 0, 0, 0, 0],
-    borderColor: '#8b5cf6',
+    borderColor: '#10b981',
     borderWidth: 2,
     fill: false,
     tension: 0.4,
@@ -821,8 +821,8 @@ const hourlyChartData = ref({
   datasets: [{
     label: 'Esecuzioni per ora',
     data: [],
-    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(16, 185, 129, 0.5)',
+    borderColor: '#10b981',
     borderWidth: 1
   }]
 })
@@ -840,7 +840,7 @@ const hourlyChartOptions = ref({
     },
     y: {
       ticks: { color: '#9ca3af' },
-      grid: { color: '#1f2937' }
+      grid: { color: '#374151' }
     }
   }
 })
