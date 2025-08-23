@@ -119,17 +119,14 @@ const router = useRouter()
 // Local state
 const showUserMenu = ref(false)
 
-// Navigation items
+// Navigation items - streamlined
 const navigationItems = [
   { name: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { name: 'workflows', path: '/workflows', label: 'Workflows', icon: GitBranch },
   { name: 'workflow-visual', path: '/workflows/visual', label: 'Visual Flow', icon: GitBranch },
   { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
-  { name: 'stats', path: '/stats', label: 'Statistics', icon: BarChart3 },
-  { name: 'database', path: '/database', label: 'Database', icon: Database },
   { name: 'security', path: '/security', label: 'Security', icon: Shield },
   { name: 'agents', path: '/agents', label: 'AI Agents', icon: Bot },
-  { name: 'alerts', path: '/alerts', label: 'Alerts', icon: AlertTriangle },
   { name: 'scheduler', path: '/scheduler', label: 'Scheduler', icon: Clock },
 ]
 

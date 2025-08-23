@@ -8,6 +8,35 @@ import './style.css'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 
+// Chart.js configuration for PrimeVue
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale
+} from 'chart.js'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale
+)
+
 // Import pages
 import LoginPage from './pages/LoginPage.vue'
 import DashboardPage from './pages/DashboardPage.vue'
@@ -15,11 +44,8 @@ import WorkflowsPage from './pages/WorkflowsPage.vue'
 import WorkflowVisualizationPage from './pages/WorkflowVisualizationPage.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
-import StatsPage from './pages/StatsPage.vue'
-import DatabasePage from './pages/DatabasePage.vue'
 import SecurityPage from './pages/SecurityPage.vue'
 import AgentsPage from './pages/AgentsPage.vue'
-import AlertsPage from './pages/AlertsPage.vue'
 import SchedulerPage from './pages/SchedulerPage.vue'
 
 // Router configuration - same as n8n approach
@@ -31,11 +57,8 @@ const routes = [
   { path: '/workflows/visual', component: WorkflowVisualizationPage, name: 'workflow-visualization', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
-  { path: '/stats', component: StatsPage, name: 'stats', meta: { requiresAuth: true } },
-  { path: '/database', component: DatabasePage, name: 'database', meta: { requiresAuth: true } },
   { path: '/security', component: SecurityPage, name: 'security', meta: { requiresAuth: true } },
   { path: '/agents', component: AgentsPage, name: 'agents', meta: { requiresAuth: true } },
-  { path: '/alerts', component: AlertsPage, name: 'alerts', meta: { requiresAuth: true } },
   { path: '/scheduler', component: SchedulerPage, name: 'scheduler', meta: { requiresAuth: true } },
 ]
 
@@ -166,6 +189,19 @@ app.use(PrimeVue, {
 
 app.use(pinia)
 app.use(router)
+
+// Import and register missing PrimeVue components
+import Timeline from 'primevue/timeline'
+import Splitter from 'primevue/splitter'
+import SplitterPanel from 'primevue/splitterpanel'
+import Rating from 'primevue/rating'
+import Skeleton from 'primevue/skeleton'
+
+app.component('Timeline', Timeline)
+app.component('Splitter', Splitter)
+app.component('SplitterPanel', SplitterPanel)
+app.component('Rating', Rating)
+app.component('Skeleton', Skeleton)
 
 // Initialize auth store
 import { useAuthStore } from './stores/auth'

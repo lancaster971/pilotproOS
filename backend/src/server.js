@@ -269,8 +269,8 @@ app.get('/api/business/process-runs', async (req, res) => {
         e.id as run_id,
         e."workflowId" as process_id,
         w.name as process_name,
-        e."startedAt" as start_time,
-        e."stoppedAt" as end_time,
+        to_char(e."startedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as start_time,
+        to_char(e."stoppedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as end_time,
         e.finished as is_completed,
         
         -- Business-friendly status
@@ -1115,8 +1115,8 @@ async function getRecentProcessRuns(processId, limit = 5) {
     const query = `
       SELECT 
         e.id as run_id,
-        e."startedAt" as start_time,
-        e."stoppedAt" as end_time,
+        to_char(e."startedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as start_time,
+        to_char(e."stoppedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as end_time,
         e.finished as is_completed,
         e.status,
         e.mode,

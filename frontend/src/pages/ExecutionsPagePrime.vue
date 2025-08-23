@@ -263,7 +263,7 @@ const refreshExecutions = async () => {
   console.log('🔄 Refreshing executions...')
   
   try {
-    const response = await fetch('http://localhost:3001/api/business/process-runs')
+    const response = await fetch('http://localhost:3001/api/business/process-runs?limit=1000')
     console.log('📡 Response status:', response.status)
     
     if (!response.ok) {
