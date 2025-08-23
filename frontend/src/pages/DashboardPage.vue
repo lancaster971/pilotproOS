@@ -7,16 +7,16 @@
               <h1 class="text-3xl font-bold text-gradient">Dashboard - PilotProOS</h1>
               <p class="text-gray-400 mt-1">I tuoi dati business process automation</p>
             </div>
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span class="text-sm text-gray-400">Live</span>
+            <div class="live-indicator">
+              <div class="live-dot"></div>
+              <span>Live Data</span>
             </div>
           </div>
           
           <!-- Premium KPI Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Total Processes Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
@@ -36,7 +36,7 @@
             </Card>
 
             <!-- Executions Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
@@ -53,7 +53,7 @@
             </Card>
 
             <!-- Success Rate Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 success-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
@@ -72,7 +72,7 @@
             </Card>
 
             <!-- Business Impact Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-baseline gap-2 mb-2">
@@ -89,7 +89,7 @@
           <!-- Executive Charts Section -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Premium Performance Chart -->
-            <Card class="xl:col-span-2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700 shadow-2xl">
+            <Card class="xl:col-span-2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700 shadow-2xl chart-container">
               <template #header>
                 <div class="p-6 pb-2 border-b border-gray-700/50">
                   <div class="flex items-center justify-between">
@@ -139,7 +139,7 @@
             </Card>
 
             <!-- Activity Heatmap -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
               <template #header>
                 <div class="p-4 pb-0">
                   <h3 class="text-xl font-bold text-white">Activity Heatmap</h3>
@@ -206,7 +206,7 @@
           <!-- Business Intelligence Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Top Performers -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #header>
                 <div class="p-6 pb-0">
                   <h3 class="text-xl font-bold text-white">Top Performers</h3>
@@ -237,7 +237,7 @@
             </Card>
 
             <!-- Integration Health -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #header>
                 <div class="p-6 pb-0">
                   <h3 class="text-xl font-bold text-white">Integration Health</h3>
@@ -280,7 +280,7 @@
             </Card>
 
             <!-- Success Distribution -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
               <template #header>
                 <div class="p-4 pb-0">
                   <h3 class="text-xl font-bold text-white">Success Distribution</h3>
@@ -349,7 +349,7 @@
           <!-- Analytics Grid - 2/3 + 1/3 -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Performance Matrix - 2/3 -->
-            <Card class="lg:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="lg:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
               <template #header>
                 <div class="p-4 pb-2 border-b border-gray-700/50">
                   <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
@@ -389,7 +389,7 @@
             </Card>
 
             <!-- Live Activity Timeline -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
               <template #header>
                 <div class="p-4 pb-2 border-b border-gray-700/50">
                   <div class="flex items-center justify-between">
@@ -426,7 +426,7 @@
           </div>
 
           <!-- System Health - Orizzontale in basso -->
-          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
             <template #header>
               <div class="p-4 pb-2 border-b border-gray-700/50">
                 <div class="flex items-center justify-between">
@@ -500,7 +500,7 @@
           </Card>
 
           <!-- Business Insights -->
-          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
             <template #header>
               <div class="p-4 pb-2 border-b border-gray-700/50">
                 <div class="flex items-center justify-between">

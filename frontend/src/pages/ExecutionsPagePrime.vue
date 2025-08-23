@@ -40,35 +40,35 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 premium-glow">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.total }}</p>
             <p class="text-xs text-gray-400">Totali</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 success-glow">
           <div class="text-center">
             <p class="text-2xl font-bold text-green-400">{{ executionStats.success }}</p>
             <p class="text-xs text-gray-400">Success</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 error-glow">
           <div class="text-center">
             <p class="text-2xl font-bold text-red-400">{{ executionStats.error }}</p>
             <p class="text-xs text-gray-400">Error</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 info-glow">
           <div class="text-center">
             <p class="text-2xl font-bold text-blue-400">{{ executionStats.running }}</p>
             <p class="text-xs text-gray-400">Running</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 warning-glow">
           <div class="text-center">
             <p class="text-2xl font-bold text-yellow-400">{{ executionStats.waiting }}</p>
             <p class="text-xs text-gray-400">Waiting</p>
@@ -77,7 +77,7 @@
       </div>
 
       <!-- DataTable with PrimeVue -->
-      <div class="bg-gray-900 border border-gray-700 rounded-lg p-6">
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 chart-container">
         <DataTable 
             :value="executions" 
             :loading="isLoading"

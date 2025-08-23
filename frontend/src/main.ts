@@ -3,10 +3,14 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './style.css'
+import './styles/premium.css'
 
 // PrimeVue imports
 import PrimeVue from 'primevue/config'
+import Nora from '@primevue/themes/nora'
+import Material from '@primevue/themes/material'
 import Aura from '@primevue/themes/aura'
+import PremiumPreset from './themes/premium-preset.ts'
 
 // Chart.js configuration for PrimeVue
 import {
@@ -84,10 +88,10 @@ router.beforeEach((to, from, next) => {
 const app = createApp(App)
 const pinia = createPinia()
 
-// Configure PrimeVue with custom dark theme
+// ENABLE PREMIUM NORA THEME WITH CUSTOM PRESET
 app.use(PrimeVue, {
   theme: {
-    preset: Aura,
+    preset: PremiumPreset,
     options: {
       prefix: 'p',
       darkModeSelector: 'system',

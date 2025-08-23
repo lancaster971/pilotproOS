@@ -25,7 +25,7 @@
 
           <!-- Stats Cards -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4">
+            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4 premium-glow">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-gray-400 text-sm">Active Agents</p>
@@ -35,7 +35,7 @@
               </div>
             </div>
             
-            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4">
+            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4 success-glow">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-gray-400 text-sm">With Data</p>
@@ -47,7 +47,7 @@
               </div>
             </div>
 
-            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4">
+            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4 premium-glow">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-gray-400 text-sm">Total Executions</p>
@@ -59,7 +59,7 @@
               </div>
             </div>
 
-            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4">
+            <div class="bg-gray-900 border border-green-400/20 rounded-lg p-4 premium-glow">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-gray-400 text-sm">Recently Active</p>
@@ -73,7 +73,7 @@
           </div>
 
           <!-- AI Agent Workflow Cards - KILLER FEATURE -->
-          <div class="bg-gray-900 border border-green-400/20 rounded-lg p-6">
+          <div class="bg-gray-900 border border-green-400/20 rounded-lg p-6 chart-container">
             <h2 class="text-xl font-semibold text-white mb-6">AI Agent Workflows</h2>
             
             <div v-if="agentWorkflows.length === 0" class="text-center py-12">
@@ -86,7 +86,7 @@
               <div 
                 v-for="workflow in agentWorkflows"
                 :key="workflow.id"
-                class="bg-black border border-gray-800 rounded-lg p-5 hover:border-green-400/30 transition-all"
+                class="bg-black border border-gray-800 rounded-lg p-5 hover:border-green-400/30 transition-all premium-glow"
               >
                 <!-- Header -->
                 <div class="flex items-start justify-between mb-4">
