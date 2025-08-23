@@ -1,5 +1,66 @@
 /* PREMIUM GLASSMORPHISM ENHANCEMENTS */
 
+/* Force uniform gray colors for all cards */
+div.premium-glow {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 15px rgba(34, 197, 94, 0.2) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+div.success-glow {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 15px rgba(34, 197, 94, 0.4) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+div.error-glow {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+}
+
+div.warning-glow {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4) !important;
+}
+
+div.info-glow {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4) !important;
+}
+
+div.chart-container {
+    background-color: rgb(17 24 39) !important;
+    background: rgb(17 24 39) !important;
+    border-color: rgb(55 65 81) !important;
+    border: 1px solid rgb(55 65 81) !important;
+    backdrop-filter: blur(15px) saturate(150%) !important;
+    border-radius: 16px !important;
+    padding: 1.5rem !important;
+}
+
 /* Premium Card Effects */
 .p-card {
     backdrop-filter: blur(20px) saturate(180%) !important;
