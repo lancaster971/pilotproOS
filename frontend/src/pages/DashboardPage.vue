@@ -299,7 +299,7 @@
                   </div>
                   <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
                       <span class="text-sm text-gray-300">Fallite</span>
                     </div>
                     <Badge :value="failedExecutions" severity="danger" />
@@ -675,10 +675,10 @@ const executionTrendData = ref({
   }, {
     label: 'Esecuzioni Fallite',
     data: [],
-    borderColor: '#6b7280',
-    backgroundColor: 'rgba(107, 114, 128, 0.1)',
+    borderColor: '#ef4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 3,
-    pointBackgroundColor: '#6b7280',
+    pointBackgroundColor: '#ef4444',
     pointBorderColor: '#fff',
     pointBorderWidth: 2,
     pointRadius: 5,
@@ -693,7 +693,7 @@ const successDistributionData = ref({
   labels: ['Successo', 'Fallite'],
   datasets: [{
     data: [0, 0],
-    backgroundColor: ['#10b981', '#6b7280'],
+    backgroundColor: ['#10b981', '#ef4444'],
     borderWidth: 0
   }]
 })
@@ -849,7 +849,7 @@ const hourlyChartOptions = ref({
 const getSuccessColor = (rate: number) => {
   if (rate >= 95) return '#10b981'
   if (rate >= 80) return '#10b981'
-  return '#6b7280'
+  return '#ef4444'
 }
 
 const getSuccessSeverity = (rate: number) => {
@@ -875,13 +875,13 @@ const getHealthSeverity = (color: string) => {
 const getHealthColor = (score: number) => {
   if (score >= 90) return '#10b981'
   if (score >= 70) return '#10b981'
-  return '#6b7280'
+  return '#ef4444'
 }
 
 const getEventColor = (type: string) => {
   switch(type) {
     case 'success': return 'bg-green-500'
-    case 'error': return 'bg-gray-500'
+    case 'error': return 'bg-red-500'
     case 'warning': return 'bg-green-600'
     case 'info': return 'bg-green-400'
     default: return 'bg-gray-500'
