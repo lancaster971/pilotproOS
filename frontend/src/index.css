@@ -1,42 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* PilotPro AI Command Center - CSS Variables per Vue 3 */
+/* Dark Theme basato su VS Code Style - Same as primevue-theme-clone */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --primary-50: #f0fdf9;
-  --primary-100: #ccfdf3;
-  --primary-200: #99fae8;
-  --primary-300: #5df4d6;
-  --primary-400: #26d8be;
-  --primary-500: #0db88a;
-  --primary-600: #059669;
-  --primary-700: #047857;
-  --primary-800: #065f46;
-  --primary-900: #064e3b;
+  /* === COLORI BASE === */
+  --background: hsl(220, 13%, 8%);           /* #1a1a1d - Grigio scuro principale */
+  --background-secondary: hsl(220, 13%, 10%); /* #1f1f23 - Sfondo alternativo */
   
-  --secondary-50: #fdf4ff;
-  --secondary-100: #fae8ff;
-  --secondary-200: #f5d0fe;
-  --secondary-300: #f0abfc;
-  --secondary-400: #e879f9;
-  --secondary-500: #d946ef;
-  --secondary-600: #c026d3;
-  --secondary-700: #a21caf;
-  --secondary-800: #86198f;
-  --secondary-900: #701a75;
+  /* Testo */
+  --foreground: hsl(0, 0%, 95%);             /* #f2f2f2 - Bianco per testo principale */
+  --foreground-muted: hsl(220, 9%, 46%);    /* #6f7071 - Grigio per testo secondario */
+  
+  /* Card e contenitori */
+  --card: hsl(220, 13%, 12%);               /* #25252a - Sfondo card scure */
+  --card-hover: hsl(220, 13%, 14%);         /* #2a2a30 - Card al hover */
+  
+  /* Bordi */
+  --border: hsl(220, 13%, 15%);             /* #2f2f35 - Bordi sottili */
+  --border-hover: hsl(220, 13%, 18%);       /* #353540 - Bordi al hover */
+  
+  /* === COLORI SYNTAX HIGHLIGHTING === */
+  --comment: hsl(101, 29%, 47%);            /* #6a9955 - Verde per commenti */
+  --keyword: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design per keywords */
+  --string: hsl(17, 47%, 64%);              /* #ce9178 - Arancione/rosa per stringhe */
+  --number: hsl(54, 76%, 68%);              /* #b5cea8 - Verde chiaro per numeri */
+  --variable: hsl(122, 39%, 65%);           /* #81C784 - Verde Material Design chiaro per variabili */
+  --type: hsl(60, 87%, 73%);                /* #4ec9b0 - Turchese per tipi */
+  --error: hsl(0, 73%, 41%);                /* #f44747 - Rosso per errori */
+  --warning: hsl(32, 93%, 66%);             /* #ffcc02 - Giallo per warning */
+  
+  /* === COLORI DI STATO === */
+  --success: hsl(123, 38%, 57%);            /* #89d185 - Verde per successo */
+  --info: hsl(122, 39%, 49%);               /* #4CAF50 - Verde Material Design per info */
+  --priority-high: hsl(0, 73%, 41%);        /* #f44747 - Rosso per priorità alta */
+  --status-failed: hsl(0, 73%, 41%);        /* #f44747 - Rosso per failed */
+  
+  /* === COLORI INTERATTIVI === */
+  --primary: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design */
+  --primary-hover: hsl(122, 39%, 55%);      /* #66BB6A - Verde più chiaro al hover */
+  --selection: hsl(122, 39%, 25%);          /* #2E7D32 - Verde scuro per selezioni */
+  --focus: hsl(122, 39%, 49%);              /* #4CAF50 - Verde Material Design focus */
+
+  /* === PRIMARY SCALE (Verde Material Design) === */
+  --primary-50: hsl(122, 39%, 95%);   
+  --primary-100: hsl(122, 39%, 90%);  
+  --primary-200: hsl(122, 39%, 80%);  
+  --primary-300: hsl(122, 39%, 70%);  
+  --primary-400: hsl(122, 39%, 60%);  
+  --primary-500: hsl(122, 39%, 49%);  /* #4CAF50 - Primary color */
+  --primary-600: hsl(122, 39%, 45%);  
+  --primary-700: hsl(122, 39%, 40%);  
+  --primary-800: hsl(122, 39%, 30%);  
+  --primary-900: hsl(122, 39%, 20%);  
+  --primary-950: hsl(122, 39%, 10%);
 }
 
 html {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: #000000;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-weight: 300;
 }
 
 /* Control Room Theme - Green & Black */

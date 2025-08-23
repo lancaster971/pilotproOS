@@ -152,11 +152,11 @@ body {
   background: #6b7280;
 }
 
-/* Premium Sidebar Styles */
+/* Premium Sidebar Styles - Updated with new theme colors */
 .sidebar-container {
   background: transparent;
   backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(55, 65, 81, 0.6);
+  border-right: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -165,8 +165,8 @@ body {
 }
 
 .sidebar-container:hover {
-  border-right-color: rgba(34, 197, 94, 0.3);
-  box-shadow: 4px 0 30px rgba(34, 197, 94, 0.05);
+  border-right-color: var(--primary);
+  box-shadow: 4px 0 30px var(--primary-950);
 }
 
 .sidebar-background {
@@ -176,9 +176,9 @@ body {
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg, 
-    rgba(17, 24, 39, 0.98) 0%, 
-    rgba(31, 41, 55, 0.95) 50%, 
-    rgba(17, 24, 39, 0.98) 100%
+    var(--background) 0%, 
+    var(--background-secondary) 50%, 
+    var(--background) 100%
   );
   backdrop-filter: blur(20px);
   z-index: 1;
@@ -193,7 +193,7 @@ body {
 .sidebar-header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.3);
+  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-logo,
@@ -213,7 +213,7 @@ body {
   margin: 0.25rem 0;
   border-radius: 0.75rem;
   text-decoration: none;
-  color: rgb(156, 163, 175);
+  color: var(--foreground-muted);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   overflow: hidden;
@@ -223,17 +223,17 @@ body {
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(31, 41, 55, 0.8);
-  color: white;
+  background: var(--card-hover);
+  color: var(--foreground);
   transform: translateX(4px);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+  box-shadow: 0 4px 20px var(--primary-950);
 }
 
 .sidebar-nav-item.active {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.1));
-  color: white;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
+  background: linear-gradient(135deg, var(--primary-900), var(--primary-950));
+  color: var(--foreground);
+  border: 1px solid var(--primary-700);
+  box-shadow: 0 4px 20px var(--primary-900);
 }
 
 .sidebar-nav-item.compact {
@@ -254,7 +254,7 @@ body {
 }
 
 .sidebar-nav-item.active .sidebar-nav-icon {
-  color: rgb(34, 197, 94);
+  color: var(--primary);
 }
 
 .sidebar-nav-label {
@@ -268,7 +268,7 @@ body {
 
 .sidebar-nav-description {
   font-size: 0.75rem;
-  color: rgb(156, 163, 175);
+  color: var(--foreground-muted);
   margin-top: 0.125rem;
   opacity: 0.8;
   transition: opacity 0.3s ease;
@@ -276,7 +276,7 @@ body {
 
 .sidebar-nav-item:hover .sidebar-nav-description {
   opacity: 1;
-  color: rgb(209, 213, 219);
+  color: var(--foreground);
 }
 
 .sidebar-nav-badge {
@@ -290,7 +290,7 @@ body {
 }
 
 .badge-new {
-  background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: white;
   animation: badgePulse 2s ease-in-out infinite;
 }
@@ -302,8 +302,8 @@ body {
 }
 
 .badge-default {
-  background: rgba(75, 85, 99, 0.8);
-  color: rgb(209, 213, 219);
+  background: var(--surface-700);
+  color: var(--foreground);
 }
 
 .sidebar-tooltip {
@@ -338,7 +338,7 @@ body {
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: linear-gradient(180deg, rgb(34, 197, 94), rgb(16, 185, 129));
+  background: linear-gradient(180deg, var(--primary), var(--primary-hover));
   border-radius: 2px;
   animation: glowPulse 2s ease-in-out infinite;
 }
@@ -346,7 +346,7 @@ body {
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid rgba(55, 65, 81, 0.3);
+  border-top: 1px solid var(--border);
 }
 
 .sidebar-toggle-btn {
@@ -356,17 +356,17 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: 0.5rem;
-  background: rgba(31, 41, 55, 0.6);
-  border: 1px solid rgba(55, 65, 81, 0.6);
-  color: rgb(156, 163, 175);
+  background: var(--surface-200);
+  border: 1px solid var(--border);
+  color: var(--foreground-muted);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .sidebar-toggle-btn:hover {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.4);
-  color: rgb(34, 197, 94);
+  background: var(--primary-950);
+  border-color: var(--primary-700);
+  color: var(--primary);
   transform: scale(1.05);
 }
 
@@ -381,11 +381,11 @@ body {
 @keyframes glowPulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 10px var(--primary-800);
   }
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    box-shadow: 0 0 20px var(--primary-600);
   }
 }
 

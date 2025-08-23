@@ -1,7 +1,7 @@
 // PilotPro AI Command Center - Tailwind Configuration
-// Configurazione colori personalizzata basata su VS Code Style - Same as primevue-theme-clone
-import type { Config } from 'tailwindcss'
+// Configurazione colori personalizzata compatibile con PrimeVue
 
+/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -33,7 +33,7 @@ export default {
           hover: 'hsl(220, 13%, 18%)',       // #353540
         },
         
-        // Primary (Verde Material Design) - Same as primevue-theme-clone
+        // Primary (Verde Material Design)
         primary: {
           50: 'hsl(122, 39%, 95%)',
           100: 'hsl(122, 39%, 90%)',
@@ -128,7 +128,7 @@ export default {
         }
       },
       
-      // Typography personalizzata (dimensioni aumentate di 2px) - same as primevue-theme-clone
+      // Typography personalizzata (dimensioni aumentate di 2px)
       fontSize: {
         'xs': ['0.75rem', { lineHeight: '1rem' }],      // 12px → 14px
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],  // 14px → 16px
@@ -142,35 +142,20 @@ export default {
         '6xl': ['3.75rem', { lineHeight: '1' }],        // 60px → 62px
       },
       
-      fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+      // Spacing e Border Radius
+      borderRadius: {
+        'lg': '0.5rem',
+        'xl': '0.75rem',
+        '2xl': '1rem',
       },
-      animation: {
-        'fade-in': 'fadeIn 0.8s ease-out',
-        'slide-up': 'slideUp 0.6s ease-out forwards',
-        'scale-in': 'scaleIn 0.5s ease-out forwards',
-        'float': 'float 6s ease-in-out infinite',
-      },
-      keyframes: {
-        fadeIn: {
-          'from': { opacity: '0', transform: 'translateY(20px)' },
-          'to': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideUp: {
-          'from': { opacity: '0', transform: 'translateY(30px)' },
-          'to': { opacity: '1', transform: 'translateY(0)' },
-        },
-        scaleIn: {
-          'from': { opacity: '0', transform: 'scale(0.8)' },
-          'to': { opacity: '1', transform: 'scale(1)' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
-      },
+      
+      // Box Shadow personalizzate
+      boxShadow: {
+        'soft': '0 2px 8px 0 rgba(26, 26, 29, 0.1)',
+        'medium': '0 4px 16px 0 rgba(26, 26, 29, 0.15)',
+        'strong': '0 8px 32px 0 rgba(26, 26, 29, 0.25)',
+      }
     },
   },
   plugins: [],
-  darkMode: 'class',
-} satisfies Config
+};

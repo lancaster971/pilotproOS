@@ -1,83 +1,152 @@
 <template>
-  <aside v-show="sidebarOpen" class="w-64 bg-gray-900 border-r border-gray-800 min-h-screen">
-    <div class="p-6">
-      <nav class="space-y-2">
+  <aside v-show="sidebarOpen" class="sidebar-container w-64 min-h-screen relative">
+    <!-- Background with glass effect -->
+    <div class="sidebar-background absolute inset-0"></div>
+    
+    <!-- Content -->
+    <div class="sidebar-content relative z-10">
+      <!-- Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-logo flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center mr-3">
+            <span class="text-white text-sm font-bold">P</span>
+          </div>
+          <div>
+            <h2 class="text-foreground text-sm font-semibold">PilotPro OS</h2>
+            <p class="text-foreground-muted text-xs">Command Center</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-nav space-y-1">
         <router-link
-          to="/dashboard"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/dashboard' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
+          v-for="(item, index) in navigationItems"
+          :key="item.path"
+          :to="item.path"
+          class="sidebar-nav-item group"
+          :class="{ 'active': $route.path === item.path }"
+          :style="{ animationDelay: `${index * 0.1}s` }"
         >
-          <LayoutDashboard class="h-5 w-5" />
-          Dashboard
-        </router-link>
-        
-        <router-link
-          to="/workflows"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/workflows' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <GitBranch class="h-5 w-5" />
-          Workflows
-        </router-link>
-        
-        <router-link
-          to="/executions"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/executions' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <Play class="h-5 w-5" />
-          Executions
-        </router-link>
-        
-        <router-link
-          to="/stats"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/stats' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <BarChart3 class="h-5 w-5" />
-          Statistics
-        </router-link>
-        
-        <router-link
-          to="/database"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/database' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <Database class="h-5 w-5" />
-          Database
-        </router-link>
-        
-        <router-link
-          to="/security"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/security' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <Shield class="h-5 w-5" />
-          Security
-        </router-link>
-        
-        <router-link
-          to="/agents"
-          class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-          :class="$route.path === '/agents' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-        >
-          <Bot class="h-5 w-5" />
-          AI Agents
+          <!-- Active indicator -->
+          <div v-if="$route.path === item.path" class="sidebar-active-indicator"></div>
+          
+          <!-- Icon -->
+          <div class="sidebar-nav-icon">
+            <component :is="item.icon" class="w-5 h-5" />
+          </div>
+          
+          <!-- Content -->
+          <div class="flex-1 ml-3">
+            <div class="sidebar-nav-label">{{ item.label }}</div>
+            <div v-if="item.description" class="sidebar-nav-description">{{ item.description }}</div>
+          </div>
+          
+          <!-- Badge -->
+          <div v-if="item.badge" 
+               class="sidebar-nav-badge"
+               :class="{
+                 'badge-new': item.badge.type === 'new',
+                 'badge-ai': item.badge.type === 'ai',
+                 'badge-default': item.badge.type === 'default'
+               }">
+            {{ item.badge.text }}
+          </div>
         </router-link>
       </nav>
+
+      <!-- Footer -->
+      <div class="sidebar-footer mt-auto">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+            <span class="text-xs text-foreground-muted">Sistema Online</span>
+          </div>
+          <button class="sidebar-toggle-btn">
+            <ChevronLeft class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { 
   LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Shield, Bot
+  Database, Shield, Bot, ChevronLeft, Workflow,
+  Calendar, Settings
 } from 'lucide-vue-next'
 
 interface Props {
   sidebarOpen: boolean
 }
 
+interface NavigationItem {
+  path: string
+  label: string
+  description?: string
+  icon: any
+  badge?: {
+    text: string
+    type: 'new' | 'ai' | 'default'
+  }
+}
+
 defineProps<Props>()
+
+// Navigation items con descrizioni e badge come nel vecchio progetto
+const navigationItems = computed<NavigationItem[]>(() => [
+  {
+    path: '/dashboard',
+    label: 'Dashboard',
+    description: 'Panoramica generale',
+    icon: LayoutDashboard,
+    badge: { text: 'Live', type: 'new' }
+  },
+  {
+    path: '/workflows', 
+    label: 'Processi',
+    description: 'Automazioni business',
+    icon: Workflow
+  },
+  {
+    path: '/executions',
+    label: 'Esecuzioni', 
+    description: 'Cronologia processi',
+    icon: Play
+  },
+  {
+    path: '/stats',
+    label: 'Analytics',
+    description: 'Metriche e KPI',
+    icon: BarChart3
+  },
+  {
+    path: '/database',
+    label: 'Database',
+    description: 'Gestione dati',
+    icon: Database
+  },
+  {
+    path: '/security',
+    label: 'Sicurezza',
+    description: 'Controllo accessi', 
+    icon: Shield
+  },
+  {
+    path: '/agents',
+    label: 'AI Agents',
+    description: 'Assistenti intelligenti',
+    icon: Bot,
+    badge: { text: 'AI', type: 'ai' }
+  },
+  {
+    path: '/scheduler',
+    label: 'Scheduler',
+    description: 'Pianificazione task',
+    icon: Calendar
+  }
+])
 </script>
