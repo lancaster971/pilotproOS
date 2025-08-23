@@ -138,30 +138,65 @@
               </template>
             </Card>
 
-            <!-- Success Distribution -->
+            <!-- Activity Heatmap -->
             <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
               <template #header>
-                <div class="p-6 pb-0">
-                  <h3 class="text-xl font-bold text-white">Success Distribution</h3>
-                  <p class="text-sm text-gray-400 mt-1">{{ totalExecutions }} esecuzioni</p>
+                <div class="p-4 pb-0">
+                  <h3 class="text-xl font-bold text-white">Activity Heatmap</h3>
+                  <p class="text-sm text-gray-400 mt-1">Distribuzione oraria</p>
                 </div>
               </template>
               <template #content>
-                <Chart type="doughnut" :data="successDistributionData" :options="doughnutOptions" class="h-64" />
-                <div class="mt-4 space-y-2">
-                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
-                    <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span class="text-sm text-gray-300">Successo</span>
-                    </div>
-                    <Badge :value="successfulExecutions" severity="success" />
+                <Chart type="bar" :data="hourlyChartData" :options="hourlyChartOptions" class="h-64" />
+                <div class="grid grid-cols-3 gap-2 p-3 mt-2">
+                  <div class="text-center">
+                    <p class="text-sm font-bold text-blue-400">{{ peakHour }}:00</p>
+                    <p class="text-xs text-gray-500">Ora di punta</p>
                   </div>
-                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
-                    <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span class="text-sm text-gray-300">Fallite</span>
+                  <div class="text-center">
+                    <p class="text-sm font-bold text-green-400">{{ avgHourlyLoad }}</p>
+                    <p class="text-xs text-gray-500">Media oraria</p>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-sm font-bold text-purple-400">{{ totalHours }}</p>
+                    <p class="text-xs text-gray-500">Ore attive</p>
+                  </div>
+                </div>
+
+                <!-- Detailed Activity Stats -->
+                <div class="border-t border-gray-700/50 mt-3 pt-3 px-3">
+                  <h4 class="text-sm font-bold text-white mb-2">Analisi Dettagliata</h4>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Picco Attività</span>
+                        <span class="text-white font-medium">{{ peakActivityValue }} exec</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Periodo Calmo</span>
+                        <span class="text-white font-medium">{{ quietPeriod }}:00</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Varianza</span>
+                        <span class="text-white font-medium">{{ activityVariance }}%</span>
+                      </div>
                     </div>
-                    <Badge :value="failedExecutions" severity="danger" />
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Ore Lavorative</span>
+                        <span class="text-white font-medium">{{ workingHours }}h</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Efficienza</span>
+                        <span class="text-white font-medium">{{ hourlyEfficiency }}%</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Trend</span>
+                        <span :class="activityTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                          {{ activityTrend > 0 ? '+' : '' }}{{ activityTrend }}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -179,7 +214,7 @@
                 </div>
               </template>
               <template #content>
-                <div class="space-y-3 p-4">
+                <div class="space-y-2 p-3">
                   <div v-for="(workflow, index) in topWorkflows" :key="workflow.process_name" 
                     class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                     <div class="flex items-center gap-3">
@@ -187,8 +222,8 @@
                         {{ index + 1 }}
                       </div>
                       <div>
-                        <p class="text-sm font-medium text-white truncate">{{ workflow.process_name }}</p>
-                        <p class="text-xs text-gray-400">{{ workflow.execution_count }} esecuzioni</p>
+                        <p class="text-sm font-medium text-white truncate max-w-32" :title="workflow.process_name">{{ workflow.process_name }}</p>
+                        <p class="text-xs text-gray-500">{{ workflow.execution_count }} exec</p>
                       </div>
                     </div>
                     <div class="text-right">
@@ -210,7 +245,7 @@
                 </div>
               </template>
               <template #content>
-                <div class="space-y-3 p-4">
+                <div class="space-y-2 p-3">
                   <!-- Summary Stats -->
                   <div class="grid grid-cols-3 gap-3 mb-4">
                     <div class="text-center p-2 bg-gray-800/30 rounded-lg">
@@ -232,8 +267,8 @@
                     <div v-for="service in topServices" :key="service.connectionId" 
                       class="flex items-center justify-between p-2 bg-gray-800/30 rounded">
                       <div>
-                        <p class="text-sm text-white truncate">{{ service.serviceName }}</p>
-                        <p class="text-xs text-gray-500">{{ service.usage.executionsThisWeek }} exec/week</p>
+                        <p class="text-sm text-white truncate max-w-28" :title="service.serviceName">{{ service.serviceName }}</p>
+                        <p class="text-xs text-gray-500">{{ service.usage.executionsThisWeek }}/week</p>
                       </div>
                       <Badge :value="service.health.status.label" 
                         :severity="getHealthSeverity(service.health.status.color)" 
@@ -244,160 +279,243 @@
               </template>
             </Card>
 
-            <!-- Activity Heatmap -->
+            <!-- Success Distribution -->
             <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
               <template #header>
-                <div class="p-6 pb-0">
-                  <h3 class="text-xl font-bold text-white">Activity Heatmap</h3>
-                  <p class="text-sm text-gray-400 mt-1">Distribuzione oraria</p>
+                <div class="p-4 pb-0">
+                  <h3 class="text-xl font-bold text-white">Success Distribution</h3>
+                  <p class="text-sm text-gray-400 mt-1">{{ totalExecutions }} esecuzioni</p>
                 </div>
               </template>
               <template #content>
-                <Chart type="bar" :data="hourlyChartData" :options="hourlyChartOptions" class="h-64" />
-                <div class="grid grid-cols-3 gap-2 p-4 mt-2">
-                  <div class="text-center">
-                    <p class="text-lg font-bold text-blue-400">{{ peakHour }}:00</p>
-                    <p class="text-xs text-gray-500">Ora di punta</p>
+                <Chart type="doughnut" :data="successDistributionData" :options="doughnutOptions" class="h-48" />
+                <div class="mt-3 space-y-2 px-3">
+                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
+                    <div class="flex items-center gap-2">
+                      <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span class="text-sm text-gray-300">Successo</span>
+                    </div>
+                    <Badge :value="successfulExecutions" severity="success" />
                   </div>
-                  <div class="text-center">
-                    <p class="text-lg font-bold text-green-400">{{ avgHourlyLoad }}</p>
-                    <p class="text-xs text-gray-500">Media oraria</p>
+                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
+                    <div class="flex items-center gap-2">
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span class="text-sm text-gray-300">Fallite</span>
+                    </div>
+                    <Badge :value="failedExecutions" severity="danger" />
                   </div>
-                  <div class="text-center">
-                    <p class="text-lg font-bold text-purple-400">{{ totalHours }}</p>
-                    <p class="text-xs text-gray-500">Ore attive</p>
+                </div>
+
+                <!-- Success Analysis Details -->
+                <div class="border-t border-gray-700/50 mt-3 pt-3 px-3">
+                  <h4 class="text-sm font-bold text-white mb-2">Analisi Successi</h4>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Tasso Successo</span>
+                        <span class="text-green-400 font-medium">{{ Math.round(successRate) }}%</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Tasso Errore</span>
+                        <span class="text-red-400 font-medium">{{ Math.round(100 - successRate) }}%</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Migliori</span>
+                        <span class="text-white font-medium">{{ bestPerformingCount }}</span>
+                      </div>
+                    </div>
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Problematici</span>
+                        <span class="text-white font-medium">{{ problematicCount }}</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Affidabilità</span>
+                        <span class="text-white font-medium">{{ reliabilityScore }}%</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Qualità</span>
+                        <span :class="qualityTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                          {{ qualityTrend > 0 ? '+' : '' }}{{ qualityTrend }}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </template>
             </Card>
           </div>
 
-          <!-- Premium Analytics Suite -->
-          <Splitter class="h-96">
-            <SplitterPanel :size="60" :minSize="40">
-              <!-- Advanced Performance Radar -->
-              <Card class="h-full bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
-                <template #header>
-                  <div class="p-4 pb-2 border-b border-gray-700/50">
-                    <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
-                      Performance Matrix
-                    </h3>
-                    <p class="text-xs text-gray-400 mt-1">Multi-dimensional analysis</p>
-                  </div>
-                </template>
-                <template #content>
-                  <div class="p-4 h-full flex flex-col">
-                    <Chart type="radar" :data="radarChartData" :options="radarChartOptions" class="flex-1" />
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                      <div class="text-center p-2 bg-gray-800/30 rounded">
-                        <p class="text-sm font-bold text-green-400">{{ overallScore }}/10</p>
-                        <p class="text-xs text-gray-500">Score totale</p>
+          <!-- Analytics Grid - 2/3 + 1/3 -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Performance Matrix - 2/3 -->
+            <Card class="lg:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+              <template #header>
+                <div class="p-4 pb-2 border-b border-gray-700/50">
+                  <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
+                    Performance Matrix
+                  </h3>
+                  <p class="text-xs text-gray-400 mt-1">Multi-dimensional analysis</p>
+                </div>
+              </template>
+              <template #content>
+                <div class="p-4">
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Radar Chart -->
+                    <div class="lg:col-span-2">
+                      <Chart type="radar" :data="radarChartData" :options="radarChartOptions" class="h-56" />
+                    </div>
+                    
+                    <!-- Metrics Summary -->
+                    <div class="space-y-3">
+                      <div class="text-center p-3 bg-gray-800/30 rounded">
+                        <p class="text-lg font-bold text-green-400">{{ overallScore }}/10</p>
+                        <p class="text-xs text-gray-500">Overall Score</p>
                       </div>
-                      <div class="text-center p-2 bg-gray-800/30 rounded">
-                        <Rating v-model="systemRating" :stars="5" readonly class="text-xs" />
-                        <p class="text-xs text-gray-500 mt-1">Quality</p>
+                      
+                      <div class="text-center p-3 bg-gray-800/30 rounded">
+                        <Rating v-model="systemRating" :stars="5" readonly class="justify-center mb-2" />
+                        <p class="text-xs text-gray-500">Quality Rating</p>
+                      </div>
+                      
+                      <div class="text-center p-3 bg-gray-800/30 rounded">
+                        <p class="text-lg font-bold text-blue-400">{{ Math.round(successRate) }}%</p>
+                        <p class="text-xs text-gray-500">Success Rate</p>
                       </div>
                     </div>
                   </div>
-                </template>
-              </Card>
-            </SplitterPanel>
+                </div>
+              </template>
+            </Card>
 
-            <SplitterPanel :size="40" :minSize="30">
-              <!-- Real-time Activity Timeline -->
-              <Card class="h-full bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
-                <template #header>
-                  <div class="p-4 pb-2 border-b border-gray-700/50">
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <h3 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                          Live Activity
-                        </h3>
-                        <p class="text-xs text-gray-400 mt-1">Timeline eventi</p>
-                      </div>
-                      <Badge value="LIVE" severity="success" class="animate-pulse" />
+            <!-- Live Activity Timeline -->
+            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+              <template #header>
+                <div class="p-4 pb-2 border-b border-gray-700/50">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                        Live Activity
+                      </h3>
+                      <p class="text-xs text-gray-400 mt-1">Servizi attivi</p>
                     </div>
+                    <Badge value="LIVE" severity="success" class="animate-pulse" />
                   </div>
-                </template>
-                <template #content>
-                  <div class="p-4 h-full overflow-y-auto">
-                    <Timeline :value="liveEvents" layout="vertical" class="text-sm">
-                      <template #marker="slotProps">
-                        <div :class="`w-4 h-4 rounded-full ${getEventColor(slotProps.item.type)} border-2 border-white shadow-lg`"></div>
-                      </template>
-                      <template #content="slotProps">
-                        <div class="mb-3">
-                          <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-medium text-white">{{ slotProps.item.title }}</span>
-                            <Tag :value="slotProps.item.type" :severity="getEventSeverity(slotProps.item.type)" class="text-xs" />
-                          </div>
-                          <p class="text-xs text-gray-400 mb-1">{{ slotProps.item.description }}</p>
-                          <p class="text-xs text-gray-500">{{ slotProps.item.time }}</p>
+                </div>
+              </template>
+              <template #content>
+                <div class="p-3 px-2">
+                  <Timeline :value="liveEvents" layout="vertical" class="text-sm timeline-centered">
+                    <template #marker="slotProps">
+                      <div :class="`w-3 h-3 rounded-full ${getEventColor(slotProps.item.type)} border border-white shadow`"></div>
+                    </template>
+                    <template #content="slotProps">
+                      <div class="mb-2 pl-2">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-sm font-medium text-white truncate max-w-28" :title="slotProps.item.title">{{ slotProps.item.title }}</span>
+                          <Tag :value="slotProps.item.type" :severity="getEventSeverity(slotProps.item.type)" class="text-xs" />
                         </div>
-                      </template>
-                    </Timeline>
-                  </div>
-                </template>
-              </Card>
-            </SplitterPanel>
-          </Splitter>
+                        <p class="text-xs text-gray-400 truncate">{{ slotProps.item.description }}</p>
+                        <p class="text-xs text-gray-500">{{ slotProps.item.time }}</p>
+                      </div>
+                    </template>
+                  </Timeline>
+                </div>
+              </template>
+            </Card>
+          </div>
 
-          <!-- Business Intelligence Summary -->
+          <!-- System Health - Orizzontale in basso -->
           <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
             <template #header>
-              <div class="p-6 pb-2 border-b border-gray-700/50">
+              <div class="p-4 pb-2 border-b border-gray-700/50">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
-                    Executive Summary
+                  <h3 class="text-lg font-bold bg-gradient-to-r from-orange-400 to-red-300 bg-clip-text text-transparent">
+                    System Health Overview
                   </h3>
-                  <div class="flex gap-2">
-                    <Badge value="AI Generated" severity="info" />
-                    <Badge :value="`${businessInsights.length} Insights`" severity="success" />
-                  </div>
+                  <Badge :value="`${overallHealthScore}% Health`" :severity="overallHealthScore > 85 ? 'success' : 'warning'" />
                 </div>
               </div>
             </template>
             <template #content>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
-                <!-- Key Insights -->
-                <div class="space-y-3">
-                  <h4 class="text-sm font-bold text-white mb-3">Key Insights</h4>
-                  <div v-for="(insight, index) in businessInsights.slice(0, 3)" :key="index" 
-                    class="p-3 bg-gradient-to-r from-gray-800/50 to-gray-800/30 rounded-lg border-l-2 border-blue-500">
-                    <p class="text-sm text-gray-300 leading-relaxed">{{ insight }}</p>
-                  </div>
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-6 p-4">
+                <!-- Health Score -->
+                <div class="text-center">
+                  <Knob v-model="overallHealthScore" :size="80" :strokeWidth="6" 
+                    valueColor="#10b981" rangeColor="#1f2937" 
+                    readonly :showValue="true" valueTemplate="{value}%" 
+                    class="mx-auto mb-2" />
+                  <p class="text-xs text-gray-400">Overall Health</p>
                 </div>
 
-                <!-- Performance Score -->
-                <div class="text-center space-y-4">
-                  <h4 class="text-sm font-bold text-white">System Health</h4>
-                  <div class="relative">
-                    <Knob v-model="overallHealthScore" :size="120" :strokeWidth="8" 
-                      valueColor="#10b981" 
-                      rangeColor="#1f2937" 
-                      readonly :showValue="true" valueTemplate="{value}%" 
-                      class="mx-auto" />
-                  </div>
-                  <div class="space-y-2">
+                <!-- Reliability Metrics -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-bold text-white mb-2">Reliability</h4>
+                  <div class="space-y-1">
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Reliability</span>
-                      <span class="text-white font-medium">{{ systemReliability }}%</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Uptime</span>
+                      <span class="text-gray-400">System Uptime</span>
                       <span class="text-white font-medium">{{ systemUptime }}%</span>
                     </div>
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-400">Service Health</span>
+                      <span class="text-white font-medium">{{ systemReliability }}%</span>
+                    </div>
+                    <ProgressBar :value="systemReliability" :showValue="false" class="h-1 mt-2" />
                   </div>
                 </div>
 
-                <!-- Quick Actions -->
-                <div class="space-y-3">
-                  <h4 class="text-sm font-bold text-white mb-3">Quick Actions</h4>
-                  <div class="space-y-2">
-                    <Button label="Optimize Performance" severity="success" class="w-full text-sm" outlined />
-                    <Button label="Export Report" severity="info" class="w-full text-sm" outlined />
-                    <Button label="Schedule Backup" severity="secondary" class="w-full text-sm" outlined />
+                <!-- Performance Metrics -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-bold text-white mb-2">Performance</h4>
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-400">Success Rate</span>
+                      <span class="text-white font-medium">{{ successRate }}%</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-400">Avg Duration</span>
+                      <span class="text-white font-medium">{{ avgDurationFormatted }}</span>
+                    </div>
+                    <ProgressBar :value="successRate" :showValue="false" class="h-1 mt-2" />
                   </div>
+                </div>
+
+                <!-- Integration Status -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-bold text-white mb-2">Integrations</h4>
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-400">Active Services</span>
+                      <span class="text-white font-medium">{{ activeConnections }}/{{ totalConnections }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-400">Need Attention</span>
+                      <span :class="needsAttention > 0 ? 'text-red-400' : 'text-green-400'">{{ needsAttention }}</span>
+                    </div>
+                    <ProgressBar :value="(activeConnections/totalConnections)*100" :showValue="false" class="h-1 mt-2" />
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Business Insights -->
+          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+            <template #header>
+              <div class="p-4 pb-2 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
+                    Business Insights (AI Generated)
+                  </h3>
+                  <Badge :value="`${businessInsights.length} Insights`" severity="warning" class="text-xs" />
+                </div>
+              </div>
+            </template>
+            <template #content>
+              <div class="space-y-2 p-3">
+                <div v-for="(insight, index) in businessInsights" :key="index" 
+                  class="p-3 bg-gray-800/30 rounded border-l-2 border-blue-500">
+                  <p class="text-sm text-gray-300 leading-tight line-clamp-2">{{ cleanInsight(insight) }}</p>
                 </div>
               </div>
             </template>
@@ -409,7 +527,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { TrendingUp, CheckCircle, Server, GitBranch, Play, Database } from 'lucide-vue-next'
+// Removed Lucide icons - using PrimeVue icons only
 import MainLayout from '../components/layout/MainLayout.vue'
 
 // PrimeVue Components
@@ -458,6 +576,20 @@ const businessInsights = ref([])
 const peakHour = ref(0)
 const avgHourlyLoad = ref(0)
 const totalHours = ref(0)
+
+// Additional heatmap metrics
+const peakActivityValue = ref(0)
+const quietPeriod = ref(0)
+const activityVariance = ref(0)
+const workingHours = ref(0)
+const hourlyEfficiency = ref(0)
+const activityTrend = ref(0)
+
+// Success analysis metrics
+const bestPerformingCount = ref(0)
+const problematicCount = ref(0)
+const reliabilityScore = ref(0)
+const qualityTrend = ref(0)
 
 // Premium dashboard data - ONLY from backend
 const overallScore = ref(0)
@@ -784,6 +916,11 @@ const formatDuration = (ms: string | number) => {
   return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`
 }
 
+const cleanInsight = (insight: string) => {
+  // Remove all emoji and pictographic characters
+  return insight.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()
+}
+
 
 const loadData = async () => {
   loading.value = true
@@ -908,13 +1045,25 @@ const loadData = async () => {
     
     // Load top performers from statistics
     if (statisticsData?.byWorkflow) {
-      topWorkflows.value = statisticsData.byWorkflow
-        .slice(0, 5)
-        .map(wf => ({
-          ...wf,
-          success_rate: wf.success_count && wf.execution_count ? 
-            Math.round((wf.success_count / wf.execution_count) * 100) : 0
-        }))
+      const workflows = statisticsData.byWorkflow.map(wf => ({
+        ...wf,
+        success_rate: wf.success_count && wf.execution_count ? 
+          Math.round((wf.success_count / wf.execution_count) * 100) : 0
+      }))
+      
+      topWorkflows.value = workflows.slice(0, 5)
+      
+      // Calculate success analysis metrics from real workflow data
+      bestPerformingCount.value = workflows.filter(wf => wf.success_rate >= 95).length
+      problematicCount.value = workflows.filter(wf => wf.success_rate < 80).length
+      reliabilityScore.value = workflows.length > 0 ? 
+        Math.round(workflows.reduce((acc, wf) => acc + wf.success_rate, 0) / workflows.length) : 0
+      
+      // Calculate quality trend (workflows with >90% success vs <90%)
+      const highQuality = workflows.filter(wf => wf.success_rate >= 90).length
+      const totalWorkflows = workflows.length
+      qualityTrend.value = totalWorkflows > 0 ? 
+        Math.round(((highQuality / totalWorkflows) - 0.7) * 100) : 0
     }
     
     // Load integration health data
@@ -939,13 +1088,24 @@ const loadData = async () => {
     if (statisticsData?.hourly) {
       const hourlyData = statisticsData.hourly
       hourlyChartData.value.labels = hourlyData.map((_, i) => `${i * 3}:00`)
-      hourlyChartData.value.datasets[0].data = hourlyData.map(h => parseInt(h.process_runs || 0))
+      const execData = hourlyData.map(h => parseInt(h.process_runs || 0))
+      hourlyChartData.value.datasets[0].data = execData
       
       // Calculate peak hour and metrics
-      const maxExecutions = Math.max(...hourlyChartData.value.datasets[0].data)
-      peakHour.value = hourlyChartData.value.datasets[0].data.indexOf(maxExecutions) * 3
-      avgHourlyLoad.value = Math.round(hourlyChartData.value.datasets[0].data.reduce((a, b) => a + b, 0) / hourlyData.length)
+      const maxExecutions = Math.max(...execData)
+      const minExecutions = Math.min(...execData.filter(v => v > 0))
+      peakHour.value = execData.indexOf(maxExecutions) * 3
+      avgHourlyLoad.value = Math.round(execData.reduce((a, b) => a + b, 0) / hourlyData.length)
       totalHours.value = hourlyData.filter(h => parseInt(h.process_runs || 0) > 0).length
+      
+      // Additional detailed metrics
+      peakActivityValue.value = maxExecutions
+      quietPeriod.value = execData.indexOf(minExecutions) * 3
+      activityVariance.value = Math.round(((maxExecutions - minExecutions) / maxExecutions) * 100)
+      workingHours.value = totalHours.value * 3 // Each data point represents 3 hours
+      hourlyEfficiency.value = Math.round((execData.filter(v => v > avgHourlyLoad.value).length / execData.length) * 100)
+      activityTrend.value = execData.length > 4 ? 
+        Math.round(((execData[execData.length-1] - execData[0]) / execData[0]) * 100) : 0
     }
     
     // Load business insights
