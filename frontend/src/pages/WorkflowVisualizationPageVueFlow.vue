@@ -25,6 +25,24 @@
           </select>
           
           <button 
+            @click="autoLayoutNodes"
+            :disabled="!selectedWorkflowId || elements.length === 0"
+            class="btn-control"
+          >
+            <GitBranch class="w-4 h-4" />
+            AUTO LAYOUT
+          </button>
+          
+          <button 
+            @click="() => fitView({ duration: 800 })"
+            :disabled="elements.length === 0"
+            class="btn-control"
+          >
+            <Eye class="w-4 h-4" />
+            FIT VIEW
+          </button>
+          
+          <button 
             @click="refreshWorkflows"
             :disabled="isLoading"
             class="btn-control-primary"
@@ -627,6 +645,109 @@ const getFlowComplexity = () => {
   if (nodeCount <= 3) return 'Simple'
   if (nodeCount <= 6) return 'Medium'
   return 'Complex'
+}
+
+// Auto Layout Function - Smart node positioning like n8n
+const autoLayoutNodes = () => {
+  if (elements.value.length === 0) return
+  
+  console.log('🎯 Running AUTO LAYOUT for', nodes.value.length, 'nodes')
+  
+  const nodeList = nodes.value
+  const edgeList = edges.value
+  
+  // Calculate optimal layout based on connections
+  const layoutNodes = calculateOptimalLayout(nodeList, edgeList)
+  
+  // Update node positions
+  layoutNodes.forEach(layoutNode => {
+    const elementIndex = elements.value.findIndex(el => el.id === layoutNode.id)
+    if (elementIndex !== -1) {
+      elements.value[elementIndex].position = layoutNode.position
+    }
+  })
+  
+  // Fit view after layout
+  setTimeout(() => {
+    fitView({ duration: 800 })
+  }, 100)
+  
+  uiStore.showToast('Success', 'Nodes auto-arranged for optimal viewing', 'success')
+}
+
+// Smart layout algorithm - hierarchical flow layout
+const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
+  const nodeWidth = 200
+  const nodeHeight = 80
+  const horizontalSpacing = 250
+  const verticalSpacing = 120
+  
+  // Find start nodes (no incoming edges)
+  const hasIncoming = new Set(edgeList.map(e => e.target))
+  const startNodes = nodeList.filter(node => !hasIncoming.has(node.id))
+  
+  // Build adjacency list for layout
+  const adjacencyList = new Map()
+  edgeList.forEach(edge => {
+    if (!adjacencyList.has(edge.source)) {
+      adjacencyList.set(edge.source, [])
+    }
+    adjacencyList.get(edge.source).push(edge.target)
+  })
+  
+  const positioned = new Set()
+  const result = []
+  
+  // Level-based positioning (like n8n workflow layout)
+  let currentLevel = 0
+  let nodesToProcess = [...startNodes]
+  
+  while (nodesToProcess.length > 0) {
+    const nodesAtThisLevel = [...nodesToProcess]
+    nodesToProcess = []
+    
+    // Position nodes at current level
+    nodesAtThisLevel.forEach((node, index) => {
+      if (positioned.has(node.id)) return
+      
+      const x = currentLevel * horizontalSpacing
+      const y = index * verticalSpacing
+      
+      result.push({
+        id: node.id,
+        position: { x, y }
+      })
+      
+      positioned.add(node.id)
+      
+      // Add connected nodes to next level
+      const connections = adjacencyList.get(node.id) || []
+      connections.forEach(targetId => {
+        const targetNode = nodeList.find(n => n.id === targetId)
+        if (targetNode && !positioned.has(targetId)) {
+          nodesToProcess.push(targetNode)
+        }
+      })
+    })
+    
+    currentLevel++
+  }
+  
+  // Handle any remaining unconnected nodes
+  nodeList.forEach((node, index) => {
+    if (!positioned.has(node.id)) {
+      result.push({
+        id: node.id,
+        position: { 
+          x: currentLevel * horizontalSpacing, 
+          y: index * verticalSpacing 
+        }
+      })
+    }
+  })
+  
+  console.log('✅ Auto layout calculated for', result.length, 'nodes')
+  return result
 }
 
 // Lifecycle
