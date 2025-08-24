@@ -89,7 +89,7 @@
           <!-- Executive Charts Section -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Premium Performance Chart -->
-            <Card class="xl:col-span-2 premium-glass premium-hover-lift"
+            <Card class="xl:col-span-2 premium-glass premium-hover-lift">
               <template #header>
                 <div class="p-6 pb-2 border-b border-border">
                   <div class="flex items-center justify-between">
