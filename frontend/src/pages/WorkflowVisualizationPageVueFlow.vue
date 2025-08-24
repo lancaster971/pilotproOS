@@ -189,7 +189,7 @@ import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import { 
   RefreshCw, X, Play, Settings, Database, Mail, 
-  CheckCircle, Clock, GitBranch
+  CheckCircle, Clock, GitBranch, Bot
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import { useUIStore } from '../stores/ui'
@@ -287,10 +287,10 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
   try {
     console.log('🔍 Attempting to fetch REAL workflow structure for ID:', workflowData.process_id)
     
-    // Try n8n API directly (if accessible)
+    // Try n8n API directly with API key
     const n8nResponse = await fetch(`http://localhost:5678/api/v1/workflows/${workflowData.process_id}`, {
       headers: {
-        'Authorization': 'Basic ' + btoa('admin:pilotpros_admin_2025')
+        'X-N8N-API-KEY': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlODkxMDgwOC0xODQxLTRiM2UtYWJmOC0xZDllYWI4OGU5NDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU1NzI4NTc1fQ.PVJjopivarCkKARjxDcRI2HvKDw8okwu3t1_7yJvM18'
       }
     })
     
@@ -315,43 +315,56 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
 
 const createFlowFromN8nData = (n8nWorkflow: any, workflowMetadata: any) => {
   console.log('🎯 Creating VueFlow from REAL n8n workflow structure')
+  console.log('📊 Raw n8n workflow data:', n8nWorkflow)
   
   const nodes = n8nWorkflow.nodes || []
   const connections = n8nWorkflow.connections || {}
   
-  console.log('📊 REAL workflow has', nodes.length, 'nodes')
+  console.log('📊 REAL workflow has', nodes.length, 'REAL nodes:', nodes.map(n => n.name))
   
-  // Create VueFlow nodes from REAL n8n nodes
-  const newNodes = nodes.map((node: any, index: number) => ({
-    id: node.id,
-    type: 'custom',
-    position: { 
-      x: (node.position && node.position[0]) || (index * 200), 
-      y: (node.position && node.position[1]) || 100 
-    },
-    data: {
-      label: node.name,
-      description: `Type: ${node.type}`,
-      status: workflowMetadata.is_active ? 'success' : 'inactive',
-      type: getNodeTypeFromN8n(node.type),
-      realData: node
+  // Create VueFlow nodes from REAL n8n nodes with REAL positions
+  const newNodes = nodes.map((node: any, index: number) => {
+    const realPosition = node.position || [(index % 4) * 250, Math.floor(index / 4) * 150]
+    
+    return {
+      id: node.name, // Use node name as ID for connections
+      type: 'custom',
+      position: { 
+        x: realPosition[0] || (index % 4) * 250, 
+        y: realPosition[1] || Math.floor(index / 4) * 150
+      },
+      data: {
+        label: node.name, // REAL node name from n8n
+        description: `${node.type}${node.typeVersion ? ` v${node.typeVersion}` : ''}`,
+        status: workflowMetadata.is_active ? 'success' : 'inactive',
+        type: getNodeTypeFromN8n(node.type),
+        realData: node,
+        parameters: node.parameters
+      }
     }
-  }))
+  })
   
   // Create edges from REAL n8n connections
   const newEdges = []
   let edgeIndex = 0
   
+  console.log('🔗 Processing REAL connections:', connections)
+  
   Object.entries(connections).forEach(([sourceNodeName, nodeConnections]: [string, any]) => {
     if (nodeConnections.main && nodeConnections.main[0]) {
       nodeConnections.main[0].forEach((connection: any) => {
         newEdges.push({
-          id: `e${edgeIndex++}`,
+          id: `edge-${edgeIndex++}`,
           source: sourceNodeName,
           target: connection.node,
           type: 'smoothstep',
           animated: workflowMetadata.is_active,
-          style: { stroke: '#10b981', strokeWidth: 2 }
+          style: { 
+            stroke: '#10b981', 
+            strokeWidth: 2,
+            strokeDasharray: workflowMetadata.is_active ? 'none' : '5,5'
+          },
+          label: connection.type || 'main'
         })
       })
     }
@@ -359,7 +372,8 @@ const createFlowFromN8nData = (n8nWorkflow: any, workflowMetadata: any) => {
   
   elements.value = [...newNodes, ...newEdges]
   
-  console.log('✅ REAL VueFlow created:', newNodes.length, 'nodes,', newEdges.length, 'edges')
+  console.log('✅ REAL VueFlow created from n8n data:', newNodes.length, 'nodes,', newEdges.length, 'edges')
+  console.log('🎯 Node details:', newNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.type })))
 }
 
 const createEnhancedFlowFromWorkflowName = (workflowData: any) => {
@@ -453,12 +467,33 @@ const createEnhancedFlowFromWorkflowName = (workflowData: any) => {
 }
 
 const getNodeTypeFromN8n = (n8nType: string) => {
-  if (n8nType.includes('trigger') || n8nType.includes('webhook')) return 'trigger'
-  if (n8nType.includes('http') || n8nType.includes('api')) return 'api'
-  if (n8nType.includes('email')) return 'email'
-  if (n8nType.includes('database') || n8nType.includes('postgres')) return 'storage'
-  if (n8nType.includes('function') || n8nType.includes('code')) return 'logic'
-  if (n8nType.includes('ai') || n8nType.includes('openai')) return 'ai'
+  const type = n8nType.toLowerCase()
+  
+  // Trigger nodes
+  if (type.includes('trigger') || type.includes('webhook') || type.includes('schedule')) return 'trigger'
+  
+  // AI/OpenAI nodes  
+  if (type.includes('openai') || type.includes('ai') || type.includes('chatgpt')) return 'ai'
+  
+  // HTTP/API nodes
+  if (type.includes('http') || type.includes('api') || type.includes('request')) return 'api'
+  
+  // Email nodes
+  if (type.includes('email') || type.includes('gmail') || type.includes('outlook')) return 'email'
+  
+  // Database/Storage nodes
+  if (type.includes('database') || type.includes('postgres') || type.includes('mysql') || type.includes('mongo')) return 'storage'
+  
+  // Logic/Code nodes
+  if (type.includes('function') || type.includes('code') || type.includes('javascript') || type.includes('python')) return 'logic'
+  
+  // File operations
+  if (type.includes('file') || type.includes('extract') || type.includes('read') || type.includes('write')) return 'file'
+  
+  // HTML/Web operations
+  if (type.includes('html') || type.includes('web') || type.includes('scrape')) return 'web'
+  
+  // Default process
   return 'process'
 }
 
@@ -466,7 +501,13 @@ const getNodeTypeFromN8n = (n8nType: string) => {
 const getNodeIcon = (type: string) => {
   switch (type) {
     case 'trigger': return Play
-    case 'process': return GitBranch
+    case 'ai': return Bot
+    case 'api': return GitBranch
+    case 'email': return Mail
+    case 'storage': return Database
+    case 'logic': return Settings
+    case 'file': return Database
+    case 'web': return GitBranch
     case 'validation': return CheckCircle
     case 'action': return Settings
     case 'output': return Database
