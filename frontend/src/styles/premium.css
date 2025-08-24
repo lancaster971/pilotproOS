@@ -1,14 +1,33 @@
 /* PREMIUM GLASSMORPHISM ENHANCEMENTS */
 
-/* Premium CSS Variables Override */
+/* Premium CSS Variables Override with !important */
 :root {
-  --primary: #10b981;
-  --primary-hover: #00d26a;
-  --primary-600: #10b981;
-  --primary-700: #047857;
-  --primary-800: #065f46;
-  --primary-900: #064e3b;
-  --primary-950: #022c22;
+  --primary: #10b981 !important;
+  --primary-hover: #00d26a !important;
+  --primary-600: #10b981 !important;
+  --primary-700: #047857 !important;
+  --primary-800: #065f46 !important;
+  --primary-900: #064e3b !important;
+  --primary-950: #022c22 !important;
+}
+
+/* Force sidebar colors override */
+.sidebar-nav-item.active {
+  background: linear-gradient(135deg, #064e3b, #022c22) !important;
+  border: 1px solid #047857 !important;
+  box-shadow: 0 4px 20px #064e3b !important;
+}
+
+.sidebar-nav-item.active .sidebar-nav-icon {
+  color: #10b981 !important;
+}
+
+.sidebar-active-indicator {
+  background: linear-gradient(180deg, #10b981, #00d26a) !important;
+}
+
+.badge-new {
+  background: linear-gradient(135deg, #10b981, #00d26a) !important;
 }
 
 /* Force uniform gray colors for all cards */
