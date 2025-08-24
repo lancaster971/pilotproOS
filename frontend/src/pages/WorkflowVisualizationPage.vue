@@ -7,7 +7,7 @@
           <h1 class="text-3xl font-bold text-gradient">
             Workflow Visualization
           </h1>
-          <p class="text-gray-400 mt-1">
+          <p class="text-text-muted mt-1">
             Visual representation of your business processes
           </p>
         </div>
@@ -16,7 +16,7 @@
           <select 
             v-model="selectedWorkflowId" 
             @change="loadWorkflow"
-            class="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg"
+            class="bg-surface border border-border text-text px-4 py-2 rounded-lg"
           >
             <option value="">Select a workflow</option>
             <option v-for="wf in workflows" :key="wf.id" :value="wf.id">
@@ -52,7 +52,7 @@
       </div>
 
       <!-- Vue Flow Container -->
-      <div class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden" style="height: 70vh;">
+      <div class="control-card overflow-hidden" style="height: 70vh;">
         <VueFlow
           v-if="nodes.length > 0"
           v-model:nodes="nodes"
@@ -77,11 +77,11 @@
             :show-zoom="true"
             :show-fit-view="true"
             :show-interactive="true"
-            class="!bg-gray-800 !border-gray-700"
+            class="!bg-surface !border-border"
           />
           
           <MiniMap 
-            class="!bg-gray-900 !border-gray-700"
+            class="!bg-surface-hover !border-border"
             node-color="#10b981"
             mask-color="rgb(17, 24, 39, 0.9)"
           />
@@ -89,22 +89,22 @@
           <!-- Custom Node Template -->
           <template #node-custom="{ data }">
             <div 
-              class="px-4 py-3 bg-gray-800 border-2 rounded-lg shadow-lg transition-all hover:shadow-xl"
+              class="px-4 py-3 control-card transition-all hover:shadow-xl"
               :class="getNodeBorderColor(data.type)"
             >
               <div class="flex items-center gap-2 mb-2">
                 <component :is="getNodeIcon(data.type)" class="h-4 w-4" :class="getNodeIconColor(data.type)" />
                 <span class="text-white font-medium">{{ data.label }}</span>
               </div>
-              <div class="text-xs text-gray-400">
+              <div class="text-xs text-text-muted">
                 {{ data.type }}
               </div>
               <div v-if="data.status" class="mt-2 flex items-center gap-1">
                 <div 
                   class="w-2 h-2 rounded-full"
-                  :class="data.status === 'success' ? 'bg-green-400' : 'bg-gray-600'"
+                  :class="data.status === 'success' ? 'bg-primary' : 'bg-text-muted'"
                 />
-                <span class="text-xs text-gray-400">{{ data.status }}</span>
+                <span class="text-xs text-text-muted">{{ data.status }}</span>
               </div>
             </div>
           </template>
@@ -113,7 +113,7 @@
         <!-- Empty State -->
         <div v-else class="h-full flex items-center justify-center">
           <div class="text-center">
-            <GitBranch class="h-16 w-16 text-gray-600 mx-auto mb-4" />
+            <GitBranch class="h-16 w-16 text-text-muted mx-auto mb-4" />
             <p class="text-gray-400 text-lg">Select a workflow to visualize</p>
             <p class="text-gray-500 text-sm mt-2">Choose from the dropdown above</p>
           </div>
