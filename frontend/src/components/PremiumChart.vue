@@ -20,38 +20,82 @@ const props = withDefaults(defineProps<Props>(), {
   containerClass: ''
 })
 
-// Enhanced data with premium styling
+// Ultra-premium data styling
 const enhancedData = computed(() => {
   if (!props.data) return props.data
   
   const enhanced = { ...props.data }
   
-  // Enhance datasets with premium styling
+  // Create premium gradients for datasets
   if (enhanced.datasets) {
-    enhanced.datasets = enhanced.datasets.map((dataset: any, index: number) => ({
-      ...dataset,
-      // Premium line styling
-      borderWidth: 4,
-      pointRadius: 8,
-      pointHoverRadius: 12,
-      pointBorderWidth: 3,
-      tension: 0.2,
-      borderCapStyle: 'round',
-      borderJoinStyle: 'round',
-      
-      // Premium colors based on data type
-      borderColor: index === 0 ? '#00d26a' : '#f87171',
-      backgroundColor: index === 0 ? 'rgba(0, 210, 106, 0.15)' : 'rgba(248, 113, 113, 0.08)',
-      pointBackgroundColor: index === 0 ? '#00d26a' : '#dc2626',
-      pointBorderColor: index === 0 ? '#10b981' : '#f87171',
-      
-      // Dashed line for errors
-      borderDash: index === 1 ? [8, 4] : undefined
-    }))
+    enhanced.datasets = enhanced.datasets.map((dataset: any, index: number) => {
+      if (index === 0) {
+        // Success line - Ultra premium emerald
+        return {
+          ...dataset,
+          borderColor: '#00ff88', // Neon emerald
+          backgroundColor: createGradient('success'),
+          borderWidth: 5,
+          pointRadius: 10,
+          pointHoverRadius: 16,
+          pointBorderWidth: 4,
+          pointBackgroundColor: '#00ff88',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#00d26a',
+          pointHoverBorderColor: '#00ff88',
+          tension: 0.3,
+          fill: true,
+          borderCapStyle: 'round',
+          borderJoinStyle: 'round',
+          shadowColor: 'rgba(0, 255, 136, 0.6)',
+          shadowBlur: 15,
+          shadowOffsetY: 4
+        }
+      } else {
+        // Error line - Premium red with dash
+        return {
+          ...dataset,
+          borderColor: '#ff6b6b',
+          backgroundColor: createGradient('error'),
+          borderWidth: 4,
+          pointRadius: 8,
+          pointHoverRadius: 14,
+          pointBorderWidth: 3,
+          pointBackgroundColor: '#ff6b6b',
+          pointBorderColor: '#fff',
+          tension: 0.3,
+          fill: true,
+          borderDash: [12, 6],
+          borderCapStyle: 'round'
+        }
+      }
+    })
   }
   
   return enhanced
 })
+
+// Create premium gradients
+function createGradient(type: 'success' | 'error') {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  
+  if (!ctx) return type === 'success' ? 'rgba(0, 210, 106, 0.1)' : 'rgba(255, 107, 107, 0.1)'
+  
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400)
+  
+  if (type === 'success') {
+    gradient.addColorStop(0, 'rgba(0, 255, 136, 0.3)')
+    gradient.addColorStop(0.5, 'rgba(0, 210, 106, 0.15)')
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)')
+  } else {
+    gradient.addColorStop(0, 'rgba(255, 107, 107, 0.2)')
+    gradient.addColorStop(0.5, 'rgba(239, 68, 68, 0.1)')
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0.05)')
+  }
+  
+  return gradient
+}
 
 // Premium chart options
 const premiumOptions = computed(() => ({
@@ -108,40 +152,38 @@ const premiumOptions = computed(() => ({
   scales: {
     x: {
       ticks: { 
-        color: '#e5e7eb',
-        font: { size: 12, weight: '500' },
-        padding: 10,
+        color: '#f3f4f6',
+        font: { size: 13, weight: '600' },
+        padding: 12,
         maxRotation: 0
       },
       grid: { 
-        color: 'rgba(16, 185, 129, 0.12)',
-        lineWidth: 1,
+        color: 'rgba(0, 255, 136, 0.15)',
+        lineWidth: 2,
         drawOnChartArea: true,
-        borderDash: [2, 2]
+        borderDash: [1, 8]
       },
       border: {
-        color: '#10b981',
-        width: 2
+        display: false
       }
     },
     y: {
       ticks: { 
-        color: '#e5e7eb',
-        font: { size: 12, weight: '500' },
-        padding: 15,
+        color: '#f3f4f6',
+        font: { size: 13, weight: '600' },
+        padding: 18,
         callback: function(value: any) {
-          return value + ' exec'
+          return '⚡ ' + value
         }
       },
       grid: { 
-        color: 'rgba(16, 185, 129, 0.08)',
+        color: 'rgba(0, 255, 136, 0.1)',
         lineWidth: 1,
         drawBorder: false,
-        borderDash: [1, 3]
+        borderDash: [2, 6]
       },
       border: {
-        color: '#10b981',
-        width: 2
+        display: false
       },
       beginAtZero: true
     }
@@ -167,6 +209,14 @@ const premiumOptions = computed(() => ({
 <style scoped>
 .premium-chart-container {
   position: relative;
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  box-shadow: 
+    0 0 30px rgba(0, 255, 136, 0.1),
+    0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .premium-chart-container::before {
@@ -175,8 +225,43 @@ const premiumOptions = computed(() => ({
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.6), transparent);
-  border-radius: 1px;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(0, 255, 136, 0.8), 
+    rgba(0, 210, 106, 0.6),
+    rgba(0, 255, 136, 0.8), 
+    transparent
+  );
+  border-radius: 12px 12px 0 0;
+  animation: chartGlow 4s ease-in-out infinite;
+}
+
+.premium-chart-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.4), transparent);
+  border-radius: 0 0 12px 12px;
+}
+
+@keyframes chartGlow {
+  0%, 100% { 
+    opacity: 0.6;
+    filter: blur(0px);
+  }
+  50% { 
+    opacity: 1;
+    filter: blur(1px);
+  }
+}
+
+/* Chart.js canvas styling */
+:deep(canvas) {
+  border-radius: 8px;
+  filter: drop-shadow(0 4px 20px rgba(0, 255, 136, 0.1));
 }
 </style>
