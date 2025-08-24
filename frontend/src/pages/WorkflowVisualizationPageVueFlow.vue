@@ -288,7 +288,7 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
     console.log('🔍 Fetching REAL workflow structure via BACKEND for ID:', workflowData.process_id)
     
     // Call BACKEND endpoint that queries n8n database directly (following architecture)
-    const backendResponse = await fetch(`http://localhost:3001/api/business/workflow-details/${workflowData.process_id}`)
+    const backendResponse = await fetch(`http://localhost:3001/api/business/process-details/${workflowData.process_id}`)
     
     console.log('🔍 Backend API Response Status:', backendResponse.status)
     
@@ -296,14 +296,14 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
       const realWorkflowDetails = await backendResponse.json()
       console.log('✅ REAL workflow details from backend:', realWorkflowDetails)
       
-      if (realWorkflowDetails.data && realWorkflowDetails.data.nodes) {
-        console.log('📊 Real node count from database:', realWorkflowDetails.data.nodes.length)
-        console.log('📊 Real node names from database:', realWorkflowDetails.data.nodes.map(n => n.name))
+      if (realWorkflowDetails.data && realWorkflowDetails.data.processSteps) {
+        console.log('📊 Real step count from database:', realWorkflowDetails.data.processSteps.length)
+        console.log('📊 Real step names from database:', realWorkflowDetails.data.processSteps.map(s => s.stepName))
         
         // Create VueFlow from REAL database data
         createFlowFromDatabaseData(realWorkflowDetails.data, workflowData)
         
-        uiStore.showToast('Success', `REAL workflow loaded: ${realWorkflowDetails.data.nodes.length} nodes from database`, 'success')
+        uiStore.showToast('Success', `REAL workflow loaded: ${realWorkflowDetails.data.processSteps.length} steps from database`, 'success')
         return
       }
     }
@@ -322,50 +322,55 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
   }
 }
 
-const createFlowFromDatabaseData = (workflowDetails: any, workflowMetadata: any) => {
-  console.log('🎯 Creating VueFlow from REAL database workflow structure')
-  console.log('📊 Raw database workflow data:', workflowDetails)
+const createFlowFromDatabaseData = (businessProcessDetails: any, workflowMetadata: any) => {
+  console.log('🎯 Creating VueFlow from REAL business process details')
+  console.log('📊 Raw business process data:', businessProcessDetails)
   
-  const nodes = workflowDetails.nodes || []
-  const connections = workflowDetails.connections || []
+  const processSteps = businessProcessDetails.processSteps || []
+  const processFlow = businessProcessDetails.processFlow || []
   
-  console.log('📊 REAL workflow has', nodes.length, 'REAL nodes from database')
+  console.log('📊 REAL business process has', processSteps.length, 'REAL steps from database')
+  console.log('📊 REAL step names:', processSteps.map(s => s.stepName))
   
-  // Create VueFlow nodes from REAL database nodes
-  const newNodes = nodes.map((node: any, index: number) => {
+  // Create VueFlow nodes from REAL business process steps
+  const newNodes = processSteps.map((step: any) => {
     return {
-      id: node.name || `node-${index}`,
+      id: step.stepName, // Use step name as ID for connections
       type: 'custom',
       position: { 
-        x: (index % 4) * 250, 
-        y: Math.floor(index / 4) * 150
+        x: step.position[0] || 0, 
+        y: step.position[1] || 0
       },
       data: {
-        label: node.name,
-        description: `${node.type}${node.typeVersion ? ` v${node.typeVersion}` : ''}`,
+        label: step.stepName, // REAL step name from database
+        description: `${step.stepType.category} - ${step.stepType.type}`,
         status: workflowMetadata.is_active ? 'success' : 'inactive',
-        type: getNodeTypeFromN8n(node.type),
-        realData: node
+        type: getNodeTypeFromN8n(step.stepType.type),
+        realData: step,
+        businessCategory: step.stepType.category
       }
     }
   })
   
-  // Create edges from REAL database connections
-  const newEdges = connections.map((conn: any, index: number) => ({
+  // Create edges from REAL business process flow
+  const newEdges = processFlow.map((flow: any, index: number) => ({
     id: `edge-${index}`,
-    source: conn.source_node,
-    target: conn.target_node,
+    source: flow.from,
+    target: flow.to,
     type: 'smoothstep',
     animated: workflowMetadata.is_active,
     style: { 
       stroke: '#10b981', 
-      strokeWidth: 2
-    }
+      strokeWidth: 2,
+      strokeDasharray: workflowMetadata.is_active ? 'none' : '5,5'
+    },
+    label: flow.type === 'main' ? '' : flow.type
   }))
   
   elements.value = [...newNodes, ...newEdges]
   
-  console.log('✅ REAL VueFlow created from database:', newNodes.length, 'nodes,', newEdges.length, 'edges')
+  console.log('✅ REAL VueFlow created from business process database:', newNodes.length, 'steps,', newEdges.length, 'connections')
+  console.log('🎯 Real step details:', newNodes.map(n => ({ id: n.id, label: n.data.label, category: n.data.businessCategory })))
 }
 
 const createFlowFromN8nData = (n8nWorkflow: any, workflowMetadata: any) => {

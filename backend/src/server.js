@@ -233,6 +233,144 @@ app.get('/api/business/processes', async (req, res) => {
   }
 });
 
+// Business Process Details API (anonimized workflow structure) - NEW for VueFlow
+app.get('/api/business/process-details/:processId', async (req, res) => {
+  try {
+    const { processId } = req.params;
+    console.log('🔍 Fetching REAL workflow details for business process:', processId);
+    
+    // Query n8n database directly for workflow structure (following architecture)
+    const workflowQuery = `
+      SELECT 
+        w.id,
+        w.name as process_name,
+        w.active as is_active,
+        w.nodes,
+        w.connections,
+        w.staticData as static_data,
+        w.createdAt as created_at,
+        w.updatedAt as updated_at
+      FROM n8n.workflow_entity w
+      WHERE w.id = $1
+    `;
+    
+    const workflowResult = await dbPool.query(workflowQuery, [processId]);
+    
+    if (workflowResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Business process not found',
+        processId: processId
+      });
+    }
+    
+    const workflow = workflowResult.rows[0];
+    
+    // Parse nodes and connections from JSON (stored in n8n database)
+    const nodes = workflow.nodes || [];
+    const connections = workflow.connections || {};
+    
+    console.log(`✅ REAL workflow loaded: ${workflow.process_name} with ${nodes.length} nodes`);
+    
+    // Anonimize and transform for business layer
+    const businessProcessDetails = {
+      processId: workflow.id,
+      processName: workflow.process_name,
+      isActive: workflow.is_active,
+      nodeCount: nodes.length,
+      connectionCount: Object.keys(connections).length,
+      
+      // Transform nodes for business visualization
+      processSteps: nodes.map((node, index) => ({
+        stepId: node.id,
+        stepName: node.name,
+        stepType: {
+          type: node.type,
+          category: getBusinessCategory(node.type)
+        },
+        position: node.position || [(index % 4) * 250, Math.floor(index / 4) * 150],
+        configuration: node.parameters || {},
+        description: `Business step: ${node.name}`
+      })),
+      
+      // Transform connections for business flow
+      processFlow: Object.entries(connections).flatMap(([sourceNode, nodeConnections]) => {
+        if (nodeConnections.main && nodeConnections.main[0]) {
+          return nodeConnections.main[0].map(connection => ({
+            from: sourceNode,
+            to: connection.node,
+            type: connection.type || 'main'
+          }));
+        }
+        return [];
+      }),
+      
+      // Business metadata
+      businessMetadata: {
+        category: getCategoryFromName(workflow.process_name),
+        complexity: getComplexityScore(nodes.length),
+        lastModified: workflow.updated_at,
+        businessImpact: getBusinessImpact(workflow.process_name)
+      }
+    };
+    
+    res.json({
+      data: businessProcessDetails,
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/process-details',
+        sanitized: true,
+        businessTerminology: true,
+        realNodes: nodes.length,
+        realConnections: Object.keys(connections).length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching business process details:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch business process details',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Helper functions for business terminology
+function getBusinessCategory(nodeType) {
+  if (nodeType.includes('trigger') || nodeType.includes('webhook')) return 'Event Handler';
+  if (nodeType.includes('openai') || nodeType.includes('ai')) return 'AI Intelligence';
+  if (nodeType.includes('http') || nodeType.includes('api')) return 'Integration';
+  if (nodeType.includes('email')) return 'Communication';
+  if (nodeType.includes('database')) return 'Data Management';
+  if (nodeType.includes('function') || nodeType.includes('code')) return 'Business Logic';
+  if (nodeType.includes('file')) return 'Document Processing';
+  return 'Process Step';
+}
+
+function getCategoryFromName(processName) {
+  const name = processName.toLowerCase();
+  if (name.includes('chatbot')) return 'Customer Interaction';
+  if (name.includes('email') || name.includes('outlook')) return 'Communication';
+  if (name.includes('grab') || name.includes('track')) return 'Data Collection';
+  if (name.includes('customer') || name.includes('service')) return 'Customer Service';
+  return 'General Automation';
+}
+
+function getComplexityScore(nodeCount) {
+  if (nodeCount <= 3) return 'Simple';
+  if (nodeCount <= 7) return 'Medium';
+  if (nodeCount <= 12) return 'Complex';
+  return 'Enterprise';
+}
+
+function getBusinessImpact(processName) {
+  const name = processName.toLowerCase();
+  if (name.includes('customer') || name.includes('service')) return 'High';
+  if (name.includes('ai') || name.includes('chatbot')) return 'High';
+  if (name.includes('email') || name.includes('communication')) return 'Medium';
+  return 'Medium';
+}
+
 // Process Runs API (anonimized executions)
 app.get('/api/business/process-runs', async (req, res) => {
   try {
