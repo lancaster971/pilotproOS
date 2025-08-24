@@ -286,6 +286,7 @@ const loadWorkflowFromBackend = async () => {
 const fetchRealWorkflowStructure = async (workflowData: any) => {
   try {
     console.log('🔍 Attempting to fetch REAL workflow structure for ID:', workflowData.process_id)
+    console.log('🌐 API URL:', `http://localhost:5678/api/v1/workflows/${workflowData.process_id}`)
     
     // Try n8n API directly with API key
     const n8nResponse = await fetch(`http://localhost:5678/api/v1/workflows/${workflowData.process_id}`, {
@@ -294,19 +295,31 @@ const fetchRealWorkflowStructure = async (workflowData: any) => {
       }
     })
     
+    console.log('🔍 n8n API Response Status:', n8nResponse.status)
+    console.log('🔍 n8n API Response OK:', n8nResponse.ok)
+    
     if (n8nResponse.ok) {
       const realWorkflowStructure = await n8nResponse.json()
       console.log('✅ REAL n8n workflow structure loaded:', realWorkflowStructure)
+      console.log('📊 Real node count:', realWorkflowStructure.nodes?.length || 0)
+      console.log('📊 Real node names:', realWorkflowStructure.nodes?.map(n => n.name) || [])
       
       // Create VueFlow from REAL n8n workflow structure
       createFlowFromN8nData(realWorkflowStructure, workflowData)
+      
+      uiStore.showToast('Success', `REAL workflow loaded: ${realWorkflowStructure.nodes?.length} nodes`, 'success')
       return
+    } else {
+      const errorText = await n8nResponse.text()
+      console.error('❌ n8n API Error:', n8nResponse.status, errorText)
+      throw new Error(`n8n API error: ${n8nResponse.status} - ${errorText}`)
     }
     
-    throw new Error('n8n API not accessible')
+  } catch (error: any) {
+    console.error('❌ n8n API completely failed:', error.message)
+    console.warn('⚠️ Falling back to enhanced workflow representation')
     
-  } catch (error) {
-    console.warn('⚠️ n8n API not accessible, creating enhanced representation from workflow data')
+    uiStore.showToast('Warning', 'n8n API not accessible - using enhanced fallback', 'warn')
     
     // Fallback: Create enhanced flow based on workflow characteristics
     createEnhancedFlowFromWorkflowName(workflowData)
