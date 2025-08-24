@@ -30,14 +30,30 @@
             Layout
           </button>
           
-          <button 
-            @click="() => fitView({ duration: 800 })"
-            :disabled="elements.length === 0"
-            class="px-3 py-1.5 bg-surface border border-border text-text rounded-md text-sm hover:bg-surface-hover transition-colors flex items-center gap-1.5"
-          >
-            <Eye class="w-3.5 h-3.5" />
-            Fit
-          </button>
+          <div class="flex items-center gap-1 bg-surface border border-border rounded-md">
+            <button 
+              @click="zoomOut"
+              :disabled="elements.length === 0"
+              class="px-2 py-1.5 text-text hover:bg-surface-hover transition-colors text-sm"
+            >
+              <span class="text-lg">−</span>
+            </button>
+            <button 
+              @click="() => fitView({ duration: 800 })"
+              :disabled="elements.length === 0"
+              class="px-3 py-1.5 text-text hover:bg-surface-hover transition-colors flex items-center gap-1 text-sm border-x border-border"
+            >
+              <Eye class="w-3.5 h-3.5" />
+              Fit
+            </button>
+            <button 
+              @click="zoomIn"
+              :disabled="elements.length === 0"
+              class="px-2 py-1.5 text-text hover:bg-surface-hover transition-colors text-sm"
+            >
+              <span class="text-lg">+</span>
+            </button>
+          </div>
           
           <button 
             @click="refreshWorkflows"
@@ -140,7 +156,7 @@ const realWorkflows = ref<any[]>([])
 const selectedWorkflowData = ref<any>(null)
 
 // VueFlow setup
-const { fitView } = useVueFlow()
+const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
 
 // Reactive flow elements
 const elements = ref([])
@@ -565,19 +581,19 @@ const getFlowComplexity = () => {
   return 'Complex'
 }
 
-// Auto Layout Function - Smart node positioning like n8n
+// Enhanced Auto Layout Function - Professional node positioning
 const autoLayoutNodes = () => {
   if (elements.value.length === 0) return
   
-  console.log('🎯 Running AUTO LAYOUT for', nodes.value.length, 'nodes')
+  console.log('🎯 Running ENHANCED AUTO LAYOUT for', nodes.value.length, 'nodes')
   
   const nodeList = nodes.value
   const edgeList = edges.value
   
-  // Calculate optimal layout based on connections
+  // Calculate optimal layout with improved algorithm
   const layoutNodes = calculateOptimalLayout(nodeList, edgeList)
   
-  // Update node positions
+  // Update node positions with animation
   layoutNodes.forEach(layoutNode => {
     const elementIndex = elements.value.findIndex(el => el.id === layoutNode.id)
     if (elementIndex !== -1) {
@@ -587,84 +603,120 @@ const autoLayoutNodes = () => {
   
   // Fit view after layout
   setTimeout(() => {
-    fitView({ duration: 800 })
-  }, 100)
+    fitView({ duration: 1000, padding: 0.2 })
+  }, 200)
   
-  uiStore.showToast('Success', 'Nodes auto-arranged for optimal viewing', 'success')
+  uiStore.showToast('Success', `${nodeList.length} nodes optimally arranged`, 'success')
 }
 
-// Professional layout algorithm - compact hierarchical flow
+// Zoom functions
+const zoomIn = () => {
+  const viewport = getViewport()
+  const newZoom = Math.min(viewport.zoom * 1.2, 4)
+  setViewport({ ...viewport, zoom: newZoom }, { duration: 300 })
+}
+
+const zoomOut = () => {
+  const viewport = getViewport()
+  const newZoom = Math.max(viewport.zoom * 0.8, 0.2)
+  setViewport({ ...viewport, zoom: newZoom }, { duration: 300 })
+}
+
+// Enhanced layout algorithm - Smart hierarchical with flow optimization
 const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
   const nodeWidth = 140
   const nodeHeight = 60
-  const horizontalSpacing = 180
-  const verticalSpacing = 90
+  const horizontalSpacing = 220
+  const verticalSpacing = 100
   
-  // Find start nodes (no incoming edges)
-  const hasIncoming = new Set(edgeList.map(e => e.target))
-  const startNodes = nodeList.filter(node => !hasIncoming.has(node.id))
+  console.log('🔧 Enhanced layout for', nodeList.length, 'nodes with', edgeList.length, 'connections')
   
-  // Build adjacency list for layout
-  const adjacencyList = new Map()
-  edgeList.forEach(edge => {
-    if (!adjacencyList.has(edge.source)) {
-      adjacencyList.set(edge.source, [])
-    }
-    adjacencyList.get(edge.source).push(edge.target)
+  // Build connection maps
+  const incomingMap = new Map()
+  const outgoingMap = new Map()
+  
+  // Initialize maps
+  nodeList.forEach(node => {
+    incomingMap.set(node.id, [])
+    outgoingMap.set(node.id, [])
   })
   
-  const positioned = new Set()
-  const result = []
+  // Populate connection maps
+  edgeList.forEach(edge => {
+    if (incomingMap.has(edge.target)) {
+      incomingMap.get(edge.target).push(edge.source)
+    }
+    if (outgoingMap.has(edge.source)) {
+      outgoingMap.get(edge.source).push(edge.target)
+    }
+  })
   
-  // Level-based positioning (like n8n workflow layout)
+  // Find start nodes (trigger nodes)
+  const startNodes = nodeList.filter(node => incomingMap.get(node.id).length === 0)
+  
+  // If no clear start, use first node
+  if (startNodes.length === 0 && nodeList.length > 0) {
+    startNodes.push(nodeList[0])
+  }
+  
+  const positioned = new Set()
+  const levels = []
+  
+  // Level-by-level positioning
   let currentLevel = 0
   let nodesToProcess = [...startNodes]
   
-  while (nodesToProcess.length > 0) {
-    const nodesAtThisLevel = [...nodesToProcess]
-    nodesToProcess = []
+  while (nodesToProcess.length > 0 && currentLevel < 20) { // Safety limit
+    const levelNodes = []
+    const nextLevelNodes = []
     
-    // Position nodes at current level
-    nodesAtThisLevel.forEach((node, index) => {
-      if (positioned.has(node.id)) return
-      
-      const x = currentLevel * horizontalSpacing
-      const y = index * verticalSpacing
-      
-      result.push({
-        id: node.id,
-        position: { x, y }
-      })
-      
-      positioned.add(node.id)
-      
-      // Add connected nodes to next level
-      const connections = adjacencyList.get(node.id) || []
-      connections.forEach(targetId => {
-        const targetNode = nodeList.find(n => n.id === targetId)
-        if (targetNode && !positioned.has(targetId)) {
-          nodesToProcess.push(targetNode)
-        }
-      })
+    // Process current level
+    nodesToProcess.forEach(node => {
+      if (!positioned.has(node.id)) {
+        levelNodes.push(node)
+        positioned.add(node.id)
+        
+        // Add children to next level
+        const children = outgoingMap.get(node.id) || []
+        children.forEach(childId => {
+          const childNode = nodeList.find(n => n.id === childId)
+          if (childNode && !positioned.has(childId)) {
+            nextLevelNodes.push(childNode)
+          }
+        })
+      }
     })
     
+    levels.push(levelNodes)
+    nodesToProcess = [...new Set(nextLevelNodes)] // Remove duplicates
     currentLevel++
   }
   
-  // Handle any remaining unconnected nodes
-  nodeList.forEach((node, index) => {
-    if (!positioned.has(node.id)) {
+  // Position remaining unconnected nodes
+  const unpositioned = nodeList.filter(node => !positioned.has(node.id))
+  if (unpositioned.length > 0) {
+    levels.push(unpositioned)
+  }
+  
+  // Calculate positions for each level
+  const result = []
+  levels.forEach((levelNodes, levelIndex) => {
+    const levelY = levelIndex * verticalSpacing
+    const levelWidth = levelNodes.length * horizontalSpacing
+    const startX = -levelWidth / 2 // Center the level
+    
+    levelNodes.forEach((node, nodeIndex) => {
       result.push({
         id: node.id,
-        position: { 
-          x: currentLevel * horizontalSpacing, 
-          y: index * verticalSpacing 
+        position: {
+          x: startX + (nodeIndex * horizontalSpacing) + (levelIndex * 50), // Slight offset per level
+          y: levelY + (nodeIndex % 2 === 0 ? 0 : 30) // Slight zigzag for visual appeal
         }
       })
-    }
+    })
   })
   
-  console.log('✅ Auto layout calculated for', result.length, 'nodes')
+  console.log('✅ Enhanced layout calculated:', result.length, 'nodes in', levels.length, 'levels')
   return result
 }
 
