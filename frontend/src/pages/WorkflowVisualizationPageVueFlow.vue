@@ -154,7 +154,7 @@ const refreshWorkflows = async () => {
   try {
     console.log('🔄 Fetching REAL workflows for VueFlow visualization...')
     
-    const response = await fetch('http://localhost:3001/api/business/processes')
+    const response = await fetch(`http://localhost:3001/api/business/processes?_t=${Date.now()}`)
     
     if (!response.ok) {
       throw new Error(`Backend API error: ${response.status}`)

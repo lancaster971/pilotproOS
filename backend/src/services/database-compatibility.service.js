@@ -204,6 +204,7 @@ class DatabaseCompatibilityService {
           AND e."${startedAtField}" >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
+      WHERE (w.tags IS NULL OR w.tags::text NOT LIKE '%archived%')
       ORDER BY w.active DESC, w."${updatedAtField}" DESC`,
       
       // Legacy query (v1.106-)
@@ -220,15 +221,18 @@ class DatabaseCompatibilityService {
           AND e.started_at >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
+      WHERE (w.tags IS NULL OR w.tags::text NOT LIKE '%archived%')
       ORDER BY w.active DESC, w.updated_at DESC`,
       
-      // Ultimate fallback (basic)
+      // Ultimate fallback (basic) - SHOW ALL WORKFLOWS
       `SELECT 
         w.id as process_id,
         w.name as process_name,
-        w.active as is_active
+        w.active as is_active,
+        0 as executions_today
       FROM n8n.workflow_entity w
-      WHERE w.active = true`
+      WHERE (w.tags IS NULL OR w.tags::text NOT LIKE '%archived%')
+      ORDER BY w.active DESC, w.name ASC`
     ];
 
     return await this.executeWithFallback(queries);
