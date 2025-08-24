@@ -7,7 +7,7 @@
           <h1 class="text-3xl font-bold text-gradient">
             Executions - {{ authStore.tenantId }}
           </h1>
-          <p class="text-gray-400 mt-1">
+          <p class="text-text-muted mt-1">
             Monitora le esecuzioni dei tuoi workflow con PrimeVue DataTable
           </p>
         </div>
@@ -16,7 +16,7 @@
           <!-- Auto Refresh Toggle -->
           <div class="flex items-center gap-2">
             <InputSwitch v-model="autoRefresh" />
-            <label class="text-sm text-white">Auto refresh</label>
+            <label class="text-sm text-text">Auto refresh</label>
           </div>
           
           <Button 
@@ -40,44 +40,44 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 premium-glow">
+        <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.total }}</p>
-            <p class="text-xs text-gray-400">Totali</p>
+            <p class="text-2xl font-bold text-text">{{ executionStats.total }}</p>
+            <p class="text-xs text-text-muted">Totali</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 success-glow">
+        <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-green-400">{{ executionStats.success }}</p>
-            <p class="text-xs text-gray-400">Success</p>
+            <p class="text-2xl font-bold text-primary">{{ executionStats.success }}</p>
+            <p class="text-xs text-text-muted">Success</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 error-glow">
+        <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-red-400">{{ executionStats.error }}</p>
-            <p class="text-xs text-gray-400">Error</p>
+            <p class="text-2xl font-bold text-error">{{ executionStats.error }}</p>
+            <p class="text-xs text-text-muted">Error</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 info-glow">
+        <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-blue-400">{{ executionStats.running }}</p>
-            <p class="text-xs text-gray-400">Running</p>
+            <p class="text-2xl font-bold text-primary">{{ executionStats.running }}</p>
+            <p class="text-xs text-text-muted">Running</p>
           </div>
         </div>
         
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 warning-glow">
+        <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-yellow-400">{{ executionStats.waiting }}</p>
-            <p class="text-xs text-gray-400">Waiting</p>
+            <p class="text-2xl font-bold text-warning">{{ executionStats.waiting }}</p>
+            <p class="text-xs text-text-muted">Waiting</p>
           </div>
         </div>
       </div>
 
       <!-- DataTable with PrimeVue -->
-      <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 chart-container">
+      <div class="control-card p-6">
         <DataTable 
             :value="executions" 
             :loading="isLoading"
@@ -101,7 +101,7 @@
                   <InputText 
                     v-model="filters['global'].value" 
                     placeholder="Global Search" 
-                    class="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                    class="bg-surface border-border text-text placeholder-text-muted"
                   />
                 </IconField>
               </div>
@@ -122,7 +122,7 @@
                   @change="filterCallback()"
                   :options="statusOptions"
                   placeholder="Select Status"
-                  class="bg-gray-800 border-gray-700 text-white"
+                  class="bg-surface border-border text-text"
                 />
               </template>
             </Column>
@@ -140,7 +140,7 @@
             <!-- Execution ID -->
             <Column field="id" header="ID" :sortable="true" style="min-width: 80px">
               <template #body="{ data }">
-                <span class="text-gray-400 font-mono text-xs">#{{ data.id }}</span>
+                <span class="text-text-muted font-mono text-xs">#{{ data.id }}</span>
               </template>
             </Column>
 
@@ -158,8 +158,8 @@
             <!-- Started At -->
             <Column field="startedAt" header="Started" :sortable="true" style="min-width: 180px">
               <template #body="{ data }">
-                <div class="text-gray-300 text-sm">
-                  <i class="pi pi-clock text-gray-500 mr-1"></i>
+                <div class="text-text-secondary text-sm">
+                  <i class="pi pi-clock text-text-muted mr-1"></i>
                   {{ formatDate(data.startedAt) }}
                 </div>
               </template>
@@ -168,7 +168,7 @@
             <!-- Duration -->
             <Column field="executionTime" header="Duration" :sortable="true" style="min-width: 100px">
               <template #body="{ data }">
-                <span class="text-gray-300 font-mono text-sm">
+                <span class="text-text-secondary font-mono text-sm">
                   {{ formatDuration(data.executionTime) }}
                 </span>
               </template>
