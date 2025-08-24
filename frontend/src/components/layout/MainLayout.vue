@@ -1,30 +1,30 @@
 <template>
-  <div class="min-h-screen bg-black">
-    <!-- Header - same pattern as n8n editor header -->
-    <header class="bg-black sticky top-0 z-50 h-16 border-b border-gray-900">
+  <div class="min-h-screen bg-background">
+    <!-- Header - using design system -->
+    <header class="bg-background sticky top-0 z-50 h-16 border-b border-border">
       <div class="flex items-center justify-between h-full px-6">
         <div class="flex items-center gap-4">
           <button 
             @click="uiStore.toggleSidebar()" 
-            class="text-gray-400 hover:text-white transition-colors"
+            class="text-text-muted hover:text-text transition-colors"
           >
             <Menu class="h-6 w-6" />
           </button>
-          <h1 class="text-xl font-bold text-white">PilotPro Control Center</h1>
+          <h1 class="text-xl font-bold text-text">PilotPro Control Center</h1>
         </div>
         
         <div class="flex items-center gap-4">
           <!-- Live indicator -->
           <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm text-gray-400">Live</span>
+            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <span class="text-sm text-text-muted">Live</span>
           </div>
           
           <!-- User menu -->
           <div class="relative">
             <button
               @click="showUserMenu = !showUserMenu"
-              class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              class="flex items-center gap-2 text-text-muted hover:text-text transition-colors"
             >
               <User class="h-5 w-5" />
               <span class="text-sm">{{ authStore.user?.name || 'User' }}</span>
@@ -33,15 +33,15 @@
             <!-- User dropdown -->
             <div
               v-if="showUserMenu"
-              class="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg py-2"
+              class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-2"
             >
-              <div class="px-4 py-2 border-b border-gray-700">
-                <p class="text-sm font-medium text-white">{{ authStore.user?.name }}</p>
-                <p class="text-xs text-gray-400">{{ authStore.user?.email }}</p>
+              <div class="px-4 py-2 border-b border-border">
+                <p class="text-sm font-medium text-text">{{ authStore.user?.name }}</p>
+                <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
               </div>
               <button
                 @click="handleLogout"
-                class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors flex items-center gap-2"
+                class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
               >
                 <LogOut class="h-4 w-4" />
                 Logout
@@ -52,19 +52,19 @@
       </div>
     </header>
 
-
     <div class="flex">
-      <!-- Simple Fixed Sidebar -->
-      <aside class="w-60 bg-gray-900 border-r border-gray-700 min-h-screen flex-shrink-0">
+      <!-- Sidebar using design system -->
+      <aside class="w-60 bg-surface border-r border-border min-h-screen flex-shrink-0">
         <div class="p-6">
           <!-- Logo -->
-          <div class="flex items-center gap-3 mb-8 pb-4 border-b border-gray-800">
-            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+          <div class="flex items-center gap-3 mb-8 pb-4 border-b border-border">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                 style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));">
               <span class="text-white font-bold text-sm">P</span>
             </div>
             <div>
-              <h1 class="text-white font-semibold text-sm">PilotPro</h1>
-              <p class="text-gray-400 text-xs">Control Center</p>
+              <h1 class="text-text font-semibold text-sm">PilotPro</h1>
+              <p class="text-text-muted text-xs">Control Center</p>
             </div>
           </div>
 
@@ -74,8 +74,8 @@
               v-for="item in navigationItems"
               :key="item.name"
               :to="item.path"
-              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white"
-              :class="[$route.path === item.path ? 'bg-green-600 text-white' : '']"
+              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-text-secondary hover:bg-surface-hover hover:text-text"
+              :class="[$route.path === item.path ? 'bg-primary text-white' : '']"
             >
               <component :is="item.icon" class="h-5 w-5" />
               <span class="text-sm">{{ item.label }}</span>
@@ -98,6 +98,9 @@
       @click="uiStore.toggleSidebar()"
       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
     ></div>
+    
+    <!-- Theme Toggle - Available on all pages -->
+    <ThemeToggle />
   </div>
 </template>
 
@@ -110,6 +113,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
+import ThemeToggle from '../ThemeToggle.vue'
 
 // Stores
 const authStore = useAuthStore()
@@ -157,8 +161,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Component-specific styles for layout */
+/* Active route styling using design system */
 .router-link-active {
-  @apply bg-green-600 text-white;
+  background: var(--color-primary);
+  color: white;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="dark min-h-screen bg-black text-white">
+  <div id="app" class="min-h-screen bg-background text-text">
     <router-view />
   </div>
 </template>
@@ -8,8 +8,13 @@
 import { onMounted, onUnmounted } from 'vue'
 import webSocketService from './services/websocket'
 
+// Initialize Design System theme globally
+import { initializeDesignSystem } from './design-system'
+initializeDesignSystem()
+
 // Initialize WebSocket connection when app mounts
 onMounted(() => {
+  console.log('🎨 Design System initialized globally')
   console.log('🚀 Initializing WebSocket connection...')
   // WebSocket service auto-connects on instantiation
 })
@@ -21,43 +26,6 @@ onUnmounted(() => {
 </script>
 
 <style>
-* {
-  font-weight: 300 !important;
-  font-family: 'DM Sans', sans-serif;
-}
-
-.control-card {
-  background-color: rgb(17 24 39);
-  border: 1px solid rgb(31 41 55);
-  border-radius: 0.5rem;
-}
-
-.btn-control {
-  background-color: rgb(31 41 55);
-  border: 1px solid rgb(55 65 81);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-control-primary {
-  background-color: rgb(22 163 74);
-  border: 1px solid rgb(34 197 94);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.text-gradient {
-  background: linear-gradient(45deg, #10b981, #059669);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Global styles are now handled by design-system and style.css */
+/* No more hardcoded colors! */
 </style>

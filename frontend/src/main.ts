@@ -3,12 +3,9 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 
-// Initialize Design System FIRST - before any other imports
-import { initializeDesignSystem } from './design-system'
-initializeDesignSystem()
-
-// Import clean CSS - no more conflicts!
+// Import clean CSS - Design System initialized in App.vue
 import './style.css'
+import './design-system/utilities.css'
 
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
