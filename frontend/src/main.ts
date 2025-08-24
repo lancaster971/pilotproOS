@@ -45,7 +45,7 @@ ChartJS.register(
 import LoginPage from './pages/LoginPage.vue'
 import DashboardPage from './pages/DashboardPage.vue'
 import WorkflowsPage from './pages/WorkflowsPage.vue'
-import WorkflowVisualizationPage from './pages/WorkflowVisualizationPage.vue'
+import WorkflowVisualizationPage from './pages/WorkflowVisualizationPageVueFlow.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
 import SecurityPage from './pages/SecurityPage.vue'
