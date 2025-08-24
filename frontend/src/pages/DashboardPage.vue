@@ -89,21 +89,21 @@
           <!-- Executive Charts Section -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Premium Performance Chart -->
-            <Card class="xl:col-span-2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700 shadow-2xl chart-container">
+            <Card class="xl:col-span-2 premium-glass premium-hover-lift"
               <template #header>
-                <div class="p-6 pb-2 border-b border-gray-700/50">
+                <div class="p-6 pb-2 border-b border-border">
                   <div class="flex items-center justify-between">
                     <div>
-                      <h3 class="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                      <h3 class="text-2xl font-bold text-text">
                         Performance Trend
                       </h3>
-                      <p class="text-sm text-gray-400 mt-1">Analisi delle performance degli ultimi 30 giorni</p>
+                      <p class="text-sm text-text-muted mt-1">Analisi delle performance degli ultimi 30 giorni</p>
                     </div>
                     <div class="flex items-center gap-4">
                       <!-- Real-time indicator -->
-                      <div class="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-lg">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span class="text-xs text-green-400 font-medium">Live Data</span>
+                      <div class="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 rounded-lg">
+                        <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        <span class="text-xs text-primary font-medium">Live Data</span>
                       </div>
                       <!-- Period badge -->
                       <Badge value="30 Giorni" severity="info" class="px-3 py-1" />
@@ -113,20 +113,20 @@
                   <!-- Chart summary stats -->
                   <div class="grid grid-cols-4 gap-4 mt-4">
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-green-400">{{ successfulExecutions }}</p>
-                      <p class="text-xs text-gray-500">Successi</p>
+                      <p class="text-lg font-bold text-primary">{{ successfulExecutions }}</p>
+                      <p class="text-xs text-text-muted">Successi</p>
                     </div>
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-red-400">{{ failedExecutions }}</p>
-                      <p class="text-xs text-gray-500">Fallimenti</p>
+                      <p class="text-lg font-bold text-error">{{ failedExecutions }}</p>
+                      <p class="text-xs text-text-muted">Fallimenti</p>
                     </div>
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-green-400">{{ Math.round(totalExecutions / 30) }}</p>
-                      <p class="text-xs text-gray-500">Media/giorno</p>
+                      <p class="text-lg font-bold text-primary">{{ Math.round(totalExecutions / 30) }}</p>
+                      <p class="text-xs text-text-muted">Media/giorno</p>
                     </div>
                     <div class="text-center p-2">
-                      <p class="text-lg font-bold text-green-300">{{ avgDurationFormatted }}</p>
-                      <p class="text-xs text-gray-500">Durata media</p>
+                      <p class="text-lg font-bold text-primary">{{ avgDurationFormatted }}</p>
+                      <p class="text-xs text-text-muted">Durata media</p>
                     </div>
                   </div>
                 </div>
