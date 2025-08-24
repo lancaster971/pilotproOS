@@ -76,7 +76,7 @@
       </div>
 
       <!-- Workflow Cards -->
-      <div class="bg-transparent border-transparent p-0">
+      <div style="background: transparent; border: none; padding: 0;">
         <h2 class="text-xl font-semibold text-white mb-6">AI Agent Workflows</h2>
         
         <div v-if="agentWorkflows.length === 0" class="text-center py-12">
