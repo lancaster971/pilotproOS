@@ -60,6 +60,16 @@
 .text-green-500 { color: var(--color-primary) !important; }
 .text-green-400 { color: var(--color-primary) !important; }
 
+/* Blue colors → Primary emerald mapping (REMOVE BLUE FROM THEME) */
+.text-blue-400 { color: var(--color-primary) !important; }
+.text-blue-500 { color: var(--color-primary) !important; }
+.bg-blue-400 { background-color: var(--color-primary) !important; }
+.bg-blue-500 { background-color: var(--color-primary) !important; }
+.bg-blue-400\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-blue-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.border-blue-500 { border-color: var(--color-primary) !important; }
+.border-blue-500\/30 { border-color: rgba(16, 185, 129, 0.3) !important; }
+
 /* PrimeVue component overrides for consistency */
 .p-card {
   background: var(--color-surface) !important;

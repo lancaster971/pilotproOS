@@ -35,12 +35,12 @@ export const colors = {
     950: '#0f0f12'
   },
 
-  // Semantic Colors
+  // Semantic Colors (Emerald-focused theme)
   semantic: {
-    success: '#10b981',
-    error: '#ef4444', 
-    warning: '#f59e0b',
-    info: '#3b82f6'
+    success: '#10b981',    // Emerald
+    error: '#ef4444',      // Red
+    warning: '#f59e0b',    // Orange  
+    info: '#10b981'        // Use emerald instead of blue!
   },
 
   // Background System
