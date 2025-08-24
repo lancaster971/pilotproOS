@@ -278,17 +278,13 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
       nodeCount: nodes.length,
       connectionCount: Object.keys(connections).length,
       
-      // Transform nodes for business visualization
+      // Transform nodes for business visualization (SANITIZED)
       processSteps: nodes.map((node, index) => ({
         stepId: node.id,
         stepName: node.name,
-        stepType: {
-          type: node.type,
-          category: getBusinessCategory(node.type)
-        },
-        position: node.position || [(index % 4) * 250, Math.floor(index / 4) * 150],
-        configuration: node.parameters || {},
-        description: `Business step: ${node.name}`
+        businessCategory: getBusinessCategory(node.type),
+        position: node.position || [(index % 4) * 250, Math.floor(index / 4) * 150]
+        // NO technical details exposed (node.type, parameters, etc.)
       })),
       
       // Transform connections for business flow

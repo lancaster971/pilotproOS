@@ -62,27 +62,22 @@
             :mask-color="'rgba(17, 24, 39, 0.8)'"
           />
 
-          <!-- Custom Node Template -->
+          <!-- Clean Business Node Template -->
           <template #node-custom="{ data }">
             <div 
-              class="premium-glass p-4 min-w-48 premium-transition premium-hover-lift"
+              class="premium-glass p-3 min-w-32 premium-transition premium-hover-lift"
               :class="getNodeStatusClass(data.status)"
             >
-              <div class="flex items-center gap-2 mb-2">
-                <component :is="getNodeIcon(data.type)" class="w-5 h-5 text-primary" />
-                <span class="font-semibold text-text text-sm">{{ data.label }}</span>
+              <div class="flex items-center gap-2">
+                <component :is="getNodeIcon(data.type)" class="w-4 h-4 text-primary" />
+                <span class="font-semibold text-text text-xs">{{ data.label }}</span>
               </div>
               
-              <div class="text-xs text-text-muted mb-2">
-                {{ data.description || 'Business process step' }}
-              </div>
-              
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-end mt-2">
                 <div 
                   class="w-2 h-2 rounded-full"
                   :class="data.status === 'success' ? 'bg-primary' : 'bg-text-muted'"
                 />
-                <span class="text-xs text-text-muted">{{ data.status }}</span>
               </div>
             </div>
           </template>
@@ -332,7 +327,7 @@ const createFlowFromDatabaseData = (businessProcessDetails: any, workflowMetadat
   console.log('📊 REAL business process has', processSteps.length, 'REAL steps from database')
   console.log('📊 REAL step names:', processSteps.map(s => s.stepName))
   
-  // Create VueFlow nodes from REAL business process steps
+  // Create VueFlow nodes from REAL business process steps (SANITIZED)
   const newNodes = processSteps.map((step: any) => {
     return {
       id: step.stepName, // Use step name as ID for connections
@@ -342,12 +337,11 @@ const createFlowFromDatabaseData = (businessProcessDetails: any, workflowMetadat
         y: step.position[1] || 0
       },
       data: {
-        label: step.stepName, // REAL step name from database
-        description: `${step.stepType.category} - ${step.stepType.type}`,
+        label: step.stepName, // REAL step name from database (ONLY business-friendly name)
         status: workflowMetadata.is_active ? 'success' : 'inactive',
-        type: getNodeTypeFromN8n(step.stepType.type),
-        realData: step,
-        businessCategory: step.stepType.category
+        type: getBusinessTypeFromCategory(step.businessCategory),
+        businessCategory: step.businessCategory
+        // NO technical n8n details exposed (fully sanitized)
       }
     }
   })
@@ -543,6 +537,19 @@ const createEnhancedFlowFromWorkflowName = (workflowData: any) => {
   elements.value = [...newNodes, ...newEdges]
   
   console.log(`✅ Enhanced flow created for "${workflowData.process_name}":`, newNodes.length, 'nodes')
+}
+
+const getBusinessTypeFromCategory = (businessCategory: string) => {
+  switch (businessCategory) {
+    case 'Event Handler': return 'trigger'
+    case 'AI Intelligence': return 'ai'
+    case 'Integration': return 'api'
+    case 'Communication': return 'email'
+    case 'Data Management': return 'storage'
+    case 'Business Logic': return 'logic'
+    case 'Document Processing': return 'file'
+    default: return 'process'
+  }
 }
 
 const getNodeTypeFromN8n = (n8nType: string) => {
