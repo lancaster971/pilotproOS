@@ -76,11 +76,10 @@
       </div>
 
       <!-- Workflow Cards Title -->
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-semibold text-white">AI Agent Workflows</h2>
       </div>
       
-      <!-- Workflow Cards Grid -->
       <div v-if="agentWorkflows.length === 0" class="text-center py-12">
         <Bot class="w-16 h-16 text-gray-600 mx-auto mb-4" />
         <p class="text-gray-400">No AI agent workflows found</p>
@@ -88,12 +87,12 @@
       </div>
       
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div 
-            v-for="workflow in agentWorkflows"
-            :key="workflow.id"
-            @click="handleViewWorkflow(workflow.id)"
-            class="bg-gray-900 border border-gray-700 rounded-lg p-5 hover:border-green-400/30 transition-all cursor-pointer premium-glow"
-          >
+        <div 
+          v-for="workflow in agentWorkflows"
+          :key="workflow.id"
+          @click="handleViewWorkflow(workflow.id)"
+          class="bg-gray-900 border border-gray-700 rounded-lg p-5 hover:border-green-400/30 transition-all cursor-pointer premium-glow"
+        >
             <!-- Header -->
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1">
@@ -164,6 +163,7 @@
             </div>
           </div>
         </div>
+      </div>
 
       <!-- Agent Detail Modal placeholder -->
       <AgentDetailModal
