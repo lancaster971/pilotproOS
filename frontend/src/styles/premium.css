@@ -1,5 +1,16 @@
 /* PREMIUM GLASSMORPHISM ENHANCEMENTS */
 
+/* Premium CSS Variables Override */
+:root {
+  --primary: #10b981;
+  --primary-hover: #00d26a;
+  --primary-600: #10b981;
+  --primary-700: #047857;
+  --primary-800: #065f46;
+  --primary-900: #064e3b;
+  --primary-950: #022c22;
+}
+
 /* Force uniform gray colors for all cards */
 div.premium-glow {
     background-color: rgb(17 24 39) !important;
