@@ -99,8 +99,6 @@
       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
     ></div>
     
-    <!-- Theme Toggle - Available on all pages -->
-    <ThemeToggle />
   </div>
 </template>
 
@@ -113,7 +111,6 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
-import ThemeToggle from '../ThemeToggle.vue'
 
 // Stores
 const authStore = useAuthStore()
