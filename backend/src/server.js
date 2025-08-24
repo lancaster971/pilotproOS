@@ -247,9 +247,8 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
         w.active as is_active,
         w.nodes,
         w.connections,
-        w.staticData as static_data,
-        w.createdAt as created_at,
-        w.updatedAt as updated_at
+        w."createdAt" as created_at,
+        w."updatedAt" as updated_at
       FROM n8n.workflow_entity w
       WHERE w.id = $1
     `;
