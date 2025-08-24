@@ -156,7 +156,7 @@
                     <!-- Details Button -->
                     <button
                       @click="openWorkflowDetails(workflow)"
-                      class="px-3 py-1 bg-info hover:bg-info text-white rounded text-xs transition-colors flex items-center gap-1"
+                      class="btn-control text-xs"
                     >
                       <Eye class="w-3 h-3" />
                       Details
@@ -165,7 +165,7 @@
                     <!-- Timeline Button - KILLER FEATURE ACCESS -->
                     <button
                       @click="openWorkflowTimeline(workflow.id)"
-                      class="btn-control-primary text-xs px-3 py-1"
+                      class="btn-control-primary text-xs"
                     >
                       <Clock class="w-3 h-3" />
                       Timeline
