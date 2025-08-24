@@ -6,6 +6,7 @@ import App from './App.vue'
 // Import clean CSS - Design System initialized in App.vue
 import './style.css'
 import './design-system/utilities.css'
+import './design-system/premium.css'
 
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'

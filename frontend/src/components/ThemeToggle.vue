@@ -1,11 +1,12 @@
 <template>
   <div class="fixed top-4 right-4 z-50">
-    <div class="flex items-center gap-2 bg-surface border border-border rounded-lg p-2 shadow-lg">
-      <Palette class="w-4 h-4 text-primary" />
+    <div class="flex items-center gap-2 premium-glass p-3 rounded-lg enterprise-shadow premium-hover-lift">
+      <Palette class="w-4 h-4 text-primary premium-neon-pulse" />
+      <span class="text-xs font-semibold text-primary premium-text-glow">THEME:</span>
       <select 
         v-model="currentTheme"
         @change="handleThemeChange"
-        class="bg-surface border border-border text-text text-xs rounded px-2 py-1"
+        class="premium-input text-xs rounded px-2 py-1 font-semibold"
       >
         <option value="default">Default Dark</option>
         <option value="emerald">Emerald Bright</option>

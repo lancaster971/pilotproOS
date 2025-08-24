@@ -16,7 +16,7 @@
           <!-- Premium KPI Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Total Processes Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-float">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">

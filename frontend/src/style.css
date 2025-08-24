@@ -19,18 +19,46 @@ body {
   color: var(--color-text);
 }
 
-/* Design System Component Styles */
+/* PREMIUM Design System Component Styles */
 .control-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  box-shadow: var(--shadow-lg);
-  transition: var(--transition-all);
+  background: rgba(17, 24, 39, 0.8) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 20px rgba(16, 185, 129, 0.1) !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.control-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.6), transparent);
+  animation: premiumScanLine 4s ease-in-out infinite;
+}
+
+@keyframes premiumScanLine {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
 }
 
 .control-card:hover {
-  border-color: var(--color-border-accent);
-  box-shadow: var(--shadow-success-glow);
+  backdrop-filter: blur(25px) saturate(200%) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 30px rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-4px) scale(1.02) !important;
 }
 
 .btn-control {
@@ -54,27 +82,70 @@ body {
 
 .btn-control-primary {
   padding: 0.5rem 1rem;
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  color: white;
-  border-radius: 0.5rem;
-  transition: var(--transition-all);
+  background: linear-gradient(135deg, #10b981, #00d26a) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    0 4px 20px rgba(16, 185, 129, 0.4),
+    0 0 20px rgba(16, 185, 129, 0.2) inset !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+}
+
+.btn-control-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%) translateY(-100%);
+  transition: transform 0.6s ease;
+}
+
+.btn-control-primary:hover::before {
+  transform: translateX(100%) translateY(100%);
 }
 
 .btn-control-primary:hover {
-  background: var(--color-primary-hover);
-  box-shadow: var(--shadow-success-glow);
+  background: linear-gradient(135deg, #00d26a, #10b981) !important;
+  box-shadow: 
+    0 8px 30px rgba(16, 185, 129, 0.6),
+    0 0 30px rgba(16, 185, 129, 0.4) inset !important;
+  transform: translateY(-2px) scale(1.05) !important;
 }
 
 .text-gradient {
-  background: linear-gradient(45deg, var(--color-primary), var(--color-primary-hover));
+  background: linear-gradient(
+    45deg,
+    #10b981,
+    #00d26a,
+    #10b981,
+    #34d399,
+    #10b981
+  );
+  background-size: 300% 300%;
+  animation: premiumGradientShift 4s ease-in-out infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-weight: 700 !important;
+  text-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+}
+
+@keyframes premiumGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 /* Text utilities using design system */

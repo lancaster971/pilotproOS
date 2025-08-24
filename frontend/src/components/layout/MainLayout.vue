@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <!-- Header - using design system -->
-    <header class="bg-background sticky top-0 z-50 h-16 border-b border-border">
+  <div class="min-h-screen bg-background premium-particles premium-scan-lines">
+    <!-- Header - PREMIUM with glassmorphism -->
+    <header class="premium-glass sticky top-0 z-50 h-16 border-b border-border backdrop-blur-25">
       <div class="flex items-center justify-between h-full px-6">
         <div class="flex items-center gap-4">
           <button 
@@ -14,10 +14,9 @@
         </div>
         
         <div class="flex items-center gap-4">
-          <!-- Live indicator -->
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            <span class="text-sm text-text-muted">Live</span>
+          <!-- Premium Live indicator -->
+          <div class="premium-status-online">
+            <span class="text-sm font-semibold text-primary premium-text-glow">SISTEMA LIVE</span>
           </div>
           
           <!-- User menu -->
@@ -53,29 +52,30 @@
     </header>
 
     <div class="flex">
-      <!-- Sidebar using design system -->
-      <aside class="w-60 bg-surface border-r border-border min-h-screen flex-shrink-0">
+      <!-- PREMIUM Sidebar with glassmorphism -->
+      <aside class="w-60 premium-glass border-r border-border min-h-screen flex-shrink-0 premium-scrollbar">
         <div class="p-6">
           <!-- Logo -->
           <div class="flex items-center gap-3 mb-8 pb-4 border-b border-border">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                 style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center premium-neon-pulse"
+                 style="background: linear-gradient(135deg, #10b981, #00d26a); box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);">
               <span class="text-white font-bold text-sm">P</span>
             </div>
             <div>
-              <h1 class="text-text font-semibold text-sm">PilotPro</h1>
-              <p class="text-text-muted text-xs">Control Center</p>
+              <h1 class="text-text font-semibold text-sm premium-gradient-text">PilotPro OS</h1>
+              <p class="text-text-muted text-xs">Enterprise Command Center</p>
             </div>
           </div>
 
           <!-- Navigation -->
           <nav class="space-y-2">
             <router-link
-              v-for="item in navigationItems"
+              v-for="(item, index) in navigationItems"
               :key="item.name"
               :to="item.path"
-              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-text-secondary hover:bg-surface-hover hover:text-text"
-              :class="[$route.path === item.path ? 'bg-primary text-white' : '']"
+              class="flex items-center gap-3 px-4 py-2 rounded-lg premium-transition text-text-secondary hover:bg-surface-hover hover:text-text premium-hover-lift"
+              :class="[$route.path === item.path ? 'premium-glass premium-glow-intense text-white' : '']"
+              :style="{ animationDelay: `${index * 100}ms` }"
             >
               <component :is="item.icon" class="h-5 w-5" />
               <span class="text-sm">{{ item.label }}</span>
