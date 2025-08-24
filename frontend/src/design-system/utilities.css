@@ -10,15 +10,49 @@
 .text-gray-200 { color: var(--color-text) !important; }
 .text-white { color: var(--color-text) !important; }
 
+/* Design System semantic text colors */
+.text-text { color: var(--color-text) !important; }
+.text-text-secondary { color: var(--color-text-secondary) !important; }
+.text-text-muted { color: var(--color-text-muted) !important; }
+.text-text-accent { color: var(--color-text-accent) !important; }
+
+/* Semantic color text classes */
+.text-primary { color: var(--color-primary) !important; }
+.text-success { color: var(--success) !important; }
+.text-error { color: var(--error) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-info { color: var(--info) !important; }
+
 /* Background colors mapping */
 .bg-gray-900 { background-color: var(--color-background) !important; }
 .bg-gray-800 { background-color: var(--color-surface) !important; }
 .bg-gray-700 { background-color: var(--color-surface-hover) !important; }
 
+/* Design System background classes */
+.bg-background { background-color: var(--color-background) !important; }
+.bg-background-secondary { background-color: var(--color-background-secondary) !important; }
+.bg-surface { background-color: var(--color-surface) !important; }
+.bg-surface-hover { background-color: var(--color-surface-hover) !important; }
+
+/* Semantic background classes */
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-hover { background-color: var(--color-primary-hover) !important; }
+
 /* Border colors mapping */
 .border-gray-700 { border-color: var(--color-border) !important; }
 .border-gray-600 { border-color: var(--color-border-hover) !important; }
 .border-gray-800 { border-color: var(--color-border) !important; }
+
+/* Design System border classes */
+.border-border { border-color: var(--color-border) !important; }
+.border-border-hover { border-color: var(--color-border-hover) !important; }
+.border-border-accent { border-color: var(--color-border-accent) !important; }
+
+/* Semantic border classes */
+.border-primary { border-color: var(--color-primary) !important; }
+.border-error { border-color: var(--error) !important; }
+.border-warning { border-color: var(--warning) !important; }
+.border-info { border-color: var(--info) !important; }
 
 /* Green/Primary colors mapping */
 .bg-green-500 { background-color: var(--color-primary) !important; }

@@ -165,6 +165,13 @@ export function injectDesignTokens(themeName: ThemeName = 'default'): void {
   root.setAttribute('data-theme', themeName)
   
   console.log(`🎨 Design System: ${theme.name} theme applied`)
+  console.log('🔍 CSS Variables injected:', {
+    '--color-primary': root.style.getPropertyValue('--color-primary'),
+    '--color-background': root.style.getPropertyValue('--color-background'),
+    '--color-surface': root.style.getPropertyValue('--color-surface'),
+    '--color-text': root.style.getPropertyValue('--color-text'),
+    '--color-text-muted': root.style.getPropertyValue('--color-text-muted')
+  })
 }
 
 /**
