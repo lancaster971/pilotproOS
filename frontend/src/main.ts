@@ -43,7 +43,7 @@ ChartJS.register(
 
 // Import pages
 import LoginPage from './pages/LoginPage.vue'
-import DashboardPage from './pages/DashboardPage.vue'
+import DashboardPage from './pages/DashboardPagePremium.vue'
 import WorkflowsPage from './pages/WorkflowsPage.vue'
 import WorkflowVisualizationPage from './pages/WorkflowVisualizationPage.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
