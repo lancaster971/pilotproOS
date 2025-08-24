@@ -947,7 +947,7 @@ const loadData = async () => {
     
     // Update workflows data
     if (processesData) {
-      workflowCount.value = processesData.total || 0
+      workflowCount.value = processesData.summary?.available || processesData.total || 0
       activeWorkflows.value = processesData.summary?.active || 0
     }
     

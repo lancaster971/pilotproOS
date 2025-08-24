@@ -210,7 +210,8 @@ app.get('/api/business/processes', async (req, res) => {
       data: result.rows || [],
       total: result.rows?.length || 0,
       summary: {
-        active: result.rows?.length || 0,
+        active: result.rows?.filter(row => row.is_active === true).length || 0,
+        available: result.rows?.length || 0,
         totalExecutionsToday: result.rows?.reduce((sum, row) => sum + (row.executions_today || 0), 0) || 0,
         avgSuccessRate: result.rows?.length > 0 ? 
           result.rows.reduce((sum, row) => sum + (row.success_rate || 0), 0) / result.rows.length : 0
