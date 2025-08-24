@@ -8,12 +8,13 @@
       <!-- Header -->
       <div class="sidebar-header">
         <div class="sidebar-logo flex items-center">
-          <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center mr-3">
+          <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3" 
+               style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));">
             <span class="text-white text-sm font-bold">P</span>
           </div>
           <div>
-            <h2 class="text-foreground text-sm font-semibold">PilotPro OS</h2>
-            <p class="text-foreground-muted text-xs">Command Center</p>
+            <h2 class="text-text text-sm font-semibold">PilotPro OS</h2>
+            <p class="text-text-secondary text-xs">Command Center</p>
           </div>
         </div>
       </div>
@@ -59,8 +60,8 @@
       <div class="sidebar-footer mt-auto">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
-            <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
-            <span class="text-xs text-foreground-muted">Sistema Online</span>
+            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <span class="text-xs text-text-muted">Sistema Online</span>
           </div>
           <button class="sidebar-toggle-btn">
             <ChevronLeft class="w-4 h-4" />

@@ -71,8 +71,13 @@ export function injectDesignTokens(themeName: ThemeName = 'default'): void {
   const theme = themes[themeName]
   const root = document.documentElement
 
-  // Inject Color Variables
+  // Inject Color Variables - Complete primary scale
   Object.entries(theme.colors.primary).forEach(([key, value]) => {
+    root.style.setProperty(`--primary-${key}`, value)
+  })
+
+  // Also inject direct primary scale for CSS compatibility
+  Object.entries(colors.primary).forEach(([key, value]) => {
     root.style.setProperty(`--primary-${key}`, value)
   })
 
