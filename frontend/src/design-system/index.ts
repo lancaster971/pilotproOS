@@ -6,7 +6,7 @@
 import { colors, type ColorToken } from './tokens/colors'
 import { typography } from './tokens/typography'
 import { spacing, borderRadius } from './tokens/spacing'
-import { shadows, blur, transitions } from './tokens/effects'
+import { shadows, blur, transitions, animations } from './tokens/effects'
 
 // Theme definitions
 export interface Theme {
@@ -18,7 +18,7 @@ export interface Theme {
 }
 
 // Available themes
-export const themes = {
+const themes = {
   default: {
     name: 'Default Dark',
     colors,
@@ -131,6 +131,11 @@ export function injectDesignTokens(themeName: ThemeName = 'default'): void {
     root.style.setProperty(`--transition-${key}`, value)
   })
 
+  // Inject Animation Variables
+  Object.entries(animations).forEach(([key, value]) => {
+    root.style.setProperty(`--animation-${key}`, value)
+  })
+
   // Set semantic color mappings (these are the ones we'll use in CSS)
   root.style.setProperty('--color-primary', theme.colors.primary[500])
   root.style.setProperty('--color-primary-hover', theme.colors.primary[600])
@@ -200,5 +205,5 @@ export * from './tokens/typography'
 export * from './tokens/spacing'
 export * from './tokens/effects'
 
-// Export themes
+// Export themes object
 export { themes }
