@@ -250,7 +250,7 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
         w."createdAt" as created_at,
         w."updatedAt" as updated_at
       FROM n8n.workflow_entity w
-      WHERE w.id = $1
+      WHERE w.id = $1 AND w."isArchived" = false
     `;
     
     const workflowResult = await dbPool.query(workflowQuery, [processId]);
@@ -678,7 +678,7 @@ app.get('/api/business/process-details/:id', async (req, res) => {
         
       FROM n8n.workflow_entity w
       LEFT JOIN pilotpros.business_analytics ba ON w.id = ba.n8n_workflow_id
-      WHERE w.id = $1
+      WHERE w.id = $1 AND w."isArchived" = false
     `;
     
     const processResult = await dbPool.query(processQuery, [id]);
