@@ -230,10 +230,10 @@ body {
 }
 
 .sidebar-nav-item.active {
-  background: linear-gradient(135deg, var(--primary-900), var(--primary-950));
+  background: linear-gradient(135deg, #064e3b, #022c22);
   color: var(--foreground);
-  border: 1px solid var(--primary-700);
-  box-shadow: 0 4px 20px var(--primary-900);
+  border: 1px solid #047857;
+  box-shadow: 0 4px 20px #064e3b;
 }
 
 .sidebar-nav-item.compact {
@@ -254,7 +254,7 @@ body {
 }
 
 .sidebar-nav-item.active .sidebar-nav-icon {
-  color: var(--primary);
+  color: #10b981;
 }
 
 .sidebar-nav-label {
@@ -290,7 +290,7 @@ body {
 }
 
 .badge-new {
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  background: linear-gradient(135deg, #10b981, #00d26a);
   color: white;
   animation: badgePulse 2s ease-in-out infinite;
 }
@@ -338,7 +338,7 @@ body {
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: linear-gradient(180deg, var(--primary), var(--primary-hover));
+  background: linear-gradient(180deg, #10b981, #00d26a);
   border-radius: 2px;
   animation: glowPulse 2s ease-in-out infinite;
 }
