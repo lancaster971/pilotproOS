@@ -133,7 +133,7 @@
               </template>
               <template #content>
                 <div class="p-6 pt-4">
-                  <Chart type="line" :data="executionTrendData" :options="premiumChartOptions" class="h-80" />
+                  <PremiumChart type="line" :data="executionTrendData" height="h-80" />
                 </div>
               </template>
             </Card>
@@ -529,6 +529,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 // Removed Lucide icons - using PrimeVue icons only
 import MainLayout from '../components/layout/MainLayout.vue'
+import PremiumChart from '../components/PremiumChart.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -661,15 +662,15 @@ const executionTrendData = ref({
   datasets: [{
     label: 'Esecuzioni Riuscite',
     data: [],
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 3,
-    pointBackgroundColor: '#10b981',
-    pointBorderColor: '#fff',
-    pointBorderWidth: 2,
-    pointRadius: 5,
-    pointHoverRadius: 7,
-    tension: 0.4,
+    borderColor: '#00d26a',
+    backgroundColor: 'rgba(0, 210, 106, 0.15)',
+    borderWidth: 4,
+    pointBackgroundColor: '#00d26a',
+    pointBorderColor: '#10b981',
+    pointBorderWidth: 3,
+    pointRadius: 8,
+    pointHoverRadius: 12,
+    tension: 0.2,
     fill: true,
     order: 1
   }, {
@@ -713,19 +714,25 @@ const miniChartData = ref({
 const premiumChartOptions = ref({
   maintainAspectRatio: false,
   responsive: true,
+  interaction: {
+    intersect: false,
+    mode: 'index'
+  },
   plugins: {
     legend: {
       position: 'top',
       align: 'end',
       labels: { 
-        color: '#9ca3af',
-        padding: 20,
+        color: '#d1d5db',
+        padding: 24,
         font: {
-          size: 12,
-          weight: '500'
+          size: 13,
+          weight: '600'
         },
         usePointStyle: true,
-        pointStyle: 'circle'
+        pointStyle: 'circle',
+        boxWidth: 12,
+        boxHeight: 12
       }
     },
     tooltip: {
