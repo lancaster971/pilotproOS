@@ -1,60 +1,57 @@
 <template>
   <MainLayout>
-    <div class="space-y-6">
-      <!-- Header -->
+    <div class="space-y-4">
+      <!-- Compact Professional Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gradient">
-            Workflow Visualization - VueFlow
-          </h1>
-          <p class="text-text-muted mt-1">
-            Visual representation of REAL business processes from backend
-          </p>
+          <h1 class="text-2xl font-bold text-gradient">Process Flow</h1>
+          <p class="text-text-muted text-sm mt-0.5">Visual workflow representation</p>
         </div>
         
-        <div class="flex items-center gap-3">
+        <!-- Compact Control Bar -->
+        <div class="flex items-center gap-2">
           <select 
             v-model="selectedWorkflowId" 
             @change="loadWorkflowFromBackend"
-            class="premium-input px-4 py-2 rounded-lg"
+            class="premium-input px-3 py-1.5 text-sm rounded-md min-w-48"
           >
-            <option value="">Select REAL workflow</option>
+            <option value="">Select workflow...</option>
             <option v-for="wf in realWorkflows" :key="wf.process_id" :value="wf.process_id">
-              {{ wf.process_name }} ({{ wf.is_active ? 'Active' : 'Inactive' }})
+              {{ wf.process_name }}
             </option>
           </select>
           
           <button 
             @click="autoLayoutNodes"
             :disabled="!selectedWorkflowId || elements.length === 0"
-            class="btn-control"
+            class="px-3 py-1.5 bg-surface border border-border text-text rounded-md text-sm hover:bg-surface-hover transition-colors flex items-center gap-1.5"
           >
-            <GitBranch class="w-4 h-4" />
-            AUTO LAYOUT
+            <GitBranch class="w-3.5 h-3.5" />
+            Layout
           </button>
           
           <button 
             @click="() => fitView({ duration: 800 })"
             :disabled="elements.length === 0"
-            class="btn-control"
+            class="px-3 py-1.5 bg-surface border border-border text-text rounded-md text-sm hover:bg-surface-hover transition-colors flex items-center gap-1.5"
           >
-            <Eye class="w-4 h-4" />
-            FIT VIEW
+            <Eye class="w-3.5 h-3.5" />
+            Fit
           </button>
           
           <button 
             @click="refreshWorkflows"
             :disabled="isLoading"
-            class="btn-control-primary"
+            class="px-3 py-1.5 bg-primary border border-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors flex items-center gap-1.5"
           >
-            <RefreshCw :class="{ 'animate-spin': isLoading }" class="w-4 h-4" />
-            REFRESH REAL DATA
+            <RefreshCw :class="{ 'animate-spin': isLoading }" class="w-3.5 h-3.5" />
+            Refresh
           </button>
         </div>
       </div>
 
-      <!-- VueFlow Container -->
-      <div class="premium-glass overflow-hidden" style="height: 70vh;">
+      <!-- VueFlow Container - Professional sizing -->
+      <div class="premium-glass overflow-hidden rounded-lg" style="height: 65vh;">
         <VueFlow
           v-model="elements"
           :class="$style.vueflow"
@@ -80,20 +77,17 @@
             :mask-color="'rgba(17, 24, 39, 0.8)'"
           />
 
-          <!-- Clean Business Node Template -->
+          <!-- Professional Compact Node Template -->
           <template #node-custom="{ data }">
             <div 
-              class="premium-glass p-3 min-w-32 premium-transition premium-hover-lift"
+              class="premium-glass px-3 py-2 min-w-28 premium-transition premium-hover-lift rounded-md"
               :class="getNodeStatusClass(data.status)"
             >
-              <div class="flex items-center gap-2">
-                <component :is="getNodeIcon(data.type)" class="w-4 h-4 text-primary" />
-                <span class="font-semibold text-text text-xs">{{ data.label }}</span>
-              </div>
-              
-              <div class="flex items-center justify-end mt-2">
+              <div class="flex items-center gap-1.5">
+                <component :is="getNodeIcon(data.type)" class="w-3 h-3 text-primary flex-shrink-0" />
+                <span class="font-medium text-text text-xs truncate">{{ data.label }}</span>
                 <div 
-                  class="w-2 h-2 rounded-full"
+                  class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto"
                   :class="data.status === 'success' ? 'bg-primary' : 'bg-text-muted'"
                 />
               </div>
@@ -102,94 +96,22 @@
         </VueFlow>
       </div>
 
-      <!-- Real Workflow Info Panel -->
-      <div v-if="selectedWorkflowData" class="premium-glass p-6">
-        <h3 class="text-lg font-bold text-text mb-4">REAL Workflow Data</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Workflow Info -->
-          <div class="premium-glass p-4">
-            <h4 class="font-semibold text-text mb-3">Process Information</h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-text-muted">ID:</span>
-                <span class="text-text font-mono">{{ selectedWorkflowData.process_id }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Name:</span>
-                <span class="text-text">{{ selectedWorkflowData.process_name }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Status:</span>
-                <span :class="selectedWorkflowData.is_active ? 'text-primary' : 'text-text-muted'">
-                  {{ selectedWorkflowData.is_active ? 'ACTIVE' : 'INACTIVE' }}
-                </span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Executions Today:</span>
-                <span class="text-text">{{ selectedWorkflowData.executions_today }}</span>
-              </div>
+      <!-- Compact Workflow Info -->
+      <div v-if="selectedWorkflowData" class="premium-glass p-4 rounded-lg">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-text">Process: {{ selectedWorkflowData.process_name }}</h3>
+          <div class="flex items-center gap-4 text-xs">
+            <div class="flex items-center gap-1">
+              <div class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+              <span class="text-primary font-medium">Connected</span>
             </div>
-          </div>
-
-          <!-- Backend API Status -->
-          <div class="premium-glass p-4">
-            <h4 class="font-semibold text-text mb-3">Backend Connection</h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <span class="text-primary font-semibold">CONNECTED</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Endpoint:</span>
-                <span class="text-text font-mono text-xs">/api/business/processes</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Data Source:</span>
-                <span class="text-text">PostgreSQL</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Total Workflows:</span>
-                <span class="text-text">{{ realWorkflows.length }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Visualization Stats -->
-          <div class="premium-glass p-4">
-            <h4 class="font-semibold text-text mb-3">Flow Statistics</h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-text-muted">Nodes:</span>
-                <span class="text-text">{{ nodes.length }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Connections:</span>
-                <span class="text-text">{{ edges.length }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Flow Type:</span>
-                <span class="text-primary">Linear Process</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Complexity:</span>
-                <span class="text-text">{{ getFlowComplexity() }}</span>
-              </div>
-            </div>
+            <span class="text-text-muted">{{ nodes.length }} nodes</span>
+            <span class="text-text-muted">{{ edges.length }} connections</span>
+            <span class="text-text-muted">{{ getFlowComplexity() }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Real Data Debug Panel -->
-      <div v-if="showDebug" class="premium-glass p-4">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="font-semibold text-text">REAL Backend Data</h4>
-          <button @click="showDebug = false" class="text-text-muted hover:text-text">
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-        <pre class="bg-surface p-4 rounded-lg text-xs text-text-secondary overflow-auto max-h-48 font-mono">{{ JSON.stringify(selectedWorkflowData, null, 2) }}</pre>
-      </div>
     </div>
   </MainLayout>
 </template>
@@ -219,7 +141,6 @@ const isLoading = ref(false)
 const selectedWorkflowId = ref('')
 const realWorkflows = ref<any[]>([])
 const selectedWorkflowData = ref<any>(null)
-const showDebug = ref(false)
 
 // VueFlow setup
 const { fitView } = useVueFlow()
@@ -675,12 +596,12 @@ const autoLayoutNodes = () => {
   uiStore.showToast('Success', 'Nodes auto-arranged for optimal viewing', 'success')
 }
 
-// Smart layout algorithm - hierarchical flow layout
+// Professional layout algorithm - compact hierarchical flow
 const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
-  const nodeWidth = 200
-  const nodeHeight = 80
-  const horizontalSpacing = 250
-  const verticalSpacing = 120
+  const nodeWidth = 140
+  const nodeHeight = 60
+  const horizontalSpacing = 180
+  const verticalSpacing = 90
   
   // Find start nodes (no incoming edges)
   const hasIncoming = new Set(edgeList.map(e => e.target))
