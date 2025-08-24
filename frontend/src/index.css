@@ -24,38 +24,38 @@
   
   /* === COLORI SYNTAX HIGHLIGHTING === */
   --comment: hsl(101, 29%, 47%);            /* #6a9955 - Verde per commenti */
-  --keyword: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design per keywords */
+  --keyword: hsl(158, 64%, 52%);            /* #10b981 - Emerald per keywords */
   --string: hsl(17, 47%, 64%);              /* #ce9178 - Arancione/rosa per stringhe */
   --number: hsl(54, 76%, 68%);              /* #b5cea8 - Verde chiaro per numeri */
-  --variable: hsl(122, 39%, 65%);           /* #81C784 - Verde Material Design chiaro per variabili */
+  --variable: hsl(152, 76%, 63%);           /* Emerald chiaro per variabili */
   --type: hsl(60, 87%, 73%);                /* #4ec9b0 - Turchese per tipi */
   --error: hsl(0, 73%, 41%);                /* #f44747 - Rosso per errori */
   --warning: hsl(32, 93%, 66%);             /* #ffcc02 - Giallo per warning */
   
   /* === COLORI DI STATO === */
   --success: hsl(123, 38%, 57%);            /* #89d185 - Verde per successo */
-  --info: hsl(122, 39%, 49%);               /* #4CAF50 - Verde Material Design per info */
+  --info: hsl(158, 64%, 52%);               /* #10b981 - Emerald per info */
   --priority-high: hsl(0, 73%, 41%);        /* #f44747 - Rosso per priorità alta */
   --status-failed: hsl(0, 73%, 41%);        /* #f44747 - Rosso per failed */
   
   /* === COLORI INTERATTIVI === */
-  --primary: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design */
-  --primary-hover: hsl(122, 39%, 55%);      /* #66BB6A - Verde più chiaro al hover */
-  --selection: hsl(122, 39%, 25%);          /* #2E7D32 - Verde scuro per selezioni */
-  --focus: hsl(122, 39%, 49%);              /* #4CAF50 - Verde Material Design focus */
+  --primary: hsl(158, 64%, 52%);            /* #10b981 - Emerald-500 */
+  --primary-hover: hsl(152, 100%, 42%);     /* #00d26a - Verde brillante al hover */
+  --selection: hsl(158, 64%, 20%);          /* Emerald scuro per selezioni */
+  --focus: hsl(158, 64%, 52%);              /* #10b981 - Emerald focus */
 
-  /* === PRIMARY SCALE (Verde Material Design) === */
-  --primary-50: hsl(122, 39%, 95%);   
-  --primary-100: hsl(122, 39%, 90%);  
-  --primary-200: hsl(122, 39%, 80%);  
-  --primary-300: hsl(122, 39%, 70%);  
-  --primary-400: hsl(122, 39%, 60%);  
-  --primary-500: hsl(122, 39%, 49%);  /* #4CAF50 - Primary color */
-  --primary-600: hsl(122, 39%, 45%);  
-  --primary-700: hsl(122, 39%, 40%);  
-  --primary-800: hsl(122, 39%, 30%);  
-  --primary-900: hsl(122, 39%, 20%);  
-  --primary-950: hsl(122, 39%, 10%);
+  /* === PRIMARY SCALE (Emerald Brillante) === */
+  --primary-50: hsl(152, 76%, 95%);   
+  --primary-100: hsl(152, 76%, 88%);  
+  --primary-200: hsl(152, 76%, 75%);  
+  --primary-300: hsl(152, 76%, 63%);  
+  --primary-400: hsl(152, 76%, 50%);  
+  --primary-500: hsl(158, 64%, 52%);  /* #10b981 - Emerald-500 */
+  --primary-600: hsl(158, 64%, 42%);  /* #059669 - Emerald-600 */
+  --primary-700: hsl(158, 64%, 35%);  /* #047857 - Emerald-700 */
+  --primary-800: hsl(158, 64%, 28%);  /* #065f46 - Emerald-800 */
+  --primary-900: hsl(158, 64%, 20%);  /* #064e3b - Emerald-900 */
+  --primary-950: hsl(158, 64%, 12%);  /* #022c22 - Emerald-950 */
 }
 
 html {

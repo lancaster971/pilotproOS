@@ -33,21 +33,21 @@ export default {
           hover: 'hsl(220, 13%, 18%)',       // #353540
         },
         
-        // Primary (Verde Material Design) - Same as primevue-theme-clone
+        // Primary (Emerald Brillante) - Aggiornato per match Live Data
         primary: {
-          50: 'hsl(122, 39%, 95%)',
-          100: 'hsl(122, 39%, 90%)',
-          200: 'hsl(122, 39%, 80%)',
-          300: 'hsl(122, 39%, 70%)',
-          400: 'hsl(122, 39%, 60%)',
-          500: 'hsl(122, 39%, 49%)',         // #4CAF50 - Colore principale
-          600: 'hsl(122, 39%, 45%)',
-          700: 'hsl(122, 39%, 40%)',
-          800: 'hsl(122, 39%, 30%)',
-          900: 'hsl(122, 39%, 20%)',
-          950: 'hsl(122, 39%, 10%)',
-          DEFAULT: 'hsl(122, 39%, 49%)',     // #4CAF50
-          hover: 'hsl(122, 39%, 55%)',       // #66BB6A
+          50: 'hsl(152, 76%, 95%)',
+          100: 'hsl(152, 76%, 88%)',
+          200: 'hsl(152, 76%, 75%)',
+          300: 'hsl(152, 76%, 63%)',
+          400: 'hsl(152, 76%, 50%)',
+          500: 'hsl(158, 64%, 52%)',         // #10b981 - Emerald-500
+          600: 'hsl(158, 64%, 42%)',         // #059669 - Emerald-600  
+          700: 'hsl(158, 64%, 35%)',         // #047857 - Emerald-700
+          800: 'hsl(158, 64%, 28%)',         // #065f46 - Emerald-800
+          900: 'hsl(158, 64%, 20%)',         // #064e3b - Emerald-900
+          950: 'hsl(158, 64%, 12%)',         // #022c22 - Emerald-950
+          DEFAULT: 'hsl(158, 64%, 52%)',     // #10b981 - Emerald-500
+          hover: 'hsl(152, 100%, 42%)',      // #00d26a - Verde più brillante
         },
         
         // Colori Syntax Highlighting
