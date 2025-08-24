@@ -5,7 +5,7 @@
           <div class="flex items-center justify-between">
             <div>
               <h1 class="text-3xl font-bold text-gradient">Dashboard - PilotProOS</h1>
-              <p class="text-gray-400 mt-1">I tuoi dati business process automation</p>
+              <p class="text-text-muted mt-1">I tuoi dati business process automation</p>
             </div>
             <div class="live-indicator">
               <div class="live-dot"></div>
@@ -21,14 +21,14 @@
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-baseline gap-2">
-                      <p class="text-xl font-bold text-white">{{ workflowCount }}</p>
+                      <p class="text-xl font-bold text-text">{{ workflowCount }}</p>
                       <Badge :value="`${activeWorkflows} attivi`" severity="success" class="text-xs" />
                     </div>
                     <Knob v-model="workflowCount" :size="32" :strokeWidth="4" 
                       valueColor="#10b981" rangeColor="#1f2937" 
                       readonly :max="50" :showValue="false" />
                   </div>
-                  <p class="text-xs text-gray-400 mb-1">Processi Totali</p>
+                  <p class="text-xs text-text-muted mb-1">Processi Totali</p>
                   <ProgressBar :value="(activeWorkflows/workflowCount)*100" 
                     :showValue="false" class="h-1" />
                 </div>
@@ -36,51 +36,51 @@
             </Card>
 
             <!-- Executions Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-baseline gap-2">
-                      <p class="text-xl font-bold text-white">{{ totalExecutions }}</p>
+                      <p class="text-xl font-bold text-text">{{ totalExecutions }}</p>
                       <Badge value="Totali" severity="info" class="text-xs" />
                     </div>
                     <Chart type="line" :data="miniChartData" :options="miniChartOptions" class="w-12 h-6" />
                   </div>
-                  <p class="text-xs text-gray-400 mb-1">Esecuzioni</p>
-                  <p class="text-xs text-gray-500">{{ avgDurationFormatted }}</p>
+                  <p class="text-xs text-text-muted mb-1">Esecuzioni</p>
+                  <p class="text-xs text-text-muted">{{ avgDurationFormatted }}</p>
                 </div>
               </template>
             </Card>
 
             <!-- Success Rate Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 success-glow">
+            <Card class="premium-glass premium-hover-lift success-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-baseline gap-2">
-                      <p class="text-xl font-bold text-white">{{ successfulExecutions }}</p>
+                      <p class="text-xl font-bold text-text">{{ successfulExecutions }}</p>
                       <Badge :value="`${successRate}%`" :severity="getSuccessSeverity(successRate)" class="text-xs" />
                     </div>
                     <Knob v-model="successRate" :size="32" :strokeWidth="4" 
                       :valueColor="getSuccessColor(successRate)" rangeColor="#1f2937" 
                       readonly :showValue="true" valueTemplate="{value}%" />
                   </div>
-                  <p class="text-xs text-gray-400 mb-1">Esecuzioni Riuscite</p>
-                  <p class="text-xs text-gray-500">{{ failedExecutions }} fallite</p>
+                  <p class="text-xs text-text-muted mb-1">Esecuzioni Riuscite</p>
+                  <p class="text-xs text-text-muted">{{ failedExecutions }} fallite</p>
                 </div>
               </template>
             </Card>
 
             <!-- Business Impact Card -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-glow">
               <template #content>
                 <div class="p-3">
                   <div class="flex items-baseline gap-2 mb-2">
-                    <p class="text-xl font-bold text-white">{{ timeSavedHours }}h</p>
+                    <p class="text-xl font-bold text-text">{{ timeSavedHours }}h</p>
                     <Badge :value="costSavings" severity="success" class="text-xs" />
                   </div>
-                  <p class="text-xs text-gray-400 mb-1">Tempo Risparmiato</p>
-                  <p class="text-xs text-gray-500">ROI: {{ businessROI }}</p>
+                  <p class="text-xs text-text-muted mb-1">Tempo Risparmiato</p>
+                  <p class="text-xs text-text-muted">ROI: {{ businessROI }}</p>
                 </div>
               </template>
             </Card>
@@ -139,60 +139,60 @@
             </Card>
 
             <!-- Activity Heatmap -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
+            <Card class="premium-glass premium-hover-lift chart-container">
               <template #header>
                 <div class="p-4 pb-0">
-                  <h3 class="text-xl font-bold text-white">Activity Heatmap</h3>
-                  <p class="text-sm text-gray-400 mt-1">Distribuzione oraria</p>
+                  <h3 class="text-xl font-bold text-text">Activity Heatmap</h3>
+                  <p class="text-sm text-text-muted mt-1">Distribuzione oraria</p>
                 </div>
               </template>
               <template #content>
                 <Chart type="bar" :data="hourlyChartData" :options="hourlyChartOptions" class="h-64" />
                 <div class="grid grid-cols-3 gap-2 p-3 mt-2">
                   <div class="text-center">
-                    <p class="text-sm font-bold text-green-400">{{ peakHour }}:00</p>
-                    <p class="text-xs text-gray-500">Ora di punta</p>
+                    <p class="text-sm font-bold text-primary">{{ peakHour }}:00</p>
+                    <p class="text-xs text-text-muted">Ora di punta</p>
                   </div>
                   <div class="text-center">
-                    <p class="text-sm font-bold text-green-400">{{ avgHourlyLoad }}</p>
-                    <p class="text-xs text-gray-500">Media oraria</p>
+                    <p class="text-sm font-bold text-primary">{{ avgHourlyLoad }}</p>
+                    <p class="text-xs text-text-muted">Media oraria</p>
                   </div>
                   <div class="text-center">
-                    <p class="text-sm font-bold text-green-300">{{ totalHours }}</p>
-                    <p class="text-xs text-gray-500">Ore attive</p>
+                    <p class="text-sm font-bold text-primary">{{ totalHours }}</p>
+                    <p class="text-xs text-text-muted">Ore attive</p>
                   </div>
                 </div>
 
                 <!-- Detailed Activity Stats -->
-                <div class="border-t border-gray-700/50 mt-3 pt-3 px-3">
-                  <h4 class="text-sm font-bold text-white mb-2">Analisi Dettagliata</h4>
+                <div class="border-t border-border/50 mt-3 pt-3 px-3">
+                  <h4 class="text-sm font-bold text-text mb-2">Analisi Dettagliata</h4>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Picco Attività</span>
-                        <span class="text-white font-medium">{{ peakActivityValue }} exec</span>
+                        <span class="text-text-muted">Picco Attività</span>
+                        <span class="text-text font-medium">{{ peakActivityValue }} exec</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Periodo Calmo</span>
-                        <span class="text-white font-medium">{{ quietPeriod }}:00</span>
+                        <span class="text-text-muted">Periodo Calmo</span>
+                        <span class="text-text font-medium">{{ quietPeriod }}:00</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Varianza</span>
-                        <span class="text-white font-medium">{{ activityVariance }}%</span>
+                        <span class="text-text-muted">Varianza</span>
+                        <span class="text-text font-medium">{{ activityVariance }}%</span>
                       </div>
                     </div>
                     <div class="space-y-1">
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Ore Lavorative</span>
-                        <span class="text-white font-medium">{{ workingHours }}h</span>
+                        <span class="text-text-muted">Ore Lavorative</span>
+                        <span class="text-text font-medium">{{ workingHours }}h</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Efficienza</span>
-                        <span class="text-white font-medium">{{ hourlyEfficiency }}%</span>
+                        <span class="text-text-muted">Efficienza</span>
+                        <span class="text-text font-medium">{{ hourlyEfficiency }}%</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Trend</span>
-                        <span :class="activityTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                        <span class="text-text-muted">Trend</span>
+                        <span :class="activityTrend > 0 ? 'text-primary' : 'text-error'">
                           {{ activityTrend > 0 ? '+' : '' }}{{ activityTrend }}%
                         </span>
                       </div>
@@ -206,30 +206,30 @@
           <!-- Business Intelligence Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Top Performers -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-glow">
               <template #header>
                 <div class="p-6 pb-0">
-                  <h3 class="text-xl font-bold text-white">Top Performers</h3>
-                  <p class="text-sm text-gray-400 mt-1">Workflows più performanti</p>
+                  <h3 class="text-xl font-bold text-text">Top Performers</h3>
+                  <p class="text-sm text-text-muted mt-1">Workflows più performanti</p>
                 </div>
               </template>
               <template #content>
                 <div class="space-y-2 p-3">
                   <div v-for="(workflow, index) in topWorkflows" :key="workflow.process_name" 
-                    class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                    class="flex items-center justify-between p-3 bg-surface/50 rounded-lg">
                     <div class="flex items-center gap-3">
-                      <div :class="`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-green-500' : index === 1 ? 'bg-green-600' : 'bg-green-700'}`">
+                      <div :class="`w-8 h-8 rounded-full flex items-center justify-center text-text font-bold text-sm ${index === 0 ? 'bg-primary' : index === 1 ? 'bg-primary' : 'bg-primary'}`">
                         {{ index + 1 }}
                       </div>
                       <div>
-                        <p class="text-sm font-medium text-white truncate max-w-32" :title="workflow.process_name">{{ workflow.process_name }}</p>
-                        <p class="text-xs text-gray-500">{{ workflow.execution_count }} exec</p>
+                        <p class="text-sm font-medium text-text truncate max-w-32" :title="workflow.process_name">{{ workflow.process_name }}</p>
+                        <p class="text-xs text-text-muted">{{ workflow.execution_count }} exec</p>
                       </div>
                     </div>
                     <div class="text-right">
                       <Badge :value="`${workflow.success_rate}%`" 
                         :severity="workflow.success_rate >= 95 ? 'success' : workflow.success_rate >= 80 ? 'warning' : 'danger'" />
-                      <p class="text-xs text-gray-500 mt-1">{{ formatDuration(workflow.avg_duration_ms) }}</p>
+                      <p class="text-xs text-text-muted mt-1">{{ formatDuration(workflow.avg_duration_ms) }}</p>
                     </div>
                   </div>
                 </div>
@@ -237,38 +237,38 @@
             </Card>
 
             <!-- Integration Health -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-glow">
               <template #header>
                 <div class="p-6 pb-0">
-                  <h3 class="text-xl font-bold text-white">Integration Health</h3>
-                  <p class="text-sm text-gray-400 mt-1">{{ totalConnections }} connessioni</p>
+                  <h3 class="text-xl font-bold text-text">Integration Health</h3>
+                  <p class="text-sm text-text-muted mt-1">{{ totalConnections }} connessioni</p>
                 </div>
               </template>
               <template #content>
                 <div class="space-y-2 p-3">
                   <!-- Summary Stats -->
                   <div class="grid grid-cols-3 gap-3 mb-4">
-                    <div class="text-center p-2 bg-gray-800/30 rounded-lg">
-                      <p class="text-lg font-bold text-green-400">{{ healthyConnections }}</p>
-                      <p class="text-xs text-gray-400">Healthy</p>
+                    <div class="text-center p-2 bg-surface/30 rounded-lg">
+                      <p class="text-lg font-bold text-primary">{{ healthyConnections }}</p>
+                      <p class="text-xs text-text-muted">Healthy</p>
                     </div>
-                    <div class="text-center p-2 bg-gray-800/30 rounded-lg">
-                      <p class="text-lg font-bold text-green-400">{{ activeConnections }}</p>
-                      <p class="text-xs text-gray-400">Active</p>
+                    <div class="text-center p-2 bg-surface/30 rounded-lg">
+                      <p class="text-lg font-bold text-primary">{{ activeConnections }}</p>
+                      <p class="text-xs text-text-muted">Active</p>
                     </div>
-                    <div class="text-center p-2 bg-gray-800/30 rounded-lg">
-                      <p class="text-lg font-bold text-red-400">{{ needsAttention }}</p>
-                      <p class="text-xs text-gray-400">Issues</p>
+                    <div class="text-center p-2 bg-surface/30 rounded-lg">
+                      <p class="text-lg font-bold text-error">{{ needsAttention }}</p>
+                      <p class="text-xs text-text-muted">Issues</p>
                     </div>
                   </div>
                   
                   <!-- Top Integrations -->
                   <div class="space-y-2">
                     <div v-for="service in topServices" :key="service.connectionId" 
-                      class="flex items-center justify-between p-2 bg-gray-800/30 rounded">
+                      class="flex items-center justify-between p-2 bg-surface/30 rounded">
                       <div>
-                        <p class="text-sm text-white truncate max-w-28" :title="service.serviceName">{{ service.serviceName }}</p>
-                        <p class="text-xs text-gray-500">{{ service.usage.executionsThisWeek }}/week</p>
+                        <p class="text-sm text-text truncate max-w-28" :title="service.serviceName">{{ service.serviceName }}</p>
+                        <p class="text-xs text-text-muted">{{ service.usage.executionsThisWeek }}/week</p>
                       </div>
                       <Badge :value="service.health.status.label" 
                         :severity="getHealthSeverity(service.health.status.color)" 
@@ -280,62 +280,62 @@
             </Card>
 
             <!-- Success Distribution -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
+            <Card class="premium-glass premium-hover-lift chart-container">
               <template #header>
                 <div class="p-4 pb-0">
-                  <h3 class="text-xl font-bold text-white">Success Distribution</h3>
-                  <p class="text-sm text-gray-400 mt-1">{{ totalExecutions }} esecuzioni</p>
+                  <h3 class="text-xl font-bold text-text">Success Distribution</h3>
+                  <p class="text-sm text-text-muted mt-1">{{ totalExecutions }} esecuzioni</p>
                 </div>
               </template>
               <template #content>
                 <Chart type="doughnut" :data="successDistributionData" :options="doughnutOptions" class="h-48" />
                 <div class="mt-3 space-y-2 px-3">
-                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
+                  <div class="flex items-center justify-between p-2 bg-surface/50 rounded">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span class="text-sm text-gray-300">Successo</span>
+                      <div class="w-3 h-3 rounded-full bg-primary"></div>
+                      <span class="text-sm text-text-secondary">Successo</span>
                     </div>
                     <Badge :value="successfulExecutions" severity="success" />
                   </div>
-                  <div class="flex items-center justify-between p-2 bg-gray-800/50 rounded">
+                  <div class="flex items-center justify-between p-2 bg-surface/50 rounded">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span class="text-sm text-gray-300">Fallite</span>
+                      <div class="w-3 h-3 rounded-full bg-error"></div>
+                      <span class="text-sm text-text-secondary">Fallite</span>
                     </div>
                     <Badge :value="failedExecutions" severity="danger" />
                   </div>
                 </div>
 
                 <!-- Success Analysis Details -->
-                <div class="border-t border-gray-700/50 mt-3 pt-3 px-3">
-                  <h4 class="text-sm font-bold text-white mb-2">Analisi Successi</h4>
+                <div class="border-t border-border/50 mt-3 pt-3 px-3">
+                  <h4 class="text-sm font-bold text-text mb-2">Analisi Successi</h4>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Tasso Successo</span>
-                        <span class="text-green-400 font-medium">{{ Math.round(successRate) }}%</span>
+                        <span class="text-text-muted">Tasso Successo</span>
+                        <span class="text-primary font-medium">{{ Math.round(successRate) }}%</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Tasso Errore</span>
-                        <span class="text-red-400 font-medium">{{ Math.round(100 - successRate) }}%</span>
+                        <span class="text-text-muted">Tasso Errore</span>
+                        <span class="text-error font-medium">{{ Math.round(100 - successRate) }}%</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Migliori</span>
-                        <span class="text-white font-medium">{{ bestPerformingCount }}</span>
+                        <span class="text-text-muted">Migliori</span>
+                        <span class="text-text font-medium">{{ bestPerformingCount }}</span>
                       </div>
                     </div>
                     <div class="space-y-1">
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Problematici</span>
-                        <span class="text-white font-medium">{{ problematicCount }}</span>
+                        <span class="text-text-muted">Problematici</span>
+                        <span class="text-text font-medium">{{ problematicCount }}</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Affidabilità</span>
-                        <span class="text-white font-medium">{{ reliabilityScore }}%</span>
+                        <span class="text-text-muted">Affidabilità</span>
+                        <span class="text-text font-medium">{{ reliabilityScore }}%</span>
                       </div>
                       <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Qualità</span>
-                        <span :class="qualityTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                        <span class="text-text-muted">Qualità</span>
+                        <span :class="qualityTrend > 0 ? 'text-primary' : 'text-error'">
                           {{ qualityTrend > 0 ? '+' : '' }}{{ qualityTrend }}%
                         </span>
                       </div>
@@ -349,13 +349,13 @@
           <!-- Analytics Grid - 2/3 + 1/3 -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Performance Matrix - 2/3 -->
-            <Card class="lg:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 chart-container">
+            <Card class="lg:col-span-2 premium-glass premium-hover-lift chart-container">
               <template #header>
-                <div class="p-4 pb-2 border-b border-gray-700/50">
+                <div class="p-4 pb-2 border-b border-border/50">
                   <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
                     Performance Matrix
                   </h3>
-                  <p class="text-xs text-gray-400 mt-1">Multi-dimensional analysis</p>
+                  <p class="text-xs text-text-muted mt-1">Multi-dimensional analysis</p>
                 </div>
               </template>
               <template #content>
@@ -368,19 +368,19 @@
                     
                     <!-- Metrics Summary -->
                     <div class="space-y-3">
-                      <div class="text-center p-3 bg-gray-800/30 rounded">
-                        <p class="text-lg font-bold text-green-400">{{ overallScore }}/10</p>
-                        <p class="text-xs text-gray-500">Overall Score</p>
+                      <div class="text-center p-3 bg-surface/30 rounded">
+                        <p class="text-lg font-bold text-primary">{{ overallScore }}/10</p>
+                        <p class="text-xs text-text-muted">Overall Score</p>
                       </div>
                       
-                      <div class="text-center p-3 bg-gray-800/30 rounded">
+                      <div class="text-center p-3 bg-surface/30 rounded">
                         <Rating v-model="systemRating" :stars="5" readonly class="justify-center mb-2" />
-                        <p class="text-xs text-gray-500">Quality Rating</p>
+                        <p class="text-xs text-text-muted">Quality Rating</p>
                       </div>
                       
-                      <div class="text-center p-3 bg-gray-800/30 rounded">
-                        <p class="text-lg font-bold text-green-400">{{ Math.round(successRate) }}%</p>
-                        <p class="text-xs text-gray-500">Success Rate</p>
+                      <div class="text-center p-3 bg-surface/30 rounded">
+                        <p class="text-lg font-bold text-primary">{{ Math.round(successRate) }}%</p>
+                        <p class="text-xs text-text-muted">Success Rate</p>
                       </div>
                     </div>
                   </div>
@@ -389,15 +389,15 @@
             </Card>
 
             <!-- Live Activity Timeline -->
-            <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+            <Card class="premium-glass premium-hover-lift premium-glow">
               <template #header>
-                <div class="p-4 pb-2 border-b border-gray-700/50">
+                <div class="p-4 pb-2 border-b border-border/50">
                   <div class="flex items-center justify-between">
                     <div>
                       <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
                         Live Activity
                       </h3>
-                      <p class="text-xs text-gray-400 mt-1">Servizi attivi</p>
+                      <p class="text-xs text-text-muted mt-1">Servizi attivi</p>
                     </div>
                     <Badge value="LIVE" severity="success" class="animate-pulse" />
                   </div>
@@ -412,11 +412,11 @@
                     <template #content="slotProps">
                       <div class="mb-2 pl-2">
                         <div class="flex items-center justify-between mb-1">
-                          <span class="text-sm font-medium text-white truncate max-w-28" :title="slotProps.item.title">{{ slotProps.item.title }}</span>
+                          <span class="text-sm font-medium text-text truncate max-w-28" :title="slotProps.item.title">{{ slotProps.item.title }}</span>
                           <Tag :value="slotProps.item.type" :severity="getEventSeverity(slotProps.item.type)" class="text-xs" />
                         </div>
-                        <p class="text-xs text-gray-400 truncate">{{ slotProps.item.description }}</p>
-                        <p class="text-xs text-gray-500">{{ slotProps.item.time }}</p>
+                        <p class="text-xs text-text-muted truncate">{{ slotProps.item.description }}</p>
+                        <p class="text-xs text-text-muted">{{ slotProps.item.time }}</p>
                       </div>
                     </template>
                   </Timeline>
@@ -426,9 +426,9 @@
           </div>
 
           <!-- System Health - Orizzontale in basso -->
-          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+          <Card class="premium-glass premium-hover-lift premium-glow">
             <template #header>
-              <div class="p-4 pb-2 border-b border-gray-700/50">
+              <div class="p-4 pb-2 border-b border-border/50">
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-bold bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
                     System Health Overview
@@ -445,20 +445,20 @@
                     valueColor="#10b981" rangeColor="#1f2937" 
                     readonly :showValue="true" valueTemplate="{value}%" 
                     class="mx-auto mb-2" />
-                  <p class="text-xs text-gray-400">Overall Health</p>
+                  <p class="text-xs text-text-muted">Overall Health</p>
                 </div>
 
                 <!-- Reliability Metrics -->
                 <div class="space-y-2">
-                  <h4 class="text-sm font-bold text-white mb-2">Reliability</h4>
+                  <h4 class="text-sm font-bold text-text mb-2">Reliability</h4>
                   <div class="space-y-1">
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">System Uptime</span>
-                      <span class="text-white font-medium">{{ systemUptime }}%</span>
+                      <span class="text-text-muted">System Uptime</span>
+                      <span class="text-text font-medium">{{ systemUptime }}%</span>
                     </div>
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Service Health</span>
-                      <span class="text-white font-medium">{{ systemReliability }}%</span>
+                      <span class="text-text-muted">Service Health</span>
+                      <span class="text-text font-medium">{{ systemReliability }}%</span>
                     </div>
                     <ProgressBar :value="systemReliability" :showValue="false" class="h-1 mt-2" />
                   </div>
@@ -466,15 +466,15 @@
 
                 <!-- Performance Metrics -->
                 <div class="space-y-2">
-                  <h4 class="text-sm font-bold text-white mb-2">Performance</h4>
+                  <h4 class="text-sm font-bold text-text mb-2">Performance</h4>
                   <div class="space-y-1">
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Success Rate</span>
-                      <span class="text-white font-medium">{{ successRate }}%</span>
+                      <span class="text-text-muted">Success Rate</span>
+                      <span class="text-text font-medium">{{ successRate }}%</span>
                     </div>
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Avg Duration</span>
-                      <span class="text-white font-medium">{{ avgDurationFormatted }}</span>
+                      <span class="text-text-muted">Avg Duration</span>
+                      <span class="text-text font-medium">{{ avgDurationFormatted }}</span>
                     </div>
                     <ProgressBar :value="successRate" :showValue="false" class="h-1 mt-2" />
                   </div>
@@ -482,15 +482,15 @@
 
                 <!-- Integration Status -->
                 <div class="space-y-2">
-                  <h4 class="text-sm font-bold text-white mb-2">Integrations</h4>
+                  <h4 class="text-sm font-bold text-text mb-2">Integrations</h4>
                   <div class="space-y-1">
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Active Services</span>
-                      <span class="text-white font-medium">{{ activeConnections }}/{{ totalConnections }}</span>
+                      <span class="text-text-muted">Active Services</span>
+                      <span class="text-text font-medium">{{ activeConnections }}/{{ totalConnections }}</span>
                     </div>
                     <div class="flex justify-between text-xs">
-                      <span class="text-gray-400">Need Attention</span>
-                      <span :class="needsAttention > 0 ? 'text-red-400' : 'text-green-400'">{{ needsAttention }}</span>
+                      <span class="text-text-muted">Need Attention</span>
+                      <span :class="needsAttention > 0 ? 'text-error' : 'text-primary'">{{ needsAttention }}</span>
                     </div>
                     <ProgressBar :value="(activeConnections/totalConnections)*100" :showValue="false" class="h-1 mt-2" />
                   </div>
@@ -500,9 +500,9 @@
           </Card>
 
           <!-- Business Insights -->
-          <Card class="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 premium-glow">
+          <Card class="premium-glass premium-hover-lift premium-glow">
             <template #header>
-              <div class="p-4 pb-2 border-b border-gray-700/50">
+              <div class="p-4 pb-2 border-b border-border/50">
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-bold bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent">
                     Business Insights (AI Generated)
@@ -514,8 +514,8 @@
             <template #content>
               <div class="space-y-2 p-3">
                 <div v-for="(insight, index) in businessInsights" :key="index" 
-                  class="p-3 bg-gray-800/30 rounded border-l-2 border-green-500">
-                  <p class="text-sm text-gray-300 leading-tight line-clamp-2">{{ cleanInsight(insight) }}</p>
+                  class="p-3 bg-surface/30 rounded border-l-2 border-green-500">
+                  <p class="text-sm text-text-secondary leading-tight line-clamp-2">{{ cleanInsight(insight) }}</p>
                 </div>
               </div>
             </template>
@@ -880,9 +880,9 @@ const getHealthColor = (score: number) => {
 
 const getEventColor = (type: string) => {
   switch(type) {
-    case 'success': return 'bg-green-500'
-    case 'error': return 'bg-red-500'
-    case 'warning': return 'bg-green-600'
+    case 'success': return 'bg-primary'
+    case 'error': return 'bg-error'
+    case 'warning': return 'bg-primary'
     case 'info': return 'bg-green-400'
     default: return 'bg-gray-500'
   }
