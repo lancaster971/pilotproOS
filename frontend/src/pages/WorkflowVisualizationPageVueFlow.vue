@@ -50,8 +50,8 @@
         </div>
       </div>
 
-      <!-- VueFlow Container - Professional sizing -->
-      <div class="premium-glass overflow-hidden rounded-lg" style="height: 65vh;">
+      <!-- VueFlow Container - Maximized for workflow focus -->
+      <div class="premium-glass overflow-hidden rounded-lg" style="height: 72vh;">
         <VueFlow
           v-model="elements"
           :class="$style.vueflow"
@@ -96,18 +96,15 @@
         </VueFlow>
       </div>
 
-      <!-- Compact Workflow Info -->
-      <div v-if="selectedWorkflowData" class="premium-glass p-4 rounded-lg">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-text">Process: {{ selectedWorkflowData.process_name }}</h3>
-          <div class="flex items-center gap-4 text-xs">
-            <div class="flex items-center gap-1">
-              <div class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
-              <span class="text-primary font-medium">Connected</span>
-            </div>
-            <span class="text-text-muted">{{ nodes.length }} nodes</span>
-            <span class="text-text-muted">{{ edges.length }} connections</span>
-            <span class="text-text-muted">{{ getFlowComplexity() }}</span>
+      <!-- Minimal Status Bar -->
+      <div v-if="selectedWorkflowData" class="flex items-center justify-between px-4 py-2 bg-surface/50 rounded-md text-xs">
+        <span class="text-text font-medium">{{ selectedWorkflowData.process_name }}</span>
+        <div class="flex items-center gap-3">
+          <span class="text-text-muted">{{ nodes.length }} nodes</span>
+          <span class="text-text-muted">{{ edges.length }} connections</span>
+          <div class="flex items-center gap-1">
+            <div class="w-1 h-1 bg-primary rounded-full"></div>
+            <span class="text-primary font-medium">Live</span>
           </div>
         </div>
       </div>
