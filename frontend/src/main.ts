@@ -2,15 +2,17 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
-import './style.css'
-import './styles/premium.css'
 
-// PrimeVue imports
+// Initialize Design System FIRST - before any other imports
+import { initializeDesignSystem } from './design-system'
+initializeDesignSystem()
+
+// Import clean CSS - no more conflicts!
+import './style.css'
+
+// PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
 import Nora from '@primevue/themes/nora'
-import Material from '@primevue/themes/material'
-import Aura from '@primevue/themes/aura'
-import PremiumPreset from './themes/premium-preset.ts'
 
 // Chart.js configuration for PrimeVue
 import {
@@ -51,6 +53,7 @@ import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
 import SecurityPage from './pages/SecurityPage.vue'
 import AgentsPage from './pages/AgentsPage.vue'
 import SchedulerPage from './pages/SchedulerPage.vue'
+import DesignSystemTestPage from './pages/DesignSystemTestPage.vue'
 
 // Router configuration - same as n8n approach
 const routes = [
@@ -64,6 +67,7 @@ const routes = [
   { path: '/security', component: SecurityPage, name: 'security', meta: { requiresAuth: true } },
   { path: '/agents', component: AgentsPage, name: 'agents', meta: { requiresAuth: true } },
   { path: '/scheduler', component: SchedulerPage, name: 'scheduler', meta: { requiresAuth: true } },
+  { path: '/design-test', component: DesignSystemTestPage, name: 'design-test' },
 ]
 
 const router = createRouter({
@@ -88,107 +92,21 @@ router.beforeEach((to, from, next) => {
 const app = createApp(App)
 const pinia = createPinia()
 
-// ENABLE PREMIUM NORA THEME WITH CUSTOM PRESET
+// CLEAN PrimeVue Configuration - No more inline CSS chaos!
 app.use(PrimeVue, {
   theme: {
-    preset: PremiumPreset,
+    preset: Nora,
     options: {
       prefix: 'p',
       darkModeSelector: 'system',
-      cssLayer: false
+      cssLayer: {
+        name: 'primevue',
+        order: 'design-system, primevue, tailwind'
+      }
     }
   },
-  ripple: true,
-  pt: {
-    global: {
-      css: `
-        .p-component {
-          font-family: inherit;
-        }
-        .p-inputtext {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-inputtext::placeholder {
-          color: rgb(156 163 175);
-        }
-        .p-datatable {
-          background: transparent !important;
-        }
-        .p-datatable .p-datatable-header {
-          background: transparent !important;
-          border: none !important;
-          padding: 0 !important;
-        }
-        .p-datatable .p-datatable-thead > tr > th {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: rgb(156 163 175) !important;
-        }
-        .p-datatable .p-datatable-tbody > tr {
-          background: transparent !important;
-          color: white !important;
-        }
-        .p-datatable .p-datatable-tbody > tr:hover {
-          background: rgb(31 41 55) !important;
-        }
-        .p-datatable .p-datatable-tbody > tr > td {
-          border-color: rgb(55 65 81) !important;
-        }
-        .p-paginator {
-          background: rgb(17 24 39) !important;
-          border: none !important;
-          color: rgb(156 163 175) !important;
-        }
-        .p-paginator .p-paginator-element:hover {
-          background: rgb(31 41 55) !important;
-        }
-        .p-paginator .p-paginator-element.p-highlight {
-          background: rgb(34 197 94) !important;
-          color: white !important;
-        }
-        .p-tag {
-          font-size: 0.75rem;
-        }
-        .p-tag.p-tag-success {
-          background: rgb(34 197 94);
-        }
-        .p-tag.p-tag-danger {
-          background: rgb(239 68 68);
-        }
-        .p-tag.p-tag-info {
-          background: rgb(59 130 246);
-        }
-        .p-tag.p-tag-warn {
-          background: rgb(251 191 36);
-        }
-        .p-button {
-          font-size: 0.875rem;
-        }
-        .p-card {
-          background: rgb(17 24 39) !important;
-          border: 1px solid rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-select {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-select-option {
-          background: rgb(31 41 55) !important;
-          color: white !important;
-        }
-        .p-select-option:hover {
-          background: rgb(55 65 81) !important;
-        }
-        .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
-          background: rgb(34 197 94) !important;
-        }
-      `
-    }
-  }
+  ripple: true
+  // NO MORE PT STYLES! Design system handles everything
 })
 
 app.use(pinia)
@@ -214,4 +132,5 @@ authStore.initializeAuth()
 
 app.mount('#app')
 
-console.log('🚀 PilotProOS Vue 3 frontend initialized - same stack as n8n!')
+console.log('🎨 PilotProOS Design System initialized!')
+console.log('🚀 Vue 3 frontend ready - clean CSS architecture!')
