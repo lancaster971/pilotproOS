@@ -133,7 +133,7 @@
               </template>
               <template #content>
                 <div class="p-6 pt-4">
-                  <PremiumChart type="line" :data="executionTrendData" height="h-80" />
+                  <Chart type="line" :data="executionTrendData" :options="premiumChartOptions" class="h-80" />
                 </div>
               </template>
             </Card>
@@ -529,7 +529,6 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 // Removed Lucide icons - using PrimeVue icons only
 import MainLayout from '../components/layout/MainLayout.vue'
-import PremiumChart from '../components/PremiumChart.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
