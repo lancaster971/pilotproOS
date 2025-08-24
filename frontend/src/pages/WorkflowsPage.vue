@@ -73,7 +73,7 @@
           </div>
 
           <!-- AI Agent Workflow Cards - KILLER FEATURE -->
-          <div class="control-card p-6">
+          <div>
             <h2 class="text-xl font-semibold text-text mb-6">AI Agent Workflows</h2>
             
             <div v-if="agentWorkflows.length === 0" class="text-center py-12">
