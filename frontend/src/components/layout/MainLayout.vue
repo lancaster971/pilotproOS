@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background premium-particles premium-scan-lines">
+  <div class="min-h-screen bg-background">
     <!-- Header - PREMIUM with glassmorphism -->
     <header class="premium-glass sticky top-0 z-50 h-16 border-b border-border backdrop-blur-25">
       <div class="flex items-center justify-between h-full px-6">
@@ -57,12 +57,12 @@
         <div class="p-6">
           <!-- Logo -->
           <div class="flex items-center gap-3 mb-8 pb-4 border-b border-border">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center premium-neon-pulse"
-                 style="background: linear-gradient(135deg, #10b981, #00d26a); box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                 style="background: linear-gradient(135deg, #10b981, #00d26a); box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);">
               <span class="text-white font-bold text-sm">P</span>
             </div>
             <div>
-              <h1 class="text-text font-semibold text-sm premium-gradient-text">PilotPro OS</h1>
+              <h1 class="text-text font-semibold text-sm">PilotPro OS</h1>
               <p class="text-text-muted text-xs">Enterprise Command Center</p>
             </div>
           </div>

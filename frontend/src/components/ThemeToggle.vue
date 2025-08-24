@@ -1,8 +1,8 @@
 <template>
   <div class="fixed top-4 right-4 z-50">
     <div class="flex items-center gap-2 premium-glass p-3 rounded-lg enterprise-shadow premium-hover-lift">
-      <Palette class="w-4 h-4 text-primary premium-neon-pulse" />
-      <span class="text-xs font-semibold text-primary premium-text-glow">THEME:</span>
+      <Palette class="w-4 h-4 text-primary" />
+      <span class="text-xs font-semibold text-primary">Theme:</span>
       <select 
         v-model="currentTheme"
         @change="handleThemeChange"
