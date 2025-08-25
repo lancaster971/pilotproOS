@@ -75,8 +75,8 @@
           :min-zoom="0.2"
           :max-zoom="4"
           :fit-view-on-init="true"
-          :connection-line-type="'smoothstep'"
-          :default-edge-options="{ type: 'smoothstep', animated: true }"
+          :connection-line-type="'straight'"
+          :default-edge-options="{ type: 'straight' }"
           @nodes-change="onNodesChange"
           @edges-change="onEdgesChange"
         >
@@ -97,7 +97,7 @@
             :mask-color="'rgba(17, 24, 39, 0.8)'"
           />
 
-          <!-- n8n-Style Node Template -->
+          <!-- Square Node Template with Handles -->
           <template #node-custom="{ data }">
             <div 
               class="n8n-node"
@@ -737,26 +737,21 @@ const onEdgesChange = (changes: any[]) => {
   })
 }
 
-// Enhanced edge creation with better curve settings
+// Direct edge creation with minimal curves
 const createDynamicEdge = (source: string, target: string, index: number, animated: boolean = false) => {
   return {
     id: `edge-${index}`,
     source,
     target,
-    type: 'smoothstep',
+    type: 'straight',  // Direct lines, no unnecessary curves
     animated,
     style: { 
       stroke: '#10b981', 
       strokeWidth: 2
     },
-    // Better curve settings for dynamic adjustment
-    pathOptions: {
-      offset: 20,
-      borderRadius: 10
-    },
-    // Connection points for better routing
-    sourceHandle: null,
-    targetHandle: null
+    // Direct connection from center to center
+    sourceHandle: null,   // Auto-detect closest point
+    targetHandle: null    // Auto-detect closest point
   }
 }
 
