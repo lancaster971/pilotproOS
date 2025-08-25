@@ -556,20 +556,22 @@ onMounted(() => {
   }
 }
 
-/* n8n-style nodes in modal context */
+/* Square nodes in modal context */
 :deep(.n8n-node-modal) {
-  transform: scale(0.9); /* Slightly smaller in modal */
-  min-width: 140px;
-  min-height: 40px;
+  width: 70px;
+  height: 70px;
+  transform: scale(1); /* Normal size in modal */
 }
 
 :deep(.n8n-node-modal .n8n-node-icon) {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
 }
 
 :deep(.n8n-node-modal .n8n-node-name) {
-  font-size: 12px;
-  max-width: 90px;
+  font-size: 9px;
+  max-width: 65px;
+  line-height: 1.1;
 }
 </style>

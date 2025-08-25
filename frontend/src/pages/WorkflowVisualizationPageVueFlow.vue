@@ -632,12 +632,12 @@ const zoomOut = () => {
   setViewport({ ...viewport, zoom: newZoom }, { duration: 300 })
 }
 
-// Enhanced layout algorithm - Smart hierarchical with flow optimization
+// Enhanced layout algorithm - Optimized for square nodes
 const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
-  const nodeWidth = 140
-  const nodeHeight = 60
-  const horizontalSpacing = 220
-  const verticalSpacing = 100
+  const nodeWidth = 80
+  const nodeHeight = 80
+  const horizontalSpacing = 140
+  const verticalSpacing = 120
   
   console.log('🔧 Enhanced layout for', nodeList.length, 'nodes with', edgeList.length, 'connections')
   
@@ -768,16 +768,18 @@ onMounted(() => {
   background-color: var(--color-background) !important;
 }
 
-/* n8n-Style Node CSS */
+/* Square Node CSS */
 :global(.n8n-node) {
   background: #fff;
   border: 2px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
-  min-height: 44px;
+  width: 80px;
+  height: 80px;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   position: relative;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -802,41 +804,41 @@ onMounted(() => {
   opacity: 0.8;
 }
 
-/* n8n-style icon area */
+/* Square node icon area */
 :global(.n8n-node-icon) {
   background: #f8f9fa;
-  border-right: 1px solid #eee;
-  border-radius: 6px 0 0 6px;
-  width: 40px;
-  height: 40px;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
+  margin-bottom: 6px;
 }
 
 :global(.n8n-node-active .n8n-node-icon) {
   background: #f0fdf4;
   color: #10b981;
-  border-right-color: rgba(16, 185, 129, 0.2);
 }
 
-/* n8n-style content area */
+/* Square node content area */
 :global(.n8n-node-content) {
-  flex: 1;
-  padding: 0 12px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 :global(.n8n-node-name) {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
   color: #333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px;
+  max-width: 70px;
+  line-height: 1.2;
 }
 
 :global(.n8n-node-active .n8n-node-name) {
@@ -864,9 +866,9 @@ onMounted(() => {
   background: #9ca3af;
 }
 
-/* Different node types like n8n */
+/* Square node types with top accent */
 :global(.n8n-node-trigger) {
-  border-left: 4px solid #8b5cf6;
+  border-top: 3px solid #8b5cf6;
 }
 
 :global(.n8n-node-trigger .n8n-node-icon) {
@@ -875,7 +877,7 @@ onMounted(() => {
 }
 
 :global(.n8n-node-ai) {
-  border-left: 4px solid #10b981;
+  border-top: 3px solid #10b981;
 }
 
 :global(.n8n-node-ai .n8n-node-icon) {
@@ -884,7 +886,7 @@ onMounted(() => {
 }
 
 :global(.n8n-node-storage) {
-  border-left: 4px solid #3b82f6;
+  border-top: 3px solid #3b82f6;
 }
 
 :global(.n8n-node-storage .n8n-node-icon) {
@@ -893,11 +895,29 @@ onMounted(() => {
 }
 
 :global(.n8n-node-logic) {
-  border-left: 4px solid #f59e0b;
+  border-top: 3px solid #f59e0b;
 }
 
 :global(.n8n-node-logic .n8n-node-icon) {
   background: #fffbeb;
   color: #f59e0b;
+}
+
+:global(.n8n-node-file) {
+  border-top: 3px solid #6366f1;
+}
+
+:global(.n8n-node-file .n8n-node-icon) {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+:global(.n8n-node-web) {
+  border-top: 3px solid #ec4899;
+}
+
+:global(.n8n-node-web .n8n-node-icon) {
+  background: #fdf2f8;
+  color: #ec4899;
 }
 </style>
