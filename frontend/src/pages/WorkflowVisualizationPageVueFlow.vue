@@ -75,6 +75,10 @@
           :min-zoom="0.2"
           :max-zoom="4"
           :fit-view-on-init="true"
+          :connection-line-type="'smoothstep'"
+          :default-edge-options="{ type: 'smoothstep', animated: true }"
+          @nodes-change="onNodesChange"
+          @edges-change="onEdgesChange"
         >
           <Background
             pattern-color="#10b981"
@@ -308,20 +312,10 @@ const createFlowFromDatabaseData = (businessProcessDetails: any, workflowMetadat
     }
   })
   
-  // Create edges from REAL business process flow
-  const newEdges = processFlow.map((flow: any, index: number) => ({
-    id: `edge-${index}`,
-    source: flow.from,
-    target: flow.to,
-    type: 'smoothstep',
-    animated: workflowMetadata.is_active,
-    style: { 
-      stroke: '#10b981', 
-      strokeWidth: 2,
-      strokeDasharray: workflowMetadata.is_active ? 'none' : '5,5'
-    },
-    label: flow.type === 'main' ? '' : flow.type
-  }))
+  // Create dynamic edges from REAL business process flow
+  const newEdges = processFlow.map((flow: any, index: number) => 
+    createDynamicEdge(flow.from, flow.to, index, workflowMetadata.is_active)
+  )
   
   elements.value = [...newNodes, ...newEdges]
   
@@ -483,17 +477,10 @@ const createEnhancedFlowFromWorkflowName = (workflowData: any) => {
     }
   }))
   
-  // Create edges connecting the flow
+  // Create dynamic edges connecting the flow
   const newEdges = []
   for (let i = 0; i < flowStructure.length - 1; i++) {
-    newEdges.push({
-      id: `e${i}`,
-      source: `node-${i}`,
-      target: `node-${i + 1}`,
-      type: 'smoothstep',
-      animated: workflowData.is_active,
-      style: { stroke: '#10b981', strokeWidth: 2 }
-    })
+    newEdges.push(createDynamicEdge(`node-${i}`, `node-${i + 1}`, i, workflowData.is_active))
   }
   
   elements.value = [...newNodes, ...newEdges]
@@ -728,6 +715,49 @@ const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
   
   console.log('✅ Enhanced layout calculated:', result.length, 'nodes in', levels.length, 'levels')
   return result
+}
+
+// Dynamic edge updates when nodes move
+const onNodesChange = (changes: any[]) => {
+  // Handle node position changes and update edges accordingly
+  changes.forEach(change => {
+    if (change.type === 'position' && change.position) {
+      // Node moved - edges automatically update with VueFlow
+      console.log('📍 Node moved:', change.id, 'to', change.position)
+    }
+  })
+}
+
+const onEdgesChange = (changes: any[]) => {
+  // Handle edge changes if needed
+  changes.forEach(change => {
+    if (change.type === 'remove') {
+      console.log('🔗 Edge removed:', change.id)
+    }
+  })
+}
+
+// Enhanced edge creation with better curve settings
+const createDynamicEdge = (source: string, target: string, index: number, animated: boolean = false) => {
+  return {
+    id: `edge-${index}`,
+    source,
+    target,
+    type: 'smoothstep',
+    animated,
+    style: { 
+      stroke: '#10b981', 
+      strokeWidth: 2
+    },
+    // Better curve settings for dynamic adjustment
+    pathOptions: {
+      offset: 20,
+      borderRadius: 10
+    },
+    // Connection points for better routing
+    sourceHandle: null,
+    targetHandle: null
+  }
 }
 
 // Lifecycle
