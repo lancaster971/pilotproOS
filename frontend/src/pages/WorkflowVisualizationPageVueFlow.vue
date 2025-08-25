@@ -97,7 +97,7 @@
             :mask-color="'rgba(17, 24, 39, 0.8)'"
           />
 
-          <!-- Square Node Template with Handles -->
+          <!-- Square Node Template with Side Handles -->
           <template #node-custom="{ data }">
             <div 
               class="n8n-node"
@@ -106,6 +106,10 @@
                 data.status === 'success' ? 'n8n-node-active' : 'n8n-node-inactive'
               ]"
             >
+              <!-- Force lateral connection points -->
+              <Handle id="left" type="target" :position="Position.Left" class="n8n-handle-left" />
+              <Handle id="right" type="source" :position="Position.Right" class="n8n-handle-right" />
+              
               <!-- n8n-style icon area -->
               <div class="n8n-node-icon">
                 <component :is="getNodeIcon(data.type)" class="w-4 h-4" />
@@ -145,7 +149,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { VueFlow, useVueFlow, Position } from '@vue-flow/core'
+import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
@@ -737,21 +741,21 @@ const onEdgesChange = (changes: any[]) => {
   })
 }
 
-// Direct edge creation with minimal curves
+// Direct edge creation with forced lateral connection points
 const createDynamicEdge = (source: string, target: string, index: number, animated: boolean = false) => {
   return {
     id: `edge-${index}`,
     source,
     target,
-    type: 'straight',  // Direct lines, no unnecessary curves
+    type: 'straight',
     animated,
     style: { 
       stroke: '#10b981', 
       strokeWidth: 2
     },
-    // Direct connection from center to center
-    sourceHandle: null,   // Auto-detect closest point
-    targetHandle: null    // Auto-detect closest point
+    // Force lateral connections: right handle of source → left handle of target
+    sourceHandle: 'right',
+    targetHandle: 'left'
   }
 }
 
@@ -944,5 +948,38 @@ onMounted(() => {
 :global(.n8n-node-web .n8n-node-icon) {
   background: #fdf2f8;
   color: #ec4899;
+}
+
+/* Handle styling for lateral connections */
+:global(.n8n-handle-left) {
+  left: -4px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #10b981 !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+}
+
+:global(.n8n-handle-right) {
+  right: -4px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #10b981 !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+}
+
+/* Hide handles by default, show on hover */
+:global(.vue-flow__handle) {
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+:global(.vue-flow__node:hover .vue-flow__handle) {
+  opacity: 1 !important;
 }
 </style>
