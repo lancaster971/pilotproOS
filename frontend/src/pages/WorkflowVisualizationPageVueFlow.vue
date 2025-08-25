@@ -93,20 +93,30 @@
             :mask-color="'rgba(17, 24, 39, 0.8)'"
           />
 
-          <!-- Professional Compact Node Template -->
+          <!-- n8n-Style Node Template -->
           <template #node-custom="{ data }">
             <div 
-              class="premium-glass px-3 py-2 min-w-28 premium-transition premium-hover-lift rounded-md"
-              :class="getNodeStatusClass(data.status)"
+              class="n8n-node"
+              :class="[
+                'n8n-node-' + data.type,
+                data.status === 'success' ? 'n8n-node-active' : 'n8n-node-inactive'
+              ]"
             >
-              <div class="flex items-center gap-1.5">
-                <component :is="getNodeIcon(data.type)" class="w-3 h-3 text-primary flex-shrink-0" />
-                <span class="font-medium text-text text-xs truncate">{{ data.label }}</span>
-                <div 
-                  class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto"
-                  :class="data.status === 'success' ? 'bg-primary' : 'bg-text-muted'"
-                />
+              <!-- n8n-style icon area -->
+              <div class="n8n-node-icon">
+                <component :is="getNodeIcon(data.type)" class="w-4 h-4" />
               </div>
+              
+              <!-- n8n-style content area -->
+              <div class="n8n-node-content">
+                <div class="n8n-node-name">{{ data.label }}</div>
+              </div>
+              
+              <!-- n8n-style status indicator -->
+              <div 
+                class="n8n-node-status"
+                :class="data.status === 'success' ? 'n8n-status-success' : 'n8n-status-inactive'"
+              ></div>
             </div>
           </template>
         </VueFlow>
@@ -756,5 +766,138 @@ onMounted(() => {
 
 :global(.vue-flow__background) {
   background-color: var(--color-background) !important;
+}
+
+/* n8n-Style Node CSS */
+:global(.n8n-node) {
+  background: #fff;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+:global(.n8n-node:hover) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+:global(.n8n-node-active) {
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+:global(.n8n-node-active:hover) {
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+:global(.n8n-node-inactive) {
+  border-color: #ddd;
+  opacity: 0.8;
+}
+
+/* n8n-style icon area */
+:global(.n8n-node-icon) {
+  background: #f8f9fa;
+  border-right: 1px solid #eee;
+  border-radius: 6px 0 0 6px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+:global(.n8n-node-active .n8n-node-icon) {
+  background: #f0fdf4;
+  color: #10b981;
+  border-right-color: rgba(16, 185, 129, 0.2);
+}
+
+/* n8n-style content area */
+:global(.n8n-node-content) {
+  flex: 1;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+}
+
+:global(.n8n-node-name) {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+:global(.n8n-node-active .n8n-node-name) {
+  color: #064e3b;
+  font-weight: 600;
+}
+
+/* n8n-style status indicator */
+:global(.n8n-node-status) {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+:global(.n8n-status-success) {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+:global(.n8n-status-inactive) {
+  background: #9ca3af;
+}
+
+/* Different node types like n8n */
+:global(.n8n-node-trigger) {
+  border-left: 4px solid #8b5cf6;
+}
+
+:global(.n8n-node-trigger .n8n-node-icon) {
+  background: #faf5ff;
+  color: #8b5cf6;
+}
+
+:global(.n8n-node-ai) {
+  border-left: 4px solid #10b981;
+}
+
+:global(.n8n-node-ai .n8n-node-icon) {
+  background: #f0fdf4;
+  color: #10b981;
+}
+
+:global(.n8n-node-storage) {
+  border-left: 4px solid #3b82f6;
+}
+
+:global(.n8n-node-storage .n8n-node-icon) {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+:global(.n8n-node-logic) {
+  border-left: 4px solid #f59e0b;
+}
+
+:global(.n8n-node-logic .n8n-node-icon) {
+  background: #fffbeb;
+  color: #f59e0b;
 }
 </style>
