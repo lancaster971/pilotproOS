@@ -206,20 +206,6 @@
             </div>
           </div>
 
-          <!-- Live Statistics -->
-          <div class="premium-glass rounded-lg p-4">
-            <h3 class="text-sm font-bold text-text mb-3">Live Statistics</h3>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="text-center p-2 bg-surface/30 rounded">
-                <div class="text-lg font-bold text-primary">{{ activeWorkflows }}</div>
-                <div class="text-xs text-text-muted">Active</div>
-              </div>
-              <div class="text-center p-2 bg-surface/30 rounded">
-                <div class="text-lg font-bold text-text">{{ totalWorkflows - activeWorkflows }}</div>
-                <div class="text-xs text-text-muted">Inactive</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
