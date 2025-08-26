@@ -39,14 +39,6 @@
               <span class="text-lg">−</span>
             </button>
             <button 
-              @click="() => fitView({ duration: 800 })"
-              :disabled="elements.length === 0"
-              class="px-3 py-1.5 text-text hover:bg-surface-hover transition-colors flex items-center gap-1 text-sm border-x border-border"
-            >
-              <Eye class="w-3.5 h-3.5" />
-              Fit
-            </button>
-            <button 
               @click="zoomIn"
               :disabled="elements.length === 0"
               class="px-2 py-1.5 text-text hover:bg-surface-hover transition-colors text-sm"
@@ -602,12 +594,8 @@ const autoLayoutNodes = () => {
     }
   })
   
-  // Fit view after layout
-  setTimeout(() => {
-    fitView({ duration: 1000, padding: 0.2 })
-  }, 200)
-  
-  uiStore.showToast('Success', `${nodeList.length} nodes optimally arranged`, 'success')
+  // No automatic fit - let user decide when to center
+  uiStore.showToast('Success', `${nodeList.length} nodes arranged horizontally`, 'success')
 }
 
 // Zoom functions
@@ -699,19 +687,19 @@ const calculateOptimalLayout = (nodeList: any[], edgeList: any[]) => {
     levels.push(unpositioned)
   }
   
-  // Calculate positions for each level
+  // Calculate positions for each level - HORIZONTAL FLOW
   const result = []
   levels.forEach((levelNodes, levelIndex) => {
-    const levelY = levelIndex * verticalSpacing
-    const levelWidth = levelNodes.length * horizontalSpacing
-    const startX = -levelWidth / 2 // Center the level
+    const levelX = levelIndex * horizontalSpacing // Horizontal progression
+    const levelHeight = levelNodes.length * verticalSpacing
+    const startY = -levelHeight / 2 // Center the level vertically
     
     levelNodes.forEach((node, nodeIndex) => {
       result.push({
         id: node.id,
         position: {
-          x: startX + (nodeIndex * horizontalSpacing) + (levelIndex * 50), // Slight offset per level
-          y: levelY + (nodeIndex % 2 === 0 ? 0 : 30) // Slight zigzag for visual appeal
+          x: levelX, // Fixed X per level (horizontal flow)
+          y: startY + (nodeIndex * verticalSpacing) // Vertical spacing within level
         }
       })
     })
