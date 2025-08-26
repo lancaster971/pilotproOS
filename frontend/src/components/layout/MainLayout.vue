@@ -117,7 +117,7 @@ const router = useRouter()
 
 // Local state
 const showUserMenu = ref(false)
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(true) // Start collapsed by default
 
 // Navigation items - streamlined
 const navigationItems = [
