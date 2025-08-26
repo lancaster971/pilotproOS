@@ -1,26 +1,17 @@
 <template>
   <MainLayout>
-        <div class="space-y-6">
-          <!-- Header -->
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-3xl font-bold text-gradient">AI Agent Workflows</h1>
-              <p class="text-text-muted mt-1">Real-time transparency on your AI agents activity</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center text-sm text-text-muted">
-                <div class="w-2 h-2 bg-primary rounded-full animate-pulse mr-2"></div>
-                Live Feed
-              </div>
-              <button
-                @click="refreshWorkflows"
-                :disabled="isLoading"
-                class="btn-control-primary"
-              >
-                <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
-                Refresh
-              </button>
-            </div>
+        <div class="space-y-4">
+          <!-- Compact Page Title -->
+          <div class="mb-2 flex items-center justify-between">
+            <h1 class="text-lg font-bold text-gradient">Workflows</h1>
+            <button
+              @click="refreshWorkflows"
+              :disabled="isLoading"
+              class="btn-control-primary text-xs"
+            >
+              <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-3 w-3" />
+              Refresh
+            </button>
           </div>
 
           <!-- Stats Cards -->

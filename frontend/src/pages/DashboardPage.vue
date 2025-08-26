@@ -1,16 +1,9 @@
 <template>
   <MainLayout>
-        <div class="space-y-6">
-          <!-- Dashboard Content -->
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-3xl font-bold text-gradient">Dashboard - PilotProOS</h1>
-              <p class="text-text-muted mt-1">I tuoi dati business process automation</p>
-            </div>
-            <div class="live-indicator">
-              <div class="live-dot"></div>
-              <span>Live Data</span>
-            </div>
+        <div class="space-y-4">
+          <!-- Compact Page Title -->
+          <div class="mb-2">
+            <h1 class="text-lg font-bold text-gradient">Dashboard</h1>
           </div>
           
           <!-- Premium KPI Cards -->

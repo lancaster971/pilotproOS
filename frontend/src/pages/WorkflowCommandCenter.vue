@@ -1,9 +1,13 @@
 <template>
   <MainLayout>
     <div class="h-[calc(100vh-2.5rem)] overflow-hidden">
+      <!-- Compact Page Title -->
+      <div class="mb-2">
+        <h1 class="text-lg font-bold text-gradient">Workflow Command Center</h1>
+      </div>
 
       <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
-      <div class="flex gap-4 h-full">
+      <div class="flex gap-4 h-[calc(100%-2rem)]">
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
