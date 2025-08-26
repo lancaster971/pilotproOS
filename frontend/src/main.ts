@@ -46,6 +46,7 @@ import LoginPage from './pages/LoginPage.vue'
 import DashboardPage from './pages/DashboardPage.vue'
 import WorkflowsPage from './pages/WorkflowsPage.vue'
 import WorkflowVisualizationPage from './pages/WorkflowVisualizationPageVueFlow.vue'
+import WorkflowCommandCenter from './pages/WorkflowCommandCenter.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
 import SecurityPage from './pages/SecurityPage.vue'
@@ -60,6 +61,7 @@ const routes = [
   { path: '/dashboard', component: DashboardPage, name: 'dashboard', meta: { requiresAuth: true } },
   { path: '/workflows', component: WorkflowsPage, name: 'workflows', meta: { requiresAuth: true } },
   { path: '/workflows/visual', component: WorkflowVisualizationPage, name: 'workflow-visualization', meta: { requiresAuth: true } },
+  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
   { path: '/security', component: SecurityPage, name: 'security', meta: { requiresAuth: true } },
