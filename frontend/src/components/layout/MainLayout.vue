@@ -1,48 +1,49 @@
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header - PREMIUM with glassmorphism -->
-    <header class="premium-glass sticky top-0 z-50 h-16 border-b border-border backdrop-blur-25">
-      <div class="flex items-center justify-between h-full px-6">
-        <div class="flex items-center gap-4">
+    <!-- Slim Premium Header -->
+    <header class="premium-glass sticky top-0 z-50 h-10 border-b border-border/50">
+      <div class="flex items-center justify-between h-full px-4">
+        <div class="flex items-center gap-3">
           <button 
             @click="sidebarCollapsed = !sidebarCollapsed" 
-            class="text-text-muted hover:text-text transition-colors"
+            class="text-text-muted hover:text-primary transition-colors p-1"
           >
-            <Menu class="h-6 w-6" />
+            <Menu class="h-4 w-4" />
           </button>
-          <h1 class="text-xl font-bold text-text">PilotPro Control Center</h1>
+          <h1 class="text-sm font-semibold text-text">PilotPro Control Center</h1>
         </div>
         
-        <div class="flex items-center gap-4">
-          <!-- Premium Live indicator -->
-          <div class="premium-status-online">
-            <span class="text-sm font-semibold text-primary">SISTEMA LIVE</span>
+        <div class="flex items-center gap-3">
+          <!-- Compact Live indicator -->
+          <div class="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-full">
+            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+            <span class="text-xs font-medium text-primary">LIVE</span>
           </div>
           
-          <!-- User menu -->
+          <!-- Compact User menu -->
           <div class="relative">
             <button
               @click="showUserMenu = !showUserMenu"
-              class="flex items-center gap-2 text-text-muted hover:text-text transition-colors"
+              class="flex items-center gap-1.5 text-text-muted hover:text-text transition-colors p-1"
             >
-              <User class="h-5 w-5" />
-              <span class="text-sm">{{ authStore.user?.name || 'User' }}</span>
+              <User class="h-4 w-4" />
+              <span class="text-xs">{{ authStore.user?.name || 'Admin' }}</span>
             </button>
             
-            <!-- User dropdown -->
+            <!-- Compact dropdown -->
             <div
               v-if="showUserMenu"
-              class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-2"
+              class="absolute right-0 mt-1 w-40 bg-surface border border-border rounded-lg shadow-lg py-1"
             >
-              <div class="px-4 py-2 border-b border-border">
-                <p class="text-sm font-medium text-text">{{ authStore.user?.name }}</p>
+              <div class="px-3 py-1.5 border-b border-border">
+                <p class="text-xs font-medium text-text">{{ authStore.user?.name }}</p>
                 <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
               </div>
               <button
                 @click="handleLogout"
-                class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
+                class="w-full px-3 py-1.5 text-left text-xs text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
               >
-                <LogOut class="h-4 w-4" />
+                <LogOut class="h-3 w-3" />
                 Logout
               </button>
             </div>
