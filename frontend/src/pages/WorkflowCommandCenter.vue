@@ -84,7 +84,7 @@
         <div class="flex-1 premium-glass rounded-lg overflow-hidden">
           <!-- Flow Controls -->
           <div class="bg-surface/30 border-b border-border px-4 py-2 flex items-center justify-between">
-            <div class="text-sm font-medium text-text">
+            <div class="text-sm font-medium text-text truncate max-w-64">
               {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
             </div>
             <div class="flex items-center gap-2">
@@ -160,21 +160,37 @@
             <div class="space-y-2 text-xs">
               <div class="flex justify-between">
                 <span class="text-text-muted">Status:</span>
-                <span :class="selectedWorkflowData.is_active ? 'text-primary' : 'text-text-muted'">
+                <span :class="selectedWorkflowData.is_active ? 'text-primary font-semibold' : 'text-text-muted'">
                   {{ selectedWorkflowData.is_active ? 'ACTIVE' : 'INACTIVE' }}
                 </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-text-muted">Steps:</span>
-                <span class="text-text font-semibold">{{ workflowDetails?.nodeCount || 0 }}</span>
+                <span class="text-text font-bold">{{ workflowDetails?.nodeCount || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-text-muted">Connections:</span>
-                <span class="text-text font-semibold">{{ workflowDetails?.connectionCount || 0 }}</span>
+                <span class="text-text font-bold">{{ workflowDetails?.connectionCount || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-text-muted">Complexity:</span>
-                <span class="text-warning text-xs font-semibold">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</span>
+                <span class="text-warning font-bold">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-muted">Category:</span>
+                <span class="text-primary font-semibold text-xs">{{ workflowDetails?.businessMetadata?.category || 'General' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-muted">Business Impact:</span>
+                <span class="text-warning font-semibold">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-muted">Executions Today:</span>
+                <span class="text-primary font-bold">{{ selectedWorkflowData.executions_today }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-muted">ID:</span>
+                <span class="text-text font-mono text-xs">{{ selectedWorkflowData.process_id.slice(0, 8) }}...</span>
               </div>
             </div>
           </div>
@@ -182,14 +198,14 @@
           <!-- Quick Actions -->
           <div v-if="selectedWorkflowData" class="premium-glass rounded-lg p-4">
             <h3 class="text-sm font-bold text-text mb-3">Quick Actions</h3>
-            <div class="space-y-2">
-              <button @click="openDetailedModal" class="btn-control w-full text-xs justify-center">
+            <div class="grid grid-cols-2 gap-2">
+              <button @click="openDetailedModal" class="btn-control text-xs justify-center">
                 <Eye class="w-3 h-3" />
-                Detailed View
+                Details
               </button>
-              <button @click="openTimelineModal" class="btn-control-primary w-full text-xs justify-center">
+              <button @click="openTimelineModal" class="btn-control-primary text-xs justify-center">
                 <Clock class="w-3 h-3" />
-                Process Timeline
+                Timeline
               </button>
             </div>
           </div>
