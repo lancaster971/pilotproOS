@@ -288,16 +288,25 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
         // NO technical details exposed (node.type, parameters, etc.)
       })),
       
-      // Transform connections for business flow
+      // Transform connections for business flow (ALL connection types)
       processFlow: Object.entries(connections).flatMap(([sourceNode, nodeConnections]) => {
-        if (nodeConnections.main && nodeConnections.main[0]) {
-          return nodeConnections.main[0].map(connection => ({
-            from: sourceNode,
-            to: connection.node,
-            type: connection.type || 'main'
-          }));
-        }
-        return [];
+        const allConnections = [];
+        
+        // Process ALL connection types (main, ai_tool, ai_memory, ai_languageModel, etc.)
+        Object.entries(nodeConnections).forEach(([connectionType, connectionList]) => {
+          if (connectionList && connectionList[0]) {
+            connectionList[0].forEach(connection => {
+              allConnections.push({
+                from: sourceNode,
+                to: connection.node,
+                type: connectionType,
+                connectionIndex: connection.index || 0
+              });
+            });
+          }
+        });
+        
+        return allConnections;
       }),
       
       // Business metadata
