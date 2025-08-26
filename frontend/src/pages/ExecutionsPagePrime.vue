@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gradient">
+          <h1 class="text-lg font-bold text-gradient">
             Executions - {{ authStore.tenantId }}
           </h1>
           <p class="text-text-muted mt-1">

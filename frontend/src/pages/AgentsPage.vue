@@ -6,7 +6,7 @@
         <div class="flex items-center">
           <Bot class="w-8 h-8 text-green-400 mr-3" />
           <div>
-            <h1 class="text-2xl font-bold text-white">AI Agents</h1>
+            <h1 class="text-lg font-bold text-gradient">AI Agents</h1>
             <p class="text-gray-400">Real-time transparency on your AI agents activity</p>
           </div>
         </div>
@@ -32,7 +32,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm">Active Agents</p>
-              <p class="text-2xl font-bold text-white">{{ agentWorkflows.length }}</p>
+              <p class="text-lg font-bold text-gradient">{{ agentWorkflows.length }}</p>
             </div>
             <Bot class="w-8 h-8 text-green-400" />
           </div>
@@ -54,7 +54,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm">Total Executions</p>
-              <p class="text-2xl font-bold text-white">
+              <p class="text-lg font-bold text-gradient">
                 {{ agentWorkflows.reduce((sum, w) => sum + w.totalExecutions, 0) }}
               </p>
             </div>
@@ -66,7 +66,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm">Recently Active</p>
-              <p class="text-2xl font-bold text-white">
+              <p class="text-lg font-bold text-gradient">
                 {{ agentWorkflows.filter(w => w.lastActivity && isRecentlyActive(w.lastActivity)).length }}
               </p>
             </div>

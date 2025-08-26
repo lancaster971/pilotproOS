@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gradient">
+          <h1 class="text-lg font-bold text-gradient">
             Security Center
           </h1>
           <p class="text-gray-400 mt-1">

@@ -1,14 +1,11 @@
 <template>
   <MainLayout>
     <div class="space-y-4">
-      <!-- Compact Professional Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-gradient">Process Flow</h1>
-          <p class="text-text-muted text-sm mt-0.5">Visual workflow representation</p>
-        </div>
+      <!-- Compact Page Title -->
+      <div class="mb-2 flex items-center justify-between">
+        <h1 class="text-lg font-bold text-gradient">Visual Flow</h1>
         
-        <!-- Compact Control Bar -->
+        <!-- Inline Control Bar -->
         <div class="flex items-center gap-2">
           <select 
             v-model="selectedWorkflowId" 
