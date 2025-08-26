@@ -11,7 +11,7 @@
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
-          :class="sidebarCollapsed ? 'w-12' : 'w-72'"
+          :class="sidebarCollapsed ? 'w-12' : 'w-48'"
           class="premium-glass rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0"
         >
           <!-- Sidebar Header -->
@@ -47,7 +47,7 @@
                     class="w-1.5 h-1.5 rounded-full"
                     :class="workflow.is_active ? 'bg-primary animate-pulse' : 'bg-text-muted'"
                   />
-                  <span class="font-medium text-text truncate flex-1" :title="workflow.process_name">
+                  <span class="font-medium text-text truncate flex-1 max-w-32" :title="workflow.process_name">
                     {{ workflow.process_name }}
                   </span>
                 </div>
