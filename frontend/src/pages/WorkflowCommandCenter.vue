@@ -1,25 +1,9 @@
 <template>
   <MainLayout>
-    <div class="h-[calc(100vh-4rem)] overflow-hidden">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h1 class="text-2xl font-bold text-gradient">Workflow Command Center</h1>
-          <p class="text-text-muted text-sm">Unified workflow management and visualization</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="premium-status-online">
-            <span class="text-xs font-semibold text-primary">{{ totalWorkflows }} AVAILABLE</span>
-          </div>
-          <button @click="refreshAllData" :disabled="isLoading" class="btn-control-primary text-sm">
-            <RefreshCw :class="{ 'animate-spin': isLoading }" class="w-3.5 h-3.5" />
-            Refresh All
-          </button>
-        </div>
-      </div>
+    <div class="h-[calc(100vh-2.5rem)] overflow-hidden">
 
       <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
-      <div class="flex gap-4 h-[calc(100%-4rem)]">
+      <div class="flex gap-4 h-full">
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
@@ -204,6 +188,15 @@
                 Process Timeline
               </button>
             </div>
+          </div>
+
+          <!-- Global Actions -->
+          <div class="premium-glass rounded-lg p-4">
+            <h3 class="text-sm font-bold text-text mb-3">System</h3>
+            <button @click="refreshAllData" :disabled="isLoading" class="btn-control-primary w-full text-xs justify-center">
+              <RefreshCw :class="{ 'animate-spin': isLoading }" class="w-3 h-3" />
+              Refresh All Data
+            </button>
           </div>
 
         </div>
