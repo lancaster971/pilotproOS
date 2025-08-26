@@ -92,18 +92,29 @@
             responsiveLayout="scroll"
             class="p-datatable-dark"
           >
-            <!-- Global Filter -->
+            <!-- Header with Search and Status Filter -->
             <template #header>
               <div class="flex justify-between items-center">
-                <span class="text-xl text-white">Process Runs</span>
-                <IconField iconPosition="left">
-                  <InputIcon><i class="pi pi-search" /></InputIcon>
-                  <InputText 
-                    v-model="filters['global'].value" 
-                    placeholder="Global Search" 
-                    class="bg-surface border-border text-text placeholder-text-muted"
+                <span class="text-lg font-bold text-text">Process Runs</span>
+                <div class="flex items-center gap-3">
+                  <!-- Status Filter -->
+                  <Select
+                    v-model="statusFilter"
+                    @change="applyStatusFilter"
+                    :options="statusOptions"
+                    placeholder="All Status"
+                    class="premium-input text-xs w-32"
                   />
-                </IconField>
+                  <!-- Global Search -->
+                  <IconField iconPosition="left">
+                    <InputIcon><i class="pi pi-search" /></InputIcon>
+                    <InputText 
+                      v-model="filters['global'].value" 
+                      placeholder="Global Search" 
+                      class="premium-input text-sm"
+                    />
+                  </IconField>
+                </div>
               </div>
             </template>
 
@@ -114,15 +125,6 @@
                   :value="data.status" 
                   :severity="getStatusSeverity(data.status)"
                   :icon="getStatusIcon(data.status)"
-                />
-              </template>
-              <template #filter="{ filterModel, filterCallback }">
-                <Select
-                  v-model="filterModel.value"
-                  @change="filterCallback()"
-                  :options="statusOptions"
-                  placeholder="Select Status"
-                  class="bg-surface border-border text-text"
                 />
               </template>
             </Column>
@@ -245,6 +247,7 @@ const filters = ref({
 })
 
 const statusOptions = ['success', 'error', 'running', 'waiting', 'canceled']
+const statusFilter = ref(null)
 
 // Computed stats
 const executionStats = computed(() => {
@@ -358,6 +361,14 @@ const retryExecution = (execution: Execution) => {
 const exportData = () => {
   // TODO: Implement export functionality
   console.log('Export data')
+}
+
+const applyStatusFilter = () => {
+  if (statusFilter.value) {
+    filters.value.status.value = statusFilter.value
+  } else {
+    filters.value.status.value = null
+  }
 }
 
 // Auto-refresh setup
