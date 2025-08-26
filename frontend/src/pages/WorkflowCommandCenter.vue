@@ -18,47 +18,82 @@
         </div>
       </div>
 
-      <!-- Main Layout: Sidebar + Flow + Bottom Panel -->
-      <div class="grid grid-cols-12 gap-4 h-[calc(100%-4rem)]">
+      <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
+      <div class="flex gap-4 h-[calc(100%-4rem)]">
         
-        <!-- Left Sidebar: Workflow List -->
-        <div class="col-span-3 premium-glass rounded-lg p-4 overflow-y-auto">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-bold text-text">Business Processes</h3>
-            <div class="text-xs text-text-muted">{{ activeWorkflows }}/{{ totalWorkflows }} active</div>
+        <!-- Collapsible Left Sidebar: Workflow List -->
+        <div 
+          :class="sidebarCollapsed ? 'w-12' : 'w-72'"
+          class="premium-glass rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0"
+        >
+          <!-- Sidebar Header -->
+          <div class="p-3 border-b border-border flex items-center justify-between">
+            <h3 v-if="!sidebarCollapsed" class="text-xs font-bold text-text">PROCESSES</h3>
+            <button 
+              @click="sidebarCollapsed = !sidebarCollapsed"
+              class="p-1 text-text-muted hover:text-text transition-colors"
+            >
+              <ChevronLeft :class="{ 'rotate-180': sidebarCollapsed }" class="w-4 h-4 transition-transform" />
+            </button>
           </div>
           
-          <!-- Real Workflow List -->
-          <div class="space-y-2">
-            <div
-              v-for="workflow in realWorkflows"
-              :key="workflow.process_id"
-              @click="selectWorkflow(workflow)"
-              class="p-3 rounded-lg cursor-pointer transition-all"
-              :class="selectedWorkflowId === workflow.process_id 
-                ? 'bg-primary/10 border border-primary/30' 
-                : 'bg-surface/50 hover:bg-surface border border-transparent hover:border-border'"
-            >
-              <div class="flex items-center justify-between mb-1">
-                <div class="flex items-center gap-2">
+          <!-- Sidebar Content -->
+          <div v-if="!sidebarCollapsed" class="p-4 overflow-y-auto h-full">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs text-text-muted">{{ activeWorkflows }}/{{ totalWorkflows }} active</span>
+            </div>
+            
+            <!-- Real Workflow List -->
+            <div class="space-y-1.5">
+              <div
+                v-for="workflow in realWorkflows"
+                :key="workflow.process_id"
+                @click="selectWorkflow(workflow)"
+                class="p-2 rounded-md cursor-pointer transition-all text-xs"
+                :class="selectedWorkflowId === workflow.process_id 
+                  ? 'bg-primary/10 border border-primary/30' 
+                  : 'bg-surface/50 hover:bg-surface border border-transparent hover:border-border'"
+              >
+                <div class="flex items-center gap-2 mb-1">
                   <div 
-                    class="w-2 h-2 rounded-full"
+                    class="w-1.5 h-1.5 rounded-full"
                     :class="workflow.is_active ? 'bg-primary animate-pulse' : 'bg-text-muted'"
                   />
-                  <span class="text-xs font-medium text-text truncate" :title="workflow.process_name">
+                  <span class="font-medium text-text truncate flex-1" :title="workflow.process_name">
                     {{ workflow.process_name }}
                   </span>
                 </div>
+                <div class="text-xs text-text-muted pl-3.5">
+                  {{ workflow.executions_today }} today
+                </div>
               </div>
-              <div class="text-xs text-text-muted">
-                {{ workflow.executions_today }} executions today
+            </div>
+          </div>
+          
+          <!-- Collapsed State -->
+          <div v-else class="p-2 overflow-y-auto h-full">
+            <div class="space-y-2">
+              <div
+                v-for="workflow in realWorkflows"
+                :key="workflow.process_id"
+                @click="selectWorkflow(workflow)"
+                class="w-8 h-8 rounded-md cursor-pointer transition-all flex items-center justify-center"
+                :class="selectedWorkflowId === workflow.process_id 
+                  ? 'bg-primary/20 border border-primary/50' 
+                  : 'bg-surface/50 hover:bg-surface'"
+                :title="workflow.process_name"
+              >
+                <div 
+                  class="w-2 h-2 rounded-full"
+                  :class="workflow.is_active ? 'bg-primary' : 'bg-text-muted'"
+                />
               </div>
             </div>
           </div>
         </div>
 
         <!-- Center: VueFlow Visualization -->
-        <div class="col-span-6 premium-glass rounded-lg overflow-hidden">
+        <div class="flex-1 premium-glass rounded-lg overflow-hidden">
           <!-- Flow Controls -->
           <div class="bg-surface/30 border-b border-border px-4 py-2 flex items-center justify-between">
             <div class="text-sm font-medium text-text">
@@ -130,7 +165,7 @@
         </div>
 
         <!-- Right Panel: Details + Actions -->
-        <div class="col-span-3 space-y-4">
+        <div class="w-80 space-y-4 flex-shrink-0">
           <!-- Workflow Details -->
           <div v-if="selectedWorkflowData" class="premium-glass rounded-lg p-4">
             <h3 class="text-sm font-bold text-text mb-3">Process Details</h3>
@@ -213,7 +248,7 @@ import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
-  RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot
+  RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModalEnhanced.vue'
@@ -230,6 +265,7 @@ const uiStore = useUIStore()
 // State
 const isLoading = ref(false)
 const tenantId = 'client_simulation_a'
+const sidebarCollapsed = ref(false)
 
 // Workflow data - ONLY REAL DATA
 const realWorkflows = ref<any[]>([])
