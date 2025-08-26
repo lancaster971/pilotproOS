@@ -497,8 +497,8 @@ import {
   RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import WorkflowDetailModal from '../components/workflows/WorkflowDetailModalEnhanced.vue'
-import AgentDetailModal from '../components/agents/AgentDetailModalEnhanced.vue'
+import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
+import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
 import { useUIStore } from '../stores/ui'
 
 // VueFlow styles

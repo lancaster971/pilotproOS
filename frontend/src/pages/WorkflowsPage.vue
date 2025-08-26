@@ -194,8 +194,8 @@ import {
   RefreshCw, CheckCircle, XCircle, Clock, Mail, Eye, Bot
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import AgentDetailModal from '../components/agents/AgentDetailModalEnhanced.vue'
-import WorkflowDetailModal from '../components/workflows/WorkflowDetailModalEnhanced.vue'
+import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
+import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
 
