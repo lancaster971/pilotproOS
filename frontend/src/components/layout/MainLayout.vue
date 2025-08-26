@@ -1,55 +1,5 @@
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header - PREMIUM with glassmorphism -->
-    <header class="premium-glass sticky top-0 z-50 h-16 border-b border-border backdrop-blur-25">
-      <div class="flex items-center justify-between h-full px-6">
-        <div class="flex items-center gap-4">
-          <button 
-            @click="uiStore.toggleSidebar()" 
-            class="text-text-muted hover:text-text transition-colors"
-          >
-            <Menu class="h-6 w-6" />
-          </button>
-          <h1 class="text-xl font-bold text-text">PilotPro Control Center</h1>
-        </div>
-        
-        <div class="flex items-center gap-4">
-          <!-- Premium Live indicator -->
-          <div class="premium-status-online">
-            <span class="text-sm font-semibold text-primary premium-text-glow">SISTEMA LIVE</span>
-          </div>
-          
-          <!-- User menu -->
-          <div class="relative">
-            <button
-              @click="showUserMenu = !showUserMenu"
-              class="flex items-center gap-2 text-text-muted hover:text-text transition-colors"
-            >
-              <User class="h-5 w-5" />
-              <span class="text-sm">{{ authStore.user?.name || 'User' }}</span>
-            </button>
-            
-            <!-- User dropdown -->
-            <div
-              v-if="showUserMenu"
-              class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-2"
-            >
-              <div class="px-4 py-2 border-b border-border">
-                <p class="text-sm font-medium text-text">{{ authStore.user?.name }}</p>
-                <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
-              </div>
-              <button
-                @click="handleLogout"
-                class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
-              >
-                <LogOut class="h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
 
     <div class="flex">
       <!-- Collapsible PREMIUM Sidebar -->
@@ -94,6 +44,66 @@
               <span v-if="!sidebarCollapsed" class="text-sm font-medium">{{ item.label }}</span>
             </router-link>
           </nav>
+
+          <!-- User Menu in Sidebar Footer -->
+          <div class="mt-auto pt-4 border-t border-border">
+            <div v-if="!sidebarCollapsed" class="relative">
+              <button
+                @click="showUserMenu = !showUserMenu"
+                class="w-full flex items-center gap-2 p-2 text-text-muted hover:text-text transition-colors rounded-lg hover:bg-surface-hover"
+              >
+                <User class="h-4 w-4 flex-shrink-0" />
+                <span class="text-sm truncate">{{ authStore.user?.name || 'User' }}</span>
+              </button>
+              
+              <!-- User dropdown -->
+              <div
+                v-if="showUserMenu"
+                class="absolute bottom-full mb-2 left-0 right-0 bg-surface border border-border rounded-lg shadow-lg py-2"
+              >
+                <div class="px-3 py-2 border-b border-border">
+                  <p class="text-xs font-medium text-text truncate">{{ authStore.user?.name }}</p>
+                  <p class="text-xs text-text-muted truncate">{{ authStore.user?.email }}</p>
+                </div>
+                <button
+                  @click="handleLogout"
+                  class="w-full px-3 py-2 text-left text-xs text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
+                >
+                  <LogOut class="h-3 w-3" />
+                  Logout
+                </button>
+              </div>
+            </div>
+            
+            <!-- Collapsed user menu -->
+            <div v-else class="relative">
+              <button
+                @click="showUserMenu = !showUserMenu"
+                class="w-full flex items-center justify-center p-2 text-text-muted hover:text-text transition-colors rounded-lg hover:bg-surface-hover"
+                :title="authStore.user?.name || 'User Menu'"
+              >
+                <User class="h-4 w-4" />
+              </button>
+              
+              <!-- Collapsed dropdown -->
+              <div
+                v-if="showUserMenu"
+                class="absolute bottom-full mb-2 left-full ml-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-2"
+              >
+                <div class="px-3 py-2 border-b border-border">
+                  <p class="text-xs font-medium text-text">{{ authStore.user?.name }}</p>
+                  <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
+                </div>
+                <button
+                  @click="handleLogout"
+                  class="w-full px-3 py-2 text-left text-xs text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
+                >
+                  <LogOut class="h-3 w-3" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
