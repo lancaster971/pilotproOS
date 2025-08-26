@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 PilotProOS is a containerized Business Process Operating System - a comprehensive automation platform designed for SMB deployment. The system provides a business-friendly interface that completely abstracts away the underlying technical stack (n8n, PostgreSQL, Express) through an anonymization layer.
 
 **Key Architecture Pattern**: 3-layer clean architecture with complete technology abstraction:
-- **Frontend**: React/TypeScript SPA using business terminology
+- **Frontend**: Vue 3/TypeScript SPA using business terminology
 - **Backend**: Express API middleware that translates between business language and technical implementation  
 - **Data Layer**: PostgreSQL with dual schema (n8n + app) for complete isolation
 
@@ -59,7 +59,7 @@ npm run check:mock        # Find remaining mock data in frontend
 - **PostgreSQL 16** with dual schema (n8n + pilotpros)
 - **n8n 1.107.3** with task runners enabled
 - **Backend API** with hot reload
-- **Frontend React** with hot reload  
+- **Frontend Vue 3** with hot reload  
 - **AI Agent MCP** with hot reload
 - **PgAdmin** for database management (optional)
 
@@ -274,13 +274,15 @@ npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
 
 ### Development Patterns
 
-**When working with the Frontend (Vue 3 + TypeScript)**:
+**When working with the Frontend (Vue 3 + TypeScript + VueFlow)**:
 1. Always use business terminology in components and APIs
-2. Use Vue 3 Composition API with TypeScript interfaces
-3. Pages are in `src/pages/` with full component structure
-4. State management uses Pinia stores in `src/stores/`
-5. Components are in `src/components/` organized by feature
-6. API calls in `src/services/api.ts` with Axios interceptors
+2. Use Vue 3 Composition API with TypeScript interfaces for reactive workflows
+3. Premium workflow visualization in `WorkflowCommandCenter.vue` with VueFlow integration
+4. Node classification system: AI (rectangular), Tools (circular), Storage/Process (styled rectangles)
+5. Multi-handle architecture: Agent nodes with main lateral + AI tool bottom connections
+6. Bezier curve connections with dynamic handle positioning and smart edge routing
+7. State management uses Pinia stores with real-time workflow data updates
+8. Premium animations: 3D hover effects, pulse animations, glow effects for active states
 
 **When working with the Backend**:
 1. All public APIs use `/api/business/*` endpoints
@@ -371,25 +373,26 @@ All environment variables are defined in project root. Key configs:
 
 ## Recent Updates
 
-### Vue 3 + TypeScript Frontend Implementation (v1.2.0 - Latest)
-- **Same Stack as n8n**: Vue 3.4.21 + TypeScript + Pinia + Vue Router - identical to n8n frontend
-- **Complete Migration**: React → Vue 3 with same functionality and design
-- **Real Backend Integration**: ZERO mock data - only real API calls to PilotProOS backend
-- **29 Workflows Loaded**: All workflows from PostgreSQL database (1 active, 28 inactive)
-- **AgentDetailModal**: Killer feature component with timeline step-by-step (backend-ready)
-- **Composition API**: Modern Vue 3 patterns with TypeScript interfaces
-- **Docker Optimized**: Vite + Vue perfect compatibility with Docker containers
-- **Component Architecture**: LoginPage, Dashboard, Workflows, Executions, Stats, Security, AI Agents
-- **State Management**: Pinia stores for auth, UI, workflows with reactive updates
-- **API Layer**: Axios client with interceptors, same pattern as n8n
+### Premium Workflow Visualization System (v1.3.0 - Latest)
+- **n8n-Style Command Center**: Enterprise-grade workflow visualization with VueFlow integration
+- **Premium Node Design**: 4 distinct node types with professional gradients and animations
+  - 🤖 **AI Agents**: Rectangular nodes (180x100px) with multi-handle support
+  - 🟣 **AI Tools**: Circular nodes (90x90px) with smart auto-detection  
+  - 🔵 **Storage**: Rectangular data nodes with professional styling
+  - 🔴 **Triggers**: Rounded event handler nodes with distinct colors
+- **Advanced Connection System**: Bezier curves, multiple handles, main vs AI tool connections
+- **Real-Time Data**: Zero mock data - all 31 workflows from PostgreSQL with live statistics
+- **Multi-Handle Architecture**: Agent nodes with lateral (main) + bottom (AI tools) handle positioning
+- **Smart Classification**: Auto-detects node types from names and business categories
+- **Premium Animations**: 3D hover effects, pulse animations, glow effects for active workflows
 
-### Backend Real Data Integration (v1.2.0)
-- **Database Filter Removed**: Now returns ALL 29 workflows (not just active)
-- **Real API Endpoints**: `/api/business/processes` returns real PostgreSQL data
-- **Business Terminology**: Complete workflow → business process anonymization
-- **Zero Mock Data**: Frontend shows real backend data or explicit API errors
-- **DatabaseCompatibilityService**: Updated to return complete workflow list
-- **API Error Handling**: Clear error messages when endpoints not implemented
+### Enhanced Backend Integration (v1.3.0)
+- **All Connection Types**: Backend now returns ai_tool, ai_memory, ai_languageModel connections (not just main)
+- **31 Workflows**: Complete database integration returning all workflow entities 
+- **Smart Handle Mapping**: Dynamic handle assignment based on connection types
+- **CORS Optimized**: Removed problematic cache headers for seamless frontend integration
+- **Real KPI Calculations**: Live execution counts, failure rates, time saved from actual data
+- **Zero Mock Data**: Complete elimination of placeholder data throughout the system
 
 ### Frontend Architecture Completed (v1.2.0)
 - **Vue 3 + TypeScript**: Professional frontend matching n8n technology stack
@@ -423,19 +426,18 @@ All environment variables are defined in project root. Key configs:
 - **Zero Downtime**: Backend remains functional during n8n version upgrades
 - **Breaking Change Protection**: Automatic handling of schema changes between versions
 
-### Development Environment Setup Status
-- **✅ PostgreSQL**: Dual schema (n8n + pilotpros) verified working in Docker
-- **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin@pilotpros.local / PilotPro2025!) - Version 1.108.1
-- **✅ Backend**: Connected to PostgreSQL with cross-schema access - real data API working
-- **✅ Frontend**: Vue 3 + TypeScript with hot-reload - same stack as n8n
-- **✅ AI Agent**: MCP integration ready
-- **✅ Database**: 44 tables total (36 n8n + 8 pilotpros) - 29 workflows loaded
-- **✅ Docker**: Complete containerized development stack
-- **✅ Real Data Integration**: Frontend uses only real backend data, zero mock data
-- **✅ Business API**: `/api/business/processes` returns all 29 workflows from database
-- **✅ Timeline Component**: AgentDetailModal ready for backend timeline API
-- **✅ Navigation**: Vue Router with auth guards, complete SPA functionality
-- **✅ State Management**: Pinia stores for reactive data management
+### Production-Ready Environment Status (v1.3.0)
+- **✅ PostgreSQL**: Dual schema (n8n + pilotpros) with 31 workflows verified
+- **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin@pilotpros.local / PilotPro2025!) - Version 1.107.3
+- **✅ Premium Frontend**: Vue 3 + VueFlow with n8n-style workflow visualization
+- **✅ Backend API**: Enhanced to return ALL connection types (ai_tool, ai_memory, etc.)
+- **✅ Workflow Command Center**: Enterprise visualization with bezier curves and smart handles
+- **✅ Node Classification**: 4 distinct node types with professional styling and animations
+- **✅ Real-Time KPIs**: Live execution statistics, failure rates, active workflow counts
+- **✅ Multi-Handle System**: Complex Agent nodes with lateral + bottom connection points
+- **✅ Zero Mock Data**: Complete elimination of placeholder data across all components
+- **✅ Docker Development**: Hot-reload enabled for all services with cross-OS compatibility
+- **✅ Premium UX**: 3D effects, glow animations, hover transitions matching enterprise standards
 
 ## 📚 **DOCUMENTATION COMPLETA**
 
