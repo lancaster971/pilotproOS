@@ -38,38 +38,42 @@
         </div>
       </div>
 
-      <!-- Compact Statistics Table -->
-      <div class="premium-glass rounded-lg overflow-hidden border border-border mb-4">
-        <table class="w-full table-fixed">
-          <thead>
-            <tr class="bg-surface">
-              <th class="text-xs font-semibold text-text-muted py-2 px-3 border-r border-border text-center w-1/5">Total</th>
-              <th class="text-xs font-semibold text-text-muted py-2 px-3 border-r border-border text-center w-1/5">Success</th>
-              <th class="text-xs font-semibold text-text-muted py-2 px-3 border-r border-border text-center w-1/5">Error</th>
-              <th class="text-xs font-semibold text-text-muted py-2 px-3 border-r border-border text-center w-1/5">Running</th>
-              <th class="text-xs font-semibold text-text-muted py-2 px-3 text-center w-1/5">Waiting</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="border-t border-border">
-              <td class="text-center py-2 px-3 border-r border-border">
-                <div class="text-lg font-bold text-text">{{ executionStats.total }}</div>
-              </td>
-              <td class="text-center py-2 px-3 border-r border-border">
-                <div class="text-lg font-bold text-primary">{{ executionStats.success }}</div>
-              </td>
-              <td class="text-center py-2 px-3 border-r border-border">
-                <div class="text-lg font-bold text-error">{{ executionStats.error }}</div>
-              </td>
-              <td class="text-center py-2 px-3 border-r border-border">
-                <div class="text-lg font-bold text-primary">{{ executionStats.running }}</div>
-              </td>
-              <td class="text-center py-2 px-3">
-                <div class="text-lg font-bold text-warning">{{ executionStats.waiting }}</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-text">{{ executionStats.total }}</p>
+            <p class="text-xs text-text-muted">Totali</p>
+          </div>
+        </div>
+        
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-primary">{{ executionStats.success }}</p>
+            <p class="text-xs text-text-muted">Success</p>
+          </div>
+        </div>
+        
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-error">{{ executionStats.error }}</p>
+            <p class="text-xs text-text-muted">Error</p>
+          </div>
+        </div>
+        
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-primary">{{ executionStats.running }}</p>
+            <p class="text-xs text-text-muted">Running</p>
+          </div>
+        </div>
+        
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-warning">{{ executionStats.waiting }}</p>
+            <p class="text-xs text-text-muted">Waiting</p>
+          </div>
+        </div>
       </div>
 
       <!-- DataTable with PrimeVue -->
