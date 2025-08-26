@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between h-full px-6">
         <div class="flex items-center gap-4">
           <button 
-            @click="uiStore.toggleSidebar()" 
+            @click="sidebarCollapsed = !sidebarCollapsed" 
             class="text-text-muted hover:text-text transition-colors"
           >
             <Menu class="h-6 w-6" />
@@ -57,24 +57,7 @@
         :class="sidebarCollapsed ? 'w-16' : 'w-52'"
         class="premium-glass border-r border-border min-h-screen flex-shrink-0 premium-scrollbar transition-all duration-300"
       >
-        <div :class="sidebarCollapsed ? 'p-3' : 'p-5'">
-          <!-- Logo with Collapse Toggle -->
-          <div class="flex items-center mb-6 pb-3 border-b border-border">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                 style="background: linear-gradient(135deg, #10b981, #00d26a); box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);">
-              <span class="text-white font-bold text-sm">P</span>
-            </div>
-            <div v-if="!sidebarCollapsed" class="ml-3 flex-1">
-              <h1 class="text-text font-semibold text-sm">PilotPro OS</h1>
-              <p class="text-text-muted text-xs">Enterprise Command Center</p>
-            </div>
-            <button 
-              @click="sidebarCollapsed = !sidebarCollapsed"
-              class="p-1 text-text-muted hover:text-text transition-colors ml-2"
-            >
-              <ChevronLeft :class="{ 'rotate-180': sidebarCollapsed }" class="w-4 h-4 transition-transform" />
-            </button>
-          </div>
+        <div :class="sidebarCollapsed ? 'p-2' : 'p-4'">
 
           <!-- Navigation -->
           <nav class="space-y-1">
