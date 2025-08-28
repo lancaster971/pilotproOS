@@ -206,7 +206,7 @@
               :default-viewport="{ zoom: 1, x: 0, y: 0 }"
               :min-zoom="0.2"
               :max-zoom="3"
-              :connection-line-type="'straight'"
+              :connection-line-type="'default'"
               class="workflow-flow"
             >
               <Background pattern-color="#10b981" :size="1" variant="dots" />
@@ -902,7 +902,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       id: `edge-${index}`,
       source: flow.from,
       target: flow.to,
-      type: 'straight', // STRAIGHT connections instead of bezier curves
+      type: 'default', // Bezier curves like n8n
       animated: workflowMetadata.is_active && isMainConnection,
       style: { 
         stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6', 
@@ -961,7 +961,7 @@ const createEnhancedFlow = (workflow: any) => {
       id: `e${i}`,
       source: steps[i],
       target: steps[i + 1],
-      type: 'straight',
+      type: 'default',
       animated: workflow.is_active,
       style: { stroke: '#10b981', strokeWidth: 1 },
       sourceHandle: 'right',
@@ -1324,8 +1324,8 @@ onMounted(async () => {
 
 /* ===== AGENT NODES (n8n Style Rectangular) ===== */
 :deep(.premium-ai-node) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  border: 2px solid rgba(74, 85, 104, 0.4);
+  background: #1f2937;
+  border: 0.5px solid #10b981;
   border-radius: 8px;
   width: 180px;
   height: 100px;
@@ -1404,8 +1404,8 @@ onMounted(async () => {
 
 /* ===== TOOL NODES (n8n Style Circular) ===== */
 :deep(.premium-tool-node) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: #1f2937;
+  border: 0.5px solid #10b981;
   border-radius: 50%;
   width: 90px;
   height: 90px;
@@ -1459,8 +1459,8 @@ onMounted(async () => {
 
 /* ===== TRIGGER NODES (Exact n8n Style) ===== */
 :deep(.premium-trigger-node) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: #1f2937;
+  border: 0.5px solid #10b981;
   border-radius: 50px 12px 12px 50px; /* Left side fully rounded, right side square */
   width: 100px;
   height: 80px;
@@ -1479,12 +1479,12 @@ onMounted(async () => {
 }
 
 :deep(.premium-trigger-active) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  background: #1f2937;
   border-color: rgba(16, 185, 129, 0.4);
 }
 
 :deep(.premium-trigger-inactive) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  background: #1f2937;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -1539,8 +1539,8 @@ onMounted(async () => {
 
 /* ===== STORAGE NODES (Exact n8n Style - Pill Shape) ===== */
 :deep(.premium-storage-node) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
-  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  background: #1f2937 !important;
+  border: 0.5px solid #10b981 !important;
   border-radius: 30px !important; /* Perfect pill shape - half of height */
   width: 180px !important;
   height: 60px !important;
@@ -1589,8 +1589,8 @@ onMounted(async () => {
 
 /* ===== PREMIUM PROCESS NODES ===== */
 :deep(.premium-process-node) {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: #1f2937;
+  border: 0.5px solid #10b981;
   border-radius: 8px; /* Square corners */
   width: 80px;
   height: 80px;

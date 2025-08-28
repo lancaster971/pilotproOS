@@ -49,6 +49,7 @@ const loadIcon = async () => {
   
   try {
     const url = `http://localhost:3001/api/n8n-icons/${encodeURIComponent(props.nodeType)}`
+    console.log(`🎨 N8nIcon loading: ${props.nodeType} -> ${url}`)
     
     const response = await fetch(url, {
       cache: 'no-cache'
@@ -58,14 +59,18 @@ const loadIcon = async () => {
       const svg = await response.text()
       
       if (svg.includes('<svg')) {
+        console.log(`✅ N8nIcon loaded: ${props.nodeType}`, svg.substring(0, 100) + '...')
         svgContent.value = svg
       } else {
+        console.warn(`⚠️ N8nIcon invalid SVG: ${props.nodeType}`, svg)
         svgContent.value = ''
       }
     } else {
+      console.error(`❌ N8nIcon fetch failed: ${props.nodeType}, status: ${response.status}`)
       svgContent.value = ''
     }
   } catch (error) {
+    console.error(`❌ N8nIcon error: ${props.nodeType}`, error)
     svgContent.value = ''
   }
 }

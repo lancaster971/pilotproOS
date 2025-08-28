@@ -123,6 +123,46 @@ app.use(rateLimit({
 // N8N ICON SYSTEM - CATEGORY-BASED WITH FALLBACKS 
 // ============================================================================
 
+// Function to make SVG gradient IDs unique to prevent conflicts
+const makeGradientIdsUnique = (svgContent, nodeType) => {
+  if (!svgContent || !svgContent.includes('<linearGradient') && !svgContent.includes('<radialGradient')) {
+    return svgContent;
+  }
+  
+  const uniquePrefix = `${nodeType}-${Date.now()}`;
+  
+  // Replace gradient IDs and their references
+  let modifiedSvg = svgContent;
+  
+  // Find all gradient IDs and make them unique
+  const gradientIdRegex = /<(linear|radial)Gradient[^>]+id="([^"]+)"/g;
+  const gradientIds = [];
+  let match;
+  
+  while ((match = gradientIdRegex.exec(svgContent)) !== null) {
+    gradientIds.push(match[2]);
+  }
+  
+  // Replace each gradient ID and its references
+  gradientIds.forEach((originalId, index) => {
+    const newId = `${uniquePrefix}-grad-${index}`;
+    
+    // Replace the gradient definition ID
+    modifiedSvg = modifiedSvg.replace(
+      new RegExp(`(<(linear|radial)Gradient[^>]+id=")${originalId}(")`, 'g'),
+      `$1${newId}$3`
+    );
+    
+    // Replace all references to this gradient ID
+    modifiedSvg = modifiedSvg.replace(
+      new RegExp(`(url\\(#)${originalId}(\\))`, 'g'),
+      `$1${newId}$2`
+    );
+  });
+  
+  return modifiedSvg;
+};
+
 // OPTIMIZED ICON SYSTEM - Definitive mapping FIRST, category fallback SECOND
 import { iconMapping, getIconPath } from './data/icon-mapping.js';
 
@@ -249,9 +289,10 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
     
     if (iconContent) {
       console.log('🎯 Serving MAPPED icon for:', nodeType);
+      const uniqueSvg = makeGradientIdsUnique(iconContent, nodeType);
       res.set('Content-Type', 'image/svg+xml');
       res.set('Cache-Control', 'public, max-age=3600'); // Cache mapped icons
-      return res.send(iconContent);
+      return res.send(uniqueSvg);
     }
     
     // Step 2: Try filesystem search (SLOW)
@@ -259,9 +300,10 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
     
     if (iconContent) {
       console.log('🔍 Serving FOUND icon for:', nodeType);
+      const uniqueSvg = makeGradientIdsUnique(iconContent, nodeType);
       res.set('Content-Type', 'image/svg+xml');
       res.set('Cache-Control', 'public, max-age=3600'); // Cache found icons
-      return res.send(iconContent);
+      return res.send(uniqueSvg);
     }
     
     // Step 3: Category fallback (CONSISTENT)
