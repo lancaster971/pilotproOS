@@ -131,6 +131,7 @@ cookies.txt
 *.backup-*
 **/backups/
 /tmp/*
+BU_Hostinger/frontend_old/
 
 # Database backups
 *.sql.backup

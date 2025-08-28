@@ -1,66 +1,92 @@
 <template>
   <MainLayout>
-    <div class="h-[calc(100vh-8rem)] overflow-auto">
-      <!-- Compact Page Title -->
-      <div class="mb-3">
-        <h1 class="text-lg font-bold text-gradient">Workflow Command Center</h1>
-      </div>
+    <div class="h-[calc(100vh-6rem)] overflow-auto">
 
-      <!-- KPI Stats Row -->
-      <div class="grid grid-cols-5 gap-4 mb-4">
+      <!-- KPI Stats Row (Compact) -->
+      <div class="grid grid-cols-5 gap-3 mb-3">
         <!-- Prod. executions -->
-        <div class="premium-glass rounded-lg p-4">
-          <div class="text-xs text-text-muted mb-1">Prod. executions</div>
-          <div class="text-xs text-text-muted mb-2">Last 7 days</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-text">{{ totalExecutions }}</div>
-            <div v-if="totalExecutions > 0" class="text-xs text-primary">REAL</div>
+        <div class="premium-glass rounded-lg p-3">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-text">Prod. executions</span>
+            <span class="text-text-muted">Last 7 days</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-bold text-text">{{ totalExecutions.toLocaleString() }}</div>
+            <div v-if="analyticsData?.trends" class="flex items-center">
+              <span :class="getTrendClass(analyticsData.trends.executionsTrend)" class="text-xs">
+                {{ getTrendIcon(analyticsData.trends.executionsTrend) }}{{ Math.abs(analyticsData.trends.executionsTrend) }}%
+              </span>
+            </div>
           </div>
         </div>
 
         <!-- Failed prod. executions -->
-        <div class="premium-glass rounded-lg p-4">
-          <div class="text-xs text-text-muted mb-1">Failed prod. executions</div>
-          <div class="text-xs text-text-muted mb-2">Last 7 days</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-text">{{ failedExecutions }}</div>
-            <div class="text-xs text-text-muted">CALC</div>
+        <div class="premium-glass rounded-lg p-3">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-text">Failed prod. executions</span>
+            <span class="text-text-muted">Last 7 days</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-bold text-text">{{ failedExecutions }}</div>
+            <div v-if="analyticsData?.trends" class="flex items-center">
+              <span :class="getTrendClass(-analyticsData.trends.failedExecutionsTrend)" class="text-xs">
+                {{ getTrendIcon(-analyticsData.trends.failedExecutionsTrend) }}{{ Math.abs(analyticsData.trends.failedExecutionsTrend) }}%
+              </span>
+            </div>
           </div>
         </div>
 
         <!-- Failure rate -->
-        <div class="premium-glass rounded-lg p-4">
-          <div class="text-xs text-text-muted mb-1">Failure rate</div>
-          <div class="text-xs text-text-muted mb-2">Last 7 days</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-text">{{ failureRate }}%</div>
-            <div class="text-xs text-text-muted">REAL</div>
+        <div class="premium-glass rounded-lg p-3">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-text">Failure rate</span>
+            <span class="text-text-muted">Last 7 days</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-bold text-text">{{ failureRate }}%</div>
+            <div v-if="analyticsData?.trends" class="flex items-center">
+              <span :class="getTrendClass(-analyticsData.trends.failureRateTrend)" class="text-xs">
+                {{ getTrendIcon(-analyticsData.trends.failureRateTrend) }}{{ formatTrendValue(analyticsData.trends.failureRateTrend) }}pp
+              </span>
+            </div>
           </div>
         </div>
 
         <!-- Time saved -->
-        <div class="premium-glass rounded-lg p-4">
-          <div class="text-xs text-text-muted mb-1">Time saved</div>
-          <div class="text-xs text-text-muted mb-2">Last 7 days</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-text">{{ timeSaved }}h</div>
-            <div class="text-xs text-text-muted">EST</div>
+        <div class="premium-glass rounded-lg p-3">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-text">Time saved</span>
+            <span class="text-text-muted">Last 7 days</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-bold text-text">{{ timeSaved }}h</div>
+            <div v-if="analyticsData?.trends" class="flex items-center">
+              <span :class="getTrendClass(analyticsData.trends.timeSavedTrend)" class="text-xs">
+                {{ getTrendIcon(analyticsData.trends.timeSavedTrend) }}{{ formatTrendDuration(analyticsData.trends.timeSavedTrend) }}
+              </span>
+            </div>
           </div>
         </div>
 
         <!-- Run time (avg.) -->
-        <div class="premium-glass rounded-lg p-4">
-          <div class="text-xs text-text-muted mb-1">Run time (avg.)</div>
-          <div class="text-xs text-text-muted mb-2">Last 7 days</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-text">{{ avgRunTime }}s</div>
-            <div class="text-xs text-text-muted">AVG</div>
+        <div class="premium-glass rounded-lg p-3">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-text">Run time (avg.)</span>
+            <span class="text-text-muted">Last 7 days</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-bold text-text">{{ avgRunTime }}m</div>
+            <div v-if="analyticsData?.trends" class="flex items-center">
+              <span :class="getTrendClass(-analyticsData.trends.avgDurationTrend)" class="text-xs">
+                {{ getTrendIcon(-analyticsData.trends.avgDurationTrend) }}{{ formatTrendSeconds(analyticsData.trends.avgDurationTrend) }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
-      <div class="flex gap-4 h-[calc(100%-6rem)]">
+      <div class="flex gap-4 h-[calc(100%-4rem)]">
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
@@ -88,10 +114,10 @@
             <div class="space-y-1.5">
               <div
                 v-for="workflow in realWorkflows"
-                :key="workflow.process_id"
+                :key="workflow.id"
                 @click="selectWorkflow(workflow)"
                 class="p-2 rounded-md cursor-pointer transition-all text-xs"
-                :class="selectedWorkflowId === workflow.process_id 
+                :class="selectedWorkflowId === workflow.id 
                   ? 'bg-primary/10 border border-primary/30' 
                   : 'bg-surface/50 hover:bg-surface border border-transparent hover:border-border'"
               >
@@ -116,10 +142,10 @@
             <div class="space-y-2">
               <div
                 v-for="workflow in realWorkflows"
-                :key="workflow.process_id"
+                :key="workflow.id"
                 @click="selectWorkflow(workflow)"
                 class="w-8 h-8 rounded-md cursor-pointer transition-all flex items-center justify-center"
-                :class="selectedWorkflowId === workflow.process_id 
+                :class="selectedWorkflowId === workflow.id 
                   ? 'bg-primary/20 border border-primary/50' 
                   : 'bg-surface/50 hover:bg-surface'"
                 :title="workflow.process_name"
@@ -135,24 +161,41 @@
 
         <!-- Center: VueFlow Visualization -->
         <div class="flex-1 premium-glass rounded-lg overflow-hidden">
-          <!-- Flow Controls -->
+          <!-- n8n-style Header with Tabs -->
           <div class="bg-surface/30 border-b border-border px-4 py-2 flex items-center justify-between">
-            <div class="text-sm font-medium text-text truncate max-w-64">
+            <div class="text-sm font-medium text-text truncate">
               {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
             </div>
-            <div class="flex items-center gap-2">
+            
+            <!-- Action Buttons like n8n -->
+            <div class="flex items-center bg-surface border border-border rounded-lg p-1 gap-1">
               <button 
-                @click="autoLayoutFlow"
-                :disabled="!selectedWorkflowId || flowElements.length === 0"
-                class="px-2 py-1 bg-surface border border-border text-text rounded text-xs hover:bg-surface-hover transition-colors"
+                @click="openDetailedModal"
+                :disabled="!selectedWorkflowId"
+                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
-                Layout
+                <Eye class="w-3 h-3" />
+                Details
               </button>
-              <div class="flex items-center bg-surface border border-border rounded">
-                <button @click="zoomOut" class="px-2 py-1 text-text hover:bg-surface-hover transition-colors text-xs">−</button>
-                <button @click="zoomIn" class="px-2 py-1 text-text hover:bg-surface-hover transition-colors text-xs">+</button>
-              </div>
+              <button 
+                @click="openTimelineModal"
+                :disabled="!selectedWorkflowId"
+                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <Clock class="w-3 h-3" />
+                Timeline
+              </button>
+              <button 
+                @click="openExecutionsModal"
+                :disabled="!selectedWorkflowId"
+                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <GitBranch class="w-3 h-3" />
+                Executions
+              </button>
             </div>
+            
+            <div></div> <!-- Spacer for balance -->
           </div>
           
           <!-- VueFlow -->
@@ -167,10 +210,53 @@
               class="workflow-flow"
             >
               <Background pattern-color="#10b981" :size="1" variant="dots" />
-              <Controls class="!bg-surface !border-border" />
+              
+              <!-- Custom n8n-style Controls -->
+              <div class="absolute bottom-4 left-4 flex flex-col gap-2 z-50">
+                <!-- Fit View Button -->
+                <button 
+                  @click="() => fitView({ duration: 800, padding: 0.15 })"
+                  class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center shadow-lg"
+                  title="Fit View"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 5h4v2H7v2H5V5zm10 0h4v4h-2V7h-2V5zM7 15v2h2v2H5v-4h2zm8 2v-2h2v4h-4v-2h2z"/>
+                  </svg>
+                </button>
+                
+                <!-- Zoom In Button -->
+                <button 
+                  @click="zoomIn"
+                  class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center text-lg font-bold shadow-lg"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+                
+                <!-- Zoom Out Button -->
+                <button 
+                  @click="zoomOut"
+                  class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center text-lg font-bold shadow-lg"
+                  title="Zoom Out"
+                >
+                  −
+                </button>
+                
+                <!-- Layout Button -->
+                <button 
+                  @click="autoLayoutFlow"
+                  :disabled="!selectedWorkflowId || flowElements.length === 0"
+                  class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  title="Auto Layout"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 3v6h6V3H3zM5 5h2v2H5V5zM3 15v6h6v-6H3zM5 17h2v2H5v-2zM15 3v6h6V3h-6zM17 5h2v2h-2V5zM15 15v6h6v-6h-6zM17 17h2v2h-2v-2z"/>
+                  </svg>
+                </button>
+              </div>
               
               <template #node-custom="{ data }">
-                <!-- AI NODES: Premium Diamond/Hexagon Shape -->
+                <!-- AI NODES: Premium Diamond/Hexagon Shape (Internal Labels) -->
                 <div 
                   v-if="data.type === 'ai'"
                   class="premium-ai-node"
@@ -221,7 +307,7 @@
                   
                   <!-- AI Icon with glow effect -->
                   <div class="premium-ai-icon">
-                    <Bot class="w-6 h-6" />
+                    <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-16 h-16" />
                     <div class="premium-ai-glow"></div>
                   </div>
                   
@@ -241,72 +327,88 @@
                   />
                 </div>
 
-                <!-- TRIGGER NODES: Premium Rounded Rectangle -->
+                <!-- TRIGGER NODES: n8n Style with External Label -->
                 <div 
                   v-else-if="data.type === 'trigger'"
-                  class="premium-trigger-node"
-                  :class="[
-                    data.status === 'success' ? 'premium-trigger-active' : 'premium-trigger-inactive'
-                  ]"
+                  class="premium-node-wrapper"
                 >
-                  <Handle 
-                    v-for="(output, index) in data.outputs || ['main']"
-                    :key="'output-' + index"
-                    :id="'output-' + index" 
-                    type="source" 
-                    :position="Position.Right" 
-                    :style="{ top: data.outputs?.length > 1 ? `${20 + (index * 30)}px` : '50%' }"
-                    class="premium-handle-trigger" 
-                  />
-                  
-                  <div class="premium-trigger-icon">
-                    <Play class="w-5 h-5" />
+                  <div 
+                    class="premium-trigger-node"
+                    :class="[
+                      data.status === 'success' ? 'premium-trigger-active' : 'premium-trigger-inactive'
+                    ]"
+                  >
+                    <!-- Right-side handles -->
+                    <Handle 
+                      v-for="(output, index) in data.outputs || ['main']"
+                      :key="'output-' + index"
+                      :id="'output-' + index" 
+                      type="source" 
+                      :position="Position.Right" 
+                      :style="{ 
+                        top: data.outputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
+                        transform: 'translateY(-50%)'
+                      }"
+                      class="premium-handle-trigger" 
+                    />
+                    
+                    <!-- Center icon only -->
+                    <div class="premium-trigger-icon">
+                      <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-12 h-12" />
+                    </div>
                   </div>
-                  <div class="premium-trigger-content">
-                    <div class="premium-trigger-name">{{ data.label }}</div>
-                    <div class="premium-trigger-badge">TRIGGER</div>
+                  
+                  <!-- External label below node -->
+                  <div class="premium-external-label">
+                    {{ data.label }}
                   </div>
                 </div>
 
-                <!-- TOOL NODES: n8n Style Circular -->
+                <!-- TOOL NODES: n8n Style Circular with External Label -->
                 <div 
                   v-else-if="data.type === 'tool'"
-                  class="premium-tool-node"
-                  :class="[
-                    data.status === 'success' ? 'premium-tool-active' : 'premium-tool-inactive'
-                  ]"
+                  class="premium-node-wrapper"
                 >
-                  <!-- All tool handles at TOP CENTER -->
-                  <Handle 
-                    v-for="(input, index) in data.inputs || ['main']"
-                    :key="'input-' + index"
-                    :id="'input-' + index" 
-                    type="target" 
-                    :position="Position.Top" 
-                    :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                    class="premium-handle-tool-top" 
-                  />
-                  
-                  <Handle 
-                    v-for="(output, index) in data.outputs || ['main']"
-                    :key="'output-' + index"
-                    :id="'output-' + index" 
-                    type="source" 
-                    :position="Position.Top" 
-                    :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                    class="premium-handle-tool-top" 
-                  />
-                  
-                  <div class="premium-tool-icon">
-                    <component :is="getNodeIcon('storage')" class="w-4 h-4" />
+                  <div 
+                    class="premium-tool-node"
+                    :class="[
+                      data.status === 'success' ? 'premium-tool-active' : 'premium-tool-inactive'
+                    ]"
+                  >
+                    <!-- Tool handles: Input BOTTOM, Output TOP like n8n -->
+                    <Handle 
+                      v-for="(input, index) in data.inputs || ['main']"
+                      :key="'input-' + index"
+                      :id="'input-' + index" 
+                      type="target" 
+                      :position="Position.Bottom" 
+                      :style="{ left: '50%', transform: 'translateX(-50%)' }"
+                      class="premium-handle-tool-bottom" 
+                    />
+                    
+                    <Handle 
+                      v-for="(output, index) in data.outputs || ['main']"
+                      :key="'output-' + index"
+                      :id="'output-' + index" 
+                      type="source" 
+                      :position="Position.Top" 
+                      :style="{ left: '50%', transform: 'translateX(-50%)' }"
+                      class="premium-handle-tool-top" 
+                    />
+                    
+                    <!-- Center icon only -->
+                    <div class="premium-tool-icon">
+                      <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-12 h-12" />
+                    </div>
                   </div>
-                  <div class="premium-tool-content">
-                    <div class="premium-tool-name">{{ data.label }}</div>
-                    <div class="premium-tool-badge">TOOL</div>
+                  
+                  <!-- External label below node -->
+                  <div class="premium-external-label">
+                    {{ data.label }}
                   </div>
                 </div>
 
-                <!-- STORAGE NODES: Premium Cylinder Shape -->
+                <!-- STORAGE NODES: n8n Style Pill Shape -->
                 <div 
                   v-else-if="data.type === 'storage'"
                   class="premium-storage-node"
@@ -314,13 +416,14 @@
                     data.status === 'success' ? 'premium-storage-active' : 'premium-storage-inactive'
                   ]"
                 >
+                  <!-- Handles top and bottom like n8n -->
                   <Handle 
                     v-for="(input, index) in data.inputs || ['main']"
                     :key="'input-' + index"
                     :id="'input-' + index" 
                     type="target" 
-                    :position="Position.Left" 
-                    :style="{ top: '50%' }"
+                    :position="Position.Top" 
+                    :style="{ left: '50%', transform: 'translateX(-50%)' }"
                     class="premium-handle-storage" 
                   />
                   
@@ -329,61 +432,67 @@
                     :key="'output-' + index"
                     :id="'output-' + index" 
                     type="source" 
-                    :position="Position.Right" 
-                    :style="{ top: '50%' }"
+                    :position="Position.Bottom" 
+                    :style="{ left: '50%', transform: 'translateX(-50%)' }"
                     class="premium-handle-storage" 
                   />
                   
+                  <!-- Horizontal layout: icon + text -->
                   <div class="premium-storage-icon">
-                    <Database class="w-5 h-5" />
+                    <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" />
                   </div>
-                  <div class="premium-storage-content">
-                    <div class="premium-storage-name">{{ data.label }}</div>
-                    <div class="premium-storage-badge">DATA</div>
-                  </div>
+                  <div class="premium-storage-name">{{ data.label }}</div>
                 </div>
 
-                <!-- DEFAULT PROCESS NODES: Premium Rounded Square -->
+                <!-- PROCESS NODES: n8n Style Square with External Label -->
                 <div 
                   v-else
-                  class="premium-process-node"
-                  :class="[
-                    data.status === 'success' ? 'premium-process-active' : 'premium-process-inactive'
-                  ]"
+                  class="premium-node-wrapper"
                 >
-                  <Handle 
-                    v-for="(input, index) in data.inputs || ['main']"
-                    :key="'input-' + index"
-                    :id="'input-' + index" 
-                    type="target" 
-                    :position="Position.Left" 
-                    :style="{ top: data.inputs?.length > 1 ? `${20 + (index * 30)}px` : '50%' }"
-                    class="premium-handle-process" 
-                  />
-                  
-                  <Handle 
-                    v-for="(output, index) in data.outputs || ['main']"
-                    :key="'output-' + index"
-                    :id="'output-' + index" 
-                    type="source" 
-                    :position="Position.Right" 
-                    :style="{ top: data.outputs?.length > 1 ? `${20 + (index * 30)}px` : '50%' }"
-                    class="premium-handle-process" 
-                  />
-                  
-                  <div class="premium-process-icon">
-                    <component :is="getNodeIcon(data.type)" class="w-4 h-4" />
-                  </div>
-                  <div class="premium-process-content">
-                    <div class="premium-process-name">{{ data.label }}</div>
-                    <div v-if="data.outputs?.length > 1" class="premium-process-connections">
-                      {{ data.outputs.length }} outputs
+                  <div 
+                    class="premium-process-node"
+                    :class="[
+                      data.status === 'success' ? 'premium-process-active' : 'premium-process-inactive'
+                    ]"
+                  >
+                    <!-- Left-side input handles -->
+                    <Handle 
+                      v-for="(input, index) in data.inputs || ['main']"
+                      :key="'input-' + index"
+                      :id="'input-' + index" 
+                      type="target" 
+                      :position="Position.Left" 
+                      :style="{ 
+                        top: data.inputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
+                        transform: 'translateY(-50%)'
+                      }"
+                      class="premium-handle-process" 
+                    />
+                    
+                    <!-- Right-side output handles -->
+                    <Handle 
+                      v-for="(output, index) in data.outputs || ['main']"
+                      :key="'output-' + index"
+                      :id="'output-' + index" 
+                      type="source" 
+                      :position="Position.Right" 
+                      :style="{ 
+                        top: data.outputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
+                        transform: 'translateY(-50%)'
+                      }"
+                      class="premium-handle-process" 
+                    />
+                    
+                    <!-- Only icon inside the square node -->
+                    <div class="premium-process-icon">
+                      <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-12 h-12" />
                     </div>
                   </div>
-                  <div 
-                    class="premium-process-status"
-                    :class="data.status === 'success' ? 'premium-status-active' : 'premium-status-inactive'"
-                  />
+                  
+                  <!-- External label below node -->
+                  <div class="premium-external-label">
+                    {{ data.label }}
+                  </div>
                 </div>
               </template>
             </VueFlow>
@@ -399,74 +508,7 @@
           </div>
         </div>
 
-        <!-- Right Panel: Details + Actions -->
-        <div class="w-80 space-y-4 flex-shrink-0">
-          <!-- Workflow Details -->
-          <div v-if="selectedWorkflowData" class="premium-glass rounded-lg p-4">
-            <h3 class="text-sm font-bold text-text mb-3">Process Details</h3>
-            <div class="space-y-2 text-xs">
-              <div class="flex justify-between">
-                <span class="text-text-muted">Status:</span>
-                <span :class="selectedWorkflowData.is_active ? 'text-primary font-semibold' : 'text-text-muted'">
-                  {{ selectedWorkflowData.is_active ? 'ACTIVE' : 'INACTIVE' }}
-                </span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Steps:</span>
-                <span class="text-text font-bold">{{ workflowDetails?.nodeCount || 0 }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Connections:</span>
-                <span class="text-text font-bold">{{ workflowDetails?.connectionCount || 0 }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Complexity:</span>
-                <span class="text-warning font-bold">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Category:</span>
-                <span class="text-primary font-semibold text-xs">{{ workflowDetails?.businessMetadata?.category || 'General' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Business Impact:</span>
-                <span class="text-warning font-semibold">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">Executions Today:</span>
-                <span class="text-primary font-bold">{{ selectedWorkflowData.executions_today }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-muted">ID:</span>
-                <span class="text-text font-mono text-xs">{{ selectedWorkflowData.process_id.slice(0, 8) }}...</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Actions -->
-          <div v-if="selectedWorkflowData" class="premium-glass rounded-lg p-4">
-            <h3 class="text-sm font-bold text-text mb-3">Quick Actions</h3>
-            <div class="grid grid-cols-2 gap-2">
-              <button @click="openDetailedModal" class="btn-control text-xs justify-center">
-                <Eye class="w-3 h-3" />
-                Details
-              </button>
-              <button @click="openTimelineModal" class="btn-control-primary text-xs justify-center">
-                <Clock class="w-3 h-3" />
-                Timeline
-              </button>
-            </div>
-          </div>
-
-          <!-- Global Actions -->
-          <div class="premium-glass rounded-lg p-4">
-            <h3 class="text-sm font-bold text-text mb-3">System</h3>
-            <button @click="refreshAllData" :disabled="isLoading" class="btn-control-primary w-full text-xs justify-center">
-              <RefreshCw :class="{ 'animate-spin': isLoading }" class="w-3 h-3" />
-              Refresh All Data
-            </button>
-          </div>
-
-        </div>
+        <!-- Panel destro rimosso - ora fullscreen canvas -->
       </div>
 
       <!-- Enhanced Modals -->
@@ -484,6 +526,68 @@
         :show="showTimelineModal"
         @close="closeTimelineModal"
       />
+
+      <!-- Executions Modal -->
+      <div 
+        v-if="showExecutionsModal && selectedWorkflowForModal"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        @click.self="closeExecutionsModal"
+      >
+        <div class="bg-surface border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
+          <!-- Modal Header -->
+          <div class="bg-surface/30 border-b border-border px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-text">Workflow Executions</h2>
+              <p class="text-sm text-text-muted mt-1">{{ selectedWorkflowForModal.process_name }}</p>
+            </div>
+            <button 
+              @click="closeExecutionsModal"
+              class="text-text-muted hover:text-text p-2 rounded-lg hover:bg-surface-hover transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <!-- Modal Content -->
+          <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <!-- Executions List Placeholder -->
+            <div class="text-center py-8">
+              <GitBranch class="w-16 h-16 text-text-muted mx-auto mb-4" />
+              <h3 class="text-lg font-semibold text-text mb-2">Workflow Executions</h3>
+              <p class="text-text-muted mb-4">
+                Executions filtered for workflow: <span class="font-mono text-sm">{{ selectedWorkflowForModal.id }}</span>
+              </p>
+              <div class="bg-surface/50 border border-border rounded-lg p-4 text-left">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-text-muted">Total Executions:</span>
+                    <span class="text-text font-bold ml-2">{{ selectedWorkflowForModal.executions_today }}</span>
+                  </div>
+                  <div>
+                    <span class="text-text-muted">Status:</span>
+                    <span :class="selectedWorkflowForModal.is_active ? 'text-green-500' : 'text-red-500'" class="ml-2 font-bold">
+                      {{ selectedWorkflowForModal.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-text-muted mt-4">
+                🚧 Detailed execution history will be implemented here
+              </p>
+            </div>
+          </div>
+          
+          <!-- Modal Footer -->
+          <div class="bg-surface/30 border-t border-border px-6 py-3 flex justify-end">
+            <button 
+              @click="closeExecutionsModal"
+              class="px-4 py-2 bg-surface border border-border text-text rounded hover:bg-surface-hover transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </MainLayout>
 </template>
@@ -494,11 +598,13 @@ import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
-  RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft
+  RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft,
+  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
 import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
+import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
 
 // VueFlow styles
@@ -515,6 +621,7 @@ const sidebarCollapsed = ref(false)
 
 // Workflow data - ONLY REAL DATA
 const realWorkflows = ref<any[]>([])
+const analyticsData = ref<any>(null)
 const selectedWorkflowId = ref('')
 const selectedWorkflowData = ref<any>(null)
 const workflowDetails = ref<any>(null)
@@ -522,7 +629,10 @@ const workflowDetails = ref<any>(null)
 // Modal state
 const showDetailModal = ref(false)
 const showTimelineModal = ref(false)
+const showExecutionsModal = ref(false)
 const selectedWorkflowForModal = ref<any>(null)
+
+// Action buttons state
 
 // VueFlow
 const flowElements = ref([])
@@ -534,25 +644,28 @@ const activeWorkflows = computed(() => realWorkflows.value.filter(w => w.is_acti
 const flowNodes = computed(() => flowElements.value.filter(el => !el.source))
 const flowEdges = computed(() => flowElements.value.filter(el => el.source))
 
-// KPI Stats (ONLY REAL DATA - NO MOCK)
+// KPI Stats (REAL DATA FROM ANALYTICS API)
 const totalExecutions = computed(() => {
-  return realWorkflows.value.reduce((sum, w) => sum + parseInt(w.executions_today || 0), 0)
+  return analyticsData.value?.overview?.totalExecutions || 0
 })
 const failedExecutions = computed(() => {
-  // REAL calculation: if we have 0 real failures, show 0 (not fake 1)
-  return Math.max(0, Math.floor(totalExecutions.value * 0.001)) // 0.1% realistic failure rate
+  // REAL calculation from success rate
+  const total = totalExecutions.value
+  const successRate = analyticsData.value?.overview?.successRate || 100
+  return Math.round(total * (1 - successRate / 100))
 })
 const failureRate = computed(() => {
-  if (totalExecutions.value === 0) return '0.0'
-  return (failedExecutions.value / totalExecutions.value * 100).toFixed(1)
+  const successRate = analyticsData.value?.overview?.successRate || 100
+  return (100 - successRate).toFixed(1)
 })
 const timeSaved = computed(() => {
-  // REAL calculation: each active workflow saves ~1.5h per day
-  return Math.round(activeWorkflows.value * 1.5 * 7) // 7 days
+  // REAL calculation from business impact
+  return analyticsData.value?.businessImpact?.timeSavedHours || 0
 })
 const avgRunTime = computed(() => {
-  // TODO: Get REAL average from backend API when available
-  return totalExecutions.value > 0 ? '1.2' : '0.0'
+  // REAL average from backend API
+  const avgSeconds = analyticsData.value?.overview?.avgDurationSeconds || 0
+  return avgSeconds > 0 ? (avgSeconds / 60).toFixed(1) : '0.0'
 })
 
 // Methods - ALL USING REAL BACKEND DATA
@@ -563,24 +676,49 @@ const refreshAllData = async () => {
     console.log('🔄 Loading ALL REAL workflow data for Command Center...')
     
     // Get all workflows from backend with cache busting via URL param
-    const response = await fetch(`http://localhost:3001/api/business/processes?_t=${Date.now()}&refresh=true`)
+    const [workflowsResponse, analyticsResponse] = await Promise.all([
+      fetch(`http://localhost:3001/api/business/processes?_t=${Date.now()}&refresh=true`),
+      fetch(`http://localhost:3001/api/business/analytics?_t=${Date.now()}`)
+    ])
     
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`)
+    if (!workflowsResponse.ok) {
+      throw new Error(`Backend API error: ${workflowsResponse.status}`)
     }
     
-    const data = await response.json()
-    console.log('✅ REAL workflows loaded:', data.data?.length || 0)
-    console.log('📋 Raw data preview:', data.data?.slice(0, 3))
+    const workflowsData = await workflowsResponse.json()
+    console.log('✅ REAL workflows loaded:', workflowsData.data?.length || 0)
+    console.log('📋 Raw data preview:', workflowsData.data?.slice(0, 3))
     
-    realWorkflows.value = data.data || []
+    realWorkflows.value = workflowsData.data || []
     console.log('🔄 Set realWorkflows to:', realWorkflows.value.length, 'items')
     
-    // Auto-select first active workflow if none selected
+    // Get analytics data for KPI calculations
+    if (analyticsResponse.ok) {
+      analyticsData.value = await analyticsResponse.json()
+      console.log('✅ REAL analytics loaded:', {
+        totalExecutions: analyticsData.value.overview?.totalExecutions,
+        successRate: analyticsData.value.overview?.successRate,
+        avgDuration: analyticsData.value.overview?.avgDurationSeconds
+      })
+    }
+    
+    // Auto-select Grab_Track_Simple workflow for node classification testing (contains "Scarica Pagina")
     if (!selectedWorkflowId.value && realWorkflows.value.length > 0) {
-      const firstActive = realWorkflows.value.find(w => w.is_active)
-      if (firstActive) {
-        await selectWorkflow(firstActive)
+      const grabTrackWorkflow = realWorkflows.value.find(w => w.id === 'GZsYKMPDqUktd309')
+      if (grabTrackWorkflow) {
+        console.log('🎯 Auto-selecting Grab_Track_Simple workflow for node testing:', grabTrackWorkflow.process_name)
+        await selectWorkflow(grabTrackWorkflow)
+      } else {
+        const tryWorkflow = realWorkflows.value.find(w => w.id === '1KpquD1jgzUsOKrx')
+        if (tryWorkflow) {
+          console.log('🎯 Auto-selecting TRY Backend workflow for testing node classification:', tryWorkflow.process_name)
+          await selectWorkflow(tryWorkflow)
+        } else {
+          const firstActive = realWorkflows.value.find(w => w.is_active)
+          if (firstActive) {
+            await selectWorkflow(firstActive)
+          }
+        }
       }
     }
     
@@ -605,10 +743,10 @@ const refreshAllData = async () => {
 }
 
 const selectWorkflow = async (workflow: any) => {
-  selectedWorkflowId.value = workflow.process_id
+  selectedWorkflowId.value = workflow.id  // ✅ FIX: Use workflow.id not workflow.process_id
   selectedWorkflowData.value = workflow
   
-  console.log('🎯 Selected workflow:', workflow.process_name)
+  console.log('🎯 Selected workflow:', workflow.process_name, 'ID:', workflow.id)
   
   // Load detailed workflow structure from backend
   await loadWorkflowStructure(workflow)
@@ -618,7 +756,7 @@ const loadWorkflowStructure = async (workflow: any) => {
   try {
     console.log('🔍 Loading REAL structure for:', workflow.process_name)
     
-    const response = await fetch(`http://localhost:3001/api/business/process-details/${workflow.process_id}`)
+    const response = await fetch(`http://localhost:3001/api/business/process-details/${workflow.id}`)  // ✅ FIX: Use workflow.id
     
     if (response.ok) {
       const data = await response.json()
@@ -669,8 +807,8 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
     }
   })
   
-  // Create nodes with dynamic handles
-  const nodes = processSteps.map((step: any) => {
+  // Create nodes with dynamic handles (exclude sticky notes)
+  const nodes = processSteps.filter((step: any) => !step.nodeType.includes('stickyNote')).map((step: any) => {
     const connections = nodeConnections.get(step.stepName) || { inputs: ['main'], outputs: ['main'] }
     
     return {
@@ -683,64 +821,90 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       data: {
         label: step.stepName,
         status: workflowMetadata.is_active ? 'success' : 'inactive',
-        type: getNodeType(step.stepName, step.businessCategory),
+        type: getNodeTypeFromN8nType(step.nodeType, step.stepName),
+        nodeType: step.nodeType, // Add nodeType for icon selection
         inputs: connections.inputs.length > 0 ? connections.inputs : ['main'],
         outputs: connections.outputs.length > 0 ? connections.outputs : ['main']
       }
     }
   })
   
-  // Create edges with specific handles
+  // Create edges with specific handles for STRAIGHT CONNECTIONS
   const edges = processFlow.map((flow: any, index: number) => {
-    const sourceNode = nodeConnections.get(flow.from)
-    const targetNode = nodeConnections.get(flow.to)
-    
     const isMainConnection = flow.type === 'main'
     const isAIConnection = flow.type.startsWith('ai_')
     
-    // For Agent nodes, determine correct handle based on connection type
-    let sourceHandle, targetHandle
+    // Source and target node types
+    const sourceStep = processSteps.find(step => step.stepName === flow.from)
+    const targetStep = processSteps.find(step => step.stepName === flow.to)
     
-    if (flow.from.toLowerCase().includes('agent') || flow.from.toLowerCase().includes('assistente')) {
-      // Agent source handles
+    const sourceNodeType = getNodeTypeFromN8nType(sourceStep?.nodeType || '', flow.from)
+    const targetNodeType = getNodeTypeFromN8nType(targetStep?.nodeType || '', flow.to)
+    
+    // FIXED Handle Logic for separate straight connections
+    let sourceHandle = 'output-0'
+    let targetHandle = 'input-0'
+    
+    // Source handles based on connection type and node type
+    if (sourceNodeType === 'storage') {
+      // Storage nodes: Bottom output
+      sourceHandle = 'output-0'
+    } else if (sourceNodeType === 'tool') {
+      // Tool nodes: Bottom output for all connections
+      sourceHandle = 'output-0'
+    } else if (sourceNodeType === 'ai') {
+      // AI nodes: Right for main, Bottom distributed for AI tools
       if (isMainConnection) {
-        sourceHandle = 'output-0'
+        sourceHandle = 'output-0'  // Right side
       } else {
-        // Find index among non-main connections
-        const nonMainOutputs = (sourceNode?.outputs || []).filter(o => o !== 'main')
-        const toolIndex = nonMainOutputs.indexOf(flow.type)
-        sourceHandle = `tool-${Math.max(toolIndex, 0)}`
+        // Use distributed handles for AI tools - calculate index based on all AI connections
+        const sourceConnections = nodeConnections.get(flow.from) || { inputs: [], outputs: [] }
+        const allAIConnections = [...sourceConnections.inputs.filter(i => i !== 'main'), ...sourceConnections.outputs.filter(o => o !== 'main')]
+        const connectionIndex = allAIConnections.findIndex(conn => conn === flow.type)
+        sourceHandle = `tool-${Math.max(0, connectionIndex)}`   // Bottom side distributed
       }
     } else {
-      sourceHandle = `output-${sourceNode?.outputs.indexOf(flow.type) || 0}`
+      // Process nodes: Right side
+      sourceHandle = 'output-0'
     }
     
-    if (flow.to.toLowerCase().includes('agent') || flow.to.toLowerCase().includes('assistente')) {
-      // Agent target handles  
+    // Target handles based on connection type and node type
+    if (targetNodeType === 'storage') {
+      // Storage nodes: Top input for all connections
+      targetHandle = 'input-0'
+    } else if (targetNodeType === 'tool') {
+      // Tool nodes: Top input for all connections
+      targetHandle = 'input-0'
+    } else if (targetNodeType === 'ai') {
+      // AI nodes: Left for main, Bottom distributed for AI tool connections
       if (isMainConnection) {
-        targetHandle = 'input-0'
+        targetHandle = 'input-0'  // Left side
+      } else if (isAIConnection) {
+        // Use distributed handles for AI tools - calculate index based on all AI connections
+        const targetConnections = nodeConnections.get(flow.to) || { inputs: [], outputs: [] }
+        const allAIConnections = [...targetConnections.inputs.filter(i => i !== 'main'), ...targetConnections.outputs.filter(o => o !== 'main')]
+        const connectionIndex = allAIConnections.findIndex(conn => conn === flow.type) 
+        targetHandle = `tool-${Math.max(0, connectionIndex)}`   // Bottom side distributed
       } else {
-        // Find index among non-main connections
-        const nonMainInputs = (targetNode?.inputs || []).filter(i => i !== 'main')
-        const toolIndex = nonMainInputs.indexOf(flow.type)
-        targetHandle = `tool-${Math.max(toolIndex, 0)}`
+        targetHandle = 'input-0'  // Default left
       }
     } else {
-      targetHandle = `input-${targetNode?.inputs.indexOf(flow.type) || 0}`
+      // Process nodes: Left side
+      targetHandle = 'input-0'
     }
     
-    console.log(`🔗 Edge ${flow.from}->${flow.to}: type=${flow.type}, sourceHandle=${sourceHandle}, targetHandle=${targetHandle}`)
+    console.log(`🔗 Edge ${flow.from}->${flow.to}: type=${flow.type}, source=${sourceNodeType}, target=${targetNodeType}, handles=${sourceHandle}->${targetHandle}`)
     
     return {
       id: `edge-${index}`,
       source: flow.from,
       target: flow.to,
-      type: 'default', // Bezier curves like n8n
-      animated: workflowMetadata.is_active && isMainConnection, // Only animate main connections
+      type: 'straight', // STRAIGHT connections instead of bezier curves
+      animated: workflowMetadata.is_active && isMainConnection,
       style: { 
         stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6', 
         strokeWidth: isMainConnection ? 3 : 2,
-        strokeDasharray: isMainConnection ? 'none' : '8 4', // Dashed for secondary connections
+        strokeDasharray: isMainConnection ? 'none' : '8 4',
         opacity: isMainConnection ? 1 : 0.8
       },
       sourceHandle,
@@ -842,7 +1006,7 @@ const openDetailedModal = () => {
   if (!selectedWorkflowData.value) return
   
   selectedWorkflowForModal.value = {
-    id: selectedWorkflowData.value.process_id,
+    id: selectedWorkflowData.value.id,
     name: selectedWorkflowData.value.process_name,
     active: selectedWorkflowData.value.is_active,
     is_archived: false,
@@ -867,7 +1031,53 @@ const closeTimelineModal = () => {
   showTimelineModal.value = false
 }
 
+const openExecutionsModal = () => {
+  if (selectedWorkflowData.value) {
+    selectedWorkflowForModal.value = selectedWorkflowData.value
+    showExecutionsModal.value = true
+  }
+}
+
+const closeExecutionsModal = () => {
+  showExecutionsModal.value = false
+  selectedWorkflowForModal.value = null
+}
+
 // Helper functions
+// Trend formatting and styling helpers
+const getTrendClass = (trendValue: number) => {
+  if (trendValue === null || trendValue === undefined) return 'text-gray-400 text-xs font-medium'
+  if (trendValue > 0) return 'text-green-500 text-xs font-medium'
+  if (trendValue < 0) return 'text-red-500 text-xs font-medium'
+  return 'text-gray-400 text-xs font-medium'
+}
+
+const getTrendIcon = (trendValue: number) => {
+  if (trendValue === null || trendValue === undefined) return '—'
+  if (trendValue > 0) return '▲'
+  if (trendValue < 0) return '▼'
+  return '—'
+}
+
+const formatTrendValue = (value: number) => {
+  if (value === null || value === undefined) return '—'
+  return Math.abs(value).toFixed(1)
+}
+
+const formatTrendDuration = (trendPercent: number) => {
+  if (trendPercent === 0) return '0m'
+  // Convert percentage to estimated time change
+  const timeChange = Math.abs(trendPercent) > 100 ? '30m' : `${Math.round(Math.abs(trendPercent) / 10)}m`
+  return timeChange
+}
+
+const formatTrendSeconds = (trendPercent: number) => {
+  if (trendPercent === 0) return '0s'
+  // Convert percentage to estimated seconds change  
+  const secondsChange = Math.abs(trendPercent) > 100 ? '0.06s' : `0.0${Math.round(Math.abs(trendPercent) / 10)}s`
+  return secondsChange
+}
+
 const getBusinessTypeFromCategory = (businessCategory: string) => {
   switch (businessCategory) {
     case 'Event Handler': return 'trigger'
@@ -881,13 +1091,33 @@ const getBusinessTypeFromCategory = (businessCategory: string) => {
   }
 }
 
+const isScheduleTrigger = (nodeName: string) => {
+  const name = nodeName.toLowerCase()
+  return name.includes('trigger') || 
+         name.includes('schedule') ||
+         name.includes('webhook') ||
+         name.includes('cron') ||
+         name.includes('interval') ||
+         name === 'schedule' ||
+         name.startsWith('when ') ||
+         name.includes('start workflow') ||
+         name.includes('manual trigger')
+}
+
 const isToolNode = (nodeName: string) => {
-  // Vector stores remain rectangular (exception)
-  if (nodeName.toLowerCase().includes('vector store')) {
+  // Vector stores and AI processing nodes remain rectangular (exception)
+  const rectangularExceptions = [
+    'vector store', 'ai -', 'interpreta', 'analizza', 'elabora',
+    'recupera', 'scarica', 'filtra', 'processa', 'gestisce'
+  ]
+  
+  if (rectangularExceptions.some(exception => 
+    nodeName.toLowerCase().includes(exception.toLowerCase())
+  )) {
     return false
   }
   
-  // Specific node names that should be circular (force override)
+  // Only very specific external tools/services should be circular
   const circularNodes = [
     'openai chat model', 'window buffer memory', 'pilotpro knowledge base',
     'schedule expert call', 'openai embeddings', 'cohere reranker',
@@ -899,19 +1129,61 @@ const isToolNode = (nodeName: string) => {
     return true
   }
   
-  // All tool/service nodes that connect to agents should be circular
-  const toolKeywords = [
-    'knowledge base', 'chat model', 'embeddings', 'reranker', 
-    'memory', 'retriever', 'cohere', 'openai', 'schedule', 
-    'expert call', 'buffer', 'window', 'ordini', 'date', 
-    'time', 'parcel', 'formatta', 'risposta'
+  // Only pure external API/service tools should be circular (more restrictive)
+  const toolPatterns = [
+    'chat model', 'embeddings', 'reranker', 'memory', 'retriever',
+    'http request', 'webhook', 'gmail', 'outlook', 'sheets', 'drive',
+    'slack', 'discord', 'telegram', 'twilio', 'stripe', 'paypal',
+    'hubspot', 'salesforce', 'mailchimp', 'airtable', 'notion'
   ]
   
-  return toolKeywords.some(keyword => 
-    nodeName.toLowerCase().includes(keyword.toLowerCase())
+  return toolPatterns.some(pattern => 
+    nodeName.toLowerCase().includes(pattern.toLowerCase())
   )
 }
 
+const getNodeTypeFromN8nType = (n8nType: string, nodeName: string) => {
+  console.log(`🚨 CLASSIFYING: "${nodeName}" | Type: "${n8nType}"`)
+  
+  // 1. AI Agent LangChain → RETTANGOLO
+  if (n8nType === '@n8n/n8n-nodes-langchain.agent') {
+    console.log(`✅ AI AGENT: ${nodeName}`)
+    return 'ai'
+  }
+  
+  // 2. Vector Store → PILLOLA (storage CSS class)
+  if (n8nType.includes('vectorstore') || n8nType.includes('vectorStore')) {
+    console.log(`✅ VECTOR STORE (PILLOLA): ${nodeName}`)
+    return 'storage'
+  }
+  
+  // 3. Tools LangChain (direttamente collegati agli AI Agent) → CERCHIO
+  if (n8nType.includes('@n8n/n8n-nodes-langchain.')) {
+    // Escludi vector store (che sono pillole)
+    if (!n8nType.includes('vectorstore') && !n8nType.includes('agent')) {
+      console.log(`✅ LANGCHAIN TOOL (CERCHIO): ${nodeName}`)
+      return 'tool'
+    }
+  }
+  
+  // 4. Trigger → QUADRATO con lato sx tondo smussato
+  if (n8nType.includes('Trigger')) {
+    console.log(`✅ TRIGGER: ${nodeName}`)
+    return 'trigger'
+  }
+  
+  // 5. Storage normale (Supabase, Database, etc.) → QUADRATO normale
+  if (n8nType.includes('supabase') || n8nType.includes('database') || n8nType.includes('storage')) {
+    console.log(`✅ STORAGE (QUADRATO): ${nodeName}`)
+    return 'process'  // Quadrato normale
+  }
+  
+  // 6. TUTTO IL RESTO → QUADRATO normale
+  console.log(`✅ PROCESS (QUADRATO): ${nodeName}`)
+  return 'process'
+}
+
+// Keep old function for fallback when n8n type not available
 const getNodeType = (nodeName: string, businessCategory: string) => {
   console.log(`🔍 Node: "${nodeName}" | Category: "${businessCategory}"`)
   
@@ -919,6 +1191,12 @@ const getNodeType = (nodeName: string, businessCategory: string) => {
   if (nodeName.toLowerCase().includes('agent') || nodeName.toLowerCase().includes('assistente')) {
     console.log(`✅ ${nodeName} → AI (agent)`)
     return 'ai'
+  }
+  
+  // Check if it's a trigger first (takes precedence)
+  if (isScheduleTrigger(nodeName)) {
+    console.log(`🔴 ${nodeName} → TRIGGER (should be rounded rectangle)`)
+    return 'trigger'
   }
   
   // Check if it's a tool first (takes precedence over business category)
@@ -933,17 +1211,61 @@ const getNodeType = (nodeName: string, businessCategory: string) => {
   return categoryType
 }
 
-const getNodeIcon = (type: string) => {
-  switch (type) {
-    case 'trigger': return Play
-    case 'ai': return Bot
-    case 'api': return GitBranch
-    case 'email': return Mail
-    case 'storage': return Database
-    case 'logic': return Settings
-    case 'file': return Database
-    default: return Settings
+// Get n8n icon component props for a node type
+const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
+  console.log('🔍 [DEBUG] getN8nIconProps called with:', { nodeType, nodeName })
+  
+  // Return object with nodeType and fallback icon
+  const props = {
+    nodeType: nodeType,
+    fallback: 'Settings', // Default fallback
+    size: 'w-5 h-5'
   }
+  
+  // Set specific fallbacks based on node type patterns
+  if (nodeType?.includes('code')) props.fallback = 'Code'
+  else if (nodeType?.includes('openAi') || nodeName.toLowerCase().includes('ai ')) props.fallback = 'Brain'
+  else if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) props.fallback = 'Globe'
+  else if (nodeType?.includes('function')) props.fallback = 'Zap'
+  else if (nodeType?.includes('webhook')) props.fallback = 'Link'
+  else if (nodeType?.includes('email') || nodeType?.includes('outlook') || nodeType?.includes('gmail')) props.fallback = 'Mail'
+  else if (nodeType?.includes('googleDrive') || nodeType?.includes('file')) props.fallback = 'FileText'
+  else if (nodeType?.includes('scheduleTrigger') || nodeType?.includes('intervalTrigger') || nodeType?.includes('cronTrigger')) props.fallback = 'Clock'
+  else if (nodeType?.includes('trigger')) props.fallback = 'Play'
+  else if (nodeType?.includes('agent')) props.fallback = 'Bot'
+  else if (nodeType?.includes('database') || nodeType?.includes('supabase') || nodeType?.includes('vectorStore')) props.fallback = 'Database'
+  else if (nodeType?.includes('telegram')) props.fallback = 'MessageSquare'
+  
+  return props
+}
+
+const getNodeIcon = (nodeType: string, nodeName: string = '') => {
+  // First check by nodeType for specific icons
+  if (nodeType?.includes('code')) return Code
+  if (nodeType?.includes('openAi') || nodeName.toLowerCase().includes('ai ')) return Brain
+  if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) return Globe
+  if (nodeType?.includes('function')) return Zap
+  if (nodeType?.includes('webhook')) return Link
+  if (nodeType?.includes('email') || nodeType?.includes('outlook') || nodeType?.includes('gmail')) return Mail
+  if (nodeType?.includes('googleDrive') || nodeType?.includes('file')) return FileText
+  
+  // Trigger icons - specific first, then generic
+  if (nodeType?.includes('scheduleTrigger') || nodeType?.includes('intervalTrigger') || nodeType?.includes('cronTrigger')) return Clock
+  if (nodeType?.includes('trigger')) return Play
+  
+  if (nodeType?.includes('agent')) return Bot
+  if (nodeType?.includes('database') || nodeType?.includes('supabase') || nodeType?.includes('vectorStore')) return Database
+  
+  // Fallback to general type
+  if (typeof nodeType === 'string') {
+    if (nodeType === 'trigger') return Play
+    if (nodeType === 'ai') return Bot
+    if (nodeType === 'storage') return Database
+    if (nodeType === 'tool') return Cpu
+  }
+  
+  // Default
+  return Settings
 }
 
 const getHandleType = (connectionType: string) => {
@@ -1059,8 +1381,8 @@ onMounted(async () => {
 
 /* ===== TOOL NODES (n8n Style Circular) ===== */
 :deep(.premium-tool-node) {
-  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
-  border: 2px solid rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   width: 90px;
   height: 90px;
@@ -1071,12 +1393,12 @@ onMounted(async () => {
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 :deep(.premium-tool-node:hover) {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 :deep(.premium-tool-active) {
@@ -1085,7 +1407,6 @@ onMounted(async () => {
 
 :deep(.premium-tool-icon) {
   color: white;
-  margin-bottom: 4px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
@@ -1113,47 +1434,74 @@ onMounted(async () => {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* ===== PREMIUM TRIGGER NODES ===== */
+/* ===== TRIGGER NODES (Exact n8n Style) ===== */
 :deep(.premium-trigger-node) {
-  background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-  border: 2px solid rgba(255, 154, 158, 0.3);
-  border-radius: 16px;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px 12px 12px 50px; /* Left side fully rounded, right side square */
   width: 100px;
   height: 80px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(255, 154, 158, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 :deep(.premium-trigger-node:hover) {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 8px 32px rgba(255, 154, 158, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 :deep(.premium-trigger-active) {
-  animation: triggerPulse 1.5s ease-in-out infinite;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+:deep(.premium-trigger-inactive) {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 :deep(.premium-trigger-icon) {
-  color: #d63384;
-  margin-bottom: 6px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  color: white;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Lightning bolt indicator (top-left corner) */
+:deep(.premium-trigger-node::before) {
+  content: "⚡";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  font-size: 12px;
+  width: 16px;
+  height: 16px;
+  background: #f59e0b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.premium-trigger-content) {
-  text-align: center;
+  text-align: left;
+  flex: 1;
+  overflow: hidden;
 }
 
 :deep(.premium-trigger-name) {
   font-size: 10px;
-  font-weight: 600;
-  color: #d63384;
-  margin-bottom: 2px;
+  font-weight: 500;
+  color: #e0e0e0;
+  margin-bottom: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 :deep(.premium-trigger-badge) {
@@ -1166,40 +1514,44 @@ onMounted(async () => {
   border: 1px solid rgba(214, 51, 132, 0.2);
 }
 
-/* ===== PREMIUM STORAGE NODES (Rectangular) ===== */
+/* ===== STORAGE NODES (Exact n8n Style - Pill Shape) ===== */
 :deep(.premium-storage-node) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: 2px solid rgba(102, 126, 234, 0.3);
-  border-radius: 12px;
-  width: 140px;
-  height: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 30px !important; /* Perfect pill shape - half of height */
+  width: 180px !important;
+  height: 60px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  padding: 0 20px !important;
 }
 
 :deep(.premium-storage-node:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 :deep(.premium-storage-icon) {
   color: white;
-  margin-bottom: 4px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  margin-right: 12px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  flex-shrink: 0;
 }
 
 :deep(.premium-storage-name) {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 :deep(.premium-storage-badge) {
@@ -1214,24 +1566,23 @@ onMounted(async () => {
 
 /* ===== PREMIUM PROCESS NODES ===== */
 :deep(.premium-process-node) {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-  border: 2px solid rgba(252, 182, 159, 0.3);
-  border-radius: 14px;
-  width: 100px;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px; /* Square corners */
+  width: 80px;
   height: 80px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(252, 182, 159, 0.2);
+  box-shadow: 0 4px 16px rgba(74, 85, 104, 0.2);
 }
 
 :deep(.premium-process-node:hover) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(252, 182, 159, 0.3);
+  box-shadow: 0 8px 24px rgba(74, 85, 104, 0.4);
 }
 
 :deep(.premium-process-active) {
@@ -1240,25 +1591,11 @@ onMounted(async () => {
 }
 
 :deep(.premium-process-icon) {
-  color: #e67e22;
-  margin-bottom: 6px;
+  color: #e2e8f0; /* Light gray icon */
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
-:deep(.premium-process-name) {
-  font-size: 10px;
-  font-weight: 600;
-  color: #e67e22;
-  text-align: center;
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-
-:deep(.premium-process-connections) {
-  font-size: 8px;
-  color: #e67e22;
-  opacity: 0.8;
-}
+/* Process node names and connections are now handled by external labels */
 
 /* ===== PREMIUM HANDLES (Enhanced Visibility) ===== */
 
@@ -1322,12 +1659,13 @@ onMounted(async () => {
 }
 
 :deep(.premium-handle-trigger) {
-  width: 10px !important;
-  height: 10px !important;
-  background: #ff9a9e !important;
-  border: 2px solid white !important;
+  width: 6px !important;
+  height: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: 0 2px 6px rgba(255, 154, 158, 0.4) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  opacity: 1 !important;
 }
 
 :deep(.premium-handle-tool) {
@@ -1379,12 +1717,7 @@ onMounted(async () => {
   opacity: 0 !important;
 }
 
-:deep(.premium-handle-trigger) {
-  opacity: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
+/* Trigger handles are now visible */
 
 /* ===== ANIMATIONS ===== */
 @keyframes aiPulse {
@@ -1474,5 +1807,34 @@ onMounted(async () => {
 :deep(.premium-storage-node:hover .vue-flow__handle),
 :deep(.premium-process-node:hover .vue-flow__handle) {
   opacity: 0 !important;
+}
+
+/* ===== NODE WRAPPER & EXTERNAL LABELS (n8n Style) ===== */
+:deep(.premium-node-wrapper) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  width: fit-content;
+  height: fit-content;
+}
+
+:deep(.premium-external-label) {
+  font-size: 10px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  margin-top: 6px;
+  padding: 2px 6px;
+  max-width: 80px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 </style>
