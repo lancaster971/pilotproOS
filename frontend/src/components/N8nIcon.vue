@@ -42,46 +42,35 @@ const fallbackIcon = computed(() => {
 })
 
 const loadIcon = async () => {
-  if (!props.nodeType) {
-    console.log('❌ [DEBUG] No nodeType provided to N8nIcon!')
+  if (!props.nodeType || props.nodeType === 'undefined' || props.nodeType === 'null') {
+    svgContent.value = ''
     return
   }
   
   try {
-    console.log('🎨 [DEBUG] Loading n8n icon for:', props.nodeType)
-    // MEGA cache-buster per forzare reload di tutti i fallback
-    const cacheBuster = Date.now() + Math.random()
-    const url = `http://localhost:3001/api/n8n-icons/${encodeURIComponent(props.nodeType)}?v=${cacheBuster}`
-    console.log('🌐 [DEBUG] Fetching URL:', url)
+    const url = `http://localhost:3001/api/n8n-icons/${encodeURIComponent(props.nodeType)}`
     
     const response = await fetch(url, {
       cache: 'no-cache'
     })
     
-    console.log('📡 [DEBUG] Response status:', response.status, 'for:', props.nodeType)
-    
     if (response.ok) {
       const svg = await response.text()
-      // Verifica che sia effettivamente un SVG e non un errore JSON
+      
       if (svg.includes('<svg')) {
         svgContent.value = svg
-        console.log('✅ Loaded n8n icon for:', props.nodeType)
       } else {
-        console.log('⚠️ Response not SVG, using fallback for:', props.nodeType, 'Response:', svg.substring(0, 100))
         svgContent.value = ''
       }
     } else {
-      console.log('❌ N8n icon request failed:', response.status, 'for:', props.nodeType)
       svgContent.value = ''
     }
   } catch (error) {
-    console.error('❌ Error loading n8n icon:', error)
     svgContent.value = ''
   }
 }
 
 onMounted(() => {
-  console.log('🚀 [DEBUG] N8nIcon mounted with nodeType:', props.nodeType)
   loadIcon()
 })
 
@@ -92,15 +81,22 @@ watch(() => props.nodeType, () => {
 
 <style scoped>
 .n8n-icon {
-  /* Rimuovo sfondo bianco, lo gestirà il nodo stesso */
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .n8n-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
   display: block;
 }
 
@@ -108,5 +104,18 @@ watch(() => props.nodeType, () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.n8n-icon-fallback :deep(svg) {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
 }
 </style>

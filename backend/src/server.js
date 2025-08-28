@@ -123,13 +123,67 @@ app.use(rateLimit({
 // N8N ICON SYSTEM - CATEGORY-BASED WITH FALLBACKS 
 // ============================================================================
 
-// Serve n8n SVG icons - CATEGORY-BASED CONSISTENCY
+// OPTIMIZED ICON SYSTEM - Definitive mapping FIRST, category fallback SECOND
+import { iconMapping, getIconPath } from './data/icon-mapping.js';
+
 app.get('/api/n8n-icons/:nodeType', async (req, res) => {
   try {
     const { nodeType } = req.params;
-    console.log('🎨 Fetching category-based icon for:', nodeType);
+    console.log('🎨 OPTIMIZED ICON REQUEST for:', nodeType);
     
-    // STRATEGIA: Icone per CATEGORIA (consistency first!)
+    // STRATEGIA OTTIMIZZATA: Prima mapping definitivo, poi categoria
+    const iconBasePath = '/app/n8n-icons'; // Percorso assoluto del container Docker
+    
+    // Step 1: Usa mapping definitivo (VELOCE - niente ricerca filesystem)
+    const tryMappedIcon = async (nodeType) => {
+      const iconPath = getIconPath(nodeType);
+      
+      if (iconPath) {
+        try {
+          if (fs.existsSync(iconPath)) {
+            const svgContent = fs.readFileSync(iconPath, 'utf8');
+            return svgContent;
+          } else {
+            console.warn(`⚠️ Mapped icon not found at: ${iconPath}`);
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error reading mapped icon: ${err.message}`);
+        }
+      }
+      
+      return null;
+    };
+    
+    // Step 2: Fallback - ricerca a tentativi (LENTA - solo se mapping non funziona)
+    const tryRealN8nIcon = async (nodeType) => {
+      const possiblePaths = [
+        // Direct filename match
+        path.join(iconBasePath, `${nodeType}.svg`),
+        path.join(iconBasePath, `n8n-nodes-base.${nodeType}.svg`),
+        path.join(iconBasePath, `_${nodeType}.svg`),
+        path.join(iconBasePath, `@${nodeType}.svg`),
+        // Search in base-nodes directory
+        path.join(iconBasePath, 'base-nodes', nodeType, `${nodeType}.svg`),
+        path.join(iconBasePath, 'base-nodes', nodeType.charAt(0).toUpperCase() + nodeType.slice(1), `${nodeType.toLowerCase()}.svg`),
+        // Common service patterns
+        path.join(iconBasePath, 'base-nodes', nodeType.charAt(0).toUpperCase() + nodeType.slice(1), `${nodeType}.svg`)
+      ];
+      
+      for (const iconPath of possiblePaths) {
+        try {
+          if (fs.existsSync(iconPath)) {
+            const svgContent = fs.readFileSync(iconPath, 'utf8');
+            return svgContent;
+          }
+        } catch (err) {
+          // Continue to next path
+        }
+      }
+      
+      return null;
+    };
+    
+    // Step 2: Category fallback system (consistency guarantee)
     const getCategoryIcon = (nodeType) => {
       const type = nodeType.toLowerCase();
       
@@ -188,15 +242,37 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
       return `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#9CA3AF"/><circle cx="20" cy="20" r="8" stroke="white" stroke-width="2" fill="none"/><circle cx="20" cy="20" r="2" fill="white"/><path d="M20 8V12M32 20H28M20 32V28M8 20H12" stroke="white" stroke-width="1.5"/></svg>`;
     };
     
-    const svg = getCategoryIcon(nodeType);
-    console.log('✅ Serving category-based icon for:', nodeType);
+    // EXECUTION: Prima mapping, poi ricerca, poi fallback categoria
     
+    // Step 1: Try definitive mapping (FAST)
+    let iconContent = await tryMappedIcon(nodeType);
+    
+    if (iconContent) {
+      console.log('🎯 Serving MAPPED icon for:', nodeType);
+      res.set('Content-Type', 'image/svg+xml');
+      res.set('Cache-Control', 'public, max-age=3600'); // Cache mapped icons
+      return res.send(iconContent);
+    }
+    
+    // Step 2: Try filesystem search (SLOW)
+    iconContent = await tryRealN8nIcon(nodeType);
+    
+    if (iconContent) {
+      console.log('🔍 Serving FOUND icon for:', nodeType);
+      res.set('Content-Type', 'image/svg+xml');
+      res.set('Cache-Control', 'public, max-age=3600'); // Cache found icons
+      return res.send(iconContent);
+    }
+    
+    // Step 3: Category fallback (CONSISTENT)
+    console.log('⚠️ Category fallback for:', nodeType);
+    const categoryIcon = getCategoryIcon(nodeType);
     res.set('Content-Type', 'image/svg+xml');
-    res.set('Cache-Control', 'no-cache');
-    return res.send(svg);
+    res.set('Cache-Control', 'public, max-age=1800'); // Cache category icons less
+    return res.send(categoryIcon);
     
   } catch (error) {
-    console.error('❌ Error serving category icon:', error);
+    console.error('❌ Error in hybrid icon system:', error);
     res.status(500).json({ error: 'Failed to serve icon' });
   }
 });

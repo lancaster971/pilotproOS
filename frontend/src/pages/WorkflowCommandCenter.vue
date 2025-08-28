@@ -314,7 +314,6 @@
                   <!-- AI Content -->
                   <div class="premium-ai-content">
                     <div class="premium-ai-name">{{ data.label }}</div>
-                    <div class="premium-ai-badge">AI AGENT</div>
                     <div v-if="data.outputs?.length > 1" class="premium-ai-connections">
                       {{ data.outputs.length }} outputs
                     </div>
@@ -822,7 +821,11 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
         label: step.stepName,
         status: workflowMetadata.is_active ? 'success' : 'inactive',
         type: getNodeTypeFromN8nType(step.nodeType, step.stepName),
-        nodeType: step.nodeType, // Add nodeType for icon selection
+        nodeType: (() => {
+          const nodeType = step.nodeType || 'unknown-node'
+          console.log(`🔍 Node "${step.stepName}" → nodeType: "${nodeType}"`)
+          return nodeType
+        })(),
         inputs: connections.inputs.length > 0 ? connections.inputs : ['main'],
         outputs: connections.outputs.length > 0 ? connections.outputs : ['main']
       }
@@ -903,7 +906,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       animated: workflowMetadata.is_active && isMainConnection,
       style: { 
         stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6', 
-        strokeWidth: isMainConnection ? 3 : 2,
+        strokeWidth: 1,
         strokeDasharray: isMainConnection ? 'none' : '8 4',
         opacity: isMainConnection ? 1 : 0.8
       },
@@ -960,7 +963,7 @@ const createEnhancedFlow = (workflow: any) => {
       target: steps[i + 1],
       type: 'straight',
       animated: workflow.is_active,
-      style: { stroke: '#10b981', strokeWidth: 2 },
+      style: { stroke: '#10b981', strokeWidth: 1 },
       sourceHandle: 'right',
       targetHandle: 'left'
     })
@@ -1215,6 +1218,26 @@ const getNodeType = (nodeName: string, businessCategory: string) => {
 const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
   console.log('🔍 [DEBUG] getN8nIconProps called with:', { nodeType, nodeName })
   
+  // Handle undefined/empty nodeType
+  if (!nodeType || nodeType === 'undefined' || nodeType === 'null') {
+    console.warn('⚠️ [DEBUG] Empty or undefined nodeType detected! NodeName:', nodeName)
+    return {
+      nodeType: '',
+      fallback: 'Settings',
+      size: 'w-5 h-5'
+    }
+  }
+  
+  // FORCE FIX for SET nodes
+  if (nodeType === 'n8n-nodes-base.set') {
+    console.log('🔧 [FORCE FIX] Detected SET node, ensuring proper props')
+    return {
+      nodeType: 'n8n-nodes-base.set',
+      fallback: 'Database', // Strong fallback icon
+      size: 'w-5 h-5'
+    }
+  }
+  
   // Return object with nodeType and fallback icon
   const props = {
     nodeType: nodeType,
@@ -1301,8 +1324,8 @@ onMounted(async () => {
 
 /* ===== AGENT NODES (n8n Style Rectangular) ===== */
 :deep(.premium-ai-node) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: 2px solid rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 2px solid rgba(74, 85, 104, 0.4);
   border-radius: 8px;
   width: 180px;
   height: 100px;
@@ -1322,8 +1345,8 @@ onMounted(async () => {
 :deep(.premium-ai-node:hover) {
   transform: translateY(-4px) rotateX(5deg);
   box-shadow: 
-    0 16px 48px rgba(102, 126, 234, 0.4),
-    0 0 24px rgba(118, 75, 162, 0.3),
+    0 16px 48px rgba(74, 85, 104, 0.4),
+    0 0 24px rgba(45, 55, 72, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -1764,7 +1787,7 @@ onMounted(async () => {
 
 :deep(.main-edge .vue-flow__edge-path) {
   stroke: #10b981 !important;
-  stroke-width: 3px !important;
+  stroke-width: 1px !important;
   opacity: 1 !important;
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
@@ -1777,6 +1800,7 @@ onMounted(async () => {
 
 :deep(.secondary-edge .vue-flow__edge-path) {
   stroke-dasharray: 8 4 !important;
+  stroke-width: 1px !important;
   opacity: 0.8 !important;
   transition: all 0.3s ease !important;
   stroke-linecap: round !important;
@@ -1785,7 +1809,7 @@ onMounted(async () => {
 
 :deep(.secondary-edge:hover .vue-flow__edge-path) {
   opacity: 1 !important;
-  stroke-width: 3px !important;
+  stroke-width: 1px !important;
 }
 
 /* Smooth bezier curves for all edges (like n8n) */
@@ -1821,20 +1845,18 @@ onMounted(async () => {
 }
 
 :deep(.premium-external-label) {
-  font-size: 10px;
-  font-weight: 600;
-  color: #374151;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
   text-align: center;
   margin-top: 6px;
-  padding: 2px 6px;
-  max-width: 80px;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding: 4px 8px;
+  max-width: 140px;
+  line-height: 1.3;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background: none;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 </style>

@@ -118,6 +118,21 @@ const router = useRouter()
 // Local state
 const showUserMenu = ref(false)
 const sidebarCollapsed = ref(true) // Start collapsed by default
+const isMobile = ref(false)
+
+// Check if mobile
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 1024
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
 
 // Navigation items - streamlined
 const navigationItems = [
