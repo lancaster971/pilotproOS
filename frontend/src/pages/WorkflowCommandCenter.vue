@@ -662,7 +662,6 @@ const flowElements = ref([])
 const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
 
 // Computed
-console.log('🚀 WorkflowCommandCenter component initialized')
 const totalWorkflows = computed(() => realWorkflows.value.length)
 const activeWorkflows = computed(() => realWorkflows.value.filter(w => w.is_active).length)
 const flowNodes = computed(() => flowElements.value.filter(el => !el.source))
@@ -670,47 +669,9 @@ const flowEdges = computed(() => {
   return flowElements.value.filter(el => el.source)
 })
 
-// Track which handles are connected
-const connectedHandles = computed(() => {
-  const connected = new Set<string>()
-  
-  flowEdges.value.forEach((edge: any) => {
-    if (edge.sourceHandle && edge.source) {
-      connected.add(`${edge.source}-${edge.sourceHandle}`)
-    }
-    if (edge.targetHandle && edge.target) {
-      connected.add(`${edge.target}-${edge.targetHandle}`)
-    }
-  })
-  
-  console.log('✅ Connected handles:', connected.size)
-  return connected
-})
-
-// Debug counter to limit logs
-let debugCounter = 0
-let handleDebugCounter = 0
-
-// Test function to see if template binding works at all
-const testFunction = (nodeId: string, handleId: string) => {
-  console.log(`🧪 TEST FUNCTION CALLED with nodeId: "${nodeId}", handleId: "${handleId}"`)
-  return true // Always return true for testing
-}
-
 // Helper function to check if a handle is connected  
 const isHandleConnected = (nodeId: string, handleId: string) => {
-  const key = `${nodeId}-${handleId}`
-  const isConnected = connectedHandles.value.has(key)
-  
-  // Debug first few to see the exact problem
-  if (handleDebugCounter < 3) {
-    console.log(`🔍 Searching for: "${key}"`)
-    console.log(`🔍 Connected handles:`, Array.from(connectedHandles.value))
-    console.log(`🔍 Match found: ${isConnected}`)
-    handleDebugCounter++
-  }
-  
-  return isConnected
+  return false // Always return false - hiding all handles as requested
 }
 
 // KPI Stats (REAL DATA FROM ANALYTICS API)
@@ -1231,17 +1192,13 @@ const isToolNode = (nodeName: string) => {
 }
 
 const getNodeTypeFromN8nType = (n8nType: string, nodeName: string) => {
-  console.log(`🚨 CLASSIFYING: "${nodeName}" | Type: "${n8nType}"`)
-  
   // 1. AI Agent LangChain → RETTANGOLO
   if (n8nType === '@n8n/n8n-nodes-langchain.agent') {
-    console.log(`✅ AI AGENT: ${nodeName}`)
     return 'ai'
   }
   
   // 2. Vector Store → PILLOLA (storage CSS class)
   if (n8nType.includes('vectorstore') || n8nType.includes('vectorStore')) {
-    console.log(`✅ VECTOR STORE (PILLOLA): ${nodeName}`)
     return 'storage'
   }
   
@@ -1249,63 +1206,50 @@ const getNodeTypeFromN8nType = (n8nType: string, nodeName: string) => {
   if (n8nType.includes('@n8n/n8n-nodes-langchain.')) {
     // Escludi vector store (che sono pillole)
     if (!n8nType.includes('vectorstore') && !n8nType.includes('agent')) {
-      console.log(`✅ LANGCHAIN TOOL (CERCHIO): ${nodeName}`)
       return 'tool'
     }
   }
   
   // 4. Trigger → QUADRATO con lato sx tondo smussato
   if (n8nType.includes('Trigger')) {
-    console.log(`✅ TRIGGER: ${nodeName}`)
     return 'trigger'
   }
   
   // 5. Storage normale (Supabase, Database, etc.) → QUADRATO normale
   if (n8nType.includes('supabase') || n8nType.includes('database') || n8nType.includes('storage')) {
-    console.log(`✅ STORAGE (QUADRATO): ${nodeName}`)
     return 'process'  // Quadrato normale
   }
   
   // 6. TUTTO IL RESTO → QUADRATO normale
-  console.log(`✅ PROCESS (QUADRATO): ${nodeName}`)
   return 'process'
 }
 
 // Keep old function for fallback when n8n type not available
 const getNodeType = (nodeName: string, businessCategory: string) => {
-  console.log(`🔍 Node: "${nodeName}" | Category: "${businessCategory}"`)
-  
   // Special case: AI Agent nodes are always 'ai'  
   if (nodeName.toLowerCase().includes('agent') || nodeName.toLowerCase().includes('assistente')) {
-    console.log(`✅ ${nodeName} → AI (agent)`)
     return 'ai'
   }
   
   // Check if it's a trigger first (takes precedence)
   if (isScheduleTrigger(nodeName)) {
-    console.log(`🔴 ${nodeName} → TRIGGER (should be rounded rectangle)`)
     return 'trigger'
   }
   
   // Check if it's a tool first (takes precedence over business category)
   if (isToolNode(nodeName)) {
-    console.log(`🟣 ${nodeName} → TOOL (should be circular)`)
     return 'tool'
   }
   
   // Default to business category mapping
   const categoryType = getBusinessTypeFromCategory(businessCategory)
-  console.log(`📦 ${nodeName} → ${categoryType} (from category)`)
   return categoryType
 }
 
 // Get n8n icon component props for a node type
 const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
-  console.log('🔍 [DEBUG] getN8nIconProps called with:', { nodeType, nodeName })
-  
   // Handle undefined/empty nodeType
   if (!nodeType || nodeType === 'undefined' || nodeType === 'null') {
-    console.warn('⚠️ [DEBUG] Empty or undefined nodeType detected! NodeName:', nodeName)
     return {
       nodeType: '',
       fallback: 'Settings',
@@ -1315,7 +1259,6 @@ const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
   
   // FORCE FIX for SET nodes
   if (nodeType === 'n8n-nodes-base.set') {
-    console.log('🔧 [FORCE FIX] Detected SET node, ensuring proper props')
     return {
       nodeType: 'n8n-nodes-base.set',
       fallback: 'Database', // Strong fallback icon
