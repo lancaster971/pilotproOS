@@ -272,7 +272,7 @@
                     type="target" 
                     :position="Position.Left" 
                     :style="{ top: '50%', transform: 'translateY(-50%)' }"
-                    class="premium-handle-ai-main"
+                    :class="`premium-handle-ai-main ${isHandleConnected(data.id, 'input-' + index) ? 'handle-connected' : 'handle-disconnected'}`"
                     :title="`Main Input: ${input}`"
                   />
                   
@@ -284,7 +284,10 @@
                     type="source" 
                     :position="Position.Right" 
                     :style="{ top: '50%', transform: 'translateY(-50%)' }"
-                    class="premium-handle-ai-main"
+                    :class="[
+                      'premium-handle-ai-main',
+                      isHandleConnected(data.id, 'output-' + index) ? 'handle-connected' : 'handle-disconnected'
+                    ]"
                     :title="`Main Output: ${output}`"
                   />
                   
@@ -301,7 +304,10 @@
                         '50%',
                       transform: 'translateX(-50%)'
                     }"
-                    class="premium-handle-ai-tool"
+                    :class="[
+                      'premium-handle-ai-tool',
+                      isHandleConnected(data.id, 'tool-' + index) ? 'handle-connected' : 'handle-disconnected'
+                    ]"
                     :title="`AI Tool: ${nonMainConnection}`"
                   />
                   
@@ -348,7 +354,10 @@
                         top: data.outputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
                         transform: 'translateY(-50%)'
                       }"
-                      class="premium-handle-trigger" 
+                      :class="[
+                        'premium-handle-trigger',
+                        isHandleConnected(data.id, 'output-' + index) ? 'handle-connected' : 'handle-disconnected'
+                      ]"
                     />
                     
                     <!-- Center icon only -->
@@ -382,7 +391,10 @@
                       type="target" 
                       :position="Position.Bottom" 
                       :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                      class="premium-handle-tool-bottom" 
+                      :class="[
+                        'premium-handle-tool-bottom',
+                        isHandleConnected(data.id, 'input-' + index) ? 'handle-connected' : 'handle-disconnected'
+                      ]"
                     />
                     
                     <Handle 
@@ -392,7 +404,10 @@
                       type="source" 
                       :position="Position.Top" 
                       :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                      class="premium-handle-tool-top" 
+                      :class="[
+                        'premium-handle-tool-top',
+                        isHandleConnected(data.id, 'output-' + index) ? 'handle-connected' : 'handle-disconnected'
+                      ]"
                     />
                     
                     <!-- Center icon only -->
@@ -415,26 +430,35 @@
                     data.status === 'success' ? 'premium-storage-active' : 'premium-storage-inactive'
                   ]"
                 >
-                  <!-- Handles top and bottom like n8n -->
+                  <!-- Main input from top (for agent connections) -->
                   <Handle 
-                    v-for="(input, index) in data.inputs || ['main']"
+                    v-for="(input, index) in (data.inputs || ['main']).filter(i => i === 'main')"
                     :key="'input-' + index"
                     :id="'input-' + index" 
                     type="target" 
                     :position="Position.Top" 
                     :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                    class="premium-handle-storage" 
+                    :class="[
+                      'premium-handle-storage',
+                      isHandleConnected(data.id, 'input-' + index) ? 'handle-connected' : 'handle-disconnected'
+                    ]"
                   />
                   
+                  <!-- Tool input from bottom (for embeddings connections) -->
                   <Handle 
-                    v-for="(output, index) in data.outputs || ['main']"
-                    :key="'output-' + index"
-                    :id="'output-' + index" 
-                    type="source" 
+                    v-for="(input, index) in (data.inputs || []).filter(i => i !== 'main')"
+                    :key="'tool-input-' + index"
+                    :id="'tool-' + index" 
+                    type="target" 
                     :position="Position.Bottom" 
                     :style="{ left: '50%', transform: 'translateX(-50%)' }"
-                    class="premium-handle-storage" 
+                    :class="[
+                      'premium-handle-storage',
+                      isHandleConnected(data.id, 'tool-' + index) ? 'handle-connected' : 'handle-disconnected'
+                    ]"
                   />
+                  
+                  <!-- Vector stores have no output handles - they are storage endpoints -->
                   
                   <!-- Horizontal layout: icon + text -->
                   <div class="premium-storage-icon">
@@ -465,7 +489,7 @@
                         top: data.inputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
                         transform: 'translateY(-50%)'
                       }"
-                      class="premium-handle-process" 
+                      :class="`premium-handle-process handle-disconnected`"
                     />
                     
                     <!-- Right-side output handles -->
@@ -479,7 +503,7 @@
                         top: data.outputs?.length > 1 ? `${15 + (index * 20)}px` : '50%',
                         transform: 'translateY(-50%)'
                       }"
-                      class="premium-handle-process" 
+                      :class="`premium-handle-process handle-disconnected`"
                     />
                     
                     <!-- Only icon inside the square node -->
@@ -638,10 +662,56 @@ const flowElements = ref([])
 const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
 
 // Computed
+console.log('🚀 WorkflowCommandCenter component initialized')
 const totalWorkflows = computed(() => realWorkflows.value.length)
 const activeWorkflows = computed(() => realWorkflows.value.filter(w => w.is_active).length)
 const flowNodes = computed(() => flowElements.value.filter(el => !el.source))
-const flowEdges = computed(() => flowElements.value.filter(el => el.source))
+const flowEdges = computed(() => {
+  return flowElements.value.filter(el => el.source)
+})
+
+// Track which handles are connected
+const connectedHandles = computed(() => {
+  const connected = new Set<string>()
+  
+  flowEdges.value.forEach((edge: any) => {
+    if (edge.sourceHandle && edge.source) {
+      connected.add(`${edge.source}-${edge.sourceHandle}`)
+    }
+    if (edge.targetHandle && edge.target) {
+      connected.add(`${edge.target}-${edge.targetHandle}`)
+    }
+  })
+  
+  console.log('✅ Connected handles:', connected.size)
+  return connected
+})
+
+// Debug counter to limit logs
+let debugCounter = 0
+let handleDebugCounter = 0
+
+// Test function to see if template binding works at all
+const testFunction = (nodeId: string, handleId: string) => {
+  console.log(`🧪 TEST FUNCTION CALLED with nodeId: "${nodeId}", handleId: "${handleId}"`)
+  return true // Always return true for testing
+}
+
+// Helper function to check if a handle is connected  
+const isHandleConnected = (nodeId: string, handleId: string) => {
+  const key = `${nodeId}-${handleId}`
+  const isConnected = connectedHandles.value.has(key)
+  
+  // Debug first few to see the exact problem
+  if (handleDebugCounter < 3) {
+    console.log(`🔍 Searching for: "${key}"`)
+    console.log(`🔍 Connected handles:`, Array.from(connectedHandles.value))
+    console.log(`🔍 Match found: ${isConnected}`)
+    handleDebugCounter++
+  }
+  
+  return isConnected
+}
 
 // KPI Stats (REAL DATA FROM ANALYTICS API)
 const totalExecutions = computed(() => {
@@ -820,7 +890,11 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       data: {
         label: step.stepName,
         status: workflowMetadata.is_active ? 'success' : 'inactive',
-        type: getNodeTypeFromN8nType(step.nodeType, step.stepName),
+        type: (() => {
+          const nodeType = getNodeTypeFromN8nType(step.nodeType, step.stepName)
+          console.log(`🎯 Node "${step.stepName}" → data.type: "${nodeType}"`)
+          return nodeType
+        })(),
         nodeType: (() => {
           const nodeType = step.nodeType || 'unknown-node'
           console.log(`🔍 Node "${step.stepName}" → nodeType: "${nodeType}"`)
@@ -860,7 +934,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       if (isMainConnection) {
         sourceHandle = 'output-0'  // Right side
       } else {
-        // Use distributed handles for AI tools - calculate index based on all AI connections
+        // Use distributed handles for AI tools - always from bottom
         const sourceConnections = nodeConnections.get(flow.from) || { inputs: [], outputs: [] }
         const allAIConnections = [...sourceConnections.inputs.filter(i => i !== 'main'), ...sourceConnections.outputs.filter(o => o !== 'main')]
         const connectionIndex = allAIConnections.findIndex(conn => conn === flow.type)
@@ -873,8 +947,17 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
     
     // Target handles based on connection type and node type
     if (targetNodeType === 'storage') {
-      // Storage nodes: Top input for all connections
-      targetHandle = 'input-0'
+      // Storage nodes: Agent connections to top, embeddings connections to bottom
+      if (sourceNodeType === 'ai' && !isMainConnection) {
+        // AI tool connections go to top (agent input)
+        targetHandle = 'input-0'  // Top for agent connections
+      } else if (sourceNodeType === 'tool' || flow.from.toLowerCase().includes('embedding')) {
+        // Embeddings and tool nodes go to bottom
+        targetHandle = 'tool-0'  // Bottom for embeddings connections
+      } else {
+        // Main connections and others go to top
+        targetHandle = 'input-0'  // Top for main connections
+      }
     } else if (targetNodeType === 'tool') {
       // Tool nodes: Top input for all connections
       targetHandle = 'input-0'
@@ -916,10 +999,12 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
     }
   })
   
-  console.log('✅ Created nodes with handles:', nodes.map(n => `${n.data.label}: inputs=${JSON.stringify(n.data.inputs)} outputs=${JSON.stringify(n.data.outputs)}`))
+  console.log('✅ Created nodes with handles:', nodes.map(n => `ID:${n.id} Label:${n.data.label} inputs=${JSON.stringify(n.data.inputs)} outputs=${JSON.stringify(n.data.outputs)}`))
   console.log('🔗 Created edges:', edges.map(e => `${e.source}->${e.target} (${e.sourceHandle}->${e.targetHandle})`))
+  console.log('🔢 Nodes count:', nodes.length, 'Edges count:', edges.length)
   
   flowElements.value = [...nodes, ...edges]
+  console.log('🎯 FlowElements final:', flowElements.value.length, 'elements')
   
   // Auto-fit after loading
   setTimeout(() => {
@@ -1622,42 +1707,42 @@ onMounted(async () => {
 
 /* ===== PREMIUM HANDLES (Enhanced Visibility) ===== */
 
-/* Main flow handles (left/right) - INVISIBLE */
+/* Main flow handles (left/right) - VISIBLE */
 :deep(.premium-handle-ai-main) {
-  width: 14px !important;
-  height: 14px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   transition: all 0.3s ease !important;
-  opacity: 0 !important;
+  opacity: 1 !important;
   z-index: 10 !important;
 }
 
 :deep(.premium-handle-ai-main:hover) {
-  opacity: 0 !important;
-  transform: none !important;
-  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* AI Tool handles (bottom) - INVISIBLE */
+/* AI Tool handles (bottom) - VISIBLE */
 :deep(.premium-handle-ai-tool) {
-  width: 12px !important;
-  height: 12px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #a855f7 !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   transition: all 0.3s ease !important;
-  opacity: 0 !important;
+  opacity: 1 !important;
   z-index: 10 !important;
 }
 
 :deep(.premium-handle-ai-tool:hover) {
-  opacity: 0 !important;
-  transform: none !important;
-  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(168, 85, 247, 0.4) !important;
 }
 
 /* Handle type-specific colors */
@@ -1702,45 +1787,86 @@ onMounted(async () => {
 }
 
 :deep(.premium-handle-tool-top) {
-  width: 14px !important;
-  height: 14px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   transition: all 0.3s ease !important;
-  opacity: 0 !important; /* Completely invisible */
+  opacity: 1 !important;
   z-index: 15 !important;
   top: -7px !important;
 }
 
 :deep(.premium-handle-tool-top:hover) {
-  opacity: 0 !important; /* Stay invisible even on hover */
-  transform: translateX(-50%) !important;
-  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: translateX(-50%) scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+:deep(.premium-handle-tool-bottom) {
+  width: 8px !important;
+  height: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(200, 200, 200, 0.8) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+  z-index: 15 !important;
+}
+
+:deep(.premium-handle-tool-bottom:hover) {
+  opacity: 1 !important;
+  transform: translateX(-50%) scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 :deep(.premium-handle-storage) {
-  width: 10px !important;
-  height: 10px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #3b82f6 !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: none !important;
-  opacity: 0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+}
+
+:deep(.premium-handle-storage:hover) {
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4) !important;
 }
 
 :deep(.premium-handle-process) {
-  width: 10px !important;
-  height: 10px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+}
+
+:deep(.premium-handle-process:hover) {
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Handle visibility: show only connected handles */
+:deep(.handle-connected) {
+  opacity: 1 !important;
+}
+
+:deep(.handle-disconnected) {
   opacity: 0 !important;
 }
 
-/* Trigger handles are now visible */
+/* All handles with connection point indicators */
 
 /* ===== ANIMATIONS ===== */
 @keyframes aiPulse {
