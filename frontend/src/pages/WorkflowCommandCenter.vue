@@ -541,7 +541,7 @@
         @close="closeDetailModal"
       />
 
-      <AgentDetailModal
+      <TimelineModal
         v-if="selectedWorkflowId && showTimelineModal"
         :workflow-id="selectedWorkflowId"
         :tenant-id="tenantId"
@@ -549,67 +549,104 @@
         @close="closeTimelineModal"
       />
 
-      <!-- Executions Modal -->
-      <div 
-        v-if="showExecutionsModal && selectedWorkflowForModal"
-        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        @click.self="closeExecutionsModal"
+      <!-- Executions Modal - Using DetailModal with Real API -->
+      <DetailModal
+        v-if="selectedWorkflowForModal"
+        :show="showExecutionsModal"
+        :title="`Process Executions: ${selectedWorkflowForModal.process_name}`"
+        :subtitle="`ID: ${selectedWorkflowForModal.id}`"
+        :header-icon="Play"
+        :tabs="executionTabs"
+        default-tab="executions"
+        :is-loading="isLoadingExecutions"
+        :error="executionsError"
+        :data="executionData"
+        @close="closeExecutionsModal"
+        @refresh="loadExecutionData"
+        @retry="loadExecutionData"
       >
-        <div class="control-card w-full max-w-4xl max-h-[80vh] overflow-hidden">
-          <!-- Modal Header -->
-          <div class="bg-surface/30 border-b border-border px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-text">Workflow Executions</h2>
-              <p class="text-sm text-text-muted mt-1">{{ selectedWorkflowForModal.process_name }}</p>
-            </div>
-            <button 
-              @click="closeExecutionsModal"
-              class="text-text-muted hover:text-text p-2 rounded-lg hover:bg-surface-hover transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <!-- Modal Content -->
-          <div class="p-6 overflow-y-auto max-h-[60vh]">
-            <!-- Executions List Placeholder -->
-            <div class="text-center py-8">
-              <GitBranch class="w-16 h-16 text-text-muted mx-auto mb-4" />
-              <h3 class="text-base font-semibold text-text mb-2">Workflow Executions</h3>
-              <p class="text-text-muted mb-4">
-                Executions filtered for workflow: <span class="font-mono text-sm">{{ selectedWorkflowForModal.id }}</span>
-              </p>
-              <div class="bg-surface/50 border border-border rounded-lg p-4 text-left">
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span class="text-text-muted">Total Executions:</span>
-                    <span class="text-text font-semibold ml-2">{{ selectedWorkflowForModal.executions_today }}</span>
+        <template #executions="{ data }">
+          <div class="p-6">
+            <div class="control-card p-6">
+              <h3 class="text-lg font-semibold text-text mb-4">Recent Executions</h3>
+              
+              <div v-if="data?.executions?.length > 0" class="space-y-3">
+                <div 
+                  v-for="(exec, index) in data.executions" 
+                  :key="exec.id || index"
+                  class="flex items-center justify-between p-4 bg-surface rounded-lg border border-border"
+                >
+                  <div class="flex items-center gap-3">
+                    <CheckCircle v-if="exec.finished && !exec.error" class="h-5 w-5 text-green-400" />
+                    <XCircle v-else-if="exec.error" class="h-5 w-5 text-red-400" />
+                    <Clock v-else class="h-5 w-5 text-yellow-400" />
+                    
+                    <div>
+                      <p class="text-text font-medium">Execution #{{ exec.id }}</p>
+                      <p class="text-sm text-text-muted">
+                        Started: {{ formatDate(exec.startedAt) }}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <span class="text-text-muted">Status:</span>
-                    <span :class="selectedWorkflowForModal.is_active ? 'text-green-500' : 'text-red-500'" class="ml-2 font-semibold">
-                      {{ selectedWorkflowForModal.is_active ? 'ACTIVE' : 'INACTIVE' }}
-                    </span>
+                  
+                  <div class="text-right">
+                    <p class="text-text text-sm">
+                      Duration: {{ formatDuration(exec.execution_time || 0) }}
+                    </p>
+                    <p :class="[
+                      'text-sm font-medium',
+                      exec.finished && !exec.error ? 'text-green-400' : 
+                      exec.error ? 'text-red-400' : 'text-yellow-400'
+                    ]">
+                      {{ exec.finished && !exec.error ? 'Success' : 
+                          exec.error ? 'Failed' : 'Running' }}
+                    </p>
                   </div>
                 </div>
               </div>
-              <p class="text-xs text-text-muted mt-4">
-                🚧 Detailed execution history will be implemented here
-              </p>
+              
+              <div v-else class="text-center py-8">
+                <Play class="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <p class="text-text-muted">No executions found for this process</p>
+              </div>
             </div>
           </div>
-          
-          <!-- Modal Footer -->
-          <div class="bg-surface/30 border-t border-border px-6 py-3 flex justify-end">
-            <button 
-              @click="closeExecutionsModal"
-              class="btn-control"
-            >
-              Close
-            </button>
+        </template>
+
+        <template #stats="{ data }">
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="control-card p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-text-muted">Total Executions</span>
+                  <Play class="h-4 w-4 text-gray-600" />
+                </div>
+                <p class="text-lg font-bold text-text">{{ data?.totalExecutions || 0 }}</p>
+              </div>
+              
+              <div class="control-card p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-text-muted">Success Rate</span>
+                  <CheckCircle class="h-4 w-4 text-gray-600" />
+                </div>
+                <p class="text-lg font-bold text-green-400">
+                  {{ data?.successRate ? `${data.successRate.toFixed(1)}%` : 'N/A' }}
+                </p>
+              </div>
+              
+              <div class="control-card p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-text-muted">Avg Duration</span>
+                  <Clock class="h-4 w-4 text-gray-600" />
+                </div>
+                <p class="text-lg font-bold text-text">
+                  {{ formatDuration(data?.avgDuration || 0) }}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </DetailModal>
     </div>
   </MainLayout>
 </template>
@@ -621,11 +658,12 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
   RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft,
-  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit
+  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit, TrendingUp, CheckCircle, XCircle
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
-import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
+import TimelineModal from '../components/common/TimelineModal.vue'
+import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
 
@@ -653,6 +691,15 @@ const showDetailModal = ref(false)
 const showTimelineModal = ref(false)
 const showExecutionsModal = ref(false)
 const selectedWorkflowForModal = ref<any>(null)
+
+// Executions modal data - REAL API DATA
+const isLoadingExecutions = ref(false)
+const executionsError = ref<string | null>(null)
+const executionData = ref<any>(null)
+const executionTabs = [
+  { id: 'executions', label: 'Executions', icon: Play },
+  { id: 'stats', label: 'Statistics', icon: TrendingUp }
+]
 
 // Action buttons state
 
@@ -1067,16 +1114,48 @@ const closeTimelineModal = () => {
   showTimelineModal.value = false
 }
 
-const openExecutionsModal = () => {
+const openExecutionsModal = async () => {
   if (selectedWorkflowData.value) {
     selectedWorkflowForModal.value = selectedWorkflowData.value
     showExecutionsModal.value = true
+    await loadExecutionData()
   }
 }
 
 const closeExecutionsModal = () => {
   showExecutionsModal.value = false
   selectedWorkflowForModal.value = null
+  executionData.value = null
+  executionsError.value = null
+}
+
+// Load real execution data from API
+const loadExecutionData = async () => {
+  if (!selectedWorkflowForModal.value?.id) return
+  
+  isLoadingExecutions.value = true
+  executionsError.value = null
+  
+  try {
+    console.log('🔄 Loading executions for workflow:', selectedWorkflowForModal.value.id)
+    
+    const response = await fetch(`http://localhost:3001/api/business/process-executions/${selectedWorkflowForModal.value.id}`)
+    
+    if (!response.ok) {
+      throw new Error(`Backend API error: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('✅ Executions loaded:', data.data)
+    
+    executionData.value = data.data
+    
+  } catch (err: any) {
+    console.error('❌ Failed to load executions:', err)
+    executionsError.value = err.message
+  } finally {
+    isLoadingExecutions.value = false
+  }
 }
 
 

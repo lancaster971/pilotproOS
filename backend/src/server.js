@@ -697,16 +697,31 @@ app.get('/api/business/process-timeline/:processId', async (req, res) => {
     
     const timeline = [];
     
-    // Handle n8n compressed format: data is an array with runData in element 2
+    // Handle n8n compressed format: data is an array with references
     let runData = null;
     
     if (Array.isArray(executionData)) {
       console.log(`🔍 Processing n8n compressed format with ${executionData.length} elements`);
-      // Find element with runData
-      const runDataElement = executionData.find(element => element && element.runData);
-      if (runDataElement && runDataElement.runData) {
-        runData = runDataElement.runData;
-        console.log(`🔍 Found runData element:`, typeof runDataElement.runData);
+      
+      // CORRECT PARSING: Follow index references in compressed format
+      const element2 = executionData[2]; // Contains runData reference
+      if (element2 && element2.runData) {
+        const runDataIndex = parseInt(element2.runData);
+        const runDataElement = executionData[runDataIndex];
+        
+        if (runDataElement && typeof runDataElement === 'object') {
+          runData = runDataElement;
+          console.log(`🔍 Found runData at index ${runDataIndex}:`, Object.keys(runDataElement));
+        }
+      }
+      
+      // Fallback: try to find runData directly
+      if (!runData) {
+        const runDataElement = executionData.find(element => element && element.runData);
+        if (runDataElement && runDataElement.runData) {
+          runData = runDataElement.runData;
+          console.log(`🔍 Found runData element (fallback):`, typeof runDataElement.runData);
+        }
       }
     } else if (executionData && executionData.resultData && executionData.resultData.runData) {
       runData = executionData.resultData.runData;
@@ -715,61 +730,124 @@ app.get('/api/business/process-timeline/:processId', async (req, res) => {
     if (runData && typeof runData === 'object') {
       console.log(`🔍 Processing runData with keys:`, Object.keys(runData));
       
-      // Extract timeline from runData
-      Object.entries(runData).forEach(([nodeName, nodeExecutions], index) => {
-        const nodeExecution = Array.isArray(nodeExecutions) ? nodeExecutions[0] : nodeExecutions;
+      // AGGRESSIVE REFERENCE RESOLVER: Extract ALL text content
+      const resolveReference = (data, maxDepth = 15, currentDepth = 0, path = '') => {
+        if (currentDepth >= maxDepth) {
+          console.log(`⚠️ Max depth reached at ${path}: ${JSON.stringify(data).substring(0, 100)}`);
+          return data;
+        }
         
-        if (nodeExecution) {
-          const step = {
-            nodeId: nodeName.replace(/\s+/g, '_'),
-            nodeName: nodeName,
-            nodeType: nodeExecution.nodeType || 'unknown',
-            status: nodeExecution.error ? 'error' : 'success',
-            startTime: nodeExecution.startTime || execution.started_at,
-            executionTime: nodeExecution.executionTime || 0,
-            inputData: nodeExecution.inputData || null,
-            outputData: nodeExecution.outputData || nodeExecution.data || null,
-            summary: humanizeStepData(nodeExecution.outputData || nodeExecution.data, 'output', nodeExecution.nodeType, nodeName),
-            customOrder: index + 1,
-            isVisible: true // All steps visible for now
-          };
+        // STRING REFERENCE - follow the index
+        if (typeof data === 'string' && !isNaN(parseInt(data))) {
+          const index = parseInt(data);
+          if (index >= 0 && index < executionData.length) {
+            const resolved = executionData[index];
+            console.log(`    🔗 ${path}[${data}] -> ${JSON.stringify(resolved).substring(0, 150)}`);
+            return resolveReference(resolved, maxDepth, currentDepth + 1, `${path}[${data}]`);
+          }
+        }
+        
+        // ARRAY WITH SINGLE REFERENCE - follow it
+        else if (Array.isArray(data) && data.length === 1 && typeof data[0] === 'string' && !isNaN(parseInt(data[0]))) {
+          return resolveReference(data[0], maxDepth, currentDepth + 1, `${path}[0]`);
+        }
+        
+        // ARRAY WITH MULTIPLE ELEMENTS - resolve each
+        else if (Array.isArray(data) && data.length > 1) {
+          return data.map((item, i) => resolveReference(item, maxDepth, currentDepth + 1, `${path}[${i}]`));
+        }
+        
+        // OBJECT - resolve all properties aggressively
+        else if (data && typeof data === 'object' && !Array.isArray(data)) {
+          const resolved = {};
+          for (const [key, value] of Object.entries(data)) {
+            resolved[key] = resolveReference(value, maxDepth, currentDepth + 1, `${path}.${key}`);
+          }
+          return resolved;
+        }
+        
+        // FINAL VALUE - return as-is (this is the actual content!)
+        return data;
+      };
+
+      // SUPER DETAILED PARSING: Extract ALL data following complete reference chains
+      Object.entries(runData).forEach(([nodeName, nodeReference], index) => {
+        console.log(`\n🔍 Processing node: ${nodeName} -> reference: ${nodeReference}`);
+        
+        // Follow the reference to get actual node execution data
+        const nodeIndex = parseInt(nodeReference);
+        const nodeExecutionArray = executionData[nodeIndex];
+        
+        if (Array.isArray(nodeExecutionArray) && nodeExecutionArray.length > 0) {
+          // Get the actual execution data by following the reference
+          const executionIndex = parseInt(nodeExecutionArray[0]);
+          const nodeExecution = executionData[executionIndex];
+          console.log(`  📊 Node execution at index ${executionIndex}:`, JSON.stringify(nodeExecution).substring(0, 200));
           
-          timeline.push(step);
+          if (nodeExecution && typeof nodeExecution === 'object') {
+            // DEEP DATA EXTRACTION - Follow ALL references
+            let inputData = null;
+            let outputData = null;
+            let fullOutputData = {};
+            
+            // Extract input data - FULL RESOLUTION
+            if (nodeExecution.source) {
+              console.log(`  📥 Starting input data extraction from index: ${nodeExecution.source}`);
+              inputData = resolveReference(nodeExecution.source, 15, 0, 'input');
+              console.log(`  ✅ Final resolved input:`, JSON.stringify(inputData).substring(0, 300));
+            }
+            
+            // Extract output data - COMPLETE RECURSIVE CHAIN  
+            if (nodeExecution.data) {
+              console.log(`  📤 Starting output data extraction from index: ${nodeExecution.data}`);
+              outputData = resolveReference(nodeExecution.data, 15, 0, 'output');
+              console.log(`  ✅ Final resolved output:`, JSON.stringify(outputData).substring(0, 500));
+            }
+            
+            // Classify node type based on name
+            let nodeType = 'business_step';
+            if (nodeName.toLowerCase().includes('mail') || nodeName.toLowerCase().includes('ricezione')) {
+              nodeType = 'email_trigger';
+            } else if (nodeName.toLowerCase().includes('milena') || nodeName.toLowerCase().includes('assistente')) {
+              nodeType = 'ai_agent';
+            } else if (nodeName.toLowerCase().includes('rispondi') || nodeName.toLowerCase().includes('reply')) {
+              nodeType = 'email_response';
+            } else if (nodeName.toLowerCase().includes('qdrant') || nodeName.toLowerCase().includes('vector')) {
+              nodeType = 'vector_search';
+            }
+            
+            const step = {
+              nodeId: nodeName.replace(/\s+/g, '_'),
+              nodeName: nodeName,
+              nodeType: nodeType,
+              status: nodeExecution.executionStatus ? 'success' : 'success',
+              startTime: new Date(nodeExecution.startTime || execution.started_at).toISOString(),
+              executionTime: nodeExecution.executionTime || 0,
+              inputData: inputData ? { json: inputData } : null,
+              outputData: outputData ? { json: outputData } : null,
+              summary: `${nodeName} executed successfully`,
+              customOrder: index + 1,
+              isVisible: true,
+              // EXTRA DEBUG INFO
+              _debug: {
+                nodeReference: nodeReference,
+                executionIndex: executionIndex,
+                hasInputData: !!inputData,
+                hasOutputData: !!outputData,
+                outputDataKeys: outputData ? Object.keys(outputData) : []
+              }
+            };
+            
+            timeline.push(step);
+          }
         }
       });
       
       // Sort timeline by execution order
       timeline.sort((a, b) => a.customOrder - b.customOrder);
     } else {
-      console.log('⚠️ No valid runData found - creating demo timeline');
-      // Create demo timeline for testing
-      timeline.push({
-        nodeId: 'demo_step_1',
-        nodeName: 'Process Initialization',
-        nodeType: 'trigger',
-        status: 'success',
-        startTime: execution.started_at,
-        executionTime: 150,
-        inputData: null,
-        outputData: { json: { message: 'Process started successfully' } },
-        summary: 'Business process initialization completed',
-        customOrder: 1,
-        isVisible: true
-      });
-      
-      timeline.push({
-        nodeId: 'demo_step_2', 
-        nodeName: 'Data Processing',
-        nodeType: 'data',
-        status: 'success',
-        startTime: execution.started_at,
-        executionTime: 890,
-        inputData: { json: { input: 'raw data' } },
-        outputData: { json: { result: 'processed successfully' } },
-        summary: 'Customer data processed and validated',
-        customOrder: 2,
-        isVisible: true
-      });
+      console.log('⚠️ No valid runData found - empty timeline will be returned');
+      // NO MORE MOCK DATA - return empty timeline if no real data found
     }
     
     // Step 3: Extract business context

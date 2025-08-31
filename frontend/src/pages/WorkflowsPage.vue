@@ -177,7 +177,7 @@
         />
 
         <!-- Agent Timeline Modal - KILLER FEATURE -->
-        <AgentDetailModal
+        <TimelineModal
           v-if="selectedWorkflowId"
           :workflow-id="selectedWorkflowId"
           :tenant-id="tenantId"
@@ -194,7 +194,7 @@ import {
   RefreshCw, CheckCircle, XCircle, Clock, Mail, Eye, Bot
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
+import TimelineModal from '../components/common/TimelineModal.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'

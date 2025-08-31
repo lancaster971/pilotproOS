@@ -283,6 +283,10 @@ npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
 6. Bezier curve connections with dynamic handle positioning and smart edge routing
 7. State management uses Pinia stores with real-time workflow data updates
 8. Premium animations: 3D hover effects, pulse animations, glow effects for active states
+9. **Modal System**: TimelineModal uses rawDataForModal API for consistent data across all sources
+   - Supports calls from WorkflowsPage, ExecutionsTable, Dashboard, AgentsPage
+   - Shows only show-n business-critical nodes (7 for Milena workflow)
+   - Maintains data consistency between execution-specific and latest-execution views
 
 **Icon System (Direct Assignment)**:
 - **Location**: `frontend/src/components/N8nIcon.vue` - Central icon mapping component
@@ -301,6 +305,11 @@ npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
 2. Database queries must join both schemas for complete business data
 3. Always apply security middleware stack
 4. Log all business operations to audit trail
+5. **rawDataForModal System**: Use `/api/business/raw-data-for-modal/:workflowId` for modal data extraction
+   - Centralizes show-n nodes extraction from workflow definition
+   - Merges with execution data intelligently
+   - Supports multi-source modal calls (workflow view, executions table, dashboard)
+   - Guarantees data consistency across all modal consumers
 
 **When working with AI Agent**:
 1. Supports Italian natural language queries
@@ -385,7 +394,22 @@ All environment variables are defined in project root. Key configs:
 
 ## Recent Updates
 
-### Font Consistency & UI Cleanup (v1.4.0 - Latest)
+### Modal System Implementation (v1.5.0 - Latest)
+- **Complete Modal Framework**: Developed comprehensive modal system with 3 component types
+- **Business Data Parser**: Advanced `useBusinessParser.ts` composable for converting technical JSON to business language
+- **Timeline Modal Enhancement**: Premium timeline visualization with step-by-step business process parsing
+- **Integration Examples**: Complete practical examples in `docs/MODAL_INTEGRATION_EXAMPLES.md`
+- **Component Library**: 
+  - `SimpleModal.vue` - Form-based modal with validation
+  - `DetailModal.vue` - Multi-tab modal with refresh capabilities
+  - `TimelineModal.vue` - Process timeline with intelligent data parsing
+  - `useModal.ts` - Shared modal state management composable
+- **Business Language Compliance**: Zero technical terminology exposed, complete n8n → Business Process translation
+- **Premium UX**: Glassmorphism effects, smooth animations, responsive design
+- **TypeScript Integration**: Full type safety across all modal components
+- **Documentation**: Complete implementation guide + TODO checklist + integration examples
+
+### Font Consistency & UI Cleanup (v1.4.0)
 - **Typography Standardization**: Fixed global font-weight override that broke modal text hierarchy
 - **Modal Font Consistency**: All modals now use standardized text sizes (text-lg for titles, text-base for content, text-sm for details)
 - **Design System Integration**: Removed custom CSS in favor of global design system classes (btn-control, control-card)
@@ -430,6 +454,11 @@ All environment variables are defined in project root. Key configs:
 - **CORS Optimized**: Removed problematic cache headers for seamless frontend integration
 - **Real KPI Calculations**: Live execution counts, failure rates, time saved from actual data
 - **Zero Mock Data**: Complete elimination of placeholder data throughout the system
+- **rawDataForModal System**: Centralized modal data extraction with show-n nodes focus
+  - Single endpoint `/api/business/raw-data-for-modal/:workflowId` serves all modal consumers
+  - Extracts show-n tagged nodes from workflow definition (Milena: 7 critical business steps)
+  - Merges with execution data intelligently (handles executed and non-executed nodes)
+  - Maintains data consistency across WorkflowsPage, ExecutionsTable, Dashboard, AgentsPage calls
 
 ### Frontend Architecture Completed (v1.2.0)
 - **Vue 3 + TypeScript**: Professional frontend matching n8n technology stack

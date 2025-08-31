@@ -165,7 +165,7 @@
       </div>
 
       <!-- Agent Detail Modal placeholder -->
-      <AgentDetailModal
+      <TimelineModal
         v-if="selectedWorkflowId"
         :workflow-id="selectedWorkflowId"
         :tenant-id="authStore.tenantId"
@@ -182,7 +182,7 @@ import {
   Bot, RefreshCw, CheckCircle, XCircle, Clock, Mail
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import AgentDetailModal from '../components/agents/AgentDetailModal.vue'
+import TimelineModal from '../components/common/TimelineModal.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
 import type { AgentWorkflow } from '../types'
