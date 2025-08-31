@@ -284,6 +284,18 @@ npm run migrate:postgres # Upgrade SQLite → PostgreSQL seamlessly
 7. State management uses Pinia stores with real-time workflow data updates
 8. Premium animations: 3D hover effects, pulse animations, glow effects for active states
 
+**Icon System (Direct Assignment)**:
+- **Location**: `frontend/src/components/N8nIcon.vue` - Central icon mapping component
+- **Pattern**: Direct SVG imports with 1:1 mapping to n8n node types
+- **Format**: All icons must be 48x48px with viewBox="0 0 512 512" 
+- **Business Colors**: Use #F8FAFC (light), #10B981 (primary), avoid technical symbols
+- **Mapping Process**:
+  1. Import SVG: `import newIcon from '../assets/nodeIcons/svg/newIcon.svg'`
+  2. Add to iconMap: `'exact-n8n-node-type': newIcon`
+  3. Query database for exact node type: `docker exec pilotpros-postgres-dev psql -d pilotpros_db -c "SELECT DISTINCT type FROM n8n.workflow_entity"`
+- **Node Type Examples**: `n8n-nodes-base.cron`, `@n8n/n8n-nodes-langchain.agent`, `n8n-nodes-base.httpRequest`
+- **Hot Reload**: Vite automatically updates icons during development - no restart needed
+
 **When working with the Backend**:
 1. All public APIs use `/api/business/*` endpoints
 2. Database queries must join both schemas for complete business data
@@ -373,7 +385,32 @@ All environment variables are defined in project root. Key configs:
 
 ## Recent Updates
 
-### Premium Workflow Visualization System (v1.3.0 - Latest)
+### Font Consistency & UI Cleanup (v1.4.0 - Latest)
+- **Typography Standardization**: Fixed global font-weight override that broke modal text hierarchy
+- **Modal Font Consistency**: All modals now use standardized text sizes (text-lg for titles, text-base for content, text-sm for details)
+- **Design System Integration**: Removed custom CSS in favor of global design system classes (btn-control, control-card)
+- **CSV Export Removal**: Eliminated debug Export CSV functionality and related logic for cleaner codebase
+- **Code Cleanup**: Removed 12k+ unused files from backend/n8n-icons/ directory
+
+### Direct Icon Assignment System (v1.4.0)
+- **File-Based Icon System**: Complete transition from dynamic loading to direct SVG imports
+- **N8nIcon Component**: Central icon mapping with Record<string, string> pattern matching
+- **Business Node Classification**: 4-tier system (AI Agents, AI Tools, Storage/Process, Triggers)
+- **Icon Mapping Pattern**:
+  ```typescript
+  const iconMap: Record<string, string> = {
+    'n8n-nodes-base.cron': cronIcon,
+    'n8n-nodes-base.scheduleTrigger': scheduleIcon,
+    '@n8n/n8n-nodes-langchain.agent': agentIcon,
+    '@n8n/n8n-nodes-langchain.toolCalculator': calculatorIcon,
+    // Direct 1:1 mapping of n8n node types to SVG imports
+  }
+  ```
+- **Icon Creation Process**: 48x48px with viewBox="0 0 512 512", business-appropriate colors, no technical symbols
+- **Hot Reload Integration**: Vite automatically updates icons during development
+- **Agent Icon System**: New rectangular robot-style icons for LangChain agents vs circular tool icons
+
+### Premium Workflow Visualization System (v1.3.0)
 - **n8n-Style Command Center**: Enterprise-grade workflow visualization with VueFlow integration
 - **Premium Node Design**: 4 distinct node types with professional gradients and animations
   - 🤖 **AI Agents**: Rectangular nodes (180x100px) with multi-handle support
@@ -426,7 +463,7 @@ All environment variables are defined in project root. Key configs:
 - **Zero Downtime**: Backend remains functional during n8n version upgrades
 - **Breaking Change Protection**: Automatic handling of schema changes between versions
 
-### Production-Ready Environment Status (v1.3.0)
+### Production-Ready Environment Status (v1.4.0)
 - **✅ PostgreSQL**: Dual schema (n8n + pilotpros) with 31 workflows verified
 - **✅ n8n**: http://localhost:5678 on PostgreSQL backend (admin@pilotpros.local / PilotPro2025!) - Version 1.107.3
 - **✅ Premium Frontend**: Vue 3 + VueFlow with n8n-style workflow visualization
@@ -438,6 +475,9 @@ All environment variables are defined in project root. Key configs:
 - **✅ Zero Mock Data**: Complete elimination of placeholder data across all components
 - **✅ Docker Development**: Hot-reload enabled for all services with cross-OS compatibility
 - **✅ Premium UX**: 3D effects, glow animations, hover transitions matching enterprise standards
+- **✅ Font Consistency**: Standardized typography across all modals and components with DM Sans
+- **✅ Direct Icon System**: Complete SVG import system with business-appropriate icons for all node types
+- **✅ Code Cleanup**: Removed debug functionality and 12k+ unused backend files for optimized codebase
 
 ## 📚 **DOCUMENTATION COMPLETA**
 
