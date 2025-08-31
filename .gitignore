@@ -18,6 +18,29 @@ yarn-error.log*
 .env.production.local
 .env.n8n
 
+# Development artifacts - icons imported from n8n but not yet mapped
+frontend/src/assets/nodeIcons/svg/[A-Z]*.svg
+frontend/src/assets/nodeIcons/svg/[a-z]*.svg
+!frontend/src/assets/nodeIcons/svg/agent.svg
+!frontend/src/assets/nodeIcons/svg/cron.svg
+!frontend/src/assets/nodeIcons/svg/scheduleIcon.svg
+!frontend/src/assets/nodeIcons/svg/chatTrigger.svg
+!frontend/src/assets/nodeIcons/svg/if.svg
+!frontend/src/assets/nodeIcons/svg/memory.svg
+!frontend/src/assets/nodeIcons/svg/outputParser.svg
+!frontend/src/assets/nodeIcons/svg/dateTime.svg
+!frontend/src/assets/nodeIcons/svg/toolSubworkflow.svg
+!frontend/src/assets/nodeIcons/svg/loop.svg
+!frontend/src/assets/nodeIcons/svg/noOp.svg
+!frontend/src/assets/nodeIcons/svg/webhook.svg
+!frontend/src/assets/nodeIcons/svg/langchainChain.svg
+
+# Backup files and documentation artifacts
+BU_Hostinger/
+frontend/icon-categories.md
+frontend/node-classification.md
+frontend/public/
+
 # Database
 *.db
 *.sqlite
