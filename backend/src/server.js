@@ -897,6 +897,752 @@ app.get('/api/business/process-timeline/:processId', async (req, res) => {
   }
 });
 
+// ============================================================================
+// RAW DATA FOR MODAL API - Centralized Show-N Nodes System
+// ============================================================================
+
+// TEST ENDPOINT
+app.get('/api/business/test-raw-data', async (req, res) => {
+  console.log('🧪 TEST endpoint hit!');
+  res.json({ success: true, message: 'Test endpoint works' });
+});
+
+// Raw Data for Modal - Single Source of Truth for All Modal Components
+app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
+  console.log('🎯 rawDataForModal endpoint hit!');
+  try {
+    const { workflowId } = req.params;
+    const { executionId } = req.query;
+    
+    console.log(`🎯 rawDataForModal request: ${workflowId}, execution: ${executionId || 'latest'}`);
+    
+    // ==========================================
+    // STEP 1: GET WORKFLOW DEFINITION
+    // ==========================================
+    const workflowQuery = `
+      SELECT 
+        id, name, active, nodes, connections,
+        "createdAt", "updatedAt"
+      FROM n8n.workflow_entity 
+      WHERE id = $1
+    `;
+    
+    const workflowResult = await dbPool.query(workflowQuery, [workflowId]);
+    if (workflowResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Business Process not found'
+      });
+    }
+    
+    const workflow = workflowResult.rows[0];
+    console.log(`✅ Workflow found: ${workflow.name}`);
+    
+    // ==========================================
+    // STEP 2: GET EXECUTION DATA
+    // ==========================================
+    let executionQuery, executionParams;
+    
+    if (executionId) {
+      executionQuery = `
+        SELECT e.*, ed.data, ed."workflowData"
+        FROM n8n.execution_entity e
+        LEFT JOIN n8n.execution_data ed ON e.id = ed."executionId"
+        WHERE e.id = $1 AND e."workflowId" = $2
+      `;
+      executionParams = [executionId, workflowId];
+    } else {
+      executionQuery = `
+        SELECT e.*, ed.data, ed."workflowData" 
+        FROM n8n.execution_entity e
+        LEFT JOIN n8n.execution_data ed ON e.id = ed."executionId"
+        WHERE e."workflowId" = $1
+        ORDER BY e."startedAt" DESC 
+        LIMIT 1
+      `;
+      executionParams = [workflowId];
+    }
+    
+    const executionResult = await dbPool.query(executionQuery, executionParams);
+    const execution = executionResult.rows[0] || null;
+    
+    console.log(`🔍 Execution found: ${execution?.id || 'NONE'}`);
+    
+    // ==========================================
+    // STEP 3: EXTRACT SHOW-N NODES
+    // ==========================================
+    let workflowNodes;
+    try {
+      workflowNodes = typeof workflow.nodes === 'string' 
+        ? JSON.parse(workflow.nodes) 
+        : workflow.nodes || [];
+    } catch (error) {
+      console.error('❌ Error parsing workflow nodes:', error);
+      workflowNodes = [];
+    }
+    console.log(`📊 Total nodes in workflow: ${workflowNodes.length}`);
+    
+    const showNodes = workflowNodes.filter(node => {
+      const notes = (node.notes || '').toLowerCase();
+      return notes.includes('show-') && /show-\d+/.test(notes);
+    }).map(node => {
+      const showMatch = (node.notes || '').toLowerCase().match(/show-(\d+)/);
+      return {
+        ...node,
+        showTag: showMatch ? `show-${showMatch[1]}` : null,
+        showOrder: showMatch ? parseInt(showMatch[1]) : 999
+      };
+    }).sort((a, b) => a.showOrder - b.showOrder);
+    
+    console.log(`🎯 Show-N nodes found: ${showNodes.length}`);
+    showNodes.forEach(node => {
+      console.log(`  - ${node.showTag}: ${node.name}`);
+    });
+    
+    // ==========================================
+    // STEP 4: MERGE WITH EXECUTION DATA
+    // ==========================================
+    const businessNodes = [];
+    let executionData = null;
+    let runData = {};
+    
+    if (execution?.data) {
+      try {
+        executionData = typeof execution.data === 'string' 
+          ? JSON.parse(execution.data) 
+          : execution.data;
+        
+        if (Array.isArray(executionData)) {
+          const element2 = executionData[2];
+          if (element2?.runData) {
+            const runDataIndex = parseInt(element2.runData);
+            runData = executionData[runDataIndex] || {};
+          }
+        } else if (executionData?.resultData?.runData) {
+          runData = executionData.resultData.runData;
+        }
+        
+        console.log(`🔍 RunData extracted, keys: ${Object.keys(runData).join(', ')}`);
+      } catch (error) {
+        console.error('❌ Error parsing execution data:', error);
+        executionData = null;
+      }
+    }
+    
+    for (const node of showNodes) {
+      const nodeName = node.name;
+      const hasExecutionData = runData[nodeName];
+      
+      let status = 'not-executed';
+      let executionTime = 0;
+      let businessData = {};
+      
+      if (hasExecutionData) {
+        try {
+          const nodeRef = runData[nodeName];
+          const nodeIndex = parseInt(nodeRef);
+          const nodeExecution = executionData[nodeIndex];
+          
+          if (Array.isArray(nodeExecution) && nodeExecution.length > 0) {
+            const execIndex = parseInt(nodeExecution[0]);
+            const execData = executionData[execIndex];
+            
+            if (execData) {
+              status = 'success';
+              executionTime = execData.executionTime || 0;
+              
+              // Use SAME logic as process-timeline for data extraction
+              const resolveReference = (data, maxDepth = 15, currentDepth = 0, path = '') => {
+                if (currentDepth >= maxDepth) return data;
+                
+                if (typeof data === 'string' && !isNaN(parseInt(data))) {
+                  const index = parseInt(data);
+                  if (index >= 0 && index < executionData.length) {
+                    const resolved = executionData[index];
+                    return resolveReference(resolved, maxDepth, currentDepth + 1, `${path}[${data}]`);
+                  }
+                }
+                
+                else if (Array.isArray(data) && data.length === 1 && typeof data[0] === 'string' && !isNaN(parseInt(data[0]))) {
+                  return resolveReference(data[0], maxDepth, currentDepth + 1, `${path}[0]`);
+                }
+                
+                else if (Array.isArray(data) && data.length > 1) {
+                  return data.map((item, i) => resolveReference(item, maxDepth, currentDepth + 1, `${path}[${i}]`));
+                }
+                
+                else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                  const resolved = {};
+                  for (const [key, value] of Object.entries(data)) {
+                    resolved[key] = resolveReference(value, maxDepth, currentDepth + 1, `${path}.${key}`);
+                  }
+                  return resolved;
+                }
+                
+                return data;
+              };
+              
+              // Extract input/output data EXACTLY like process-timeline
+              let inputData = null;
+              let outputData = null;
+              
+              if (execData.source) {
+                inputData = resolveReference(execData.source, 15, 0, 'input');
+              }
+              
+              if (execData.data) {
+                outputData = resolveReference(execData.data, 15, 0, 'output');
+              }
+              
+              businessData = extractRealBusinessData(inputData, outputData, node.type, nodeName);
+              
+              // 🔥 SALVATAGGIO AUTOMATICO - Persist business data for historical access
+              if (businessData && Object.keys(businessData).length > 0) {
+                const nodeDataToSave = {
+                  ...businessData,
+                  showTag: node.showTag,
+                  name: nodeName,
+                  _nodeId: node.id
+                };
+                
+                // Save to database asynchronously (don't wait)
+                console.log(`🔥 Attempting to save business data for: ${nodeName}`);
+                saveBusinessDataToDatabase(workflowId, execution?.id, nodeDataToSave)
+                  .then(() => console.log(`✅ Business data saved: ${nodeName}`))
+                  .catch(err => console.error(`❌ Auto-save failed for ${nodeName}:`, err));
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error processing node ${nodeName}:`, error);
+          status = 'error';
+        }
+      }
+      
+      businessNodes.push({
+        showTag: node.showTag,
+        name: nodeName,
+        type: node.type,
+        nodeType: classifyNodeType(node.type, nodeName),
+        executed: hasExecutionData,
+        status: status,
+        executionTime: executionTime,
+        position: node.position,
+        data: businessData,
+        _nodeId: node.id
+      });
+    }
+    
+    // ==========================================
+    // STEP 5: EXTRACT BUSINESS CONTEXT
+    // ==========================================
+    const businessContext = extractModalBusinessContext(businessNodes, execution);
+    
+    // ==========================================
+    // STEP 6: FORMAT RESPONSE
+    // ==========================================
+    const response = {
+      workflow: {
+        id: workflow.id,
+        name: workflow.name,
+        active: workflow.active,
+        totalNodes: workflowNodes.length,
+        showNodesCount: showNodes.length,
+        lastUpdated: workflow.updatedAt
+      },
+      businessNodes: businessNodes,
+      execution: execution ? {
+        id: execution.id,
+        status: execution.finished ? 'completed' : 'running',
+        startedAt: execution.startedAt,
+        stoppedAt: execution.stoppedAt,
+        duration: execution.stoppedAt ? 
+          new Date(execution.stoppedAt) - new Date(execution.startedAt) : null,
+        businessContext: businessContext
+      } : null,
+      stats: {
+        totalShowNodes: showNodes.length,
+        executedNodes: businessNodes.filter(n => n.executed).length,
+        successNodes: businessNodes.filter(n => n.status === 'success').length,
+        errorNodes: businessNodes.filter(n => n.status === 'error').length
+      },
+      _metadata: {
+        system: 'Business Process Operating System',
+        endpoint: 'raw-data-for-modal',
+        timestamp: new Date().toISOString(),
+        requestedExecutionId: executionId || null
+      }
+    };
+    
+    console.log(`✅ rawDataForModal response ready: ${businessNodes.length} business nodes`);
+    res.json({
+      success: true,
+      data: response
+    });
+    
+  } catch (error) {
+    console.error('❌ rawDataForModal error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate modal data',
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// ============================================================================
+// RAW DATA FOR MODAL HELPER FUNCTIONS
+// ============================================================================
+
+// Classify node type for business display
+function classifyNodeType(n8nType, nodeName) {
+  const type = n8nType.toLowerCase();
+  const name = nodeName.toLowerCase();
+  
+  if (name.includes('mail') || name.includes('ricezione')) return 'email_trigger';
+  if (name.includes('milena') || name.includes('ai') || type.includes('agent')) return 'ai_agent';
+  if (name.includes('rispondi') || name.includes('reply')) return 'email_response';
+  if (name.includes('vector') || name.includes('qdrant')) return 'vector_search';
+  if (name.includes('ordini') || name.includes('order')) return 'order_lookup';
+  if (name.includes('parcel') || name.includes('tracking')) return 'parcel_tracking';
+  if (type.includes('workflow')) return 'sub_workflow';
+  
+  return 'business_step';
+}
+
+// Helper function to extract data from execution like process-timeline does
+function extractDataFromExecution(nodeExecution, executionData, dataType) {
+  try {
+    if (!Array.isArray(nodeExecution) || nodeExecution.length < 2) {
+      return { json: [] };
+    }
+    
+    const dataIndex = dataType === 'input' ? 1 : 2; // input=1, output=2
+    if (nodeExecution.length <= dataIndex) {
+      return { json: [] };
+    }
+    
+    const dataRef = nodeExecution[dataIndex];
+    if (typeof dataRef === 'string' && !isNaN(parseInt(dataRef))) {
+      const index = parseInt(dataRef);
+      if (index >= 0 && index < executionData.length) {
+        return executionData[index] || { json: [] };
+      }
+    }
+    
+    return { json: [] };
+  } catch (error) {
+    console.error(`Error extracting ${dataType} data:`, error);
+    return { json: [] };
+  }
+}
+
+// Extract business data from input/output like process-timeline does
+function extractBusinessDataFromInputOutput(inputData, outputData, nodeType, nodeName) {
+  const businessData = {
+    nodeType: nodeType,
+    executedAt: new Date().toISOString(),
+    hasInputData: inputData?.json?.length > 0,
+    hasOutputData: outputData?.json?.length > 0
+  };
+  
+  // Use output data first, then input data
+  // Handle n8n format: outputData.json.main.json or inputData.json.main.json
+  let dataToUse = null;
+  if (outputData?.json?.main?.json) {
+    dataToUse = outputData.json.main.json;
+  } else if (inputData?.json?.main?.json) {
+    dataToUse = inputData.json.main.json;
+  } else if (outputData?.json?.length > 0) {
+    dataToUse = outputData.json[0];
+  } else if (inputData?.json?.length > 0) {
+    dataToUse = inputData.json[0];
+  }
+  
+  if (dataToUse) {
+    const nodeLower = nodeName.toLowerCase();
+    
+    if (nodeLower.includes('mail') || nodeLower.includes('ricezione')) {
+      businessData.type = 'email';
+      businessData.email = dataToUse.sender?.emailAddress?.address || dataToUse.mittente || dataToUse.from;
+      businessData.senderName = dataToUse.sender?.emailAddress?.name || dataToUse.mittente_nome;
+      businessData.subject = dataToUse.subject || dataToUse.oggetto;
+      businessData.message = dataToUse.body?.content || dataToUse.messaggio_cliente || dataToUse.body;
+      if (businessData.message && typeof businessData.message === 'string') {
+        businessData.messagePreview = businessData.message.substring(0, 150) + (businessData.message.length > 150 ? '...' : '');
+      }
+      businessData.summary = `Email da ${businessData.senderName || businessData.email || 'mittente sconosciuto'}: "${businessData.subject || 'nessun oggetto'}"`;
+    }
+    
+    else if (nodeLower.includes('milena') || nodeLower.includes('ai')) {
+      businessData.type = 'ai_response';
+      businessData.aiResponse = dataToUse.risposta_html || dataToUse.output?.risposta_html || dataToUse.response;
+      businessData.classification = dataToUse.categoria || dataToUse.output?.categoria || dataToUse.classification;
+      businessData.confidence = dataToUse.confidence || dataToUse.output?.confidence;
+      if (businessData.aiResponse && typeof businessData.aiResponse === 'string') {
+        businessData.responsePreview = businessData.aiResponse.replace(/<[^>]+>/g, '').substring(0, 150) + '...';
+      }
+      businessData.summary = `Risposta AI generata (${businessData.classification || 'non classificata'})`;
+    }
+    
+    else if (nodeLower.includes('ordini') || nodeLower.includes('order')) {
+      businessData.type = 'order';
+      businessData.orderId = dataToUse.order_reference || dataToUse.order_id;
+      businessData.customerName = dataToUse.customer_full_name;
+      businessData.orderStatus = dataToUse.order_status;
+      businessData.orderTotal = dataToUse.order_total_paid;
+      businessData.summary = `Ordine ${businessData.orderId || 'ricercato'} - ${businessData.customerName || 'cliente'}`;
+    }
+    
+    else if (nodeLower.includes('rispondi') || nodeLower.includes('reply')) {
+      businessData.type = 'email_sent';
+      businessData.recipient = dataToUse.to || dataToUse.recipient;
+      businessData.subject = dataToUse.subject;
+      businessData.emailSent = dataToUse.body || dataToUse.message;
+      if (businessData.emailSent && typeof businessData.emailSent === 'string') {
+        businessData.sentPreview = businessData.emailSent.substring(0, 100) + '...';
+      }
+      businessData.summary = `Email inviata a ${businessData.recipient || 'cliente'}: "${businessData.subject || 'risposta'}"`;
+    }
+    
+    else {
+      businessData.type = 'generic';
+      businessData.summary = `Operazione completata con successo`;
+      businessData.availableFields = Object.keys(dataToUse).slice(0, 5);
+    }
+    
+    // Store full data for frontend details
+    businessData.fullData = dataToUse;
+    
+  } else {
+    businessData.type = 'no_data';
+    businessData.summary = `Nodo eseguito senza dati business estratti`;
+  }
+  
+  return businessData;
+}
+
+// Extract ALL available data from execution - COMPLETE VERSION FOR FRONTEND FILTERING
+function extractRealBusinessData(inputData, outputData, nodeType, nodeName) {
+  const allData = {
+    // Basic node info
+    nodeType: nodeType,
+    nodeName: nodeName,
+    executedAt: new Date().toISOString(),
+    hasInputData: !!inputData,
+    hasOutputData: !!outputData,
+    
+    // RAW DATA - Complete and unfiltered
+    rawInputData: inputData,
+    rawOutputData: outputData,
+    
+    // PROCESSED DATA - Main JSON objects for easier frontend access
+    inputJson: inputData?.main?.json || inputData,
+    outputJson: outputData?.main?.json || outputData,
+    
+    // AUTOMATIC CLASSIFICATION - Just helpers, not filters
+    nodeCategory: classifyNodeCategory(nodeName, nodeType),
+    
+    // SUGGESTED BUSINESS SUMMARY - Frontend can override/ignore
+    suggestedSummary: generateSuggestedSummary(inputData, outputData, nodeName)
+  };
+  
+  // Add ALL available fields from both input and output
+  if (allData.inputJson && typeof allData.inputJson === 'object') {
+    allData.availableInputFields = Object.keys(allData.inputJson);
+    allData.inputDataSize = JSON.stringify(allData.inputJson).length;
+  }
+  
+  if (allData.outputJson && typeof allData.outputJson === 'object') {
+    allData.availableOutputFields = Object.keys(allData.outputJson);
+    allData.outputDataSize = JSON.stringify(allData.outputJson).length;
+  }
+  
+  // TOTAL DATA AVAILABILITY METRICS
+  allData.totalDataSize = (allData.inputDataSize || 0) + (allData.outputDataSize || 0);
+  allData.totalAvailableFields = [
+    ...(allData.availableInputFields || []),
+    ...(allData.availableOutputFields || [])
+  ].length;
+  
+  return allData;
+}
+
+// Helper: Classify node category (not filtering, just suggestion)
+function classifyNodeCategory(nodeName, nodeType) {
+  const nameLower = nodeName.toLowerCase();
+  const typeLower = nodeType.toLowerCase();
+  
+  if (nameLower.includes('mail') || nameLower.includes('ricezione') || typeLower.includes('outlook')) return 'email_trigger';
+  if (nameLower.includes('milena') || nameLower.includes('ai') || typeLower.includes('agent')) return 'ai_agent';
+  if (nameLower.includes('rispondi') || nameLower.includes('reply')) return 'email_response';
+  if (nameLower.includes('vector') || nameLower.includes('qdrant')) return 'vector_search';
+  if (nameLower.includes('ordini') || nameLower.includes('order')) return 'order_lookup';
+  if (nameLower.includes('parcel') || nameLower.includes('tracking')) return 'parcel_tracking';
+  if (typeLower.includes('workflow')) return 'sub_workflow';
+  
+  return 'business_step';
+}
+
+// Helper: Generate suggested summary (frontend can ignore/override)
+function generateSuggestedSummary(inputData, outputData, nodeName) {
+  // Use the best available data
+  const dataToUse = outputData?.main?.json || inputData?.main?.json || outputData || inputData;
+  
+  if (!dataToUse) {
+    return `${nodeName} - Nodo eseguito`;
+  }
+  
+  const nameLower = nodeName.toLowerCase();
+  
+  // Email suggestions
+  if (nameLower.includes('mail') || nameLower.includes('ricezione')) {
+    const sender = dataToUse.sender?.emailAddress?.name || dataToUse.sender?.emailAddress?.address;
+    const subject = dataToUse.subject;
+    return `📧 ${sender ? `Email da ${sender}` : 'Email ricevuta'}${subject ? `: "${subject}"` : ''}`;
+  }
+  
+  // AI suggestions
+  if (nameLower.includes('milena') || nameLower.includes('ai')) {
+    const category = dataToUse.categoria || dataToUse.classification;
+    return `🤖 Risposta AI${category ? ` (${category})` : ' generata'}`;
+  }
+  
+  // Email reply suggestions
+  if (nameLower.includes('rispondi') || nameLower.includes('reply')) {
+    const recipient = dataToUse.to || dataToUse.recipient;
+    return `📤 Email inviata${recipient ? ` a ${recipient}` : ''}`;
+  }
+  
+  // Order suggestions
+  if (nameLower.includes('ordini') || nameLower.includes('order')) {
+    const orderId = dataToUse.order_reference || dataToUse.order_id;
+    const customer = dataToUse.customer_full_name;
+    return `📦 Ordine${orderId ? ` ${orderId}` : ''}${customer ? ` - ${customer}` : ''}`;
+  }
+  
+  // Generic fallback
+  const fieldsCount = Object.keys(dataToUse).length;
+  return `✅ ${nodeName} completato (${fieldsCount} campi disponibili)`;
+}
+
+// ============================================================================
+// BUSINESS DATA PERSISTENCE SYSTEM
+// ============================================================================
+
+// Save business data to permanent storage
+async function saveBusinessDataToDatabase(workflowId, executionId, nodeData) {
+  try {
+    const insertQuery = `
+      INSERT INTO pilotpros.business_execution_data 
+      (workflow_id, execution_id, node_id, node_name, node_type, show_tag,
+       business_summary, business_category, email_sender, email_subject, email_content,
+       ai_classification, ai_response, order_id, order_customer,
+       raw_input_data, raw_output_data, data_size, available_fields)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ON CONFLICT (workflow_id, execution_id, node_id) 
+      DO UPDATE SET 
+        business_summary = EXCLUDED.business_summary,
+        business_category = EXCLUDED.business_category,
+        email_sender = EXCLUDED.email_sender,
+        email_subject = EXCLUDED.email_subject,
+        email_content = EXCLUDED.email_content,
+        ai_classification = EXCLUDED.ai_classification,
+        ai_response = EXCLUDED.ai_response,
+        order_id = EXCLUDED.order_id,
+        order_customer = EXCLUDED.order_customer,
+        raw_input_data = EXCLUDED.raw_input_data,
+        raw_output_data = EXCLUDED.raw_output_data,
+        data_size = EXCLUDED.data_size,
+        available_fields = EXCLUDED.available_fields,
+        extracted_at = NOW()
+    `;
+    
+    // Extract specific business fields from the data
+    const inputJson = nodeData.inputJson || {};
+    const outputJson = nodeData.outputJson || {};
+    
+    const values = [
+      workflowId,
+      executionId, 
+      nodeData._nodeId || nodeData.nodeId,
+      nodeData.nodeName || nodeData.name,
+      nodeData.nodeType,
+      nodeData.showTag,
+      nodeData.suggestedSummary,
+      nodeData.nodeCategory,
+      // Email fields
+      outputJson.sender?.emailAddress?.address || inputJson.sender?.emailAddress?.address,
+      outputJson.subject || inputJson.subject,
+      outputJson.body?.content || inputJson.body?.content,
+      // AI fields  
+      outputJson.categoria || outputJson.classification || inputJson.categoria,
+      outputJson.risposta_html || outputJson.response || inputJson.risposta_html,
+      // Order fields
+      outputJson.order_reference || outputJson.order_id || inputJson.order_reference,
+      outputJson.customer_full_name || inputJson.customer_full_name,
+      // Raw data
+      JSON.stringify(nodeData.rawInputData),
+      JSON.stringify(nodeData.rawOutputData),
+      nodeData.totalDataSize || 0,
+      nodeData.availableOutputFields || nodeData.availableInputFields || []
+    ];
+    
+    await dbPool.query(insertQuery, values);
+    console.log(`✅ Business data saved: ${nodeData.nodeName} (${workflowId}:${executionId})`);
+    
+  } catch (error) {
+    console.error('❌ Error saving business data:', error);
+  }
+}
+
+// Load business data from permanent storage  
+async function loadBusinessDataFromDatabase(workflowId, executionId = null) {
+  try {
+    let query = `
+      SELECT * FROM pilotpros.business_execution_data 
+      WHERE workflow_id = $1
+    `;
+    let values = [workflowId];
+    
+    if (executionId) {
+      query += ` AND execution_id = $2`;
+      values.push(executionId);
+    }
+    
+    query += ` ORDER BY extracted_at DESC`;
+    
+    const result = await dbPool.query(query, values);
+    return result.rows;
+    
+  } catch (error) {
+    console.error('❌ Error loading business data:', error);
+    return [];
+  }
+}
+
+// LEGACY - Keep for compatibility but not used anymore
+function extractBusinessData(executionData, nodeType, nodeName, fullExecutionData) {
+  const businessData = {
+    nodeType: nodeType,
+    executedAt: executionData.startTime || executionData.executedAt || new Date().toISOString(),
+    duration: executionData.executionTime || 0
+  };
+  
+  // Extract basic execution info for all nodes
+  if (executionData) {
+    businessData.status = executionData.error ? 'error' : 'success';
+    businessData.rawDataSize = JSON.stringify(executionData).length;
+  }
+  
+  // Try to find JSON data in multiple possible locations
+  let jsonData = null;
+  const possibleDataPaths = [
+    executionData.data,
+    executionData.source,
+    executionData.json,
+    executionData.outputData,
+    executionData.inputData
+  ];
+  
+  for (const path of possibleDataPaths) {
+    if (path && typeof path === 'object') {
+      jsonData = path;
+      break;
+    }
+  }
+  
+  // If still no data, try to resolve n8n compressed references
+  if (!jsonData && fullExecutionData && Array.isArray(fullExecutionData)) {
+    for (let i = 0; i < fullExecutionData.length; i++) {
+      const item = fullExecutionData[i];
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        // Look for JSON data in this item
+        if (item.json || item.data || item.output) {
+          jsonData = item.json || item.data || item.output;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Extract business-specific data based on node type and name
+  if (jsonData) {
+    const nodeLower = nodeName.toLowerCase();
+    
+    if (nodeLower.includes('mail') || nodeLower.includes('ricezione')) {
+      businessData.type = 'email';
+      businessData.email = jsonData.mittente || jsonData.sender?.emailAddress?.address || jsonData.from;
+      businessData.subject = jsonData.oggetto || jsonData.subject;
+      businessData.message = jsonData.messaggio_cliente || jsonData.body?.content || jsonData.body;
+      businessData.summary = `Email from ${businessData.email || 'unknown'}: "${(businessData.subject || 'no subject').substring(0, 50)}..."`;
+    }
+    
+    else if (nodeLower.includes('milena') || nodeLower.includes('ai')) {
+      businessData.type = 'ai_response';
+      businessData.aiResponse = jsonData.risposta_html || jsonData.output?.risposta_html || jsonData.response;
+      businessData.classification = jsonData.categoria || jsonData.output?.categoria || jsonData.classification;
+      businessData.confidence = jsonData.confidence || jsonData.output?.confidence;
+      businessData.summary = `AI generated response (${businessData.classification || 'unclassified'})`;
+    }
+    
+    else if (nodeLower.includes('ordini') || nodeLower.includes('order')) {
+      businessData.type = 'order';
+      businessData.orderId = jsonData.order_reference || jsonData.order_id;
+      businessData.customerName = jsonData.customer_full_name;
+      businessData.orderStatus = jsonData.order_status;
+      businessData.summary = `Order ${businessData.orderId || 'lookup'} for ${businessData.customerName || 'customer'}`;
+    }
+    
+    else if (nodeLower.includes('rispondi') || nodeLower.includes('reply')) {
+      businessData.type = 'email_sent';
+      businessData.recipient = jsonData.to || jsonData.recipient;
+      businessData.subject = jsonData.subject;
+      businessData.summary = `Email sent to ${businessData.recipient || 'customer'}`;
+    }
+    
+    else {
+      businessData.type = 'generic';
+      businessData.summary = `Business step completed`;
+      // Store first few keys for reference
+      businessData.availableFields = Object.keys(jsonData).slice(0, 5);
+    }
+  } else {
+    businessData.type = 'no_data';
+    businessData.summary = `Node executed successfully (no business data extracted)`;
+  }
+  
+  return businessData;
+}
+
+// Extract overall business context for rawDataForModal
+function extractModalBusinessContext(businessNodes, execution) {
+  const context = {
+    customerEmail: null,
+    orderId: null,
+    classification: null,
+    aiResponseGenerated: false
+  };
+  
+  businessNodes.forEach(node => {
+    if (node.data.email && !context.customerEmail) {
+      context.customerEmail = node.data.email;
+    }
+    if (node.data.orderId && !context.orderId) {
+      context.orderId = node.data.orderId;
+    }
+    if (node.data.classification && !context.classification) {
+      context.classification = node.data.classification;
+    }
+    if (node.data.aiResponse) {
+      context.aiResponseGenerated = true;
+    }
+  });
+  
+  return context;
+}
+
 // Business Process Timeline Report - Export Functionality
 app.get('/api/business/process-timeline/:processId/report', async (req, res) => {
   try {

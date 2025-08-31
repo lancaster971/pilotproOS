@@ -69,9 +69,9 @@
         </div>
 
         <!-- Timeline Steps -->
-        <div v-if="data?.timeline?.length > 0" class="space-y-4">
+        <div v-if="data?.businessNodes?.length > 0" class="space-y-4">
           <div
-            v-for="(step, index) in data.timeline"
+            v-for="(step, index) in data.businessNodes"
             :key="step.nodeId || index"
             :class="[
               'border rounded-lg p-4 transition-all cursor-pointer',
@@ -84,11 +84,11 @@
               <div class="flex items-center">
                 <component :is="getStepIcon(step.status)" class="w-4 h-4 mr-3" />
                 <div>
-                  <div class="font-medium text-white">{{ step.nodeName || `Step ${index + 1}` }}</div>
+                  <div class="font-medium text-white">{{ step.name || `Step ${index + 1}` }}</div>
                   <div class="text-sm text-gray-400">
                     {{ step.status === 'not-executed' 
                       ? 'Node not executed in this run' 
-                      : getBusinessSummary(step) }}
+                      : (step.data?.suggestedSummary || step.data?.summary || getBusinessSummary(step)) }}
                   </div>
                 </div>
               </div>
@@ -111,43 +111,103 @@
 
             <!-- Expanded Step Details -->
             <div v-if="expandedStep === (step.nodeId || index)" class="mt-4 pt-4 border-t border-gray-700">
-              <div v-if="step.details" class="mb-4">
-                <div class="text-sm font-medium text-white mb-2">Details:</div>
-                <div class="text-sm text-gray-300">{{ step.details }}</div>
+              
+              <!-- Complete Data Overview -->
+              <div v-if="step.data" class="mb-4 p-3 bg-green-400/5 rounded-lg border border-green-400/20">
+                <div class="text-sm font-medium text-green-400 mb-2">Execution Data Available:</div>
+                <div class="text-sm text-gray-300 mb-3">{{ step.data.suggestedSummary || 'Step completed successfully' }}</div>
+                
+                <!-- Data Availability Metrics -->
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                  <div class="text-gray-400">
+                    <span class="text-blue-400">Total Data Size:</span> {{ step.data.totalDataSize || 0 }} bytes
+                  </div>
+                  <div class="text-gray-400">
+                    <span class="text-blue-400">Available Fields:</span> {{ step.data.totalAvailableFields || 0 }}
+                  </div>
+                  <div class="text-gray-400">
+                    <span class="text-green-400">Input Data:</span> {{ step.data.hasInputData ? '✅' : '❌' }}
+                  </div>
+                  <div class="text-gray-400">
+                    <span class="text-green-400">Output Data:</span> {{ step.data.hasOutputData ? '✅' : '❌' }}
+                  </div>
+                  <div class="text-gray-400">
+                    <span class="text-purple-400">Node Category:</span> {{ step.data.nodeCategory || 'unknown' }}
+                  </div>
+                  <div class="text-gray-400">
+                    <span class="text-gray-500">Executed:</span> {{ formatTimestamp(step.data.executedAt) }}
+                  </div>
+                </div>
+                
+                <!-- Available Field Lists -->
+                <div v-if="step.data.availableInputFields || step.data.availableOutputFields" class="mt-3 pt-2 border-t border-gray-700">
+                  <div v-if="step.data.availableInputFields" class="mb-2">
+                    <span class="text-xs text-blue-400">Input Fields:</span>
+                    <span class="text-xs text-gray-400 ml-2">{{ step.data.availableInputFields.join(', ') }}</span>
+                  </div>
+                  <div v-if="step.data.availableOutputFields">
+                    <span class="text-xs text-green-400">Output Fields:</span>
+                    <span class="text-xs text-gray-400 ml-2">{{ step.data.availableOutputFields.join(', ') }}</span>
+                  </div>
+                </div>
               </div>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Input Data -->
+                <!-- Input Data - Complete -->
                 <div>
-                  <div class="text-sm font-medium text-white mb-2">Input:</div>
+                  <div class="text-sm font-medium text-white mb-2">Input Data ({{ step.data?.inputDataSize || 0 }} bytes):</div>
                   <div class="bg-gray-900 p-3 rounded text-sm text-gray-300 whitespace-pre-line">
-                    {{ getBusinessData(step, 'input') }}
+                    {{ step.data?.inputJson ? 'Click "Show all input data" below to see complete input JSON' : 'No input data available' }}
                   </div>
                   <details class="mt-2">
                     <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
-                      Show technical data
+                      Show all input data ({{ step.data?.availableInputFields?.length || 0 }} fields)
                     </summary>
-                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2">{{ 
-                      step.inputData ? JSON.stringify(step.inputData, null, 2) : 'No input data' 
+                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2 max-h-96">{{ 
+                      step.data?.inputJson ? JSON.stringify(step.data.inputJson, null, 2) : 'No input data' 
                     }}</pre>
                   </details>
                 </div>
                 
-                <!-- Output Data -->
+                <!-- Output Data - Complete -->
                 <div>
-                  <div class="text-sm font-medium text-white mb-2">Output:</div>
+                  <div class="text-sm font-medium text-white mb-2">Output Data ({{ step.data?.outputDataSize || 0 }} bytes):</div>
                   <div class="bg-gray-900 p-3 rounded text-sm text-gray-300 whitespace-pre-line">
-                    {{ getBusinessData(step, 'output') }}
+                    {{ step.data?.outputJson ? 'Click "Show all output data" below to see complete output JSON' : 'No output data available' }}
                   </div>
                   <details class="mt-2">
                     <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
-                      Show technical data
+                      Show all output data ({{ step.data?.availableOutputFields?.length || 0 }} fields)
                     </summary>
-                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2">{{ 
-                      step.outputData ? JSON.stringify(step.outputData, null, 2) : 'No output data' 
+                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2 max-h-96">{{ 
+                      step.data?.outputJson ? JSON.stringify(step.data.outputJson, null, 2) : 'No output data' 
                     }}</pre>
                   </details>
                 </div>
+              </div>
+              
+              <!-- RAW DATA Section - Complete Raw n8n Data -->
+              <div v-if="step.data?.rawInputData || step.data?.rawOutputData" class="mt-4 pt-4 border-t border-gray-700">
+                <div class="text-sm font-medium text-white mb-2">Complete Raw n8n Execution Data:</div>
+                <details>
+                  <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                    Show complete raw n8n data structure (unfiltered)
+                  </summary>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div v-if="step.data.rawInputData">
+                      <div class="text-xs text-blue-400 mb-1">Raw Input Data:</div>
+                      <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto max-h-64">{{ 
+                        JSON.stringify(step.data.rawInputData, null, 2) 
+                      }}</pre>
+                    </div>
+                    <div v-if="step.data.rawOutputData">
+                      <div class="text-xs text-green-400 mb-1">Raw Output Data:</div>
+                      <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto max-h-64">{{ 
+                        JSON.stringify(step.data.rawOutputData, null, 2) 
+                      }}</pre>
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -167,47 +227,42 @@
     <!-- Business Context Tab -->
     <template #context="{ data }">
       <div class="p-6 space-y-6">
-        <div v-if="data?.businessContext" class="p-4 bg-black/50 rounded-lg border border-gray-800">
+        <div v-if="data?.execution?.businessContext" class="p-4 bg-black/50 rounded-lg border border-gray-800">
           <h3 class="text-lg font-medium text-white mb-4">Business Context</h3>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-if="data.businessContext.senderEmail" class="flex items-center">
+            <div v-if="data.execution.businessContext.customerEmail" class="flex items-center">
               <Mail class="w-4 h-4 text-blue-400 mr-2" />
-              <span class="text-gray-400">Sender:</span>
-              <span class="text-blue-400 ml-2">{{ data.businessContext.senderEmail }}</span>
+              <span class="text-gray-400">Customer:</span>
+              <span class="text-blue-400 ml-2">{{ data.execution.businessContext.customerEmail }}</span>
             </div>
             
-            <div v-if="data.businessContext.orderId" class="flex items-center">
+            <div v-if="data.execution.businessContext.orderId" class="flex items-center">
               <Package class="w-4 h-4 text-green-400 mr-2" />
               <span class="text-gray-400">Order ID:</span>
-              <span class="text-white ml-2">{{ data.businessContext.orderId }}</span>
+              <span class="text-white ml-2">{{ data.execution.businessContext.orderId }}</span>
             </div>
             
-            <div v-if="data.businessContext.subject" class="flex items-center">
-              <FileText class="w-4 h-4 text-yellow-400 mr-2" />
-              <span class="text-gray-400">Subject:</span>
-              <span class="text-white ml-2">{{ data.businessContext.subject }}</span>
-            </div>
-            
-            <div v-if="data.businessContext.classification" class="flex items-center">
+            <div v-if="data.execution.businessContext.classification" class="flex items-center">
               <Tag class="w-4 h-4 text-purple-400 mr-2" />
               <span class="text-gray-400">Classification:</span>
-              <span class="text-purple-400 ml-2">
-                {{ data.businessContext.classification }}
-                <span v-if="data.businessContext.confidence" class="text-gray-400 ml-1">
-                  ({{ data.businessContext.confidence }}%)
-                </span>
-              </span>
+              <span class="text-purple-400 ml-2">{{ data.execution.businessContext.classification }}</span>
+            </div>
+            
+            <div v-if="data.execution.businessContext.aiResponseGenerated" class="flex items-center">
+              <Bot class="w-4 h-4 text-green-400 mr-2" />
+              <span class="text-gray-400">AI Response:</span>
+              <span class="text-green-400 ml-2">Generated</span>
             </div>
           </div>
         </div>
 
         <!-- Quick Actions -->
-        <div v-if="data?.businessContext?.senderEmail" class="p-4 bg-black/50 rounded-lg border border-gray-800">
+        <div v-if="data?.execution?.businessContext?.customerEmail" class="p-4 bg-black/50 rounded-lg border border-gray-800">
           <h3 class="text-lg font-medium text-white mb-4">Quick Actions</h3>
           <div class="flex space-x-4">
             <button
-              @click="replyToCustomer(data.businessContext)"
+              @click="replyToCustomer(data.execution.businessContext)"
               class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
             >
               <Mail class="w-4 h-4 mr-2" />
@@ -272,6 +327,7 @@ import { useBusinessParser } from '../../composables/useBusinessParser'
 
 interface Props {
   workflowId: string
+  executionId?: string
   tenantId?: string
   show: boolean
 }
@@ -292,14 +348,15 @@ const expandedStep = ref<string | null>(null)
 
 // Modal configuration
 const modalTitle = computed(() => {
-  return timelineData.value?.workflowName || `Process ${props.workflowId}`
+  return timelineData.value?.workflow?.name || `Business Process ${props.workflowId}`
 })
 
 const modalSubtitle = computed(() => {
   if (!timelineData.value) return ''
-  const status = timelineData.value.status === 'active' ? 'ACTIVE' : 'INACTIVE'
-  const lastExec = timelineData.value.lastExecution
-  return `ID: ${props.workflowId} • Status: ${status}${lastExec ? ` • Last: ${lastExec.id}` : ''}`
+  const workflow = timelineData.value.workflow
+  const execution = timelineData.value.execution
+  const status = workflow?.active ? 'ACTIVE' : 'INACTIVE'
+  return `ID: ${props.workflowId} • Status: ${status}${execution ? ` • Last: ${execution.id}` : ''}`
 })
 
 const tabs = [
@@ -314,9 +371,14 @@ const loadTimeline = async () => {
   setError(null)
   
   try {
-    console.log('🔄 Loading business process timeline for:', props.workflowId)
+    console.log('🔄 Loading raw data for modal:', props.workflowId, props.executionId ? `(execution: ${props.executionId})` : '(latest)')
     
-    const response = await fetch(`http://localhost:3001/api/business/process-timeline/${props.workflowId}`)
+    let url = `http://localhost:3001/api/business/raw-data-for-modal/${props.workflowId}`
+    if (props.executionId) {
+      url += `?executionId=${props.executionId}`
+    }
+    
+    const response = await fetch(url)
     
     if (!response.ok) {
       throw new Error(`Backend API error: ${response.status}`)
@@ -409,8 +471,10 @@ const formatDuration = (ms: number) => {
   return `${(ms / 60000).toFixed(1)}min`
 }
 
-const formatTimestamp = (timestamp: string) => {
-  return new Date(timestamp).toLocaleString('it-IT', {
+const formatTimestamp = (timestamp: string | number) => {
+  // Handle both string ISO dates and Unix timestamps
+  const date = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp)
+  return date.toLocaleString('it-IT', {
     dateStyle: 'short',
     timeStyle: 'medium'
   })
@@ -418,11 +482,11 @@ const formatTimestamp = (timestamp: string) => {
 
 // Actions
 const replyToCustomer = (context: any) => {
-  const senderEmail = context.senderEmail
+  const customerEmail = context.customerEmail
   const subject = context.subject || ''
   
-  if (senderEmail) {
-    window.open(`mailto:${senderEmail}?subject=Re: ${subject}`, '_blank')
+  if (customerEmail) {
+    window.open(`mailto:${customerEmail}?subject=Re: ${subject}`, '_blank')
   }
 }
 
@@ -466,13 +530,13 @@ const generateBusinessReport = (): string => {
   report += `\n└${'─'.repeat(78)}┘\n\n`
   
   // Business Context
-  if (timelineData.value.businessContext && Object.keys(timelineData.value.businessContext).length > 0) {
+  if (timelineData.value.execution?.businessContext && Object.keys(timelineData.value.execution.businessContext).length > 0) {
     report += `┌─ BUSINESS CONTEXT ANALYSIS ${'─'.repeat(50)}┐\n\n`
     
-    const context = timelineData.value.businessContext
-    if (context.senderEmail) {
-      report += `  SENDER INFORMATION:\n`
-      report += `     Email: ${context.senderEmail}\n\n`
+    const context = timelineData.value.execution.businessContext
+    if (context.customerEmail) {
+      report += `  CUSTOMER INFORMATION:\n`
+      report += `     Email: ${context.customerEmail}\n\n`
     }
     
     if (context.subject) {
