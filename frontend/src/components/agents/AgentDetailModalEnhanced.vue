@@ -128,25 +128,84 @@
                   </p>
                 </div>
 
-                <!-- Timeline Steps -->
+                <!-- Enhanced Interactive Timeline Steps -->
                 <div v-if="timelineData.timeline && timelineData.timeline.length > 0" class="space-y-4">
                   <div
                     v-for="(step, index) in timelineData.timeline"
                     :key="step.nodeId || index"
-                    class="border rounded-lg p-4 border-primary/30 bg-primary/5"
+                    class="border rounded-lg transition-all duration-200"
+                    :class="getStepBorderClass(step.status)"
                   >
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center">
-                        <CheckCircle class="w-4 h-4 mr-3 text-primary" />
-                        <div>
-                          <div class="font-medium text-text">{{ step.nodeName || `Step ${index + 1}` }}</div>
-                          <div class="text-sm text-text-muted">{{ step.summary || 'Process execution step' }}</div>
+                    <!-- Step Header - Clickable -->
+                    <div 
+                      class="p-4 cursor-pointer hover:bg-surface/30 transition-colors"
+                      @click="expandedStep = expandedStep === step.nodeId ? null : step.nodeId"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                          <component 
+                            :is="getStepStatusIcon(step.status)" 
+                            class="w-4 h-4 mr-3"
+                            :class="getStepStatusColor(step.status)"
+                          />
+                          <div>
+                            <div class="font-medium text-text">{{ step.nodeName || `Step ${index + 1}` }}</div>
+                            <div class="text-sm text-text-muted">{{ step.summary || 'Process execution step' }}</div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span class="text-xs text-text-muted">
+                            {{ formatDuration(step.executionTime || 0) }}
+                          </span>
+                          <component
+                            :is="expandedStep === step.nodeId ? ChevronDown : ChevronRight"
+                            class="w-4 h-4 text-text-muted"
+                          />
                         </div>
                       </div>
-                      <div class="flex items-center">
-                        <span class="text-xs text-text-muted mr-3">
-                          {{ formatDuration(step.executionTime || 0) }}
-                        </span>
+                    </div>
+
+                    <!-- Expanded Details -->
+                    <div v-if="expandedStep === step.nodeId" class="border-t border-border px-4 pb-4">
+                      <div class="pt-4 space-y-4">
+                        <!-- Step Details -->
+                        <div v-if="step.details" class="mb-4">
+                          <div class="text-sm font-medium text-text mb-2">Details:</div>
+                          <div class="text-sm text-text-secondary">{{ step.details }}</div>
+                        </div>
+                        
+                        <!-- Input/Output Data -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <!-- Input Data -->
+                          <div>
+                            <div class="text-sm font-medium text-text mb-2">Input Data:</div>
+                            <div class="control-card p-3 text-sm text-text-secondary whitespace-pre-line">
+                              {{ humanizeStepData(step.inputData, 'input', step.nodeType, step.nodeName) }}
+                            </div>
+                            <!-- Raw Input Toggle -->
+                            <details class="mt-2">
+                              <summary class="text-xs text-text-muted cursor-pointer hover:text-text">
+                                Show technical data
+                              </summary>
+                              <pre class="control-card p-2 text-xs text-text-muted overflow-x-auto mt-2 font-mono">{{ JSON.stringify(step.inputData, null, 2) }}</pre>
+                            </details>
+                          </div>
+                          
+                          <!-- Output Data -->
+                          <div>
+                            <div class="text-sm font-medium text-text mb-2">Output Data:</div>
+                            <div class="control-card p-3 text-sm text-text-secondary whitespace-pre-line">
+                              {{ humanizeStepData(step.outputData, 'output', step.nodeType, step.nodeName) }}
+                            </div>
+                            <!-- Raw Output Toggle -->
+                            <details class="mt-2">
+                              <summary class="text-xs text-text-muted cursor-pointer hover:text-text">
+                                Show technical data
+                              </summary>
+                              <pre class="control-card p-2 text-xs text-text-muted overflow-x-auto mt-2 font-mono">{{ JSON.stringify(step.outputData, null, 2) }}</pre>
+                            </details>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -294,7 +353,8 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
   X, Database, RefreshCw, XCircle, Clock, CheckCircle,
-  Code, Download, GitBranch, Play, Settings, Eye, TrendingUp
+  Code, Download, GitBranch, Play, Settings, Eye, TrendingUp,
+  ChevronDown, ChevronRight, AlertTriangle, Info
 } from 'lucide-vue-next'
 import { useUIStore } from '../../stores/ui'
 
@@ -324,6 +384,7 @@ const isLoading = ref(false)
 const isRefreshing = ref(false)
 const error = ref<string | null>(null)
 const activeTab = ref<'timeline' | 'flow' | 'context' | 'raw'>('timeline')
+const expandedStep = ref<string | null>(null)
 
 // Data
 const timelineData = ref<any>(null)
@@ -342,7 +403,7 @@ const loadTimeline = async () => {
   timelineData.value = null
   
   try {
-    console.log('🔄 Loading REAL process data for:', props.workflowId)
+    console.log('🔄 Loading ENHANCED timeline for:', props.workflowId)
     
     // Get workflow metadata first
     const workflowResponse = await fetch(`http://localhost:3001/api/business/processes`)
@@ -351,27 +412,25 @@ const loadTimeline = async () => {
       selectedWorkflowData.value = workflowsData.data.find(w => w.process_id === props.workflowId)
     }
     
-    // Get detailed process structure
-    const detailResponse = await fetch(`http://localhost:3001/api/business/process-details/${props.workflowId}`)
+    // Get timeline execution data from NEW enhanced endpoint
+    const timelineResponse = await fetch(`http://localhost:3001/api/business/process-timeline/${props.workflowId}`)
     
-    if (detailResponse.ok) {
-      const realData = await detailResponse.json()
-      console.log('✅ REAL process data loaded:', realData)
+    if (timelineResponse.ok) {
+      const timelineResult = await timelineResponse.json()
+      console.log('✅ ENHANCED timeline loaded:', timelineResult)
       
-      timelineData.value = {
-        processName: realData.data.processName,
-        status: realData.data.isActive ? 'active' : 'inactive',
-        processSteps: realData.data.processSteps || [],
-        processFlow: realData.data.processFlow || [],
-        businessMetadata: realData.data.businessMetadata
+      if (timelineResult.success) {
+        timelineData.value = timelineResult.data
+        
+        // Create flow visualization from timeline steps
+        createTimelineFlowFromSteps(timelineResult.data.timeline || [])
+        
+        console.log('✅ Enhanced timeline loaded:', timelineData.value.timeline?.length || 0, 'steps')
+      } else {
+        throw new Error(timelineResult.message || 'Failed to load timeline')
       }
-      
-      // Create flow visualization
-      createTimelineFlow(realData.data)
-      
-      console.log('✅ Timeline data loaded:', timelineData.value.processSteps.length, 'steps')
     } else {
-      throw new Error(`Backend API returned ${detailResponse.status}`)
+      throw new Error(`Timeline API returned ${timelineResponse.status}`)
     }
     
   } catch (err: any) {
@@ -411,6 +470,45 @@ const createTimelineFlow = (processDetails: any) => {
     animated: selectedWorkflowData.value?.is_active,
     style: { 
       stroke: '#10b981', 
+      strokeWidth: 2
+    }
+  }))
+  
+  timelineFlowElements.value = [...nodes, ...edges]
+}
+
+const createTimelineFlowFromSteps = (timelineSteps: any[]) => {
+  if (!timelineSteps || timelineSteps.length === 0) {
+    timelineFlowElements.value = []
+    return
+  }
+  
+  // Create nodes from timeline steps
+  const nodes = timelineSteps.map((step: any, index: number) => ({
+    id: step.nodeId,
+    type: 'custom',
+    position: { 
+      x: (index % 3) * 200, 
+      y: Math.floor(index / 3) * 120
+    },
+    data: {
+      label: step.nodeName,
+      status: step.status,
+      type: getBusinessTypeFromNodeType(step.nodeType),
+      executionTime: step.executionTime,
+      summary: step.summary
+    }
+  }))
+  
+  // Create edges connecting steps in sequence
+  const edges = timelineSteps.slice(0, -1).map((step: any, index: number) => ({
+    id: `timeline-edge-${index}`,
+    source: step.nodeId,
+    target: timelineSteps[index + 1].nodeId,
+    type: 'smoothstep',
+    animated: timelineData.value?.status === 'active',
+    style: { 
+      stroke: step.status === 'success' ? '#10b981' : '#ef4444', 
       strokeWidth: 2
     }
   }))
@@ -477,6 +575,20 @@ const getBusinessTypeFromCategory = (businessCategory: string) => {
   }
 }
 
+const getBusinessTypeFromNodeType = (nodeType: string) => {
+  const type = nodeType?.toLowerCase() || ''
+  
+  if (type.includes('trigger') || type.includes('webhook')) return 'trigger'
+  if (type.includes('ai') || type.includes('agent') || type.includes('openai') || type.includes('langchain')) return 'ai'
+  if (type.includes('http') || type.includes('api')) return 'api'
+  if (type.includes('mail') || type.includes('email')) return 'email'
+  if (type.includes('vector') || type.includes('database') || type.includes('storage')) return 'storage'
+  if (type.includes('code') || type.includes('javascript') || type.includes('function')) return 'logic'
+  if (type.includes('file') || type.includes('document')) return 'file'
+  
+  return 'process'
+}
+
 const getNodeIcon = (type: string) => {
   switch (type) {
     case 'trigger': return Play
@@ -505,6 +617,111 @@ const formatDuration = (ms?: number) => {
   if (ms < 1000) return `${ms}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
   return `${(ms / 60000).toFixed(1)}min`
+}
+
+// Helper functions for enhanced timeline
+const getStepStatusIcon = (status: string) => {
+  switch (status) {
+    case 'success': return CheckCircle
+    case 'error': return XCircle
+    case 'running': return Settings
+    case 'not-executed': return AlertTriangle
+    default: return Clock
+  }
+}
+
+const getStepStatusColor = (status: string) => {
+  switch (status) {
+    case 'success': return 'text-primary'
+    case 'error': return 'text-error'
+    case 'running': return 'text-warning animate-spin'
+    case 'not-executed': return 'text-text-muted'
+    default: return 'text-text-muted'
+  }
+}
+
+const getStepBorderClass = (status: string) => {
+  switch (status) {
+    case 'success': return 'border-primary/30 bg-primary/5'
+    case 'error': return 'border-error/30 bg-error/5'
+    case 'running': return 'border-warning/30 bg-warning/5'
+    case 'not-executed': return 'border-text-muted/30 bg-surface/20'
+    default: return 'border-border bg-surface/10'
+  }
+}
+
+// Port della logica humanizeStepData dal frontend_old
+const humanizeStepData = (data: any, dataType: 'input' | 'output', nodeType?: string, nodeName?: string) => {
+  if (!data) return 'Nessun dato disponibile'
+  
+  // Se è un array, prendi il primo elemento
+  const processData = Array.isArray(data) ? data[0] : data
+  
+  if (!processData || typeof processData !== 'object') {
+    return String(processData) || 'Dato non strutturato'
+  }
+
+  const insights: string[] = []
+  const nodeNameLower = nodeName?.toLowerCase() || ''
+  
+  // Trigger nodes special handling
+  if (nodeType?.includes('trigger') && dataType === 'input') {
+    return 'In attesa di nuovi dati dal sistema'
+  }
+  
+  // Email nodes
+  if (nodeNameLower.includes('mail') || nodeNameLower.includes('ricezione')) {
+    if (dataType === 'output') {
+      insights.push('--- EMAIL RICEVUTA ---')
+      
+      if (processData.json?.oggetto || processData.json?.subject) {
+        insights.push(`Oggetto: "${processData.json?.oggetto || processData.json?.subject}"`)
+      }
+      
+      if (processData.json?.mittente || processData.json?.sender?.emailAddress?.address) {
+        const sender = processData.json?.mittente || processData.json?.sender?.emailAddress?.address
+        insights.push(`Da: ${sender}`)
+      }
+      
+      if (processData.json?.messaggio_cliente || processData.json?.body?.content) {
+        const content = processData.json?.messaggio_cliente || processData.json?.body?.content
+        const preview = content?.substring(0, 100) || ''
+        insights.push(`Messaggio: "${preview}${preview.length >= 100 ? '...' : ''}"`)
+      }
+    }
+  }
+  
+  // AI nodes
+  else if (nodeNameLower.includes('ai') || nodeNameLower.includes('milena') || nodeNameLower.includes('assistant')) {
+    if (dataType === 'output') {
+      insights.push('--- RISPOSTA AI GENERATA ---')
+      
+      if (processData.json?.output?.risposta_html || processData.json?.risposta_html) {
+        const response = processData.json?.output?.risposta_html || processData.json?.risposta_html
+        const cleanResponse = response?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        const preview = cleanResponse?.substring(0, 150) || ''
+        insights.push(`Risposta: "${preview}${preview.length >= 150 ? '...' : ''}"`)
+      }
+      
+      if (processData.json?.categoria) {
+        insights.push(`Categoria: ${processData.json.categoria}`)
+      }
+    }
+  }
+  
+  // Fallback for other node types
+  if (insights.length === 0) {
+    if (processData.json) {
+      const keys = Object.keys(processData.json)
+      if (keys.length > 0) {
+        insights.push(`Campi disponibili: ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? '...' : ''}`)
+      }
+    } else {
+      insights.push('Dati complessi - espandi per dettagli tecnici')
+    }
+  }
+  
+  return insights.join('\n')
 }
 
 // Watchers
