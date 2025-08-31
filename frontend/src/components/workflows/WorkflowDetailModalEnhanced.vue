@@ -11,7 +11,7 @@
           <div class="flex items-center">
             <GitBranch class="w-6 h-6 text-primary mr-3" />
             <div>
-              <h2 class="text-xl font-semibold text-text">
+              <h2 class="text-lg font-semibold text-text">
                 {{ workflow.name }}
               </h2>
               <p class="text-text-muted text-sm">
@@ -94,7 +94,7 @@
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Basic Info -->
                 <div class="control-card p-4">
-                  <h3 class="font-semibold text-text mb-3 flex items-center gap-2">
+                  <h3 class="text-base font-semibold text-text mb-3 flex items-center gap-2">
                     <Database class="w-4 h-4 text-primary" />
                     Process Information
                   </h3>
@@ -122,44 +122,44 @@
 
                 <!-- Statistics -->
                 <div class="control-card p-4">
-                  <h3 class="font-semibold text-text mb-3 flex items-center gap-2">
+                  <h3 class="text-base font-semibold text-text mb-3 flex items-center gap-2">
                     <BarChart3 class="w-4 h-4 text-primary" />
                     Statistics
                   </h3>
                   <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                       <span class="text-text-muted">Total Nodes:</span>
-                      <span class="text-text font-semibold">{{ workflowDetails?.nodeCount || workflow.node_count || 0 }}</span>
+                      <span class="text-sm font-semibold text-text">{{ workflowDetails?.nodeCount || workflow.node_count || 0 }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Connections:</span>
-                      <span class="text-text font-semibold">{{ workflowDetails?.connectionCount || 0 }}</span>
+                      <span class="text-sm font-semibold text-text">{{ workflowDetails?.connectionCount || 0 }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Executions:</span>
-                      <span class="text-text font-semibold">{{ workflow.execution_count || 0 }}</span>
+                      <span class="text-sm font-semibold text-text">{{ workflow.execution_count || 0 }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Complexity:</span>
-                      <span class="text-primary font-semibold">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</span>
+                      <span class="text-sm font-semibold text-primary">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Business Impact -->
                 <div class="control-card p-4">
-                  <h3 class="font-semibold text-text mb-3 flex items-center gap-2">
+                  <h3 class="text-base font-semibold text-text mb-3 flex items-center gap-2">
                     <TrendingUp class="w-4 h-4 text-primary" />
                     Business Impact
                   </h3>
                   <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                       <span class="text-text-muted">Category:</span>
-                      <span class="text-primary font-semibold">{{ workflowDetails?.businessMetadata?.category || 'General' }}</span>
+                      <span class="text-sm font-semibold text-primary">{{ workflowDetails?.businessMetadata?.category || 'General' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Impact:</span>
-                      <span class="text-warning font-semibold">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</span>
+                      <span class="text-sm font-semibold text-warning">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Last Modified:</span>
@@ -264,19 +264,19 @@
               <!-- Flow Statistics -->
               <div class="grid grid-cols-4 gap-4">
                 <div class="control-card p-3 text-center">
-                  <div class="text-lg font-bold text-primary">{{ modalFlowNodes.length }}</div>
+                  <div class="text-base font-bold text-primary">{{ modalFlowNodes.length }}</div>
                   <div class="text-xs text-text-muted">Process Steps</div>
                 </div>
                 <div class="control-card p-3 text-center">
-                  <div class="text-lg font-bold text-text">{{ modalFlowEdges.length }}</div>
+                  <div class="text-base font-bold text-text">{{ modalFlowEdges.length }}</div>
                   <div class="text-xs text-text-muted">Connections</div>
                 </div>
                 <div class="control-card p-3 text-center">
-                  <div class="text-lg font-bold text-warning">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</div>
+                  <div class="text-base font-bold text-warning">{{ workflowDetails?.businessMetadata?.complexity || 'Unknown' }}</div>
                   <div class="text-xs text-text-muted">Complexity</div>
                 </div>
                 <div class="control-card p-3 text-center">
-                  <div class="text-lg font-bold text-primary">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</div>
+                  <div class="text-base font-bold text-primary">{{ workflowDetails?.businessMetadata?.businessImpact || 'Medium' }}</div>
                   <div class="text-xs text-text-muted">Business Impact</div>
                 </div>
               </div>
@@ -304,7 +304,7 @@
               <div class="control-card p-4">
                 <div class="text-center py-8">
                   <Settings class="w-12 h-12 text-text-muted mx-auto mb-4" />
-                  <h4 class="text-text font-medium mb-2">Configuration Panel</h4>
+                  <h4 class="text-base font-medium text-text mb-2">Configuration Panel</h4>
                   <p class="text-text-muted text-sm">Process settings and configuration options</p>
                   <div class="mt-4">
                     <button class="btn-control-primary">

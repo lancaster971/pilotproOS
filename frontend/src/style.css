@@ -7,16 +7,21 @@
 
 /* Global styles using Design System variables */
 * {
-  font-weight: 300 !important;
   font-family: 'DM Sans', sans-serif;
 }
 
 body {
   font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
   margin: 0;
   padding: 0;
   background: var(--color-background);
   color: var(--color-text);
+}
+
+/* Apply light weight to normal text elements */
+p, span:not(.font-semibold):not(.font-bold), div:not(.font-semibold):not(.font-bold) {
+  font-weight: 300;
 }
 
 /* PREMIUM Design System Component Styles */

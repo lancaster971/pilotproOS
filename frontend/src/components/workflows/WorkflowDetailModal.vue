@@ -8,15 +8,15 @@
       <div class="w-full max-w-6xl max-h-[90vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden">
         
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-800">
+        <div class="flex items-center justify-between p-6 border-b border-border">
           <div class="flex items-center gap-4">
             <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
               <GitBranch class="h-6 w-6 text-green-400" />
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white">{{ workflow.name }}</h2>
+              <h2 class="text-xl font-semibold text-text">{{ workflow.name }}</h2>
               <div class="flex items-center gap-3 mt-1">
-                <span class="text-sm text-gray-400">ID: {{ workflow.id }}</span>
+                <span class="text-sm text-text-muted">ID: {{ workflow.id }}</span>
                 <span :class="[
                   'px-2 py-1 rounded text-xs font-medium',
                   workflow.active 
@@ -35,14 +35,14 @@
           <div class="flex items-center gap-2">
             <button
               @click="copyToClipboard(workflow.id)"
-              class="p-2 text-gray-400 hover:text-green-400 transition-colors"
+              class="p-2 text-text-muted hover:text-green-400 transition-colors"
               title="Copy ID"
             >
               <Copy class="h-4 w-4" />
             </button>
             <button
               @click="handleExport"
-              class="p-2 text-gray-400 hover:text-green-400 transition-colors"
+              class="p-2 text-text-muted hover:text-green-400 transition-colors"
               title="Export JSON"
             >
               <Download class="h-4 w-4" />
@@ -50,14 +50,14 @@
             <button
               @click="handleForceRefresh"
               :disabled="isLoading"
-              class="p-2 text-gray-400 hover:text-green-400 disabled:text-gray-600 transition-colors"
+              class="p-2 text-text-muted hover:text-green-400 disabled:text-gray-600 transition-colors"
               :title="isLoading ? 'Refreshing...' : 'Force Refresh from n8n'"
             >
               <RefreshCw :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
             </button>
             <button
               @click="$emit('close')"
-              class="p-2 text-gray-400 hover:text-red-400 transition-colors"
+              class="p-2 text-text-muted hover:text-red-400 transition-colors"
             >
               <X class="h-5 w-5" />
             </button>
@@ -68,17 +68,17 @@
         <div v-if="isLoading" class="flex items-center justify-center p-12">
           <div class="text-center">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
-            <p class="mt-4 text-gray-400">Caricamento dettagli workflow...</p>
+            <p class="mt-4 text-text-muted">Caricamento dettagli workflow...</p>
           </div>
         </div>
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-red-400">Errore nel caricamento</h2>
+            <h2 class="text-lg font-semibold text-error">Errore nel caricamento</h2>
           </div>
-          <p class="text-gray-400">Impossibile caricare i dettagli del workflow. Riprova più tardi.</p>
-          <p class="text-sm text-gray-500 mt-2">{{ error.message || 'Errore sconosciuto' }}</p>
+          <p class="text-text-muted">Impossibile caricare i dettagli del workflow. Riprova più tardi.</p>
+          <p class="text-sm text-text-secondary mt-2">{{ error.message || 'Errore sconosciuto' }}</p>
           <div class="mt-4 flex gap-2">
             <button @click="refreshData" class="btn-control-primary">Riprova</button>
             <button @click="$emit('close')" class="btn-control">Chiudi</button>
@@ -88,16 +88,16 @@
         <!-- Content -->
         <div v-else>
           <!-- Tabs -->
-          <div class="flex items-center gap-1 p-2 border-b border-gray-800 bg-gray-900/50">
+          <div class="flex items-center gap-1 p-2 border-b border-border bg-gray-900/50">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
               :class="[
-                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+                'flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-all',
                 activeTab === tab.id
-                  ? 'bg-green-500 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-green-500 text-text'
+                  : 'text-text-secondary hover:bg-surface hover:text-text'
               ]"
             >
               <component :is="tab.icon" class="h-4 w-4" />
@@ -113,7 +113,7 @@
               
               <!-- Business Description (Sticky Notes) -->
               <div v-if="businessDescription" class="control-card p-6 border-blue-500/30">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <Info class="h-5 w-5 text-blue-400" />
                   Business Description
                 </h3>
@@ -121,7 +121,7 @@
                   <div v-for="(note, index) in businessDescription" :key="index" 
                        class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                     <FileText class="h-4 w-4 text-yellow-400 float-left mr-2 mt-1" />
-                    <div class="text-gray-300 text-sm whitespace-pre-wrap">{{ note }}</div>
+                    <div class="text-text text-sm whitespace-pre-wrap">{{ note }}</div>
                   </div>
                 </div>
               </div>
@@ -130,26 +130,26 @@
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="control-card p-4">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-gray-400">Total Nodes</span>
+                    <span class="text-sm text-text-muted">Total Nodes</span>
                     <Box class="h-4 w-4 text-gray-600" />
                   </div>
-                  <p class="text-2xl font-bold text-white">{{ nodeAnalysis.totalNodes || workflow.node_count || 0 }}</p>
+                  <p class="text-base font-bold text-text">{{ nodeAnalysis.totalNodes || workflow.node_count || 0 }}</p>
                 </div>
                 
                 <div class="control-card p-4">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-gray-400">Total Executions</span>
+                    <span class="text-sm text-text-muted">Total Executions</span>
                     <Play class="h-4 w-4 text-gray-600" />
                   </div>
-                  <p class="text-2xl font-bold text-white">{{ executionStats.total || workflow.execution_count || 0 }}</p>
+                  <p class="text-base font-bold text-text">{{ executionStats.total || workflow.execution_count || 0 }}</p>
                 </div>
                 
                 <div class="control-card p-4">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-gray-400">Success Rate</span>
+                    <span class="text-sm text-text-muted">Success Rate</span>
                     <CheckCircle class="h-4 w-4 text-gray-600" />
                   </div>
-                  <p class="text-2xl font-bold text-green-400">
+                  <p class="text-base font-bold text-green-400">
                     {{ executionStats.total > 0 
                       ? `${((executionStats.successful / executionStats.total) * 100).toFixed(1)}%`
                       : 'N/A' }}
@@ -158,10 +158,10 @@
                 
                 <div class="control-card p-4">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-gray-400">Avg Duration</span>
+                    <span class="text-sm text-text-muted">Avg Duration</span>
                     <Clock class="h-4 w-4 text-gray-600" />
                   </div>
-                  <p class="text-2xl font-bold text-white">
+                  <p class="text-base font-bold text-text">
                     {{ formatDuration(executionStats.averageDuration) }}
                   </p>
                 </div>
@@ -170,34 +170,34 @@
               <!-- Info Sections -->
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="control-card p-6">
-                  <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                     <Info class="h-5 w-5 text-green-400" />
                     Workflow Information
                   </h3>
                   <div class="space-y-3">
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Created</span>
-                      <span class="text-white">{{ formatDate(workflow.created_at) }}</span>
+                      <span class="text-text-muted">Created</span>
+                      <span class="text-text">{{ formatDate(workflow.created_at) }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Updated</span>
-                      <span class="text-white">{{ formatDate(workflow.updated_at) }}</span>
+                      <span class="text-text-muted">Updated</span>
+                      <span class="text-text">{{ formatDate(workflow.updated_at) }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Last Execution</span>
-                      <span class="text-white">
+                      <span class="text-text-muted">Last Execution</span>
+                      <span class="text-text">
                         {{ workflow.last_execution ? formatDate(workflow.last_execution) : 'Never' }}
                       </span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Webhook</span>
-                      <span :class="workflow.has_webhook ? 'text-green-400' : 'text-gray-500'">
+                      <span class="text-text-muted">Webhook</span>
+                      <span :class="workflow.has_webhook ? 'text-green-400' : 'text-text-secondary'">
                         {{ workflow.has_webhook ? 'Enabled' : 'Disabled' }}
                       </span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Archived</span>
-                      <span :class="workflow.is_archived ? 'text-yellow-400' : 'text-gray-500'">
+                      <span class="text-text-muted">Archived</span>
+                      <span :class="workflow.is_archived ? 'text-yellow-400' : 'text-text-secondary'">
                         {{ workflow.is_archived ? 'Yes' : 'No' }}
                       </span>
                     </div>
@@ -205,29 +205,29 @@
                 </div>
 
                 <div class="control-card p-6">
-                  <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                     <Activity class="h-5 w-5 text-blue-400" />
                     Quick Stats
                   </h3>
                   <div class="space-y-3">
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Successful Runs</span>
+                      <span class="text-text-muted">Successful Runs</span>
                       <span class="text-green-400 font-bold">{{ executionStats.successful }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Failed Runs</span>
+                      <span class="text-text-muted">Failed Runs</span>
                       <span class="text-red-400 font-bold">{{ executionStats.failed }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">AI Agents</span>
+                      <span class="text-text-muted">AI Agents</span>
                       <span class="text-purple-400 font-bold">{{ nodeAnalysis.aiAgents?.length || 0 }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Tools</span>
+                      <span class="text-text-muted">Tools</span>
                       <span class="text-orange-400 font-bold">{{ nodeAnalysis.tools?.length || 0 }}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-gray-400">Error Rate</span>
+                      <span class="text-text-muted">Error Rate</span>
                       <span class="text-yellow-400">{{ performance.errorRate || 0 }}%</span>
                     </div>
                   </div>
@@ -238,29 +238,29 @@
             <!-- Executions Tab -->
             <div v-if="activeTab === 'executions'" class="p-6 space-y-6">
               <div class="control-card p-6">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <Clock class="h-5 w-5 text-blue-400" />
                   Recent Executions
                 </h3>
                 <div class="space-y-3">
                   <div v-if="executionStats.recentExecutions?.length === 0" 
-                       class="text-gray-500 text-center py-4">
+                       class="text-text-secondary text-center py-4">
                     No recent executions
                   </div>
                   <div v-else v-for="(exec, index) in (executionStats.recentExecutions || [])" 
                        :key="exec.id || index" 
-                       class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                       class="flex items-center justify-between p-3 bg-surface rounded-lg">
                     <div class="flex items-center gap-3">
                       <CheckCircle v-if="exec.status === 'success'" class="h-4 w-4 text-green-400" />
                       <XCircle v-else-if="exec.status === 'error'" class="h-4 w-4 text-red-400" />
                       <AlertTriangle v-else class="h-4 w-4 text-yellow-400" />
                       <div>
-                        <p class="text-white text-sm">Execution #{{ exec.id }}</p>
-                        <p class="text-xs text-gray-400">{{ formatDate(exec.started_at) }}</p>
+                        <p class="text-text text-sm">Execution #{{ exec.id }}</p>
+                        <p class="text-xs text-text-muted">{{ formatDate(exec.started_at) }}</p>
                       </div>
                     </div>
                     <div class="text-right">
-                      <p class="text-white text-sm">{{ formatDuration(exec.duration_ms || 0) }}</p>
+                      <p class="text-text text-sm">{{ formatDuration(exec.duration_ms || 0) }}</p>
                       <p :class="[
                         'text-xs',
                         exec.status === 'success' ? 'text-green-400' : 
@@ -279,7 +279,7 @@
               
               <!-- AI Agents Section -->
               <div v-if="nodeAnalysis.aiAgents?.length > 0" class="control-card p-6 border-purple-500/30">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <Brain class="h-5 w-5 text-purple-400" />
                   AI Agents ({{ nodeAnalysis.aiAgents.length }})
                 </h3>
@@ -288,16 +288,16 @@
                        :key="index" 
                        class="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <div class="flex items-start justify-between mb-2">
-                      <h4 class="text-white font-medium">{{ agent.name }}</h4>
+                      <h4 class="text-text font-medium">{{ agent.name }}</h4>
                       <Brain class="h-5 w-5 text-purple-400" />
                     </div>
                     <div class="space-y-1 text-sm">
-                      <p class="text-gray-400">Type: <span class="text-purple-300">{{ agent.type }}</span></p>
-                      <p v-if="agent.model !== 'unknown'" class="text-gray-400">
+                      <p class="text-text-muted">Type: <span class="text-purple-300">{{ agent.type }}</span></p>
+                      <p v-if="agent.model !== 'unknown'" class="text-text-muted">
                         Model: <span class="text-purple-300">{{ agent.model }}</span>
                       </p>
                       <div v-if="agent.connectedTools?.length > 0" class="mt-2">
-                        <p class="text-gray-400 mb-1">Connected Tools:</p>
+                        <p class="text-text-muted mb-1">Connected Tools:</p>
                         <div class="flex flex-wrap gap-1">
                           <span v-for="(tool, idx) in agent.connectedTools" 
                                 :key="idx"
@@ -315,7 +315,7 @@
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Triggers -->
                 <div class="control-card p-6">
-                  <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                     <Zap class="h-5 w-5 text-yellow-400" />
                     Triggers
                   </h3>
@@ -325,17 +325,17 @@
                          class="flex items-center gap-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                       <Webhook class="h-5 w-5 text-yellow-400" />
                       <div class="flex-1">
-                        <p class="text-white font-medium">{{ trigger.name }}</p>
-                        <p class="text-xs text-gray-400">{{ trigger.type }}</p>
+                        <p class="text-text font-medium">{{ trigger.name }}</p>
+                        <p class="text-xs text-text-muted">{{ trigger.type }}</p>
                       </div>
                     </div>
                   </div>
-                  <p v-else class="text-gray-500 text-center py-4">No triggers</p>
+                  <p v-else class="text-text-secondary text-center py-4">No triggers</p>
                 </div>
 
                 <!-- Processing -->
                 <div class="control-card p-6">
-                  <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                     <Layers class="h-5 w-5 text-blue-400" />
                     Processing
                   </h3>
@@ -346,7 +346,7 @@
                            class="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                         <div class="flex items-center gap-2">
                           <Package class="h-4 w-4 text-blue-400" />
-                          <span class="text-white text-sm">{{ category }}</span>
+                          <span class="text-text text-sm">{{ category }}</span>
                         </div>
                         <span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-bold">
                           {{ count }}
@@ -358,7 +358,7 @@
 
                 <!-- Outputs -->
                 <div class="control-card p-6">
-                  <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                     <ExternalLink class="h-5 w-5 text-green-400" />
                     Outputs
                   </h3>
@@ -368,12 +368,12 @@
                          class="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                       <Send class="h-5 w-5 text-green-400" />
                       <div class="flex-1">
-                        <p class="text-white font-medium">{{ output.name }}</p>
-                        <p class="text-xs text-gray-400">{{ output.type }}</p>
+                        <p class="text-text font-medium">{{ output.name }}</p>
+                        <p class="text-xs text-text-muted">{{ output.type }}</p>
                       </div>
                     </div>
                   </div>
-                  <p v-else class="text-gray-500 text-center py-4">No outputs</p>
+                  <p v-else class="text-text-secondary text-center py-4">No outputs</p>
                 </div>
               </div>
             </div>
@@ -383,30 +383,30 @@
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="control-card p-6">
                   <div class="flex items-center justify-between mb-4">
-                    <span class="text-sm text-gray-400">Min Execution Time</span>
+                    <span class="text-sm text-text-muted">Min Execution Time</span>
                     <TrendingUp class="h-4 w-4 text-green-400" />
                   </div>
-                  <p class="text-3xl font-bold text-white">
+                  <p class="text-base font-bold text-text">
                     {{ formatDuration(performance.minExecutionTime || 0) }}
                   </p>
                 </div>
                 
                 <div class="control-card p-6">
                   <div class="flex items-center justify-between mb-4">
-                    <span class="text-sm text-gray-400">Average Time</span>
+                    <span class="text-sm text-text-muted">Average Time</span>
                     <Activity class="h-4 w-4 text-blue-400" />
                   </div>
-                  <p class="text-3xl font-bold text-white">
+                  <p class="text-base font-bold text-text">
                     {{ formatDuration(performance.avgExecutionTime || 0) }}
                   </p>
                 </div>
                 
                 <div class="control-card p-6">
                   <div class="flex items-center justify-between mb-4">
-                    <span class="text-sm text-gray-400">Max Execution Time</span>
+                    <span class="text-sm text-text-muted">Max Execution Time</span>
                     <AlertTriangle class="h-4 w-4 text-red-400" />
                   </div>
-                  <p class="text-3xl font-bold text-white">
+                  <p class="text-base font-bold text-text">
                     {{ formatDuration(performance.maxExecutionTime || 0) }}
                   </p>
                 </div>
@@ -414,7 +414,7 @@
 
               <!-- Common Errors -->
               <div v-if="performance.commonErrors?.length > 0" class="control-card p-6">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <XCircle class="h-5 w-5 text-red-400" />
                   Common Errors
                 </h3>
@@ -425,9 +425,9 @@
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <p class="text-red-400 font-medium">{{ error.message }}</p>
-                        <p class="text-xs text-gray-400 mt-1">Occurred {{ error.count }} times</p>
+                        <p class="text-xs text-text-muted mt-1">Occurred {{ error.count }} times</p>
                       </div>
-                      <span class="text-xs text-gray-500">{{ error.lastOccurred }}</span>
+                      <span class="text-xs text-text-secondary">{{ error.lastOccurred }}</span>
                     </div>
                   </div>
                 </div>
@@ -437,7 +437,7 @@
             <!-- Activity Tab -->
             <div v-if="activeTab === 'activity'" class="p-6">
               <div class="control-card p-6">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <Clock class="h-5 w-5 text-blue-400" />
                   Recent Activity Timeline
                 </h3>
@@ -459,15 +459,15 @@
                         <Clock class="h-4 w-4 text-yellow-400" />
                       </div>
                     </div>
-                    <div class="flex-1 pb-4 border-l-2 border-gray-800 pl-4 -ml-4">
+                    <div class="flex-1 pb-4 border-l-2 border-border pl-4 -ml-4">
                       <div class="flex items-center justify-between mb-1">
-                        <p class="text-white font-medium">
+                        <p class="text-text font-medium">
                           Execution {{ exec.status === 'success' ? 'completed' : 
                                      exec.status === 'error' ? 'failed' : 'started' }}
                         </p>
-                        <span class="text-xs text-gray-500">{{ formatDate(exec.started_at) }}</span>
+                        <span class="text-xs text-text-secondary">{{ formatDate(exec.started_at) }}</span>
                       </div>
-                      <p class="text-sm text-gray-400">
+                      <p class="text-sm text-text-muted">
                         Duration: {{ formatDuration(exec.duration_ms || 0) }}
                       </p>
                       <p v-if="exec.error_message" class="text-sm text-red-400 mt-1">
@@ -698,39 +698,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.control-card {
-  @apply bg-gray-800/50 border border-gray-700/50 rounded-lg backdrop-blur-sm;
-}
-
-.btn-control {
-  @apply flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg hover:bg-gray-700 hover:border-gray-500 transition-all text-sm;
-}
-
-.btn-control-primary {
-  @apply flex items-center gap-2 px-4 py-2 bg-green-600 border border-green-500 text-white rounded-lg hover:bg-green-500 hover:border-green-400 transition-all text-sm;
-}
-
-/* Tab content max height */
-.overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: #4ade80 #1f2937;
-}
-
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #1f2937;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #4ade80;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #22c55e;
-}
+/* All styles now handled by Design System! */
 </style>

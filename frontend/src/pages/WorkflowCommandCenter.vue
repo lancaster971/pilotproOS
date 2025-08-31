@@ -11,7 +11,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-xl font-bold text-text">{{ totalExecutions.toLocaleString() }}</div>
+            <div class="text-lg font-bold text-text">{{ totalExecutions.toLocaleString() }}</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(analyticsData.trends.executionsTrend)" class="text-xs">
                 {{ getTrendIcon(analyticsData.trends.executionsTrend) }}{{ Math.abs(analyticsData.trends.executionsTrend) }}%
@@ -27,7 +27,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-xl font-bold text-text">{{ failedExecutions }}</div>
+            <div class="text-lg font-bold text-text">{{ failedExecutions }}</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(-analyticsData.trends.failedExecutionsTrend)" class="text-xs">
                 {{ getTrendIcon(-analyticsData.trends.failedExecutionsTrend) }}{{ Math.abs(analyticsData.trends.failedExecutionsTrend) }}%
@@ -43,7 +43,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-xl font-bold text-text">{{ failureRate }}%</div>
+            <div class="text-lg font-bold text-text">{{ failureRate }}%</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(-analyticsData.trends.failureRateTrend)" class="text-xs">
                 {{ getTrendIcon(-analyticsData.trends.failureRateTrend) }}{{ formatTrendValue(analyticsData.trends.failureRateTrend) }}pp
@@ -59,7 +59,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-xl font-bold text-text">{{ timeSaved }}h</div>
+            <div class="text-lg font-bold text-text">{{ timeSaved }}h</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(analyticsData.trends.timeSavedTrend)" class="text-xs">
                 {{ getTrendIcon(analyticsData.trends.timeSavedTrend) }}{{ formatTrendDuration(analyticsData.trends.timeSavedTrend) }}
@@ -75,7 +75,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-xl font-bold text-text">{{ avgRunTime }}m</div>
+            <div class="text-lg font-bold text-text">{{ avgRunTime }}m</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(-analyticsData.trends.avgDurationTrend)" class="text-xs">
                 {{ getTrendIcon(-analyticsData.trends.avgDurationTrend) }}{{ formatTrendSeconds(analyticsData.trends.avgDurationTrend) }}
@@ -311,10 +311,9 @@
                     :title="`AI Tool: ${nonMainConnection}`"
                   />
                   
-                  <!-- AI Icon with glow effect -->
+                  <!-- AI Icon centered -->
                   <div class="premium-ai-icon">
                     <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-16 h-16" />
-                    <div class="premium-ai-glow"></div>
                   </div>
                   
                   <!-- AI Content -->
@@ -556,11 +555,11 @@
         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
         @click.self="closeExecutionsModal"
       >
-        <div class="bg-surface border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
+        <div class="control-card w-full max-w-4xl max-h-[80vh] overflow-hidden">
           <!-- Modal Header -->
           <div class="bg-surface/30 border-b border-border px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-text">Workflow Executions</h2>
+              <h2 class="text-lg font-semibold text-text">Workflow Executions</h2>
               <p class="text-sm text-text-muted mt-1">{{ selectedWorkflowForModal.process_name }}</p>
             </div>
             <button 
@@ -576,7 +575,7 @@
             <!-- Executions List Placeholder -->
             <div class="text-center py-8">
               <GitBranch class="w-16 h-16 text-text-muted mx-auto mb-4" />
-              <h3 class="text-lg font-semibold text-text mb-2">Workflow Executions</h3>
+              <h3 class="text-base font-semibold text-text mb-2">Workflow Executions</h3>
               <p class="text-text-muted mb-4">
                 Executions filtered for workflow: <span class="font-mono text-sm">{{ selectedWorkflowForModal.id }}</span>
               </p>
@@ -584,11 +583,11 @@
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span class="text-text-muted">Total Executions:</span>
-                    <span class="text-text font-bold ml-2">{{ selectedWorkflowForModal.executions_today }}</span>
+                    <span class="text-text font-semibold ml-2">{{ selectedWorkflowForModal.executions_today }}</span>
                   </div>
                   <div>
                     <span class="text-text-muted">Status:</span>
-                    <span :class="selectedWorkflowForModal.is_active ? 'text-green-500' : 'text-red-500'" class="ml-2 font-bold">
+                    <span :class="selectedWorkflowForModal.is_active ? 'text-green-500' : 'text-red-500'" class="ml-2 font-semibold">
                       {{ selectedWorkflowForModal.is_active ? 'ACTIVE' : 'INACTIVE' }}
                     </span>
                   </div>
@@ -604,7 +603,7 @@
           <div class="bg-surface/30 border-t border-border px-6 py-3 flex justify-end">
             <button 
               @click="closeExecutionsModal"
-              class="px-4 py-2 bg-surface border border-border text-text rounded hover:bg-surface-hover transition-colors"
+              class="btn-control"
             >
               Close
             </button>
@@ -622,7 +621,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
   RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft,
-  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link
+  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
@@ -732,23 +731,13 @@ const refreshAllData = async () => {
       })
     }
     
-    // Auto-select Grab_Track_Simple workflow for node classification testing (contains "Scarica Pagina")
+    // DISABILITATO - causava loop infinito
+    // Manual selection only
     if (!selectedWorkflowId.value && realWorkflows.value.length > 0) {
-      const grabTrackWorkflow = realWorkflows.value.find(w => w.id === 'GZsYKMPDqUktd309')
-      if (grabTrackWorkflow) {
-        console.log('🎯 Auto-selecting Grab_Track_Simple workflow for node testing:', grabTrackWorkflow.process_name)
-        await selectWorkflow(grabTrackWorkflow)
-      } else {
-        const tryWorkflow = realWorkflows.value.find(w => w.id === '1KpquD1jgzUsOKrx')
-        if (tryWorkflow) {
-          console.log('🎯 Auto-selecting TRY Backend workflow for testing node classification:', tryWorkflow.process_name)
-          await selectWorkflow(tryWorkflow)
-        } else {
-          const firstActive = realWorkflows.value.find(w => w.is_active)
-          if (firstActive) {
-            await selectWorkflow(firstActive)
-          }
-        }
+      const firstWorkflow = realWorkflows.value[0]
+      if (firstWorkflow) {
+        console.log('🎯 Selecting first workflow only:', firstWorkflow.process_name)
+        await selectWorkflow(firstWorkflow)
       }
     }
     
@@ -853,12 +842,10 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
         status: workflowMetadata.is_active ? 'success' : 'inactive',
         type: (() => {
           const nodeType = getNodeTypeFromN8nType(step.nodeType, step.stepName)
-          console.log(`🎯 Node "${step.stepName}" → data.type: "${nodeType}"`)
           return nodeType
         })(),
         nodeType: (() => {
           const nodeType = step.nodeType || 'unknown-node'
-          console.log(`🔍 Node "${step.stepName}" → nodeType: "${nodeType}"`)
           return nodeType
         })(),
         inputs: connections.inputs.length > 0 ? connections.inputs : ['main'],
@@ -1092,6 +1079,7 @@ const closeExecutionsModal = () => {
   selectedWorkflowForModal.value = null
 }
 
+
 // Helper functions
 // Trend formatting and styling helpers
 const getTrendClass = (trendValue: number) => {
@@ -1192,35 +1180,45 @@ const isToolNode = (nodeName: string) => {
 }
 
 const getNodeTypeFromN8nType = (n8nType: string, nodeName: string) => {
-  // 1. AI Agent LangChain → RETTANGOLO
+  // REGOLA INDEROGABILE: TUTTO QUADRATO tranne specifiche eccezioni
+  
+  // 1. AI Agent LangChain → RETTANGOLO AI
   if (n8nType === '@n8n/n8n-nodes-langchain.agent') {
     return 'ai'
   }
   
-  // 2. Vector Store → PILLOLA (storage CSS class)
+  // 2. Vector Store → PILLOLA (storage CSS class) 
   if (n8nType.includes('vectorstore') || n8nType.includes('vectorStore')) {
     return 'storage'
   }
   
-  // 3. Tools LangChain (direttamente collegati agli AI Agent) → CERCHIO
-  if (n8nType.includes('@n8n/n8n-nodes-langchain.')) {
-    // Escludi vector store (che sono pillole)
-    if (!n8nType.includes('vectorstore') && !n8nType.includes('agent')) {
-      return 'tool'
-    }
+  // 3. OpenAI CHAT/EMBEDDINGS → CERCHIO (AI processing)
+  if (n8nType.includes('@n8n/n8n-nodes-langchain.lmChat') ||
+      n8nType.includes('@n8n/n8n-nodes-langchain.embeddings')) {
+    return 'tool'  // OpenAI Chat/Embeddings sono TONDI!
   }
   
-  // 4. Trigger → QUADRATO con lato sx tondo smussato
-  if (n8nType.includes('Trigger')) {
+  // 4. OpenAI AUDIO/IMAGE TOOLS → QUADRATO (media processing)
+  if (n8nType.includes('@n8n/n8n-nodes-langchain.openAi')) {
+    return 'agent'  // OpenAI audio/image tools sono QUADRATI!
+  }
+  
+  // 5. ALTRI TOOLS → CERCHIO (LangChain + base tools)
+  if (n8nType.includes('@n8n/n8n-nodes-langchain.tool') || 
+      n8nType.includes('@n8n/n8n-nodes-langchain.memory') ||
+      n8nType.includes('@n8n/n8n-nodes-langchain.output') ||
+      n8nType.includes('@n8n/n8n-nodes-langchain.reranker') ||
+      n8nType.includes('@n8n/n8n-nodes-langchain.retriever') ||
+      n8nType === 'n8n-nodes-base.dateTimeTool') {
+    return 'tool'  // TUTTI gli altri tool sono tondi!
+  }
+  
+  // 6. Trigger → QUADRATO con lato sx tondo smussato  
+  if (n8nType.toLowerCase().includes('trigger')) {
     return 'trigger'
   }
   
-  // 5. Storage normale (Supabase, Database, etc.) → QUADRATO normale
-  if (n8nType.includes('supabase') || n8nType.includes('database') || n8nType.includes('storage')) {
-    return 'process'  // Quadrato normale
-  }
-  
-  // 6. TUTTO IL RESTO → QUADRATO normale
+  // 5. TUTTO IL RESTO → QUADRATO (incluso OpenAI, HTTP Request, Code, Function, etc.)
   return 'process'
 }
 
@@ -1236,14 +1234,9 @@ const getNodeType = (nodeName: string, businessCategory: string) => {
     return 'trigger'
   }
   
-  // Check if it's a tool first (takes precedence over business category)
-  if (isToolNode(nodeName)) {
-    return 'tool'
-  }
-  
-  // Default to business category mapping
-  const categoryType = getBusinessTypeFromCategory(businessCategory)
-  return categoryType
+  // REGOLA INDEROGABILE: TUTTO QUADRATO - non più controllo isToolNode()
+  // Tutti i nodi normali diventano quadrati
+  return 'process'
 }
 
 // Get n8n icon component props for a node type
@@ -1257,11 +1250,36 @@ const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
     }
   }
   
+  // OVERRIDE BASATO SUL NOME DEL NODO (priorità massima)
+  if (nodeName.toUpperCase().includes('UPSERT') && nodeName.toUpperCase().includes('SUPABASE')) {
+    return {
+      nodeType: 'UPSERT_SUPABASE_OVERRIDE', // Key speciale per PostgreSQL
+      fallback: 'Database',
+      size: 'w-5 h-5'
+    }
+  }
+  
+  if (nodeName.toUpperCase().includes('CALCULATOR')) {
+    return {
+      nodeType: 'CALCULATOR_TOOL_OVERRIDE', // Key speciale per calculator
+      fallback: 'Calculator',
+      size: 'w-5 h-5'
+    }
+  }
+  
+  if (nodeName.toUpperCase().includes('MCP') && !nodeName.toUpperCase().includes('SUPABASE')) {
+    return {
+      nodeType: 'MCP_CLIENT_OVERRIDE', // Key speciale per MCP
+      fallback: 'Zap',
+      size: 'w-5 h-5'
+    }
+  }
+  
   // FORCE FIX for SET nodes
   if (nodeType === 'n8n-nodes-base.set') {
     return {
       nodeType: 'n8n-nodes-base.set',
-      fallback: 'Database', // Strong fallback icon
+      fallback: 'Edit', // Matita come n8n originale
       size: 'w-5 h-5'
     }
   }
@@ -1275,13 +1293,14 @@ const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
   
   // Set specific fallbacks based on node type patterns
   if (nodeType?.includes('code')) props.fallback = 'Code'
-  else if (nodeType?.includes('openAi') || nodeName.toLowerCase().includes('ai ')) props.fallback = 'Brain'
   else if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) props.fallback = 'Globe'
   else if (nodeType?.includes('function')) props.fallback = 'Zap'
   else if (nodeType?.includes('webhook')) props.fallback = 'Link'
   else if (nodeType?.includes('email') || nodeType?.includes('outlook') || nodeType?.includes('gmail')) props.fallback = 'Mail'
   else if (nodeType?.includes('googleDrive') || nodeType?.includes('file')) props.fallback = 'FileText'
   else if (nodeType?.includes('scheduleTrigger') || nodeType?.includes('intervalTrigger') || nodeType?.includes('cronTrigger')) props.fallback = 'Clock'
+  else if (nodeType?.includes('executeWorkflowTrigger')) props.fallback = 'GitBranch'  // Force a different fallback
+  else if (nodeType?.includes('manualTrigger')) props.fallback = 'PlayCircle'  // FORCE PlayCircle for manual trigger
   else if (nodeType?.includes('trigger')) props.fallback = 'Play'
   else if (nodeType?.includes('agent')) props.fallback = 'Bot'
   else if (nodeType?.includes('database') || nodeType?.includes('supabase') || nodeType?.includes('vectorStore')) props.fallback = 'Database'
@@ -1293,7 +1312,6 @@ const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
 const getNodeIcon = (nodeType: string, nodeName: string = '') => {
   // First check by nodeType for specific icons
   if (nodeType?.includes('code')) return Code
-  if (nodeType?.includes('openAi') || nodeName.toLowerCase().includes('ai ')) return Brain
   if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) return Globe
   if (nodeType?.includes('function')) return Zap
   if (nodeType?.includes('webhook')) return Link
@@ -1326,6 +1344,7 @@ const getHandleType = (connectionType: string) => {
   if (connectionType.includes('language')) return 'language'
   return 'main'
 }
+
 
 // Lifecycle
 onMounted(async () => {
@@ -1364,9 +1383,6 @@ onMounted(async () => {
   position: relative;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 4px 16px rgba(102, 126, 234, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transform-style: preserve-3d;
 }
 
@@ -1385,8 +1401,10 @@ onMounted(async () => {
 :deep(.premium-ai-icon) {
   position: relative;
   color: white;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  margin-bottom: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.premium-ai-glow) {
@@ -1569,9 +1587,9 @@ onMounted(async () => {
 :deep(.premium-storage-node) {
   background: #1f2937 !important;
   border: 0.5px solid #10b981 !important;
-  border-radius: 30px !important; /* Perfect pill shape - half of height */
-  width: 180px !important;
-  height: 60px !important;
+  border-radius: 50px !important; /* Perfect pill shape - half of height */
+  width: 280px !important;
+  height: 100px !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
@@ -1596,7 +1614,7 @@ onMounted(async () => {
 }
 
 :deep(.premium-storage-name) {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 600;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
