@@ -280,9 +280,199 @@ export function useBusinessParser() {
     return `${header}\n${details}`
   }
 
+  const formatTimelineStepData = (
+    inputData: any, 
+    outputData: any, 
+    nodeType?: string, 
+    nodeName?: string
+  ): { inputSummary: string; outputSummary: string; businessValue: string } => {
+    
+    const parsedInput = parseBusinessData(inputData, 'input', nodeType, nodeName)
+    const parsedOutput = parseBusinessData(outputData, 'output', nodeType, nodeName)
+    
+    // Create detailed summaries for timeline display with full business content
+    let inputSummary = parsedInput.details.length > 0 
+      ? parsedInput.details.join(' • ')
+      : parsedInput.summary
+    
+    let outputSummary = parsedOutput.details.length > 0 
+      ? parsedOutput.details.join(' • ')
+      : parsedOutput.summary
+    
+    // Extract real business content based on node type from raw data
+    const nodeNameLower = nodeName?.toLowerCase() || ''
+    
+    // EMAIL NODES - Extract email content
+    if (nodeNameLower.includes('mail') || nodeNameLower.includes('ricezione') || parsedOutput.type === 'email') {
+      const emailContent = outputData?.body?.content || 
+                          outputData?.json?.body?.content || 
+                          outputData?.main?.json?.body?.content ||
+                          inputData?.body?.content || 
+                          inputData?.json?.body?.content ||
+                          inputData?.main?.json?.body?.content
+                          
+      if (emailContent && typeof emailContent === 'string') {
+        const cleanContent = emailContent.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+        if (cleanContent.length > 20) {
+          const preview = cleanContent.length > 200 ? cleanContent.substring(0, 200) + '...' : cleanContent
+          outputSummary = `Email content: "${preview}"`
+        }
+      }
+      
+      // Email response nodes - get the sent email content
+      if (nodeNameLower.includes('rispond')) {
+        const responseContent = outputData?.body?.content || outputData?.json?.body?.content
+        if (responseContent && typeof responseContent === 'string') {
+          const cleanResponse = responseContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+          const preview = cleanResponse.length > 200 ? cleanResponse.substring(0, 200) + '...' : cleanResponse
+          outputSummary = `Email sent: "${preview}"`
+        }
+      }
+    }
+    
+    // AI AGENT NODES - Extract AI response
+    else if (nodeNameLower.includes('milena') || nodeNameLower.includes('assistente') || nodeType === 'ai_agent') {
+      const aiResponse = outputData?.output?.risposta_html || 
+                        outputData?.json?.output?.risposta_html ||
+                        outputData?.response || 
+                        outputData?.json?.response ||
+                        outputData?.main?.json?.output?.risposta_html
+                        
+      if (aiResponse && typeof aiResponse === 'string') {
+        const cleanResponse = aiResponse.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+        const preview = cleanResponse.length > 200 ? cleanResponse.substring(0, 200) + '...' : cleanResponse
+        outputSummary = `AI Response: "${preview}"`
+      }
+    }
+    
+    // VECTOR SEARCH NODES - Extract search results
+    else if (nodeNameLower.includes('qdrant') || nodeNameLower.includes('vector') || nodeType === 'vector_search') {
+      const searchResults = outputData?.ai_tool?.json?.response || 
+                           outputData?.json?.response ||
+                           outputData?.response ||
+                           outputData?.main?.ai_tool?.json?.response
+                           
+      if (searchResults && Array.isArray(searchResults)) {
+        const resultCount = searchResults.length
+        const firstResult = searchResults[0]
+        if (firstResult && typeof firstResult.text === 'string') {
+          try {
+            const parsedResult = JSON.parse(firstResult.text)
+            const content = parsedResult.pageContent || parsedResult.content
+            if (content) {
+              const preview = content.length > 150 ? content.substring(0, 150) + '...' : content
+              outputSummary = `Found ${resultCount} documents: "${preview}"`
+            }
+          } catch (e) {
+            outputSummary = `Found ${resultCount} search results`
+          }
+        } else {
+          outputSummary = `Found ${resultCount} search results`
+        }
+      }
+    }
+    
+    // ORDER/PARCEL LOOKUP NODES - Extract order info
+    else if (nodeNameLower.includes('ordini') || nodeNameLower.includes('parcel') || nodeType === 'order_lookup' || nodeType === 'parcel_tracking') {
+      const orderData = outputData?.json || outputData?.main?.json || outputData
+      
+      if (orderData) {
+        const details = []
+        if (orderData.order_reference) details.push(`Order: ${orderData.order_reference}`)
+        if (orderData.customer_full_name) details.push(`Customer: ${orderData.customer_full_name}`)
+        if (orderData.order_status) details.push(`Status: ${orderData.order_status}`)
+        if (orderData.tracking_number) details.push(`Tracking: ${orderData.tracking_number}`)
+        if (orderData.delivery_status) details.push(`Delivery: ${orderData.delivery_status}`)
+        
+        if (details.length > 0) {
+          outputSummary = details.join(' • ')
+        }
+      }
+    }
+    
+    // SUB-WORKFLOW NODES - Extract workflow execution info
+    else if (nodeNameLower.includes('execute') || nodeNameLower.includes('workflow') || nodeType === 'sub_workflow') {
+      const workflowResult = outputData?.json || outputData?.main?.json || outputData
+      
+      if (workflowResult) {
+        const details = []
+        if (workflowResult.workflow_name) details.push(`Workflow: ${workflowResult.workflow_name}`)
+        if (workflowResult.execution_status) details.push(`Status: ${workflowResult.execution_status}`)
+        if (workflowResult.duration) details.push(`Duration: ${workflowResult.duration}ms`)
+        if (workflowResult.nodes_executed) details.push(`Nodes: ${workflowResult.nodes_executed}`)
+        
+        if (details.length > 0) {
+          outputSummary = details.join(' • ')
+        } else {
+          outputSummary = `Sub-workflow executed successfully`
+        }
+      }
+    }
+    
+    // Limit summary lengths for UI display
+    if (inputSummary.length > 150) {
+      inputSummary = inputSummary.substring(0, 150) + '...'
+    }
+    if (outputSummary.length > 250) {
+      outputSummary = outputSummary.substring(0, 250) + '...'
+    }
+    
+    // Generate business value based on node type and data
+    const businessValue = generateBusinessValue(parsedInput, parsedOutput, nodeType, nodeName)
+    
+    return {
+      inputSummary,
+      outputSummary,
+      businessValue
+    }
+  }
+
+  const generateBusinessValue = (
+    parsedInput: ParsedBusinessData,
+    parsedOutput: ParsedBusinessData,
+    nodeType?: string,
+    nodeName?: string
+  ): string => {
+    
+    const nodeNameLower = nodeName?.toLowerCase() || ''
+    
+    // AI nodes
+    if (nodeNameLower.includes('milena') || nodeNameLower.includes('assistente') || parsedOutput.type === 'ai') {
+      return 'Risposta intelligente generata per il cliente'
+    }
+    
+    // Email nodes
+    if (nodeNameLower.includes('mail') || nodeNameLower.includes('ricezione') || parsedOutput.type === 'email') {
+      if (nodeNameLower.includes('ricezione')) {
+        return 'Email cliente acquisita nel sistema'
+      } else {
+        return 'Comunicazione inviata al cliente'
+      }
+    }
+    
+    // Database/Storage nodes
+    if (nodeNameLower.includes('supabase') || nodeNameLower.includes('database') || parsedOutput.type === 'order') {
+      return 'Dati salvati nel sistema aziendale'
+    }
+    
+    // Processing nodes
+    if (nodeNameLower.includes('extractor') || nodeNameLower.includes('parser')) {
+      return 'Informazioni estratte e processate'
+    }
+    
+    // HTTP/API nodes
+    if (nodeType?.includes('http') || nodeNameLower.includes('api')) {
+      return 'Integrazione esterna completata'
+    }
+    
+    // Generic value
+    return 'Operazione completata con successo'
+  }
+
   return {
     parseBusinessData,
     formatBusinessData,
+    formatTimelineStepData,
     sanitizeNodeType
   }
 }

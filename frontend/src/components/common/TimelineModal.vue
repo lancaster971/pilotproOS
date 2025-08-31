@@ -34,10 +34,10 @@
           <div class="flex items-center justify-between mb-2">
             <span class="text-white font-medium">Process Summary</span>
             <div class="flex items-center">
-              <CheckCircle v-if="data.status === 'active'" class="w-5 h-5 text-green-400 mr-2" />
+              <CheckCircle v-if="data.workflow?.active === true || data.workflow?.isActive === true" class="w-5 h-5 text-green-400 mr-2" />
               <XCircle v-else class="w-5 h-5 text-red-400 mr-2" />
-              <span :class="data.status === 'active' ? 'text-green-400' : 'text-red-400'">
-                {{ data.status?.toUpperCase() || 'UNKNOWN' }}
+              <span :class="(data.workflow?.active === true || data.workflow?.isActive === true) ? 'text-green-400' : 'text-red-400'">
+                {{ (data.workflow?.active === true || data.workflow?.isActive === true) ? 'ACTIVE' : 'INACTIVE' }}
               </span>
             </div>
           </div>
@@ -72,13 +72,13 @@
         <div v-if="data?.businessNodes?.length > 0" class="space-y-4">
           <div
             v-for="(step, index) in data.businessNodes"
-            :key="step.nodeId || index"
+            :key="step._nodeId || index"
             :class="[
               'border rounded-lg p-4 transition-all cursor-pointer',
               getStepColor(step.status),
-              expandedStep === (step.nodeId || index) ? 'shadow-lg' : ''
+              expandedStep === (step._nodeId || index) ? 'shadow-lg' : ''
             ]"
-            @click="toggleExpanded(step.nodeId || index)"
+            @click="toggleExpanded(step._nodeId || index)"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center">
@@ -99,7 +99,7 @@
                     : formatDuration(step.executionTime || 0) }}
                 </span>
                 <ChevronDown 
-                  v-if="expandedStep === (step.nodeId || index)"
+                  v-if="expandedStep === (step._nodeId || index)"
                   class="w-4 h-4 text-gray-400" 
                 />
                 <ChevronRight 
@@ -110,44 +110,101 @@
             </div>
 
             <!-- Expanded Step Details -->
-            <div v-if="expandedStep === (step.nodeId || index)" class="mt-4 pt-4 border-t border-gray-700">
+            <div v-if="expandedStep === (step._nodeId || index)" class="mt-4 pt-4 border-t border-gray-700">
               
-              <!-- Complete Data Overview -->
-              <div v-if="step.data" class="mb-4 p-3 bg-green-400/5 rounded-lg border border-green-400/20">
-                <div class="text-sm font-medium text-green-400 mb-2">Execution Data Available:</div>
-                <div class="text-sm text-gray-300 mb-3">{{ step.data.suggestedSummary || 'Step completed successfully' }}</div>
+              <!-- Business Process Overview -->
+              <div v-if="step.data || step.enrichedData" class="mb-4 p-4 bg-gradient-to-r from-green-400/5 to-blue-400/5 rounded-lg border border-green-400/20">
+                <div class="flex items-center mb-3">
+                  <div class="w-3 h-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                  <div class="text-sm font-medium text-green-400">Business Process Step Completed</div>
+                </div>
                 
-                <!-- Data Availability Metrics -->
-                <div class="grid grid-cols-2 gap-4 text-xs">
-                  <div class="text-gray-400">
-                    <span class="text-blue-400">Total Data Size:</span> {{ step.data.totalDataSize || 0 }} bytes
+                <!-- Business Value Statement -->
+                <div v-if="step.enrichedData?.businessValue" class="text-sm text-white mb-4 font-medium">
+                  🎯 {{ step.enrichedData.businessValue }}
+                </div>
+                
+                <!-- Input/Output Business Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <!-- Input Summary -->
+                  <div v-if="step.enrichedData?.inputSummary" class="bg-blue-400/10 rounded-lg p-3 border border-blue-400/20">
+                    <div class="flex items-center mb-2">
+                      <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                      <span class="text-xs font-medium text-blue-400">INPUT DATA</span>
+                    </div>
+                    <div class="text-sm text-gray-300">{{ step.enrichedData.inputSummary }}</div>
                   </div>
-                  <div class="text-gray-400">
-                    <span class="text-blue-400">Available Fields:</span> {{ step.data.totalAvailableFields || 0 }}
-                  </div>
-                  <div class="text-gray-400">
-                    <span class="text-green-400">Input Data:</span> {{ step.data.hasInputData ? '✅' : '❌' }}
-                  </div>
-                  <div class="text-gray-400">
-                    <span class="text-green-400">Output Data:</span> {{ step.data.hasOutputData ? '✅' : '❌' }}
-                  </div>
-                  <div class="text-gray-400">
-                    <span class="text-purple-400">Node Category:</span> {{ step.data.nodeCategory || 'unknown' }}
-                  </div>
-                  <div class="text-gray-400">
-                    <span class="text-gray-500">Executed:</span> {{ formatTimestamp(step.data.executedAt) }}
+                  
+                  <!-- Output Summary -->
+                  <div v-if="step.enrichedData?.outputSummary" class="bg-green-400/10 rounded-lg p-3 border border-green-400/20">
+                    <div class="flex items-center mb-2">
+                      <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                      <span class="text-xs font-medium text-green-400">OUTPUT DATA</span>
+                    </div>
+                    <div class="text-sm text-gray-300">{{ step.enrichedData.outputSummary }}</div>
                   </div>
                 </div>
                 
-                <!-- Available Field Lists -->
-                <div v-if="step.data.availableInputFields || step.data.availableOutputFields" class="mt-3 pt-2 border-t border-gray-700">
-                  <div v-if="step.data.availableInputFields" class="mb-2">
-                    <span class="text-xs text-blue-400">Input Fields:</span>
-                    <span class="text-xs text-gray-400 ml-2">{{ step.data.availableInputFields.join(', ') }}</span>
+                <!-- Technical Details (Collapsed by Default) -->
+                <details class="text-xs text-gray-400">
+                  <summary class="cursor-pointer hover:text-gray-300 mb-2">
+                    Technical Details ({{ step.data?.totalDataSize || 0 }} bytes, {{ step.data?.totalAvailableFields || 0 }} fields)
+                  </summary>
+                  <div class="grid grid-cols-2 gap-4 mt-2 p-2 bg-gray-800/50 rounded">
+                    <div>
+                      <span class="text-green-400">Input Data:</span> {{ step.data?.hasInputData ? '✅' : '❌' }}
+                    </div>
+                    <div>
+                      <span class="text-green-400">Output Data:</span> {{ step.data?.hasOutputData ? '✅' : '❌' }}
+                    </div>
+                    <div>
+                      <span class="text-purple-400">Node Category:</span> {{ step.data?.nodeCategory || 'unknown' }}
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Executed:</span> {{ formatTimestamp(step.data?.executedAt) }}
+                    </div>
                   </div>
-                  <div v-if="step.data.availableOutputFields">
-                    <span class="text-xs text-green-400">Output Fields:</span>
-                    <span class="text-xs text-gray-400 ml-2">{{ step.data.availableOutputFields.join(', ') }}</span>
+                </details>
+              </div>
+
+              <!-- Business Data Section (Parsed & Readable) -->
+              <div v-if="step.data?.outputJson || step.data?.inputJson" class="mb-4 p-3 bg-purple-400/5 rounded-lg border border-purple-400/20">
+                <div class="text-sm font-medium text-purple-400 mb-3">📊 Business Data (Customer View):</div>
+                
+                <!-- AI Response -->
+                <div v-if="step.data.outputJson?.output?.risposta_html" class="mb-3">
+                  <div class="text-xs text-green-400 font-medium mb-1">🤖 AI Response Generated:</div>
+                  <div class="bg-gray-900 p-3 rounded text-sm text-gray-300" v-html="step.data.outputJson.output.risposta_html"></div>
+                  <div v-if="step.data.outputJson.output.categoria" class="mt-2 text-xs">
+                    <span class="text-blue-400">Category:</span> 
+                    <span class="text-gray-300">{{ step.data.outputJson.output.categoria }}</span>
+                  </div>
+                </div>
+
+                <!-- Email Content -->
+                <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-3">
+                  <div class="text-xs text-blue-400 font-medium mb-1">📧 Email Data:</div>
+                  <div class="text-sm text-gray-300">
+                    <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-1">
+                      <span class="text-yellow-400">Subject:</span> 
+                      {{ step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject }}
+                    </div>
+                    <div v-if="step.data.outputJson?.mittente || step.data.inputJson?.mittente" class="mb-1">
+                      <span class="text-yellow-400">From:</span> 
+                      {{ step.data.outputJson?.mittente || step.data.inputJson?.mittente }}
+                    </div>
+                    <div v-if="step.data.outputJson?.messaggio_cliente || step.data.inputJson?.messaggio_cliente" class="text-xs bg-gray-900 p-2 rounded mt-2">
+                      {{ step.data.outputJson?.messaggio_cliente || step.data.inputJson?.messaggio_cliente }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Order Data -->
+                <div v-if="step.data.outputJson?.order_reference || step.data.inputJson?.order_reference" class="mb-3">
+                  <div class="text-xs text-orange-400 font-medium mb-1">🛒 Order Information:</div>
+                  <div class="text-sm text-gray-300">
+                    <span class="text-yellow-400">Order ID:</span> 
+                    {{ step.data.outputJson?.order_reference || step.data.inputJson?.order_reference }}
                   </div>
                 </div>
               </div>
@@ -340,7 +397,7 @@ const emit = defineEmits<{
 
 // Composables
 const { isLoading, error, setLoading, setError, showToast } = useModal()
-const { parseBusinessData, formatBusinessData } = useBusinessParser()
+const { parseBusinessData, formatBusinessData, formatTimelineStepData } = useBusinessParser()
 
 // State
 const timelineData = ref<any>(null)
@@ -386,6 +443,44 @@ const loadTimeline = async () => {
     
     const data = await response.json()
     console.log('✅ Process timeline loaded:', data.data)
+    
+    // Enrich timeline data with business summaries
+    console.log(`📊 Starting enrichment of ${data.data?.businessNodes?.length || 0} nodes`)
+    if (data.data?.businessNodes) {
+      const originalLength = data.data.businessNodes.length
+      
+      data.data.businessNodes = data.data.businessNodes.map((node: any, index: number) => {
+        console.log(`📊 Processing node ${index + 1}/${originalLength}: "${node.name}"`)
+        
+        if (node.data && (node.data.inputJson || node.data.outputJson)) {
+          try {
+            const enrichedData = formatTimelineStepData(
+              node.data.inputJson,
+              node.data.outputJson,
+              node.data.nodeType,
+              node.name
+            )
+            console.log(`✅ Enriched node "${node.name}":`, enrichedData)
+            return {
+              ...node,
+              enrichedData
+            }
+          } catch (err) {
+            console.warn(`⚠️ Failed to enrich node "${node.name}":`, err)
+            return node
+          }
+        } else {
+          console.log(`ℹ️ Skipping enrichment for node "${node.name}" - no input/output data`)
+          return node
+        }
+      })
+      
+      console.log(`📊 Enrichment complete: ${data.data.businessNodes.length}/${originalLength} nodes processed`)
+      
+      if (data.data.businessNodes.length !== originalLength) {
+        console.error(`❌ Node count mismatch! Original: ${originalLength}, Final: ${data.data.businessNodes.length}`)
+      }
+    }
     
     timelineData.value = data.data
     

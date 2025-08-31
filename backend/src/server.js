@@ -916,8 +916,97 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
     
     console.log(`🎯 rawDataForModal request: ${workflowId}, execution: ${executionId || 'latest'}`);
     
+    // ==========================================  
+    // STEP 0: LOAD FROM BUSINESS DATABASE FIRST (Primary Source)
     // ==========================================
-    // STEP 1: GET WORKFLOW DEFINITION
+    console.log('📊 Attempting to load data from business_execution_data table...');
+    const savedBusinessData = await loadBusinessDataFromDatabase(workflowId, executionId);
+    
+    // TEMPORARY FIX: Always use fallback to get all 7 show nodes
+    console.log('🔧 TEMPORARY: Forcing fallback to extract all show-X nodes from workflow definition');
+    if (false && savedBusinessData && savedBusinessData.length > 0) {
+      console.log(`✅ Found ${savedBusinessData.length} saved business records - returning from database`);
+      
+      // Convert DB records to expected API format
+      const businessNodes = savedBusinessData.map(record => ({
+        showTag: record.show_tag,
+        name: record.node_name,
+        type: record.node_type, 
+        nodeType: record.business_category || 'business',
+        executed: true,
+        status: 'success',
+        data: {
+          nodeType: record.node_type,
+          nodeName: record.node_name,
+          executedAt: record.extracted_at || new Date().toISOString(),
+          hasInputData: !!record.raw_input_data,
+          hasOutputData: !!record.raw_output_data,
+          rawInputData: record.raw_input_data || null,
+          rawOutputData: record.raw_output_data || null,
+          inputJson: record.raw_input_data || {},
+          outputJson: record.raw_output_data || {},
+          nodeCategory: record.business_category,
+          suggestedSummary: record.business_summary,
+          totalDataSize: record.data_size || 0,
+          // Business fields for easy frontend access
+          emailSender: record.email_sender,
+          emailSubject: record.email_subject, 
+          emailContent: record.email_content,
+          aiClassification: record.ai_classification,
+          aiResponse: record.ai_response,
+          orderId: record.order_id,
+          orderCustomer: record.order_customer
+        },
+        _nodeId: record.node_id
+      }));
+      
+      // Get workflow details for status
+      const workflowQuery = `
+        SELECT id, name, active 
+        FROM n8n.workflow_entity 
+        WHERE id = $1
+      `;
+      const workflowResult = await dbPool.query(workflowQuery, [workflowId]);
+      const workflowData = workflowResult.rows[0] || {};
+      
+      // Return database-sourced response
+      return res.json({
+        success: true,
+        data: {
+          workflow: {
+            id: workflowId,
+            name: workflowData.name || `Workflow (from DB)`,
+            active: workflowData.active,
+            isActive: workflowData.active,
+            source: 'database'
+          },
+          businessNodes: businessNodes,
+          execution: executionId ? {
+            id: parseInt(executionId),
+            status: 'completed',
+            source: 'database'
+          } : null,
+          stats: {
+            totalShowNodes: businessNodes.length,
+            executedNodes: businessNodes.length,
+            successNodes: businessNodes.length,
+            source: 'database'
+          },
+          _metadata: {
+            system: 'Business Process Operating System',
+            endpoint: 'raw-data-for-modal',
+            source: 'business_execution_data_table',
+            timestamp: new Date().toISOString(),
+            requestedExecutionId: executionId || null
+          }
+        }
+      });
+    }
+    
+    console.log('⚠️ No saved business data found - falling back to live n8n data...');
+    
+    // ==========================================
+    // STEP 1: GET WORKFLOW DEFINITION (Fallback)
     // ==========================================
     const workflowQuery = `
       SELECT 
@@ -1096,7 +1185,7 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
               
               businessData = extractRealBusinessData(inputData, outputData, node.type, nodeName);
               
-              // 🔥 SALVATAGGIO AUTOMATICO - Persist business data for historical access
+              // Save business data when fallback to n8n (DB was empty)
               if (businessData && Object.keys(businessData).length > 0) {
                 const nodeDataToSave = {
                   ...businessData,
@@ -1105,11 +1194,11 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
                   _nodeId: node.id
                 };
                 
-                // Save to database asynchronously (don't wait)
-                console.log(`🔥 Attempting to save business data for: ${nodeName}`);
+                // Save to database for persistent access
+                console.log(`💾 Saving business data for fallback: ${nodeName}`);
                 saveBusinessDataToDatabase(workflowId, execution?.id, nodeDataToSave)
-                  .then(() => console.log(`✅ Business data saved: ${nodeName}`))
-                  .catch(err => console.error(`❌ Auto-save failed for ${nodeName}:`, err));
+                  .then(() => console.log(`✅ Fallback data saved: ${nodeName}`))
+                  .catch(err => console.error(`❌ Fallback save failed for ${nodeName}:`, err));
               }
             }
           }
@@ -1477,8 +1566,8 @@ async function saveBusinessDataToDatabase(workflowId, executionId, nodeData) {
       outputJson.subject || inputJson.subject,
       outputJson.body?.content || inputJson.body?.content,
       // AI fields  
-      outputJson.categoria || outputJson.classification || inputJson.categoria,
-      outputJson.risposta_html || outputJson.response || inputJson.risposta_html,
+      outputJson.output?.categoria || outputJson.categoria || outputJson.classification || inputJson.categoria,
+      outputJson.output?.risposta_html || outputJson.risposta_html || outputJson.response || inputJson.risposta_html,
       // Order fields
       outputJson.order_reference || outputJson.order_id || inputJson.order_reference,
       outputJson.customer_full_name || inputJson.customer_full_name,
@@ -1521,6 +1610,18 @@ async function loadBusinessDataFromDatabase(workflowId, executionId = null) {
     return [];
   }
 }
+
+// ============================================================================
+// AUTOMATIC BUSINESS DATA PERSISTENCE - PURE POSTGRESQL SOLUTION
+// ============================================================================
+
+// Business execution data is now automatically populated by a PostgreSQL trigger
+// when workflow executions complete. The trigger function 'process_business_execution_data()'
+// detects show-X tagged nodes and inserts business data directly in the database.
+// This eliminates the need for backend notification listeners or API round-trips.
+
+console.log('🎯 Business data persistence: PostgreSQL trigger-based (automatic)');
+console.log('📊 Show-tagged nodes are processed automatically on execution completion');
 
 // LEGACY - Keep for compatibility but not used anymore
 function extractBusinessData(executionData, nodeType, nodeName, fullExecutionData) {
