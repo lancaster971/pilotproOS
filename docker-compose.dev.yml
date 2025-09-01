@@ -30,10 +30,10 @@ services:
                -c max_connections=200
                -c shared_buffers=256MB
 
-  # n8n Workflow Engine - Development
-  n8n-dev:
+  # Automation Engine - Development
+  automation-engine-dev:
     image: n8nio/n8n:1.108.1
-    container_name: pilotpros-n8n-dev
+    container_name: pilotpros-automation-engine-dev
     restart: unless-stopped
     depends_on:
       postgres-dev:
@@ -126,7 +126,7 @@ services:
     depends_on:
       postgres-dev:
         condition: service_healthy
-      n8n-dev:
+      automation-engine-dev:
         condition: service_healthy
     environment:
       NODE_ENV: development
@@ -140,8 +140,8 @@ services:
       DB_USER: pilotpros_user
       DB_PASSWORD: pilotpros_secure_pass_2025
       
-      # n8n Integration
-      N8N_URL: http://n8n-dev:5678
+      # Automation Engine Integration
+      N8N_URL: http://automation-engine-dev:5678
       N8N_ADMIN_USER: admin
       N8N_ADMIN_PASSWORD: pilotpros_admin_2025
       
@@ -198,7 +198,7 @@ services:
     depends_on:
       postgres-dev:
         condition: service_healthy
-      n8n-dev:
+      automation-engine-dev:
         condition: service_healthy
     environment:
       NODE_ENV: development
@@ -211,8 +211,8 @@ services:
       DB_USER: pilotpros_user
       DB_PASSWORD: pilotpros_secure_pass_2025
       
-      # n8n Integration
-      N8N_URL: http://n8n-dev:5678
+      # Automation Engine Integration
+      N8N_URL: http://automation-engine-dev:5678
       N8N_ADMIN_USER: admin
       N8N_ADMIN_PASSWORD: pilotpros_admin_2025
       
@@ -238,7 +238,7 @@ services:
     depends_on:
       - frontend-dev
       - backend-dev
-      - n8n-dev
+      - automation-engine-dev
     volumes:
       - ./config/nginx-development.conf:/etc/nginx/conf.d/default.conf
       - ./config/ssl:/etc/ssl/pilotpros:ro  # SSL certificates for HTTPS
