@@ -5,7 +5,7 @@
     :subtitle="modalSubtitle"
     :header-icon="Bot"
     :tabs="tabs"
-    default-tab="timeline"
+    default-tab="executions"
     :is-loading="isLoading"
     :error="error"
     :data="timelineData"
@@ -16,347 +16,38 @@
   >
     <!-- Header Actions Slot -->
     <template #headerActions="{ isLoading, refresh }">
-      <button
-        @click="downloadReport"
-        class="p-2 text-text-muted hover:text-green-400 transition-colors"
-        title="Download Report"
-      >
-        <Download class="h-4 w-4" />
-      </button>
-    </template>
-
-    <!-- Timeline Tab -->
-    <template #timeline="{ data }">
-      <div class="p-6">
-        
-        <!-- Workflow Summary -->
-        <div v-if="data" class="mb-6 p-4 bg-black/50 rounded-lg border border-gray-800">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-white font-medium">Process Summary</span>
-            <div class="flex items-center">
-              <CheckCircle v-if="data.workflow?.active === true || data.workflow?.isActive === true" class="w-5 h-5 text-green-400 mr-2" />
-              <XCircle v-else class="w-5 h-5 text-red-400 mr-2" />
-              <span :class="(data.workflow?.active === true || data.workflow?.isActive === true) ? 'text-green-400' : 'text-red-400'">
-                {{ (data.workflow?.active === true || data.workflow?.isActive === true) ? 'ACTIVE' : 'INACTIVE' }}
-              </span>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span class="text-gray-400">Last Execution:</span>
-              <span class="text-white ml-2">
-                {{ data.lastExecution ? formatTimestamp(data.lastExecution.executedAt) : 'No executions' }}
-              </span>
-            </div>
-            <div>
-              <span class="text-gray-400">Duration:</span>
-              <span class="text-white ml-2">
-                {{ data.lastExecution ? formatDuration(data.lastExecution.duration) : 'N/A' }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Info header -->
-        <div class="mb-4 flex items-center justify-between">
-          <div class="text-sm text-gray-400">
-            Showing process steps with intelligent business data parsing
-          </div>
-          <div class="flex items-center text-xs text-gray-500">
-            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-            Last updated: {{ new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) }}
-          </div>
-        </div>
-
-        <!-- Timeline Steps -->
-        <div v-if="data?.businessNodes?.length > 0" class="space-y-4">
-          <div
-            v-for="(step, index) in data.businessNodes"
-            :key="step._nodeId || index"
-            :class="[
-              'border rounded-lg p-4 transition-all cursor-pointer',
-              getStepColor(step.status),
-              expandedStep === (step._nodeId || index) ? 'shadow-lg' : ''
-            ]"
-            @click="toggleExpanded(step._nodeId || index)"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <component :is="getStepIcon(step.status)" class="w-4 h-4 mr-3" />
-                <div>
-                  <div class="font-medium text-white">{{ step.name || `Step ${index + 1}` }}</div>
-                  <div class="text-sm text-gray-400">
-                    {{ step.status === 'not-executed' 
-                      ? 'Node not executed in this run' 
-                      : (step.data?.suggestedSummary || step.data?.summary || getBusinessSummary(step)) }}
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center">
-                <span class="text-xs text-gray-400 mr-3">
-                  {{ step.status === 'not-executed' 
-                    ? 'Skipped' 
-                    : formatDuration(step.executionTime || 0) }}
-                </span>
-                <ChevronDown 
-                  v-if="expandedStep === (step._nodeId || index)"
-                  class="w-4 h-4 text-gray-400" 
-                />
-                <ChevronRight 
-                  v-else
-                  class="w-4 h-4 text-gray-400" 
-                />
-              </div>
-            </div>
-
-            <!-- Expanded Step Details -->
-            <div v-if="expandedStep === (step._nodeId || index)" class="mt-4 pt-4 border-t border-gray-700">
-              
-              <!-- Business Process Overview -->
-              <div v-if="step.data || step.enrichedData" class="mb-4 p-4 bg-gradient-to-r from-green-400/5 to-blue-400/5 rounded-lg border border-green-400/20">
-                <div class="flex items-center mb-3">
-                  <div class="w-3 h-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                  <div class="text-sm font-medium text-green-400">Business Process Step Completed</div>
-                </div>
-                
-                <!-- Business Value Statement -->
-                <div v-if="step.enrichedData?.businessValue" class="text-sm text-white mb-4 font-medium">
-                  {{ step.enrichedData.businessValue }}
-                </div>
-                
-                <!-- Input/Output Business Summary -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <!-- Input Summary -->
-                  <div v-if="step.enrichedData?.inputSummary" class="bg-blue-400/10 rounded-lg p-3 border border-blue-400/20">
-                    <div class="flex items-center mb-2">
-                      <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                      <span class="text-xs font-medium text-blue-400">INPUT DATA</span>
-                    </div>
-                    <div class="text-sm text-gray-300">{{ step.enrichedData.inputSummary }}</div>
-                  </div>
-                  
-                  <!-- Output Summary -->
-                  <div v-if="step.enrichedData?.outputSummary" class="bg-green-400/10 rounded-lg p-3 border border-green-400/20">
-                    <div class="flex items-center mb-2">
-                      <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                      <span class="text-xs font-medium text-green-400">OUTPUT DATA</span>
-                    </div>
-                    <div class="text-sm text-gray-300">{{ step.enrichedData.outputSummary }}</div>
-                  </div>
-                </div>
-                
-                <!-- Technical Details (Collapsed by Default) -->
-                <details class="text-xs text-gray-400">
-                  <summary class="cursor-pointer hover:text-gray-300 mb-2">
-                    Technical Details ({{ step.data?.totalDataSize || 0 }} bytes, {{ step.data?.totalAvailableFields || 0 }} fields)
-                  </summary>
-                  <div class="grid grid-cols-2 gap-4 mt-2 p-2 bg-gray-800/50 rounded">
-                    <div>
-                      <span class="text-green-400">Input Data:</span> {{ step.data?.hasInputData ? '✅' : '❌' }}
-                    </div>
-                    <div>
-                      <span class="text-green-400">Output Data:</span> {{ step.data?.hasOutputData ? '✅' : '❌' }}
-                    </div>
-                    <div>
-                      <span class="text-purple-400">Node Category:</span> {{ step.data?.nodeCategory || 'unknown' }}
-                    </div>
-                    <div>
-                      <span class="text-gray-500">Executed:</span> {{ formatTimestamp(step.data?.executedAt) }}
-                    </div>
-                  </div>
-                </details>
-              </div>
-
-              <!-- Business Data Section (Parsed & Readable) -->
-              <div v-if="step.data?.outputJson || step.data?.inputJson" class="mb-4 p-3 bg-purple-400/5 rounded-lg border border-purple-400/20">
-                <div class="text-sm font-medium text-purple-400 mb-3">Business Data (Customer View):</div>
-                
-                <!-- AI Response -->
-                <div v-if="step.data.outputJson?.output?.risposta_html" class="mb-3">
-                  <div class="text-xs text-green-400 font-medium mb-1">AI Response Generated:</div>
-                  <div class="bg-gray-900 p-3 rounded text-sm text-gray-300" v-html="step.data.outputJson.output.risposta_html"></div>
-                  <div v-if="step.data.outputJson.output.categoria" class="mt-2 text-xs">
-                    <span class="text-blue-400">Category:</span> 
-                    <span class="text-gray-300">{{ step.data.outputJson.output.categoria }}</span>
-                  </div>
-                </div>
-
-                <!-- Email Content -->
-                <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-3">
-                  <div class="text-xs text-blue-400 font-medium mb-1">Email Data:</div>
-                  <div class="text-sm text-gray-300">
-                    <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-1">
-                      <span class="text-yellow-400">Subject:</span> 
-                      {{ step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject }}
-                    </div>
-                    <div v-if="step.data.outputJson?.mittente || step.data.inputJson?.mittente" class="mb-1">
-                      <span class="text-yellow-400">From:</span> 
-                      {{ step.data.outputJson?.mittente || step.data.inputJson?.mittente }}
-                    </div>
-                    <div v-if="step.data.outputJson?.messaggio_cliente || step.data.inputJson?.messaggio_cliente" class="text-xs bg-gray-900 p-2 rounded mt-2">
-                      {{ step.data.outputJson?.messaggio_cliente || step.data.inputJson?.messaggio_cliente }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Order Data -->
-                <div v-if="step.data.outputJson?.order_reference || step.data.inputJson?.order_reference" class="mb-3">
-                  <div class="text-xs text-orange-400 font-medium mb-1">Order Information:</div>
-                  <div class="text-sm text-gray-300">
-                    <span class="text-yellow-400">Order ID:</span> 
-                    {{ step.data.outputJson?.order_reference || step.data.inputJson?.order_reference }}
-                  </div>
-                </div>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Input Data - Complete -->
-                <div>
-                  <div class="text-sm font-medium text-white mb-2">Input Data ({{ step.data?.inputDataSize || 0 }} bytes):</div>
-                  <div class="bg-gray-900 p-3 rounded text-sm text-gray-300 whitespace-pre-line">
-                    {{ step.data?.inputJson ? 'Click "Show all input data" below to see complete input JSON' : 'No input data available' }}
-                  </div>
-                  <details class="mt-2">
-                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
-                      Show all input data ({{ step.data?.availableInputFields?.length || 0 }} fields)
-                    </summary>
-                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2 max-h-96">{{ 
-                      step.data?.inputJson ? JSON.stringify(step.data.inputJson, null, 2) : 'No input data' 
-                    }}</pre>
-                  </details>
-                </div>
-                
-                <!-- Output Data - Complete -->
-                <div>
-                  <div class="text-sm font-medium text-white mb-2">Output Data ({{ step.data?.outputDataSize || 0 }} bytes):</div>
-                  <div class="bg-gray-900 p-3 rounded text-sm text-gray-300 whitespace-pre-line">
-                    {{ step.data?.outputJson ? 'Click "Show all output data" below to see complete output JSON' : 'No output data available' }}
-                  </div>
-                  <details class="mt-2">
-                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
-                      Show all output data ({{ step.data?.availableOutputFields?.length || 0 }} fields)
-                    </summary>
-                    <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto mt-2 max-h-96">{{ 
-                      step.data?.outputJson ? JSON.stringify(step.data.outputJson, null, 2) : 'No output data' 
-                    }}</pre>
-                  </details>
-                </div>
-              </div>
-              
-              <!-- RAW DATA Section - Complete Raw n8n Data -->
-              <div v-if="step.data?.rawInputData || step.data?.rawOutputData" class="mt-4 pt-4 border-t border-gray-700">
-                <div class="text-sm font-medium text-white mb-2">Complete Raw n8n Execution Data:</div>
-                <details>
-                  <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
-                    Show complete raw n8n data structure (unfiltered)
-                  </summary>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <div v-if="step.data.rawInputData">
-                      <div class="text-xs text-blue-400 mb-1">Raw Input Data:</div>
-                      <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto max-h-64">{{ 
-                        JSON.stringify(step.data.rawInputData, null, 2) 
-                      }}</pre>
-                    </div>
-                    <div v-if="step.data.rawOutputData">
-                      <div class="text-xs text-green-400 mb-1">Raw Output Data:</div>
-                      <pre class="bg-gray-800 p-2 rounded text-xs text-gray-400 overflow-x-auto max-h-64">{{ 
-                        JSON.stringify(step.data.rawOutputData, null, 2) 
-                      }}</pre>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- No Timeline Data -->
-        <div v-else class="text-center py-8 text-gray-400">
-          <Clock class="w-8 h-8 mx-auto mb-2" />
-          <p>No business process steps configured</p>
-          <p class="text-sm">
-            This process needs nodes marked with 'show-1', 'show-2', etc. for timeline visualization.
-          </p>
-          <p class="text-xs mt-2 text-gray-500">
-            Contact your administrator to configure business-visible process steps.
-          </p>
-        </div>
-      </div>
-    </template>
-
-    <!-- Business Context Tab -->
-    <template #context="{ data }">
-      <div class="p-6 space-y-6">
-        <div v-if="data?.execution?.businessContext" class="p-4 bg-black/50 rounded-lg border border-gray-800">
-          <h3 class="text-lg font-medium text-white mb-4">Business Context</h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-if="data.execution.businessContext.customerEmail" class="flex items-center">
-              <Mail class="w-4 h-4 text-blue-400 mr-2" />
-              <span class="text-gray-400">Customer:</span>
-              <span class="text-blue-400 ml-2">{{ data.execution.businessContext.customerEmail }}</span>
-            </div>
-            
-            <div v-if="data.execution.businessContext.orderId" class="flex items-center">
-              <Package class="w-4 h-4 text-green-400 mr-2" />
-              <span class="text-gray-400">Order ID:</span>
-              <span class="text-white ml-2">{{ data.execution.businessContext.orderId }}</span>
-            </div>
-            
-            <div v-if="data.execution.businessContext.classification" class="flex items-center">
-              <Tag class="w-4 h-4 text-purple-400 mr-2" />
-              <span class="text-gray-400">Classification:</span>
-              <span class="text-purple-400 ml-2">{{ data.execution.businessContext.classification }}</span>
-            </div>
-            
-            <div v-if="data.execution.businessContext.aiResponseGenerated" class="flex items-center">
-              <Bot class="w-4 h-4 text-green-400 mr-2" />
-              <span class="text-gray-400">AI Response:</span>
-              <span class="text-green-400 ml-2">Generated</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div v-if="data?.execution?.businessContext?.customerEmail" class="p-4 bg-black/50 rounded-lg border border-gray-800">
-          <h3 class="text-lg font-medium text-white mb-4">Quick Actions</h3>
-          <div class="flex space-x-4">
-            <button
-              @click="replyToCustomer(data.execution.businessContext)"
-              class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
-            >
-              <Mail class="w-4 h-4 mr-2" />
-              Reply to Customer
-            </button>
-          </div>
-        </div>
-      </div>
     </template>
 
     <!-- Executions Details Tab -->
     <template #executions="{ data }">
       <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center">
-            <List class="w-5 h-5 text-green-400 mr-2" />
-            <h3 class="text-lg font-medium text-white">Executions Details Report</h3>
-          </div>
-          <div class="text-sm text-gray-400">
-            Business-friendly process execution summary
-          </div>
-        </div>
 
         <div v-if="data?.businessNodes?.length > 0" class="space-y-6">
           <div
             v-for="(step, index) in data.businessNodes"
             :key="step._nodeId || index"
-            class="bg-gray-800/50 rounded-lg p-5 border border-gray-700"
+            :class="[
+              'rounded-lg p-5 border',
+              step.status === 'error' || step.showTag === 'error' 
+                ? 'bg-red-900/20 border-red-500/30' 
+                : 'bg-gray-800/50 border-gray-700'
+            ]"
           >
             <!-- Step Header -->
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center">
-                <div class="w-8 h-8 bg-green-400/20 rounded-full flex items-center justify-center mr-3">
-                  <span class="text-green-400 font-medium">{{ index + 1 }}</span>
+                <div :class="[
+                  'w-8 h-8 rounded-full flex items-center justify-center mr-3',
+                  step.status === 'error' || step.showTag === 'error'
+                    ? 'bg-red-400/20'
+                    : 'bg-green-400/20'
+                ]">
+                  <span :class="[
+                    'font-medium',
+                    step.status === 'error' || step.showTag === 'error'
+                      ? 'text-red-400'
+                      : 'text-green-400'
+                  ]">{{ step.showTag === 'error' ? '⚠️' : index + 1 }}</span>
                 </div>
                 <div>
                   <h4 class="text-white font-medium">{{ step.name || `Process Step ${index + 1}` }}</h4>
@@ -370,27 +61,71 @@
 
             <!-- Business Summary -->
             <div class="mb-4">
-              <div class="text-sm text-green-400 font-medium mb-2">Business Summary:</div>
-              <div class="text-white bg-gray-900/50 p-3 rounded border-l-4 border-green-400">
-                {{ generateExecutionDetail(step) }}
+              <div :class="[
+                'text-sm font-medium mb-2',
+                step.status === 'error' || step.showTag === 'error'
+                  ? 'text-red-400'
+                  : 'text-green-400'
+              ]">
+                {{ step.status === 'error' || step.showTag === 'error' ? 'Error Details:' : 'Business Summary:' }}
+              </div>
+              <div :class="[
+                'text-white bg-gray-900/50 p-3 rounded border-l-4',
+                step.status === 'error' || step.showTag === 'error'
+                  ? 'border-red-400'
+                  : 'border-green-400'
+              ]">
+                {{ 
+                  step.status === 'error' || step.showTag === 'error' 
+                    ? getBusinessErrorSummary(step)
+                    : generateExecutionDetail(step) 
+                }}
               </div>
             </div>
 
             <!-- Input/Output Summary -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- What Happened -->
-              <div class="bg-blue-400/10 rounded p-3 border border-blue-400/20">
-                <div class="text-xs text-blue-400 font-medium mb-1">WHAT HAPPENED</div>
+              <div :class="[
+                'rounded p-3 border',
+                step.status === 'error' || step.showTag === 'error'
+                  ? 'bg-orange-400/10 border-orange-400/20'
+                  : 'bg-blue-400/10 border-blue-400/20'
+              ]">
+                <div :class="[
+                  'text-xs font-medium mb-1',
+                  step.status === 'error' || step.showTag === 'error'
+                    ? 'text-orange-400'
+                    : 'text-blue-400'
+                ]">{{ step.status === 'error' || step.showTag === 'error' ? 'ERROR CONTEXT' : 'WHAT HAPPENED' }}</div>
                 <div class="text-sm text-gray-300">
-                  {{ step.enrichedData?.inputSummary || getBusinessSummary(step) }}
+                  {{ 
+                    step.status === 'error' || step.showTag === 'error' 
+                      ? getBusinessErrorContext(step)
+                      : (step.enrichedData?.inputSummary || getBusinessSummary(step))
+                  }}
                 </div>
               </div>
               
               <!-- Result -->
-              <div class="bg-green-400/10 rounded p-3 border border-green-400/20">
-                <div class="text-xs text-green-400 font-medium mb-1">RESULT</div>
+              <div :class="[
+                'rounded p-3 border',
+                step.status === 'error' || step.showTag === 'error'
+                  ? 'bg-red-400/10 border-red-400/20'
+                  : 'bg-green-400/10 border-green-400/20'
+              ]">
+                <div :class="[
+                  'text-xs font-medium mb-1',
+                  step.status === 'error' || step.showTag === 'error'
+                    ? 'text-red-400'
+                    : 'text-green-400'
+                ]">{{ step.status === 'error' || step.showTag === 'error' ? 'ERROR RESULT' : 'RESULT' }}</div>
                 <div class="text-sm text-gray-300">
-                  {{ step.enrichedData?.outputSummary || 'Process completed successfully' }}
+                  {{ 
+                    step.status === 'error' || step.showTag === 'error' 
+                      ? getBusinessErrorDetails(step)
+                      : (step.enrichedData?.outputSummary || 'Process completed successfully')
+                  }}
                 </div>
               </div>
             </div>
@@ -505,8 +240,6 @@ const modalSubtitle = computed(() => {
 })
 
 const tabs = [
-  { id: 'timeline', label: 'Timeline', icon: Clock },
-  { id: 'context', label: 'Business Context', icon: FileText },
   { id: 'executions', label: 'Executions Details', icon: List },
   { id: 'raw', label: 'Raw Data', icon: Code },
 ]
@@ -651,6 +384,82 @@ const getBusinessSummary = (step: any): string => {
     step.nodeName
   )
   return parsedData.summary
+}
+
+const getBusinessErrorSummary = (step: any): string => {
+  // Use the business parser to extract detailed error information
+  const parsedData = parseBusinessData(
+    step.data,
+    'output',
+    step.nodeType,
+    step.name
+  )
+  
+  // If the business parser extracted detailed error information, use it
+  if (parsedData.type === 'error' && parsedData.details.length > 0) {
+    return parsedData.details.join('\n')
+  }
+  
+  // Fallback to direct n8n error details if available
+  if (step.data?.n8nErrorDetails) {
+    const error = step.data.n8nErrorDetails
+    return `${error.errorType}: ${error.message} (Nodo: ${error.nodeName})`
+  }
+  
+  // Final fallback
+  return 'Process execution failed to complete successfully'
+}
+
+const getBusinessErrorDetails = (step: any): string => {
+  // Use the business parser to extract detailed error information
+  const parsedData = parseBusinessData(
+    step.data,
+    'output',
+    step.nodeType,
+    step.name
+  )
+  
+  // If the business parser extracted detailed error information, use the first detail
+  if (parsedData.type === 'error' && parsedData.details.length > 0) {
+    // Return the most important detail (usually the first one with the error message)
+    return parsedData.details.find(detail => detail.includes('Errore:')) || parsedData.details[0]
+  }
+  
+  // Fallback to direct n8n error details if available
+  if (step.data?.n8nErrorDetails) {
+    const error = step.data.n8nErrorDetails
+    return error.message || 'Error details not available'
+  }
+  
+  // Final fallback
+  return 'Check raw data for error details'
+}
+
+const getBusinessErrorContext = (step: any): string => {
+  // Use the business parser to extract detailed error information
+  const parsedData = parseBusinessData(
+    step.data,
+    'output',
+    step.nodeType,
+    step.name
+  )
+  
+  // If the business parser extracted detailed error information, use node info
+  if (parsedData.type === 'error' && parsedData.details.length > 1) {
+    // Return the node context (usually the second detail with node info)
+    return parsedData.details.find(detail => detail.includes('Nodo Fallito:')) || 
+           parsedData.details.find(detail => detail.includes('Tipo Errore:')) ||
+           parsedData.details[1]
+  }
+  
+  // Fallback to direct n8n error details if available
+  if (step.data?.n8nErrorDetails) {
+    const error = step.data.n8nErrorDetails
+    return `Errore nel nodo: ${error.nodeName} (${error.errorType})`
+  }
+  
+  // Final fallback
+  return `Errore durante l'esecuzione del nodo: ${step.name}`
 }
 
 const getBusinessData = (step: any, dataType: 'input' | 'output'): string => {

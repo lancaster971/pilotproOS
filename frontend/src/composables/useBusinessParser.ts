@@ -223,6 +223,65 @@ export function useBusinessParser() {
       }
     }
     
+    // Handle execution error nodes with complete n8n error details
+    if (sanitizedType === 'execution_error' || nodeNameLower.includes('execution error')) {
+      let errorSummary = 'Errore di Esecuzione';
+      let errorDetails = ['Il workflow ha riscontrato un errore durante l\'esecuzione'];
+      
+      // Extract comprehensive n8n error details if available
+      if (data && typeof data === 'object') {
+        if (data.n8nErrorDetails || data.errorType) {
+          const errorType = data.errorType || 'Unknown Error';
+          const nodeName = data.failedNode || 'Unknown Node';
+          const message = data.specificErrorMessage || 'Error details not available';
+          const stackTrace = data.stackTrace;
+          const httpCode = data.httpCode;
+          const timestamp = data.errorTimestamp;
+          
+          errorSummary = `${errorType}: ${nodeName}`;
+          
+          errorDetails = [
+            `Errore: ${message}`,
+            `Nodo Fallito: ${nodeName}`,
+            `Tipo Errore: ${errorType}`
+          ];
+          
+          // Add HTTP code if available
+          if (httpCode) {
+            errorDetails.push(`Codice HTTP: ${httpCode}`);
+          }
+          
+          // Add timestamp if available
+          if (timestamp) {
+            const date = new Date(timestamp);
+            errorDetails.push(`Timestamp: ${date.toLocaleString('it-IT')}`);
+          }
+          
+          // Add stack trace info (truncated for UI)
+          if (stackTrace && stackTrace.includes('at ')) {
+            const firstLine = stackTrace.split('\n')[0];
+            errorDetails.push(`Stack: ${firstLine}`);
+          }
+          
+          // Add resolution hints based on error type
+          if (errorType === 'NodeApiError') {
+            errorDetails.push('Suggerimento: Verificare connessioni API e credenziali');
+          } else if (message.toLowerCase().includes('connection')) {
+            errorDetails.push('Suggerimento: Controllare connettività di rete');
+          } else if (message.toLowerCase().includes('auth')) {
+            errorDetails.push('Suggerimento: Verificare le credenziali di autenticazione');
+          }
+        }
+      }
+      
+      return {
+        summary: errorSummary,
+        details: errorDetails,
+        type: 'error',
+        confidence: 'high'
+      }
+    }
+    
     if (!data) {
       return {
         summary: 'Nessun dato',
