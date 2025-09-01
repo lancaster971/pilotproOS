@@ -4,37 +4,30 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-lg font-bold text-gradient">
-            Executions - {{ authStore.tenantId }}
-          </h1>
-          <p class="text-text-muted mt-1">
-            Monitora le esecuzioni dei tuoi workflow con PrimeVue DataTable
-          </p>
+          <h1 class="text-3xl font-bold text-gradient">Executions</h1>
+          <p class="text-gray-400 mt-1">Monitora le esecuzioni dei tuoi workflow</p>
         </div>
         
         <div class="flex items-center gap-3">
           <!-- Auto Refresh Toggle -->
           <div class="flex items-center gap-2">
-            <InputSwitch v-model="autoRefresh" />
-            <label class="text-sm text-text">Auto refresh</label>
+            <input
+              v-model="autoRefresh"
+              type="checkbox"
+              id="auto-refresh"
+              class="w-4 h-4 text-green-500 bg-gray-900 border-gray-600 rounded focus:ring-green-500"
+            />
+            <label for="auto-refresh" class="text-sm text-white">Auto refresh</label>
           </div>
           
-          <Button 
+          <button 
             @click="refreshExecutions"
-            :loading="isLoading"
-            icon="pi pi-refresh"
-            label="Refresh"
-            severity="secondary"
-            size="small"
-          />
-          
-          <Button 
-            icon="pi pi-download"
-            label="Esporta"
-            severity="secondary"
-            size="small"
-            @click="exportData"
-          />
+            :disabled="isLoading"
+            class="btn-control"
+          >
+            <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -42,368 +35,321 @@
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-text">{{ executionStats.total }}</p>
-            <p class="text-xs text-text-muted">Totali</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.total }}</p>
+            <p class="text-xs text-gray-400">Totali</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ executionStats.success }}</p>
-            <p class="text-xs text-text-muted">Success</p>
+            <p class="text-2xl font-bold text-green-400">{{ executionStats.success }}</p>
+            <p class="text-xs text-gray-400">Success</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-error">{{ executionStats.error }}</p>
-            <p class="text-xs text-text-muted">Error</p>
+            <p class="text-2xl font-bold text-red-400">{{ executionStats.error }}</p>
+            <p class="text-xs text-gray-400">Error</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ executionStats.running }}</p>
-            <p class="text-xs text-text-muted">Running</p>
+            <p class="text-2xl font-bold text-blue-400">{{ executionStats.running }}</p>
+            <p class="text-xs text-gray-400">Running</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-warning">{{ executionStats.waiting }}</p>
-            <p class="text-xs text-text-muted">Waiting</p>
+            <p class="text-2xl font-bold text-yellow-400">{{ executionStats.waiting }}</p>
+            <p class="text-xs text-gray-400">Waiting</p>
           </div>
         </div>
       </div>
 
-      <!-- DataTable with PrimeVue -->
-      <div class="control-card p-6">
-        <DataTable 
-            :value="executions" 
-            :loading="isLoading"
-            :paginator="true"
-            :rows="10"
-            :rowsPerPageOptions="[10, 25, 50, 100]"
-            :globalFilterFields="['workflow_name', 'status', 'mode']"
-            v-model:filters="filters"
-            filterDisplay="row"
-            showGridlines
-            stripedRows
-            responsiveLayout="scroll"
-            class="p-datatable-dark"
+      <!-- Filters -->
+      <div class="control-card p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="relative">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <input
+              v-model="searchTerm"
+              type="text"
+              placeholder="Cerca executions..."
+              class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
+            />
+          </div>
+
+          <select
+            v-model="statusFilter"
+            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
           >
-            <!-- Header with Search and Status Filter -->
-            <template #header>
-              <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-text">Process Runs</span>
-                <div class="flex items-center gap-3">
-                  <!-- Status Filter -->
-                  <Select
-                    v-model="statusFilter"
-                    @change="applyStatusFilter"
-                    :options="statusOptions"
-                    placeholder="All Status"
-                    class="premium-input text-xs w-32"
-                  />
-                  <!-- Global Search -->
-                  <IconField iconPosition="left">
-                    <InputIcon><i class="pi pi-search" /></InputIcon>
-                    <InputText 
-                      v-model="filters['global'].value" 
-                      placeholder="Global Search" 
-                      class="premium-input text-sm"
-                    />
-                  </IconField>
-                </div>
-              </div>
-            </template>
+            <option value="all">Any Status ({{ executionStats.total }})</option>
+            <option value="success">Success ({{ executionStats.success }})</option>
+            <option value="error">Error ({{ executionStats.error }})</option>
+            <option value="running">Running ({{ executionStats.running }})</option>
+            <option value="waiting">Waiting ({{ executionStats.waiting }})</option>
+          </select>
 
-            <!-- Status Column with Badge -->
-            <Column field="status" header="Status" :sortable="true" style="min-width: 120px">
-              <template #body="{ data }">
-                <Tag 
-                  :value="data.status" 
-                  :severity="getStatusSeverity(data.status)"
-                  :icon="getStatusIcon(data.status)"
-                />
-              </template>
-            </Column>
+          <select
+            v-model="workflowFilter"
+            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
+          >
+            <option value="all">All Workflows</option>
+          </select>
+        </div>
+      </div>
 
-            <!-- Workflow Name Column -->
-            <Column field="workflow_name" header="Workflow" :sortable="true" style="min-width: 200px">
-              <template #body="{ data }">
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-sitemap text-green-400"></i>
-                  <span class="text-white font-medium">{{ data.workflow_name || 'Unknown' }}</span>
-                </div>
-              </template>
-            </Column>
+      <!-- Executions Table -->
+      <div class="control-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-800">
+                <th class="text-left p-4 text-sm font-medium text-gray-400">
+                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+                </th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400">Workflow</th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400">Status</th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400">Started</th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400">Run Time</th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400">Exec. ID</th>
+                <th class="text-left p-4 text-sm font-medium text-gray-400"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredExecutions.length === 0">
+                <td colspan="7" class="p-8 text-center text-gray-500">
+                  <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                  Nessuna execution trovata
+                </td>
+              </tr>
+              
+              <tr
+                v-for="execution in filteredExecutions"
+                :key="execution.id"
+                class="border-b border-gray-800/50 hover:bg-gray-900/30 transition-colors cursor-pointer"
+                @click="openExecutionDetails(execution)"
+              >
+                <td class="p-4">
+                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+                </td>
+                
+                <td class="p-4">
+                  <div class="font-medium text-white max-w-xs">
+                    <span class="truncate block hover:text-green-400 transition-colors" :title="execution.process_name">
+                      {{ execution.process_name }}
+                    </span>
+                  </div>
+                </td>
+                
+                <td class="p-4">
+                  <span 
+                    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
+                    :class="getStatusClass(execution.status)"
+                  >
+                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.status)" />
+                    {{ getStatusLabel(execution.status) }}
+                  </span>
+                </td>
+                
+                <td class="p-4 text-sm text-gray-300">
+                  {{ formatTime(execution.start_time) }}
+                </td>
+                
+                <td class="p-4 text-sm text-gray-300 font-mono">
+                  {{ formatDuration(execution.duration_ms) }}
+                </td>
+                
+                <td class="p-4 text-sm text-gray-300 font-mono">
+                  {{ execution.run_id }}
+                </td>
+                
+                <td class="p-4">
+                  <button class="p-1 text-gray-400 hover:text-white transition-colors">
+                    <MoreHorizontal class="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <!-- Execution ID -->
-            <Column field="id" header="ID" :sortable="true" style="min-width: 80px">
-              <template #body="{ data }">
-                <span class="text-text-muted font-mono text-xs">#{{ data.id }}</span>
-              </template>
-            </Column>
-
-            <!-- Mode -->
-            <Column field="mode" header="Mode" :sortable="true" style="min-width: 100px">
-              <template #body="{ data }">
-                <Tag 
-                  :value="data.mode || 'manual'" 
-                  :severity="data.mode === 'trigger' ? 'info' : 'contrast'"
-                  :icon="data.mode === 'trigger' ? 'pi pi-bolt' : 'pi pi-user'"
-                />
-              </template>
-            </Column>
-
-            <!-- Started At -->
-            <Column field="startedAt" header="Started" :sortable="true" style="min-width: 180px">
-              <template #body="{ data }">
-                <div class="text-text-secondary text-sm">
-                  <i class="pi pi-clock text-text-muted mr-1"></i>
-                  {{ formatDate(data.startedAt) }}
-                </div>
-              </template>
-            </Column>
-
-            <!-- Duration -->
-            <Column field="executionTime" header="Duration" :sortable="true" style="min-width: 100px">
-              <template #body="{ data }">
-                <span class="text-text-secondary font-mono text-sm">
-                  {{ formatDuration(data.executionTime) }}
-                </span>
-              </template>
-            </Column>
-
-            <!-- Actions -->
-            <Column header="Actions" style="min-width: 100px">
-              <template #body="{ data }">
-                <div class="flex gap-2">
-                  <Button 
-                    icon="pi pi-eye" 
-                    severity="info" 
-                    text 
-                    rounded 
-                    size="small"
-                    @click="viewExecution(data)"
-                    title="View Details"
-                  />
-                  <Button 
-                    icon="pi pi-replay" 
-                    severity="success" 
-                    text 
-                    rounded 
-                    size="small"
-                    @click="retryExecution(data)"
-                    title="Retry"
-                    :disabled="data.status === 'running'"
-                  />
-                </div>
-              </template>
-            </Column>
-          </DataTable>
+      <!-- Pagination -->
+      <div v-if="executions.length > 0" class="flex items-center justify-between">
+        <p class="text-sm text-gray-400">
+          Visualizzando {{ filteredExecutions.length }} di {{ executions.length }} executions
+        </p>
+        <div class="flex items-center gap-2">
+          <button class="btn-control text-xs px-3 py-1" disabled>
+            Precedente
+          </button>
+          <button class="btn-control text-xs px-3 py-1" disabled>
+            Successiva
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- Timeline Modal for Execution Details -->
+    <TimelineModal
+      :show="showTimelineModal"
+      :workflow-id="selectedExecutionWorkflowId"
+      :execution-id="selectedExecutionId"
+      :tenant-id="'client_simulation_a'"
+      @close="closeTimelineModal"
+    />
   </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { FilterMatchMode } from '@primevue/core/api'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import Select from 'primevue/select'
-import InputSwitch from 'primevue/inputswitch'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-
+import { ref, computed, onMounted } from 'vue'
+import { RefreshCw, Search, Play, MoreHorizontal } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import { useAuthStore } from '../stores/auth'
-import { useWorkflowsStore } from '../stores/workflows'
-import { useUIStore } from '../stores/ui'
-import webSocketService from '../services/websocket'
-import type { Execution } from '../types'
-
-// Stores
-const authStore = useAuthStore()
-const workflowsStore = useWorkflowsStore()
-const uiStore = useUIStore()
+import TimelineModal from '../components/common/TimelineModal.vue'
 
 // Local state
 const isLoading = ref(false)
-const autoRefresh = ref(false)
-const executions = ref<Execution[]>([])
+const autoRefresh = ref(true)
+const searchTerm = ref('')
+const statusFilter = ref<'all' | 'success' | 'error' | 'running' | 'waiting'>('all')
+const workflowFilter = ref('all')
+const executions = ref<any[]>([])
 
-// PrimeVue Filters
-const filters = ref({
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  status: { value: null, matchMode: FilterMatchMode.EQUALS },
-  workflow_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  mode: { value: null, matchMode: FilterMatchMode.EQUALS }
-})
+// Modal state
+const showTimelineModal = ref(false)
+const selectedExecutionWorkflowId = ref<string>('')
+const selectedExecutionId = ref<string>('')
 
-const statusOptions = ['success', 'error', 'running', 'waiting', 'canceled']
-const statusFilter = ref(null)
+// Computed
+const executionStats = computed(() => ({
+  total: executions.value.length,
+  success: executions.value.filter(e => e.status === 'success').length,
+  error: executions.value.filter(e => e.status === 'error').length,
+  running: executions.value.filter(e => e.status === 'running').length,
+  waiting: executions.value.filter(e => e.status === 'waiting').length,
+}))
 
-// Computed stats
-const executionStats = computed(() => {
-  const total = executions.value.length
-  const success = executions.value.filter(e => e.status === 'success').length
-  const error = executions.value.filter(e => e.status === 'error').length
-  const running = executions.value.filter(e => e.status === 'running').length
-  const waiting = executions.value.filter(e => e.status === 'waiting').length
-  
-  return { total, success, error, running, waiting }
+const filteredExecutions = computed(() => {
+  return executions.value.filter((execution) => {
+    // Search filter
+    const matchesSearch = execution.process_name?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+                         String(execution.run_id).includes(searchTerm.value)
+    
+    // Status filter
+    const matchesStatus = statusFilter.value === 'all' || execution.status === statusFilter.value
+    
+    // Workflow filter
+    const matchesWorkflow = workflowFilter.value === 'all' || execution.process_id === workflowFilter.value
+    
+    return matchesSearch && matchesStatus && matchesWorkflow
+  })
 })
 
 // Methods
 const refreshExecutions = async () => {
   isLoading.value = true
-  console.log('🔄 Refreshing executions...')
   
   try {
-    const response = await fetch('http://localhost:3001/api/business/process-runs?limit=1000')
-    console.log('📡 Response status:', response.status)
+    const response = await fetch('http://localhost:3001/api/business/process-runs')
+    const data = await response.json()
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
+    if (data.data && Array.isArray(data.data)) {
+      executions.value = data.data
     }
     
-    const data = await response.json()
-    console.log('📦 Raw data:', data)
-    console.log('📊 Number of runs:', data.data?.length || 0)
-    
-    executions.value = (data.data || []).map((run: any) => ({
-      id: run.run_id,
-      workflow_id: run.process_id,
-      workflow_name: run.process_name,
-      status: mapBackendStatus(run.business_status),
-      mode: run.trigger_mode || 'manual',
-      startedAt: run.start_time,
-      stoppedAt: run.end_time,
-      executionTime: run.duration_ms,
-      data: run.input_data,
-      error: run.error_details
-    }))
-    
-    console.log('✅ Executions loaded:', executions.value.length)
-    console.log('📋 First execution:', executions.value[0])
-    
-    uiStore.showToast('Aggiornamento', `${executions.value.length} executions caricate`, 'success')
   } catch (error: any) {
-    console.error('❌ Failed to load executions:', error)
-    uiStore.showToast('Errore', 'Impossibile caricare executions', 'error')
+    console.error('❌ ERROR in refreshExecutions:', error)
+    executions.value = []
   } finally {
     isLoading.value = false
   }
 }
 
-const mapBackendStatus = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'Completed Successfully': 'success',
-    'Failed': 'error',
-    'In Progress': 'running',
-    'Waiting': 'waiting',
-    'Canceled': 'canceled'
-  }
-  return statusMap[status] || status.toLowerCase()
-}
-
-const getStatusSeverity = (status: string) => {
+// Status helpers
+const getStatusClass = (status: string) => {
   switch (status) {
-    case 'success': return 'success'
-    case 'error': return 'danger'
-    case 'running': return 'info'
-    case 'waiting': return 'warn'
-    case 'canceled': return 'secondary'
-    default: return 'secondary'
+    case 'success':
+      return 'text-green-400 bg-green-500/10 border-green-500/30'
+    case 'error':
+      return 'text-red-400 bg-red-500/10 border-red-500/30'
+    case 'running':
+      return 'text-blue-400 bg-blue-500/10 border-blue-500/30'
+    case 'waiting':
+      return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
+    default:
+      return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
   }
 }
 
-const getStatusIcon = (status: string) => {
+const getStatusDot = (status: string) => {
   switch (status) {
-    case 'success': return 'pi pi-check-circle'
-    case 'error': return 'pi pi-times-circle'
-    case 'running': return 'pi pi-spin pi-spinner'
-    case 'waiting': return 'pi pi-clock'
-    case 'canceled': return 'pi pi-ban'
-    default: return 'pi pi-question-circle'
+    case 'success': return 'bg-green-500'
+    case 'error': return 'bg-red-500'
+    case 'running': return 'bg-blue-500'
+    case 'waiting': return 'bg-yellow-500'
+    default: return 'bg-gray-500'
   }
 }
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return '-'
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'success': return 'Success'
+    case 'error': return 'Error'
+    case 'running': return 'Running'
+    case 'waiting': return 'Waiting'
+    default: return 'Unknown'
+  }
+}
+
+const formatTime = (dateString: string) => {
   const date = new Date(dateString)
-  return date.toLocaleString('it-IT')
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const executionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  
+  const timeStr = date.toLocaleTimeString('it-IT', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    second: '2-digit'
+  })
+  
+  if (executionDate.getTime() === today.getTime()) {
+    return timeStr
+  }
+  
+  return `${date.toLocaleDateString('it-IT', { 
+    month: 'short', 
+    day: '2-digit' 
+  })}, ${timeStr}`
 }
 
-const formatDuration = (ms?: number) => {
+const formatDuration = (ms?: string | number) => {
   if (!ms) return '-'
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  return `${(ms / 60000).toFixed(1)}min`
+  const duration = typeof ms === 'string' ? parseFloat(ms) : ms
+  if (duration < 1000) return `${duration}ms`
+  if (duration < 60000) return `${Math.round(duration / 1000 * 10) / 10}s`
+  return `${Math.round(duration / 60000 * 10) / 10}min`
 }
 
-const viewExecution = (execution: Execution) => {
-  console.log('View execution:', execution)
-  // TODO: Open detail modal or navigate to detail page
+// Modal functions
+const openExecutionDetails = (execution: any) => {
+  selectedExecutionWorkflowId.value = execution.process_id
+  selectedExecutionId.value = execution.run_id
+  showTimelineModal.value = true
 }
 
-const retryExecution = (execution: Execution) => {
-  console.log('Retry execution:', execution)
-  // TODO: Implement retry logic
+const closeTimelineModal = () => {
+  showTimelineModal.value = false
+  selectedExecutionWorkflowId.value = ''
+  selectedExecutionId.value = ''
 }
-
-const exportData = () => {
-  // TODO: Implement export functionality
-  console.log('Export data')
-}
-
-const applyStatusFilter = () => {
-  if (statusFilter.value) {
-    filters.value.status.value = statusFilter.value
-  } else {
-    filters.value.status.value = null
-  }
-}
-
-// Auto-refresh setup
-watch(autoRefresh, (enabled) => {
-  if (enabled) {
-    webSocketService.startAutoRefresh('executions-prime', refreshExecutions, 5000)
-  } else {
-    webSocketService.stopAutoRefresh('executions-prime')
-  }
-})
 
 // Lifecycle
 onMounted(() => {
   refreshExecutions()
-  workflowsStore.fetchWorkflows()
-  
-  if (autoRefresh.value) {
-    webSocketService.startAutoRefresh('executions-prime', refreshExecutions, 5000)
-  }
-  
-  // Listen for real-time execution events
-  window.addEventListener('execution:started', refreshExecutions)
-  window.addEventListener('execution:completed', refreshExecutions)
-})
-
-onUnmounted(() => {
-  // Stop auto-refresh
-  webSocketService.stopAutoRefresh('executions-prime')
-  
-  // Clean up event listeners
-  window.removeEventListener('execution:started', refreshExecutions)
-  window.removeEventListener('execution:completed', refreshExecutions)
 })
 </script>
-
-<style scoped>
-/* Additional dark theme overrides if needed */
-</style>

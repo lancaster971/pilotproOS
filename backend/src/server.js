@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+// import { getErrorNotificationService } from './services/errorNotification.service.js'; // Temporarily disabled
 import { createServer } from 'http';
 import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
@@ -410,6 +411,138 @@ app.get('/api/business/processes', async (req, res) => {
     console.error('❌ Error fetching business processes:', error);
     res.status(500).json({ 
       error: 'Failed to fetch business processes',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// DEBUG: Temporary endpoint to analyze execution 218
+app.get('/api/debug/execution/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🔍 DEBUG: Analyzing execution ${id}`);
+    
+    const result = await dbPool.query(`
+      SELECT 
+        e.id,
+        e."workflowId",
+        e.status,
+        e.finished,
+        e."stoppedAt",
+        e."startedAt",
+        ed.data
+      FROM n8n.execution_entity e
+      LEFT JOIN n8n.execution_data ed ON ed."executionId" = e.id
+      WHERE e.id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.json({ error: 'Execution not found' });
+    }
+    
+    const execution = result.rows[0];
+    let parsedData = null;
+    let errorNodes = [];
+    
+    try {
+      parsedData = typeof execution.data === 'string' ? JSON.parse(execution.data) : execution.data;
+      
+      if (parsedData && parsedData.resultData && parsedData.resultData.runData) {
+        const runData = parsedData.resultData.runData;
+        console.log(`🔍 DEBUG: Found runData keys:`, Object.keys(runData));
+        
+        Object.keys(runData).forEach(nodeName => {
+          const nodeRuns = runData[nodeName];
+          console.log(`🔍 DEBUG: Analyzing node ${nodeName}:`, nodeRuns);
+          
+          if (nodeRuns && nodeRuns.length > 0) {
+            nodeRuns.forEach((run, index) => {
+              console.log(`🔍 DEBUG: Node ${nodeName} run ${index}:`, {
+                hasError: !!run.error,
+                error: run.error
+              });
+              
+              if (run.error) {
+                errorNodes.push({
+                  nodeName,
+                  runIndex: index,
+                  error: run.error
+                });
+              }
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not parse execution data:', err);
+    }
+    
+    res.json({
+      execution,
+      parsedData: parsedData ? {
+        hasResultData: !!parsedData.resultData,
+        hasRunData: !!(parsedData.resultData && parsedData.resultData.runData),
+        runDataKeys: parsedData.resultData && parsedData.resultData.runData ? Object.keys(parsedData.resultData.runData) : []
+      } : null,
+      errorNodes,
+      analysis: {
+        status: execution.status,
+        finished: execution.finished,
+        hasData: !!execution.data,
+        dataType: typeof execution.data,
+        errorNodeCount: errorNodes.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Debug execution error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Process Executions API (for ExecutionsPage)
+app.get('/api/business/process-runs', async (req, res) => {
+  try {
+    console.log('🎯 process-runs endpoint called');
+    
+    const result = await dbPool.query(`
+      SELECT 
+        e.id as run_id,
+        e."workflowId" as process_id,
+        w.name as process_name,
+        e."startedAt" as start_time,
+        e."stoppedAt" as end_time,
+        'webhook' as mode,
+        e.finished as is_completed,
+        e.status,
+        CASE 
+          WHEN e.finished = true AND e.status = 'success' THEN 'Completed Successfully'
+          WHEN e.finished = true AND e.status = 'error' THEN 'Requires Attention' 
+          WHEN e.finished = false THEN 'In Progress'
+          ELSE 'Waiting'
+        END as business_status,
+        EXTRACT(EPOCH FROM (COALESCE(e."stoppedAt", NOW()) - e."startedAt")) * 1000 as duration_ms
+      FROM n8n.execution_entity e
+      LEFT JOIN n8n.workflow_entity w ON w.id = e."workflowId"
+      WHERE w."isArchived" = false
+      ORDER BY e."startedAt" DESC
+    `);
+    
+    console.log(`✅ Found ${result.rows?.length || 0} process executions`);
+    
+    res.json({
+      data: result.rows || [],
+      total: result.rows?.length || 0,
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/process-runs'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching process executions:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch process executions',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -1071,15 +1204,71 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
     }
     console.log(`📊 Total nodes in workflow: ${workflowNodes.length}`);
     
+    // Get nodes with show-X tags OR handle execution-level errors
+    let errorNodeIds = [];
+    let hasGlobalExecutionError = false;
+    let globalErrorDetails = null;
+    
+    if (execution) {
+      // Check for global execution failure
+      if (execution.status === 'error' && !execution.finished) {
+        hasGlobalExecutionError = true;
+        globalErrorDetails = {
+          status: execution.status,
+          finished: execution.finished,
+          startedAt: execution.startedAt,
+          stoppedAt: execution.stoppedAt,
+          message: 'Execution failed to complete successfully'
+        };
+        console.log(`🚨 Global execution error detected for execution ${execution.id}`);
+        
+        // 🚨 AUTOMATIC ERROR NOTIFICATION (Temporarily disabled - needs ES6 module fix)
+        console.log(`📧 Would send automatic error notification for execution ${execution.id}`);
+      }
+      
+      // Also check for node-specific errors if execution data exists
+      if (execution.data) {
+        try {
+          const executionData = typeof execution.data === 'string' ? JSON.parse(execution.data) : execution.data;
+          if (executionData.resultData && executionData.resultData.runData) {
+            const runData = executionData.resultData.runData;
+            Object.keys(runData).forEach(nodeName => {
+              const nodeRuns = runData[nodeName];
+              if (nodeRuns && nodeRuns.length > 0) {
+                nodeRuns.forEach(run => {
+                  if (run.error) {
+                    // Find node ID by name
+                    const errorNode = workflowNodes.find(n => n.name === nodeName);
+                    if (errorNode) {
+                      errorNodeIds.push(errorNode.id);
+                      console.log(`🚨 Found error node: ${nodeName} (${errorNode.id})`);
+                      
+                      // 🚨 AUTOMATIC ERROR NOTIFICATION FOR NODE ERRORS (Temporarily disabled)
+                      console.log(`📧 Would send node error notification for ${nodeName}`);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('⚠️ Could not extract node error data:', err);
+        }
+      }
+    }
+    
     const showNodes = workflowNodes.filter(node => {
       const notes = (node.notes || '').toLowerCase();
-      return notes.includes('show-') && /show-\d+/.test(notes);
+      const hasShowTag = notes.includes('show-') && /show-\d+/.test(notes);
+      const hasError = errorNodeIds.includes(node.id);
+      return hasShowTag || hasError;
     }).map(node => {
       const showMatch = (node.notes || '').toLowerCase().match(/show-(\d+)/);
+      const hasError = errorNodeIds.includes(node.id);
       return {
         ...node,
-        showTag: showMatch ? `show-${showMatch[1]}` : null,
-        showOrder: showMatch ? parseInt(showMatch[1]) : 999
+        showTag: showMatch ? `show-${showMatch[1]}` : (hasError ? 'error' : null),
+        showOrder: showMatch ? parseInt(showMatch[1]) : (hasError ? 0 : 999) // Put errors first
       };
     }).sort((a, b) => a.showOrder - b.showOrder);
     
@@ -1222,6 +1411,110 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
       });
     }
     
+    // Add global execution error node if needed
+    if (hasGlobalExecutionError) {
+      console.log(`🚨 Adding global execution error node for execution ${execution.id}`);
+      
+      // Extract comprehensive error details from n8n execution data
+      let errorDetails = {
+        message: 'Process execution failed to complete successfully',
+        nodeName: 'Unknown',
+        errorType: 'ExecutionError',
+        stackTrace: null,
+        timestamp: null,
+        httpCode: null
+      };
+      
+      if (execution.data) {
+        try {
+          const executionData = typeof execution.data === 'string' ? JSON.parse(execution.data) : execution.data;
+          
+          if (Array.isArray(executionData)) {
+            // Look for the main error object structure (usually contains references)
+            for (let i = 0; i < executionData.length; i++) {
+              const item = executionData[i];
+              
+              // Find error object with all the reference indices
+              if (item && typeof item === 'object' && 
+                  item.message !== undefined && item.name !== undefined && 
+                  item.stack !== undefined) {
+                
+                console.log(`🔍 Found n8n error object structure at index ${i}`);
+                
+                // Resolve all the references to get actual data
+                const resolveRef = (ref) => {
+                  if (typeof ref === 'string' && !isNaN(parseInt(ref))) {
+                    const index = parseInt(ref);
+                    return index < executionData.length ? executionData[index] : ref;
+                  }
+                  return ref;
+                };
+                
+                errorDetails.message = resolveRef(item.message);
+                errorDetails.errorType = resolveRef(item.name);
+                errorDetails.stackTrace = resolveRef(item.stack);
+                errorDetails.timestamp = item.timestamp;
+                errorDetails.httpCode = item.httpCode;
+                
+                // Get the failed node info
+                const nodeObj = resolveRef(item.node);
+                if (nodeObj && typeof nodeObj === 'object' && nodeObj.name) {
+                  errorDetails.nodeName = resolveRef(nodeObj.name);
+                }
+                
+                console.log(`🔍 Extracted n8n error details:`, {
+                  type: errorDetails.errorType,
+                  node: errorDetails.nodeName,
+                  message: errorDetails.message
+                });
+                
+                break;
+              }
+            }
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse execution data for error extraction:', parseError);
+        }
+      }
+      
+      businessNodes.unshift({
+        showTag: 'execution-error',
+        name: `${errorDetails.errorType}: ${errorDetails.nodeName}`,
+        type: 'n8n-nodes-base.executionError',
+        nodeType: 'execution_error',
+        executed: true,
+        status: 'error',
+        executionTime: 0,
+        position: [0, 0],
+        data: {
+          nodeType: 'execution_error',
+          nodeName: `${errorDetails.errorType}: ${errorDetails.nodeName}`,
+          executedAt: execution.startedAt || new Date().toISOString(),
+          hasInputData: false,
+          hasOutputData: false,
+          rawInputData: null,
+          rawOutputData: null,
+          inputJson: {},
+          outputJson: {},
+          nodeCategory: 'execution_error',
+          suggestedSummary: `❌ ${errorDetails.errorType} in ${errorDetails.nodeName}`,
+          
+          // Complete n8n error details
+          n8nErrorDetails: errorDetails,
+          specificErrorMessage: errorDetails.message,
+          errorType: errorDetails.errorType,
+          failedNode: errorDetails.nodeName,
+          stackTrace: errorDetails.stackTrace,
+          errorTimestamp: errorDetails.timestamp,
+          httpCode: errorDetails.httpCode,
+          
+          businessSummary: `${errorDetails.errorType}: ${errorDetails.message} (Node: ${errorDetails.nodeName})`,
+          totalDataSize: 0
+        },
+        _nodeId: 'execution-error'
+      });
+    }
+    
     // ==========================================
     // STEP 5: EXTRACT BUSINESS CONTEXT
     // ==========================================
@@ -1242,7 +1535,7 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
       businessNodes: businessNodes,
       execution: execution ? {
         id: execution.id,
-        status: execution.finished ? 'completed' : 'running',
+        status: execution.status === 'error' ? 'error' : (execution.finished ? 'completed' : 'running'),
         startedAt: execution.startedAt,
         stoppedAt: execution.stoppedAt,
         duration: execution.stoppedAt ? 
@@ -1278,6 +1571,15 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
       stack: error.stack
     });
   }
+});
+
+// 🚨 ERROR NOTIFICATION TEST ENDPOINT (Temporarily disabled)
+app.post('/api/business/test-error-notification', async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Error notification system temporarily disabled for ES6 module fixes',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ============================================================================
