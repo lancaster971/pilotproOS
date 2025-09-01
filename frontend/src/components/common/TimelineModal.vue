@@ -273,9 +273,12 @@
         <!-- No Timeline Data -->
         <div v-else class="text-center py-8 text-gray-400">
           <Clock class="w-8 h-8 mx-auto mb-2" />
-          <p>No process steps available</p>
+          <p>No business process steps configured</p>
           <p class="text-sm">
-            Steps will appear here when process executions contain step data.
+            This process needs nodes marked with 'show-1', 'show-2', etc. for timeline visualization.
+          </p>
+          <p class="text-xs mt-2 text-gray-500">
+            Contact your administrator to configure business-visible process steps.
           </p>
         </div>
       </div>
@@ -403,8 +406,14 @@
         <!-- No Data -->
         <div v-else class="text-center py-12 text-gray-400">
           <List class="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <h3 class="text-lg font-medium mb-2">No Execution Details Available</h3>
-          <p class="text-sm">Process execution details will appear here when data is available.</p>
+          <h3 class="text-lg font-medium mb-2">Process Not Yet Configured</h3>
+          <p class="text-sm mb-2">This business process doesn't have steps configured for client reporting.</p>
+          <div class="bg-blue-400/10 border border-blue-400/20 rounded-lg p-4 mt-4 max-w-md mx-auto">
+            <h4 class="text-blue-400 font-medium mb-2">For Administrators:</h4>
+            <p class="text-xs text-blue-300">
+              Add 'show-1', 'show-2', etc. notes to workflow nodes to make them visible in business reporting.
+            </p>
+          </div>
         </div>
       </div>
     </template>
@@ -524,6 +533,13 @@ const loadTimeline = async () => {
     const data = await response.json()
     console.log('✅ Process timeline loaded:', data.data)
     
+    // Check if no business nodes are configured
+    if (!data.data?.businessNodes || data.data.businessNodes.length === 0) {
+      console.log('ℹ️ No show-n nodes found for this workflow - showing empty state')
+      timelineData.value = { ...data.data, businessNodes: [] }
+      return
+    }
+    
     // Enrich timeline data with business summaries
     console.log(`📊 Starting enrichment of ${data.data?.businessNodes?.length || 0} nodes`)
     if (data.data?.businessNodes) {
@@ -566,7 +582,15 @@ const loadTimeline = async () => {
     
   } catch (err: any) {
     console.error('❌ Failed to load process timeline:', err)
-    setError(err.message)
+    
+    // More user-friendly error messages
+    if (err.message.includes('Failed to fetch') || err.message.includes('fetch')) {
+      setError('Process configuration incomplete. This business process needs to be configured with visible steps for reporting.')
+    } else if (err.message.includes('404')) {
+      setError('Process not found or not yet configured for business reporting.')
+    } else {
+      setError('Unable to load process details. Please try again or contact support.')
+    }
   } finally {
     setLoading(false)
   }
