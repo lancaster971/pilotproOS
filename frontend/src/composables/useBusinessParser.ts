@@ -312,10 +312,47 @@ export function useBusinessParser() {
                           inputData?.main?.json?.body?.content
                           
       if (emailContent && typeof emailContent === 'string') {
-        const cleanContent = emailContent.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+        // Improved HTML cleaning for human readability
+        let cleanContent = emailContent
+          // Remove HTML tags completely
+          .replace(/<script[^>]*>.*?<\/script>/gi, '')
+          .replace(/<style[^>]*>.*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          // Decode HTML entities
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'")
+          .replace(/&[a-zA-Z0-9]+;/g, ' ')
+          // Clean whitespace
+          .replace(/\r\n/g, ' ')
+          .replace(/\n/g, ' ')
+          .replace(/\t/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        
         if (cleanContent.length > 20) {
-          const preview = cleanContent.length > 200 ? cleanContent.substring(0, 200) + '...' : cleanContent
-          outputSummary = `Email content: "${preview}"`
+          // Extract meaningful content, not HTML metadata
+          // Skip if it's just HTML boilerplate
+          if (!cleanContent.toLowerCase().includes('content-type') && 
+              !cleanContent.toLowerCase().includes('charset') &&
+              !cleanContent.toLowerCase().includes('viewport')) {
+            const preview = cleanContent.length > 150 ? cleanContent.substring(0, 150) + '...' : cleanContent
+            outputSummary = `Email received: "${preview}"`
+          } else {
+            // Try to extract email metadata instead
+            const subject = outputData?.oggetto || outputData?.json?.oggetto || inputData?.oggetto || inputData?.json?.oggetto
+            const sender = outputData?.mittente || outputData?.json?.mittente || inputData?.mittente || inputData?.json?.mittente
+            if (subject && sender) {
+              outputSummary = `Email from ${sender} - Subject: "${subject}"`
+            } else if (subject) {
+              outputSummary = `Email received - Subject: "${subject}"`
+            } else {
+              outputSummary = `Customer email received and processed`
+            }
+          }
         }
       }
       

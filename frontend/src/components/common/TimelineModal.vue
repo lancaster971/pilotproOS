@@ -121,7 +121,7 @@
                 
                 <!-- Business Value Statement -->
                 <div v-if="step.enrichedData?.businessValue" class="text-sm text-white mb-4 font-medium">
-                  🎯 {{ step.enrichedData.businessValue }}
+                  {{ step.enrichedData.businessValue }}
                 </div>
                 
                 <!-- Input/Output Business Summary -->
@@ -169,11 +169,11 @@
 
               <!-- Business Data Section (Parsed & Readable) -->
               <div v-if="step.data?.outputJson || step.data?.inputJson" class="mb-4 p-3 bg-purple-400/5 rounded-lg border border-purple-400/20">
-                <div class="text-sm font-medium text-purple-400 mb-3">📊 Business Data (Customer View):</div>
+                <div class="text-sm font-medium text-purple-400 mb-3">Business Data (Customer View):</div>
                 
                 <!-- AI Response -->
                 <div v-if="step.data.outputJson?.output?.risposta_html" class="mb-3">
-                  <div class="text-xs text-green-400 font-medium mb-1">🤖 AI Response Generated:</div>
+                  <div class="text-xs text-green-400 font-medium mb-1">AI Response Generated:</div>
                   <div class="bg-gray-900 p-3 rounded text-sm text-gray-300" v-html="step.data.outputJson.output.risposta_html"></div>
                   <div v-if="step.data.outputJson.output.categoria" class="mt-2 text-xs">
                     <span class="text-blue-400">Category:</span> 
@@ -183,7 +183,7 @@
 
                 <!-- Email Content -->
                 <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-3">
-                  <div class="text-xs text-blue-400 font-medium mb-1">📧 Email Data:</div>
+                  <div class="text-xs text-blue-400 font-medium mb-1">Email Data:</div>
                   <div class="text-sm text-gray-300">
                     <div v-if="step.data.outputJson?.oggetto || step.data.inputJson?.oggetto || step.data.outputJson?.subject || step.data.inputJson?.subject" class="mb-1">
                       <span class="text-yellow-400">Subject:</span> 
@@ -201,7 +201,7 @@
 
                 <!-- Order Data -->
                 <div v-if="step.data.outputJson?.order_reference || step.data.inputJson?.order_reference" class="mb-3">
-                  <div class="text-xs text-orange-400 font-medium mb-1">🛒 Order Information:</div>
+                  <div class="text-xs text-orange-400 font-medium mb-1">Order Information:</div>
                   <div class="text-sm text-gray-300">
                     <span class="text-yellow-400">Order ID:</span> 
                     {{ step.data.outputJson?.order_reference || step.data.inputJson?.order_reference }}
@@ -330,6 +330,85 @@
       </div>
     </template>
 
+    <!-- Executions Details Tab -->
+    <template #executions="{ data }">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center">
+            <List class="w-5 h-5 text-green-400 mr-2" />
+            <h3 class="text-lg font-medium text-white">Executions Details Report</h3>
+          </div>
+          <div class="text-sm text-gray-400">
+            Business-friendly process execution summary
+          </div>
+        </div>
+
+        <div v-if="data?.businessNodes?.length > 0" class="space-y-6">
+          <div
+            v-for="(step, index) in data.businessNodes"
+            :key="step._nodeId || index"
+            class="bg-gray-800/50 rounded-lg p-5 border border-gray-700"
+          >
+            <!-- Step Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center">
+                <div class="w-8 h-8 bg-green-400/20 rounded-full flex items-center justify-center mr-3">
+                  <span class="text-green-400 font-medium">{{ index + 1 }}</span>
+                </div>
+                <div>
+                  <h4 class="text-white font-medium">{{ step.name || `Process Step ${index + 1}` }}</h4>
+                  <p class="text-sm text-gray-400">{{ formatBusinessStepType(step) }}</p>
+                </div>
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ formatDuration(step.executionTime || 0) }}
+              </div>
+            </div>
+
+            <!-- Business Summary -->
+            <div class="mb-4">
+              <div class="text-sm text-green-400 font-medium mb-2">Business Summary:</div>
+              <div class="text-white bg-gray-900/50 p-3 rounded border-l-4 border-green-400">
+                {{ generateExecutionDetail(step) }}
+              </div>
+            </div>
+
+            <!-- Input/Output Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- What Happened -->
+              <div class="bg-blue-400/10 rounded p-3 border border-blue-400/20">
+                <div class="text-xs text-blue-400 font-medium mb-1">WHAT HAPPENED</div>
+                <div class="text-sm text-gray-300">
+                  {{ step.enrichedData?.inputSummary || getBusinessSummary(step) }}
+                </div>
+              </div>
+              
+              <!-- Result -->
+              <div class="bg-green-400/10 rounded p-3 border border-green-400/20">
+                <div class="text-xs text-green-400 font-medium mb-1">RESULT</div>
+                <div class="text-sm text-gray-300">
+                  {{ step.enrichedData?.outputSummary || 'Process completed successfully' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Business Value -->
+            <div v-if="step.enrichedData?.businessValue" class="mt-4 p-3 bg-purple-400/10 rounded border border-purple-400/20">
+              <div class="text-xs text-purple-400 font-medium mb-1">BUSINESS VALUE</div>
+              <div class="text-sm text-white">{{ step.enrichedData.businessValue }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Data -->
+        <div v-else class="text-center py-12 text-gray-400">
+          <List class="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <h3 class="text-lg font-medium mb-2">No Execution Details Available</h3>
+          <p class="text-sm">Process execution details will appear here when data is available.</p>
+        </div>
+      </div>
+    </template>
+
     <!-- Raw Data Tab -->
     <template #raw="{ data }">
       <div class="p-6">
@@ -376,7 +455,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { 
   Bot, CheckCircle, XCircle, Clock, Settings, ChevronDown, ChevronRight,
-  Mail, Package, FileText, Tag, Code, Download
+  Mail, Package, FileText, Tag, Code, Download, List
 } from 'lucide-vue-next'
 import DetailModal from './DetailModal.vue'
 import { useModal } from '../../composables/useModal'
@@ -419,6 +498,7 @@ const modalSubtitle = computed(() => {
 const tabs = [
   { id: 'timeline', label: 'Timeline', icon: Clock },
   { id: 'context', label: 'Business Context', icon: FileText },
+  { id: 'executions', label: 'Executions Details', icon: List },
   { id: 'raw', label: 'Raw Data', icon: Code },
 ]
 
@@ -668,6 +748,77 @@ const showJsonData = () => {
       .replace(/\.base\./g, '.core.')
     preElement.textContent = sanitizedJson
   }
+}
+
+// Executions Details Helper Functions
+const formatBusinessStepType = (step: any): string => {
+  const nodeName = step.name?.toLowerCase() || ''
+  
+  if (nodeName.includes('mail') || nodeName.includes('ricezione')) {
+    return 'Customer Communication'
+  }
+  if (nodeName.includes('milena') || nodeName.includes('assistente')) {
+    return 'AI Assistant Processing'
+  }
+  if (nodeName.includes('qdrant') || nodeName.includes('vector')) {
+    return 'Knowledge Base Search'
+  }
+  if (nodeName.includes('ordini') || nodeName.includes('order')) {
+    return 'Order Management'
+  }
+  if (nodeName.includes('supabase') || nodeName.includes('database')) {
+    return 'Data Storage Operation'
+  }
+  if (nodeName.includes('execute') || nodeName.includes('workflow')) {
+    return 'Business Process Execution'
+  }
+  
+  return 'Business Process Step'
+}
+
+const generateExecutionDetail = (step: any): string => {
+  const nodeName = step.name?.toLowerCase() || ''
+  
+  // Email nodes - focus on communication
+  if (nodeName.includes('ricezione') && step.data?.outputJson) {
+    const email = step.data.outputJson
+    if (email.oggetto && email.mittente) {
+      return `Customer email received from ${email.mittente} regarding "${email.oggetto}". Message successfully processed and categorized for business response.`
+    }
+    return 'Customer email received and processed successfully.'
+  }
+  
+  // AI Assistant nodes - focus on intelligence
+  if ((nodeName.includes('milena') || nodeName.includes('assistente')) && step.data?.outputJson?.output) {
+    const aiOutput = step.data.outputJson.output
+    if (aiOutput.categoria) {
+      return `AI Assistant analyzed the customer request and generated an intelligent response. Category: ${aiOutput.categoria}. Response crafted based on business knowledge and customer context.`
+    }
+    return 'AI Assistant processed the request and generated an intelligent, personalized response for the customer.'
+  }
+  
+  // Vector/Knowledge search nodes
+  if (nodeName.includes('qdrant') || nodeName.includes('vector')) {
+    return 'Knowledge base searched to find relevant information and context for providing accurate customer support.'
+  }
+  
+  // Order/Database nodes
+  if (nodeName.includes('ordini') || nodeName.includes('order')) {
+    return 'Order information retrieved and processed to provide customer with accurate status and details.'
+  }
+  
+  // Database storage nodes
+  if (nodeName.includes('supabase') || nodeName.includes('database')) {
+    return 'Customer interaction data saved to business database for future reference and analytics.'
+  }
+  
+  // Sub-workflow execution
+  if (nodeName.includes('execute') || nodeName.includes('workflow')) {
+    return 'Business process sub-routine executed successfully to handle specific customer requirements.'
+  }
+  
+  // Generic business value
+  return 'Business process step completed successfully, contributing to efficient customer service automation.'
 }
 
 // Lifecycle

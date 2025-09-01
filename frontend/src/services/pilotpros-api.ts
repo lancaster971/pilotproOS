@@ -215,10 +215,10 @@ export const formatters = {
   // Format business status
   formatBusinessStatus: (status: string): string => {
     const statusMap = {
-      'completed': '✅ Completato',
-      'running': '🔄 In Esecuzione',
-      'failed': '⚠️ Richiede Attenzione',
-      'paused': '⏸️ In Pausa'
+      'completed': 'Completato',
+      'running': 'In Esecuzione',
+      'failed': 'Richiede Attenzione',
+      'paused': 'In Pausa'
     };
     return statusMap[status] || status;
   },
