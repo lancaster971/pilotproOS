@@ -71,14 +71,7 @@
               Database
             </router-link>
             
-            <router-link
-              to="/security"
-              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors"
-              :class="$route.path === '/security' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
-            >
-              <Shield class="h-5 w-5" />
-              Security
-            </router-link>
+            <!-- Removed security route - functionality not needed -->
             
             <router-link
               to="/agents"
@@ -105,7 +98,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Shield, Bot
+  Database, Bot
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 

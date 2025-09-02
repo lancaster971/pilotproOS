@@ -81,7 +81,7 @@ class SmartSyncService {
   }
 
   // 📋 Queue Sync con Smart Priority
-  queueSync(syncType: 'workflows' | 'executions' | 'dashboard' | 'metrics' | 'systemHealth' | 'all', options: SyncOptions = {}) {
+  queueSync(syncType: 'workflows' | 'executions' | 'insights' | 'metrics' | 'systemHealth' | 'all', options: SyncOptions = {}) {
     const { debounceMs = 1000 } = options
     
     // Debounce per evitare sync eccessivi
@@ -120,7 +120,7 @@ class SmartSyncService {
         case 'executions':
           await store.syncExecutions(options.force)
           break
-        case 'dashboard':
+        case 'insights':
           await store.syncDashboard(options.force)
           break
         case 'metrics':
@@ -190,7 +190,7 @@ class SmartSyncService {
   }
 
   // 🎯 Force Refresh specifico con priorità
-  forceRefresh(type: 'workflows' | 'executions' | 'dashboard' | 'all' = 'all') {
+  forceRefresh(type: 'workflows' | 'executions' | 'insights' | 'all' = 'all') {
     console.log(`🔥 Force refresh triggered: ${type}`)
     this.queueSync(type, { force: true, priority: 'high', debounceMs: 0 })
   }

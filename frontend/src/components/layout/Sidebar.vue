@@ -76,8 +76,7 @@
 import { computed } from 'vue'
 import { 
   LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Shield, Bot, ChevronLeft, Workflow,
-  Calendar, Settings
+  Database, ChevronLeft, Workflow
 } from 'lucide-vue-next'
 
 interface Props {
@@ -100,14 +99,14 @@ defineProps<Props>()
 // Navigation items con descrizioni e badge come nel vecchio progetto
 const navigationItems = computed<NavigationItem[]>(() => [
   {
-    path: '/dashboard',
-    label: 'Dashboard',
+    path: '/insights',
+    label: 'Insights',
     description: 'Panoramica generale',
     icon: LayoutDashboard,
     badge: { text: 'Live', type: 'new' }
   },
   {
-    path: '/workflows', 
+    path: '/command-center', 
     label: 'Processi',
     description: 'Automazioni business',
     icon: Workflow
@@ -130,24 +129,6 @@ const navigationItems = computed<NavigationItem[]>(() => [
     description: 'Gestione dati',
     icon: Database
   },
-  {
-    path: '/security',
-    label: 'Sicurezza',
-    description: 'Controllo accessi', 
-    icon: Shield
-  },
-  {
-    path: '/agents',
-    label: 'AI Agents',
-    description: 'Assistenti intelligenti',
-    icon: Bot,
-    badge: { text: 'AI', type: 'ai' }
-  },
-  {
-    path: '/scheduler',
-    label: 'Scheduler',
-    description: 'Pianificazione task',
-    icon: Calendar
-  }
+  // Removed security and scheduler routes - functionality not needed for business system
 ])
 </script>

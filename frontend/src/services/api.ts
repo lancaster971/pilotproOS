@@ -43,8 +43,8 @@ export const authAPI = {
 
 // Business API - using our PilotProOS endpoints with business terminology
 export const businessAPI = {
-  // Dashboard data
-  getDashboard: (): Promise<{ data: DashboardData }> =>
+  // Insights data
+  getInsights: (): Promise<{ data: DashboardData }> =>
     apiClient.get('/api/business/dashboard'),
   
   // Business processes (workflows with business terminology)

@@ -79,21 +79,6 @@ export interface DashboardData {
   }
 }
 
-export interface SecurityLog {
-  id: string
-  timestamp: string
-  event: 'login' | 'logout' | 'failed_login' | 'api_access' | 'data_export' | 'config_change'
-  user: string
-  userRole: string
-  ipAddress: string
-  userAgent: string
-  location: string
-  deviceType: 'desktop' | 'mobile' | 'api' | 'unknown'
-  status: 'success' | 'failed' | 'warning'
-  details: string
-  riskLevel: 'low' | 'medium' | 'high' | 'critical'
-}
-
 export interface Alert {
   id: string
   type: 'error' | 'warning' | 'info' | 'success'
@@ -107,13 +92,7 @@ export interface Alert {
   category: 'system' | 'workflow' | 'database' | 'security' | 'performance'
 }
 
-export interface SchedulerStatus {
-  isRunning: boolean
-  nextSync?: string
-  lastSync?: string
-  activeJobs: number
-  totalSyncRuns: number
-}
+// Removed SecurityLog and SchedulerStatus interfaces - functionality not needed
 
 export interface DatabaseTable {
   name: string
@@ -123,20 +102,4 @@ export interface DatabaseTable {
   growth: number
 }
 
-export interface AgentWorkflow {
-  id: string
-  name: string
-  status: 'active' | 'inactive'
-  lastActivity: string | null
-  lastExecutionId: string | null
-  lastExecutionStatus: string
-  totalExecutions: number
-  hasDetailedData: boolean
-  updatedAt: string
-  type: 'ai-agent'
-  preview?: {
-    senderEmail?: string
-    subject?: string
-    classification?: string
-  }
-}
+// Removed AgentWorkflow interface - agents functionality integrated into workflows

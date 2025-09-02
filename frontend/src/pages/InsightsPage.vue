@@ -3,7 +3,7 @@
         <div class="space-y-4">
           <!-- Compact Page Title -->
           <div class="mb-2">
-            <h1 class="text-lg font-bold text-gradient">Dashboard</h1>
+            <h1 class="text-lg font-bold text-gradient">Insights</h1>
           </div>
           
           <!-- Premium KPI Cards -->
@@ -558,7 +558,7 @@ const timeSavedHours = ref(0)
 const costSavings = ref('')
 const businessROI = ref('')
 
-// Additional dashboard data
+// Additional insights data
 const topWorkflows = ref([])
 const totalConnections = ref(0)
 const activeConnections = ref(0)
@@ -584,7 +584,7 @@ const problematicCount = ref(0)
 const reliabilityScore = ref(0)
 const qualityTrend = ref(0)
 
-// Premium dashboard data - ONLY from backend
+// Premium insights data - ONLY from backend
 const overallScore = ref(0)
 const systemRating = ref(0)
 const overallHealthScore = ref(0)
@@ -1145,11 +1145,11 @@ const loadData = async () => {
         }))
     }
     
-    console.log(`📊 Dashboard updated: ${workflowCount.value} workflows, ${totalExecutions.value} executions, ${successRate.value}% success, ${timeSavedHours.value}h saved, ${totalConnections.value} connections`)
+    console.log(`📊 Insights updated: ${workflowCount.value} workflows, ${totalExecutions.value} executions, ${successRate.value}% success, ${timeSavedHours.value}h saved, ${totalConnections.value} connections`)
     
   } catch (error: any) {
     console.error('❌ Backend API calls failed:', error)
-    // Keep dashboard empty if backend fails - NO MOCK DATA
+    // Keep insights empty if backend fails - NO MOCK DATA
   } finally {
     loading.value = false
   }
@@ -1160,7 +1160,7 @@ onMounted(() => {
   loadData()
   
   // Start auto-refresh every 5 seconds
-  webSocketService.startAutoRefresh('dashboard', loadData, 5000)
+  webSocketService.startAutoRefresh('insights', loadData, 5000)
   
   // Listen for real-time events
   window.addEventListener('stats:update', loadData)
@@ -1169,7 +1169,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   // Stop auto-refresh when leaving the page
-  webSocketService.stopAutoRefresh('dashboard')
+  webSocketService.stopAutoRefresh('insights')
   
   // Clean up event listeners
   window.removeEventListener('stats:update', loadData)

@@ -98,14 +98,12 @@ const route = useRoute()
 // Page title basato sulla route corrente
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
-    '/dashboard': 'Dashboard',
-    '/workflows': 'Processi Business', 
+    '/insights': 'Insights',
+    '/command-center': 'Processi Business', 
     '/executions': 'Esecuzioni',
     '/stats': 'Analytics',
-    '/database': 'Database',
-    '/security': 'Sicurezza',
-    '/agents': 'AI Agents',
-    '/scheduler': 'Scheduler'
+    '/database': 'Database'
+    // '/security' and '/scheduler': redirected to command-center
   }
   return titles[route.path] || 'PilotPro OS'
 })
@@ -113,10 +111,10 @@ const pageTitle = computed(() => {
 // Subtitle opzionale
 const subtitle = computed(() => {
   const subtitles: Record<string, string> = {
-    '/workflows': 'Automazioni',
+    '/command-center': 'Automazioni',
     '/executions': 'Cronologia',
     '/stats': 'Metriche KPI',
-    '/agents': 'Assistenti IA'
+    // '/agents': redirected to command-center
   }
   return subtitles[route.path]
 })

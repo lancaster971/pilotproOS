@@ -43,30 +43,29 @@ ChartJS.register(
 
 // Import pages
 import LoginPage from './pages/LoginPage.vue'
-import DashboardPage from './pages/DashboardPage.vue'
-import WorkflowsPage from './pages/WorkflowsPage.vue'
-import WorkflowVisualizationPage from './pages/WorkflowVisualizationPageVueFlow.vue'
+import InsightsPage from './pages/InsightsPage.vue'
+// Removed unused workflow pages
 import WorkflowCommandCenter from './pages/WorkflowCommandCenter.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
-import SecurityPage from './pages/SecurityPage.vue'
-import AgentsPage from './pages/AgentsPage.vue'
-import SchedulerPage from './pages/SchedulerPage.vue'
+// Removed SecurityPage and SchedulerPage - functionality not needed for business system
 import DesignSystemTestPage from './pages/DesignSystemTestPage.vue'
 
 // Router configuration - same as n8n approach
 const routes = [
   { path: '/login', component: LoginPage, name: 'login' },
   { path: '/', redirect: '/login' },
-  { path: '/dashboard', component: DashboardPage, name: 'dashboard', meta: { requiresAuth: true } },
-  { path: '/workflows', component: WorkflowsPage, name: 'workflows', meta: { requiresAuth: true } },
-  { path: '/workflows/visual', component: WorkflowVisualizationPage, name: 'workflow-visualization', meta: { requiresAuth: true } },
+  { path: '/insights', component: InsightsPage, name: 'insights', meta: { requiresAuth: true } },
+  { path: '/dashboard', redirect: '/insights' }, // Redirect for backward compatibility
+  // Removed unused workflow routes - redirect to command-center
+  { path: '/workflows', redirect: '/command-center' },
+  { path: '/workflows/visual', redirect: '/command-center' },
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
-  { path: '/security', component: SecurityPage, name: 'security', meta: { requiresAuth: true } },
-  { path: '/agents', component: AgentsPage, name: 'agents', meta: { requiresAuth: true } },
-  { path: '/scheduler', component: SchedulerPage, name: 'scheduler', meta: { requiresAuth: true } },
+  { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
+  { path: '/security', redirect: '/command-center' }, // Security functionality not needed
+  { path: '/scheduler', redirect: '/command-center' }, // Scheduler handled by n8n internally
   { path: '/design-test', component: DesignSystemTestPage, name: 'design-test' },
 ]
 
@@ -82,7 +81,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
   } else if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'dashboard' })
+    next({ name: 'insights' })
   } else {
     next()
   }

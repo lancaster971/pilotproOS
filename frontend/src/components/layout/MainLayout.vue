@@ -105,7 +105,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Shield, Bot, AlertTriangle, Clock, ChevronLeft
+  Database, Bot, AlertTriangle, ChevronLeft
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
@@ -136,14 +136,11 @@ onUnmounted(() => {
 
 // Navigation items - streamlined
 const navigationItems = [
-  { name: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard },
   { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu },
-  { name: 'workflows', path: '/workflows', label: 'Workflows', icon: GitBranch },
-  { name: 'workflow-visual', path: '/workflows/visual', label: 'Visual Flow', icon: GitBranch },
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
-  { name: 'security', path: '/security', label: 'Security', icon: Shield },
-  { name: 'agents', path: '/agents', label: 'AI Agents', icon: Bot },
-  { name: 'scheduler', path: '/scheduler', label: 'Scheduler', icon: Clock },
+  // Removed unused workflow routes - integrated into command-center
+  { name: 'executions', path: '/executions', label: 'Executions', icon: Play }
+  // Removed security and scheduler routes - functionality not needed
 ]
 
 // Methods
