@@ -209,8 +209,8 @@ const importDatabase = (extractedDir) => {
       throw new Error('File database non trovato');
     }
     
-    // Importa database
-    execSync(`docker exec -i pilotpros-postgres-dev psql -U pilotpros_user -d pilotpros_db < "${databaseFile}"`, { stdio: 'pipe' });
+    // Importa database (usa cat per pipe il contenuto)
+    execSync(`cat "${databaseFile}" | docker exec -i pilotpros-postgres-dev psql -U pilotpros_user -d pilotpros_db`, { stdio: 'pipe' });
     
     // Verifica import
     const workflowCount = execSync(`docker exec pilotpros-postgres-dev psql -U pilotpros_user -d pilotpros_db -t -c "SELECT COUNT(*) FROM n8n.workflow_entity"`, { encoding: 'utf8' }).trim();
