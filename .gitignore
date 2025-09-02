@@ -163,3 +163,4 @@ BU_Hostinger/frontend_old/
 # Team sync exports (private data - never commit)
 team-sync-exports/
 team-export-*.tar.gz
+BU_Hostinger/database.sqlite.gz
