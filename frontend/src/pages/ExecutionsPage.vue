@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gradient">
-            Executions - {{ authStore.tenantId }}
+            ⚡ CODICE AGGIORNATO ADESSO! - {{ authStore.tenantId }}
           </h1>
           <p class="text-gray-400 mt-1">
             Monitora le esecuzioni dei tuoi workflow
@@ -156,7 +156,11 @@
                 
                 <td class="p-4">
                   <div class="font-medium text-white max-w-xs">
-                    <span class="truncate block" :title="execution.workflow_name">
+                    <span 
+                      @click="openExecutionDetails(execution)"
+                      class="truncate block cursor-pointer hover:text-green-400 transition-colors" 
+                      :title="execution.workflow_name"
+                    >
                       {{ execution.workflow_name }}
                     </span>
                   </div>
@@ -210,6 +214,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Timeline Modal for Execution Details -->
+    <TimelineModal
+      :show="showTimelineModal"
+      :workflow-id="selectedExecutionWorkflowId"
+      :tenant-id="authStore.tenantId"
+      @close="closeTimelineModal"
+    />
   </MainLayout>
 </template>
 
@@ -220,9 +232,11 @@ import {
   Clock, Pause, MoreHorizontal
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
+import TimelineModal from '../components/common/TimelineModal.vue'
 import { useAuthStore } from '../stores/auth'
 import { useWorkflowsStore } from '../stores/workflows'
 import { useUIStore } from '../stores/ui'
+import { businessAPI } from '../services/api'
 import webSocketService from '../services/websocket'
 import type { Execution } from '../types'
 
@@ -239,6 +253,10 @@ const statusFilter = ref<'all' | 'success' | 'error' | 'running' | 'waiting'>('a
 const workflowFilter = ref('all')
 const executions = ref<Execution[]>([])
 
+// Modal state
+const showTimelineModal = ref(false)
+const selectedExecutionWorkflowId = ref<string>('')
+
 // Auto-refresh interval
 let refreshInterval: NodeJS.Timeout
 
@@ -252,10 +270,11 @@ const executionStats = computed(() => ({
 }))
 
 const filteredExecutions = computed(() => {
-  return executions.value.filter((execution) => {
-    // Search filter
-    const matchesSearch = execution.workflow_name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-                         execution.id.toLowerCase().includes(searchTerm.value.toLowerCase())
+  console.log('🔍 Filtering executions. Total:', executions.value.length)
+  const filtered = executions.value.filter((execution) => {
+    // Search filter (fix: id is a number, not string)
+    const matchesSearch = execution.workflow_name?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+                         String(execution.id).includes(searchTerm.value)
     
     // Status filter
     const matchesStatus = statusFilter.value === 'all' || execution.status === statusFilter.value
@@ -265,48 +284,63 @@ const filteredExecutions = computed(() => {
     
     return matchesSearch && matchesStatus && matchesWorkflow
   })
+  console.log('✅ Filtered executions:', filtered.length)
+  return filtered
 })
 
 // Methods
 const refreshExecutions = async () => {
+  alert('🚀 REFRESH EXECUTIONS CALLED!')
+  console.log('🚀 STARTING refreshExecutions...')
   isLoading.value = true
   
   try {
-    // Fetch real executions from backend API
-    const response = await fetch('http://localhost:3001/api/business/process-runs', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    console.log('🌐 Making API call to /process-runs...')
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Test with direct fetch first
+    const testResponse = await fetch('http://localhost:3001/api/business/process-runs')
+    console.log('🧪 Direct fetch status:', testResponse.status)
+    const testData = await testResponse.json()
+    console.log('🧪 Direct fetch data length:', testData.data?.length)
+    
+    // Now try with businessAPI
+    const response = await businessAPI.get('/process-runs')
+    console.log('📡 BusinessAPI response status:', response.status)
+    const data = response.data
+    console.log('📊 BusinessAPI data:', data)
+    
+    if (!data.data || !Array.isArray(data.data)) {
+      throw new Error('Invalid API response format')
     }
     
-    const data = await response.json()
+    // Create a simple test execution first
+    executions.value = [{
+      id: 999,
+      workflow_id: 'test-id',
+      workflow_name: 'TEST EXECUTION - Click me!',
+      status: 'success',
+      mode: 'webhook',
+      started_at: new Date().toISOString(),
+      stopped_at: new Date().toISOString(),
+      duration_ms: 1000,
+      business_status: 'Completed Successfully',
+      issue_description: null
+    }]
     
-    // Map backend data to our frontend format
-    executions.value = (data.data || []).map((run: any) => ({
-      id: run.run_id,
-      workflow_id: run.process_id,
-      workflow_name: run.process_name,
-      status: mapBackendStatus(run.business_status),
-      mode: run.is_completed ? 'webhook' : 'manual',
-      started_at: run.start_time,
-      stopped_at: run.end_time,
-      duration_ms: run.duration_ms,
-      business_status: run.business_status,
-      issue_description: run.issue_description
-    }))
+    console.log('✅ SET TEST EXECUTION:', executions.value)
+    
+    if (executions.value.length > 0) {
+      uiStore.showToast('SUCCESS', `${executions.value.length} test executions loaded`, 'success')
+    }
     
   } catch (error: any) {
-    uiStore.showToast('Errore', 'Impossibile caricare le executions', 'error')
-    console.error('Failed to load executions:', error)
+    console.error('❌ ERROR in refreshExecutions:', error)
+    uiStore.showToast('Errore', error.message || 'Impossibile caricare le executions', 'error')
     
     // Fallback to empty array on error
     executions.value = []
   } finally {
+    console.log('🏁 FINISHED refreshExecutions. Executions count:', executions.value.length)
     isLoading.value = false
   }
 }
@@ -398,6 +432,19 @@ watch(autoRefresh, (enabled) => {
     webSocketService.stopAutoRefresh('executions')
   }
 })
+
+// Modal functions
+const openExecutionDetails = (execution: any) => {
+  console.log('🔥 CLICK DETECTED! Execution:', execution)
+  console.log('🎯 Opening execution details for:', execution.workflow_name, 'ID:', execution.workflow_id)
+  selectedExecutionWorkflowId.value = execution.workflow_id
+  showTimelineModal.value = true
+}
+
+const closeTimelineModal = () => {
+  showTimelineModal.value = false
+  selectedExecutionWorkflowId.value = ''
+}
 
 // Lifecycle
 onMounted(() => {

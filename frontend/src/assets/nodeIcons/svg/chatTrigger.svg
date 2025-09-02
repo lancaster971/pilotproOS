@@ -1,0 +1,23 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main chat bubble -->
+  <path d="M4 8C4 6.89543 4.89543 6 6 6H28C29.1046 6 30 6.89543 30 8V20C30 21.1046 29.1046 22 28 22H14L6 28V8Z" 
+        stroke="#60A5FA" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none"/>
+  
+  <!-- Secondary chat bubble -->
+  <path d="M10 14C10 12.8954 10.8954 12 12 12H34C35.1046 12 36 12.8954 36 14V24C36 25.1046 35.1046 26 34 26H24L18 30V14Z" 
+        stroke="#60A5FA" 
+        stroke-width="1.5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none"
+        opacity="0.7"/>
+  
+  <!-- Chat dots -->
+  <circle cx="12" cy="14" r="1" fill="#60A5FA"/>
+  <circle cx="17" cy="14" r="1" fill="#60A5FA"/>
+  <circle cx="22" cy="14" r="1" fill="#60A5FA"/>
+</svg>

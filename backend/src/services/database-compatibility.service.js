@@ -181,7 +181,7 @@ class DatabaseCompatibilityService {
   }
 
   /**
-   * Ottieni workflows con compatibility automatica
+   * Ottieni workflows con compatibility automatica (EXCLUDE ARCHIVED)
    */
   async getWorkflowsCompatible() {
     const workflowIdField = this.mapFieldName('execution_entity', 'workflowId');
@@ -204,6 +204,7 @@ class DatabaseCompatibilityService {
           AND e."${startedAtField}" >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
+      WHERE w."isArchived" = false
       ORDER BY w.active DESC, w."${updatedAtField}" DESC`,
       
       // Legacy query (v1.106-)
@@ -220,15 +221,18 @@ class DatabaseCompatibilityService {
           AND e.started_at >= CURRENT_DATE
         ) as executions_today
       FROM n8n.workflow_entity w
+      WHERE w."isArchived" = false
       ORDER BY w.active DESC, w.updated_at DESC`,
       
-      // Ultimate fallback (basic)
+      // Ultimate fallback (basic) - SHOW ALL WORKFLOWS
       `SELECT 
         w.id as process_id,
         w.name as process_name,
-        w.active as is_active
+        w.active as is_active,
+        0 as executions_today
       FROM n8n.workflow_entity w
-      WHERE w.active = true`
+      WHERE w."isArchived" = false
+      ORDER BY w.active DESC, w.name ASC`
     ];
 
     return await this.executeWithFallback(queries);
@@ -289,6 +293,27 @@ class DatabaseCompatibilityService {
       lastCheck: new Date().toISOString(),
       compatibility: this.isReady ? 'compatible' : 'unknown'
     };
+  }
+
+  /**
+   * Helper per aggiungere filtro archived a qualsiasi query workflow
+   */
+  addArchivedFilter(query) {
+    // Se la query già ha WHERE, aggiungi AND
+    if (query.includes('WHERE')) {
+      return query.replace(/WHERE/, 'WHERE w."isArchived" = false AND (') + ')';
+    } else {
+      // Se non ha WHERE, aggiungilo prima di ORDER BY
+      return query.replace(/ORDER BY/, 'WHERE w."isArchived" = false ORDER BY');
+    }
+  }
+
+  /**
+   * Esegui query escludendo sempre workflow archiviati
+   */
+  async queryWorkflowsExcludeArchived(query, params = []) {
+    const filteredQuery = this.addArchivedFilter(query);
+    return await this.db.query(filteredQuery, params);
   }
 }
 

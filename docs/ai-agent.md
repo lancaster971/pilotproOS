@@ -1,7 +1,7 @@
 # PilotProOS - AI Conversational Agent
 
 **Documento**: Sistema AI Agent Conversazionale  
-**Versione**: 1.0.0  
+**Versione**: 1.0.0  1
 **Target**: Business Users & Technical Teams  
 
 ---

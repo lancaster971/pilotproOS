@@ -1,0 +1,403 @@
+/**
+ * PREMIUM EFFECTS & MICRO-INTERACTIONS
+ * Ultra-high-end visual effects for enterprise software
+ * Makes the software feel like it costs $10,000+
+ */
+
+/* === SUBTLE PREMIUM GLASSMORPHISM === */
+.premium-glass {
+  background: rgba(17, 24, 39, 0.8) !important;
+  backdrop-filter: blur(12px) saturate(120%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.premium-glass:hover {
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 15px rgba(16, 185, 129, 0.15) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* === SUBTLE PREMIUM EFFECTS (REDUCED GLOW) === */
+.premium-neon-pulse {
+  filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.3));
+}
+
+.premium-glow-intense {
+  box-shadow: 
+    0 0 8px rgba(16, 185, 129, 0.2),
+    0 0 16px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* === PREMIUM FLOATING ANIMATIONS === */
+.premium-float {
+  animation: premiumFloat 6s ease-in-out infinite;
+}
+
+@keyframes premiumFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotateX(0deg);
+  }
+  33% { 
+    transform: translateY(-8px) rotateX(2deg);
+  }
+  66% { 
+    transform: translateY(-4px) rotateX(-1deg);
+  }
+}
+
+.premium-hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-hover-lift:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 
+    0 40px 80px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* === PREMIUM BUTTON EFFECTS === */
+.btn-premium {
+  background: linear-gradient(135deg, #10b981, #00d26a) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 
+    0 4px 20px rgba(16, 185, 129, 0.4),
+    0 0 20px rgba(16, 185, 129, 0.2) inset !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%) translateY(-100%);
+  transition: transform 0.6s ease;
+}
+
+.btn-premium:hover::before {
+  transform: translateX(100%) translateY(100%);
+}
+
+.btn-premium:hover {
+  background: linear-gradient(135deg, #00d26a, #10b981) !important;
+  box-shadow: 
+    0 8px 30px rgba(16, 185, 129, 0.6),
+    0 0 30px rgba(16, 185, 129, 0.4) inset !important;
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* === PREMIUM LOADING STATES === */
+.premium-skeleton {
+  background: linear-gradient(
+    90deg, 
+    rgba(31, 41, 55, 0.3) 25%, 
+    rgba(16, 185, 129, 0.1) 50%, 
+    rgba(31, 41, 55, 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: premiumSkeletonShimmer 2s infinite;
+  border-radius: 8px;
+}
+
+@keyframes premiumSkeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.premium-loading-spinner {
+  animation: premiumSpin 1.5s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.8));
+}
+
+@keyframes premiumSpin {
+  from { 
+    transform: rotate(0deg);
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.8));
+  }
+  to { 
+    transform: rotate(360deg);
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+  }
+}
+
+/* === SUBTLE PREMIUM ACCENTS === */
+.premium-holographic {
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* === PREMIUM DATA VISUALIZATION === */
+.premium-metric-card {
+  background: rgba(17, 24, 39, 0.8) !important;
+  backdrop-filter: blur(15px) saturate(150%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 15px rgba(16, 185, 129, 0.15) !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.8), transparent);
+  animation: premiumScanLine 3s ease-in-out infinite;
+}
+
+@keyframes premiumScanLine {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.premium-metric-card:hover {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 25px rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* === SUBTLE TEXT EFFECTS === */
+.premium-text-glow {
+  text-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+}
+
+.premium-gradient-text {
+  background: linear-gradient(
+    45deg,
+    #10b981,
+    #00d26a,
+    #10b981,
+    #34d399,
+    #10b981
+  );
+  background-size: 300% 300%;
+  animation: premiumGradientShift 4s ease-in-out infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+@keyframes premiumGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* === MINIMAL AMBIENT EFFECTS === */
+.premium-particles {
+  position: relative;
+}
+
+.premium-scan-lines {
+  position: relative;
+}
+
+/* === PREMIUM STATUS INDICATORS === */
+.premium-status-online {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.premium-status-online::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: premiumPulseRing 3s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+}
+
+@keyframes premiumPulseRing {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+  }
+  50% { 
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+  }
+}
+
+/* === PREMIUM CHART CONTAINERS === */
+.premium-chart-container {
+  background: rgba(17, 24, 39, 0.9) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border-radius: 16px !important;
+  padding: 2rem !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 25px rgba(16, 185, 129, 0.1) !important;
+}
+
+.premium-chart-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(16, 185, 129, 0.8),
+    transparent
+  );
+  animation: premiumChartScan 5s linear infinite;
+}
+
+@keyframes premiumChartScan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* === PREMIUM FORM ELEMENTS === */
+.premium-input {
+  background: rgba(31, 41, 55, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(55, 65, 81, 0.6) !important;
+  border-radius: 8px !important;
+  color: white !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+}
+
+.premium-input:focus {
+  border-color: rgba(16, 185, 129, 0.8) !important;
+  box-shadow: 
+    0 0 0 3px rgba(16, 185, 129, 0.15),
+    0 0 20px rgba(16, 185, 129, 0.3) !important;
+  backdrop-filter: blur(15px) saturate(150%) !important;
+}
+
+.premium-input::placeholder {
+  color: rgba(156, 163, 175, 0.7) !important;
+}
+
+/* === PREMIUM MODAL EFFECTS === */
+.premium-modal {
+  backdrop-filter: blur(25px) saturate(200%) !important;
+  background: rgba(17, 24, 39, 0.95) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  box-shadow: 
+    0 40px 80px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 40px rgba(16, 185, 129, 0.2) !important;
+  animation: premiumModalAppear 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes premiumModalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* === PREMIUM SCROLLBARS === */
+.premium-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(55, 65, 81, 0.2);
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #10b981, #00d26a);
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00d26a, #10b981);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+}
+
+/* === SUBTLE PREMIUM BADGES === */
+.premium-badge {
+  background: linear-gradient(135deg, #10b981, #00d26a) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 0.65rem !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* === PREMIUM TRANSITIONS === */
+.premium-transition {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.premium-transition-fast {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.premium-transition-slow {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* === ENTERPRISE-GRADE SHADOWS === */
+.enterprise-shadow {
+  box-shadow: 
+    0 32px 64px rgba(0, 0, 0, 0.12),
+    0 16px 32px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.06),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 0 30px rgba(16, 185, 129, 0.1) !important;
+}
+
+.enterprise-shadow:hover {
+  box-shadow: 
+    0 48px 96px rgba(0, 0, 0, 0.15),
+    0 24px 48px rgba(0, 0, 0, 0.10),
+    0 12px 24px rgba(0, 0, 0, 0.08),
+    0 6px 12px rgba(0, 0, 0, 0.06),
+    0 0 50px rgba(16, 185, 129, 0.2) !important;
+}

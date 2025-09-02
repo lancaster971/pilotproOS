@@ -1,0 +1,242 @@
+/**
+ * Legacy Class Compatibility
+ * Maps old hardcoded classes to design system variables
+ * This allows existing pages to work without modification
+ */
+
+/* Text colors mapping */
+.text-gray-400 { color: var(--color-text-muted) !important; }
+.text-gray-300 { color: var(--color-text-secondary) !important; }
+.text-gray-200 { color: var(--color-text) !important; }
+.text-white { color: var(--color-text) !important; }
+
+/* Design System semantic text colors */
+.text-text { color: var(--color-text) !important; }
+.text-text-secondary { color: var(--color-text-secondary) !important; }
+.text-text-muted { color: var(--color-text-muted) !important; }
+.text-text-accent { color: var(--color-text-accent) !important; }
+
+/* Semantic color text classes */
+.text-primary { color: var(--color-primary) !important; }
+.text-success { color: var(--success) !important; }
+.text-error { color: var(--error) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-info { color: var(--info) !important; }
+
+/* Background colors mapping */
+.bg-gray-900 { background-color: var(--color-background) !important; }
+.bg-gray-800 { background-color: var(--color-surface) !important; }
+.bg-gray-700 { background-color: var(--color-surface-hover) !important; }
+
+/* Design System background classes */
+.bg-background { background-color: var(--color-background) !important; }
+.bg-background-secondary { background-color: var(--color-background-secondary) !important; }
+.bg-surface { background-color: var(--color-surface) !important; }
+.bg-surface-hover { background-color: var(--color-surface-hover) !important; }
+
+/* Semantic background classes */
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-hover { background-color: var(--color-primary-hover) !important; }
+
+/* Border colors mapping */
+.border-gray-700 { border-color: var(--color-border) !important; }
+.border-gray-600 { border-color: var(--color-border-hover) !important; }
+.border-gray-800 { border-color: var(--color-border) !important; }
+
+/* Design System border classes */
+.border-border { border-color: var(--color-border) !important; }
+.border-border-hover { border-color: var(--color-border-hover) !important; }
+.border-border-accent { border-color: var(--color-border-accent) !important; }
+
+/* Semantic border classes */
+.border-primary { border-color: var(--color-primary) !important; }
+.border-error { border-color: var(--error) !important; }
+.border-warning { border-color: var(--warning) !important; }
+.border-info { border-color: var(--info) !important; }
+
+/* Green/Primary colors mapping */
+.bg-green-500 { background-color: var(--color-primary) !important; }
+.bg-green-600 { background-color: var(--color-primary) !important; }
+.text-green-500 { color: var(--color-primary) !important; }
+.text-green-400 { color: var(--color-primary) !important; }
+
+/* Blue colors → Primary emerald mapping (REMOVE BLUE FROM THEME) */
+.text-blue-400 { color: var(--color-primary) !important; }
+.text-blue-500 { color: var(--color-primary) !important; }
+.bg-blue-400 { background-color: var(--color-primary) !important; }
+.bg-blue-500 { background-color: var(--color-primary) !important; }
+.bg-blue-400\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-blue-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.border-blue-500 { border-color: var(--color-primary) !important; }
+.border-blue-500\/30 { border-color: rgba(16, 185, 129, 0.3) !important; }
+
+/* PrimeVue component overrides for consistency */
+.p-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.p-inputtext {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.p-inputtext::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+.p-datatable {
+  background: transparent !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.p-datatable .p-datatable-header {
+  background: transparent !important;
+  border: none !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-bottom: 2px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  height: 40px !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th:last-child {
+  border-right: 1px solid var(--color-border) !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th:first-child {
+  border-left: 1px solid var(--color-border) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  color: var(--color-text) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border: 1px solid var(--color-border) !important;
+  border-top: none !important;
+  padding: 6px 12px !important;
+  height: 36px !important;
+  font-size: 13px !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:first-child > td {
+  border-top: none !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td:first-child {
+  border-left: 1px solid var(--color-border) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td:last-child {
+  border-right: 1px solid var(--color-border) !important;
+}
+
+.p-paginator {
+  background: var(--color-background) !important;
+  border: none !important;
+  color: var(--color-text-muted) !important;
+}
+
+.p-paginator .p-paginator-element:hover {
+  background: var(--color-surface) !important;
+}
+
+.p-paginator .p-paginator-element.p-highlight {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+
+.p-tag {
+  font-size: 0.75rem;
+}
+
+.p-tag.p-tag-success {
+  background: var(--success) !important;
+  color: white !important;
+}
+
+.p-tag.p-tag-danger {
+  background: var(--error) !important;
+  color: white !important;
+}
+
+.p-tag.p-tag-info {
+  background: var(--info) !important;
+  color: white !important;
+}
+
+.p-tag.p-tag-warn {
+  background: var(--warning) !important;
+  color: white !important;
+}
+
+.p-button {
+  font-size: 0.875rem;
+}
+
+.p-button-primary {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.p-button-primary:hover {
+  background: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.p-select {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.p-select-option {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.p-select-option:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
+  background: var(--color-primary) !important;
+}
+
+/* Premium effects compatibility */
+.premium-glow {
+  box-shadow: var(--shadow-success-glow) !important;
+}
+
+.success-glow {
+  box-shadow: var(--shadow-success-glow) !important;
+}
+
+.error-glow {
+  box-shadow: var(--shadow-error-glow) !important;
+}
+
+.warning-glow {
+  box-shadow: var(--shadow-warning-glow) !important;
+}
+
+.info-glow {
+  box-shadow: var(--shadow-info-glow) !important;
+}

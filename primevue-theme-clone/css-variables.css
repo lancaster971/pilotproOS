@@ -1,0 +1,76 @@
+/* PilotPro AI Command Center - CSS Variables per PrimeVue */
+/* Dark Theme basato su VS Code Style */
+
+:root {
+  /* === COLORI BASE === */
+  --background: hsl(220, 13%, 8%);           /* #1a1a1d - Grigio scuro principale */
+  --background-secondary: hsl(220, 13%, 10%); /* #1f1f23 - Sfondo alternativo */
+  
+  /* Testo */
+  --foreground: hsl(0, 0%, 95%);             /* #f2f2f2 - Bianco per testo principale */
+  --foreground-muted: hsl(220, 9%, 46%);    /* #6f7071 - Grigio per testo secondario */
+  
+  /* Card e contenitori */
+  --card: hsl(220, 13%, 12%);               /* #25252a - Sfondo card scure */
+  --card-hover: hsl(220, 13%, 14%);         /* #2a2a30 - Card al hover */
+  
+  /* Bordi */
+  --border: hsl(220, 13%, 15%);             /* #2f2f35 - Bordi sottili */
+  --border-hover: hsl(220, 13%, 18%);       /* #353540 - Bordi al hover */
+  
+  /* === COLORI SYNTAX HIGHLIGHTING === */
+  --comment: hsl(101, 29%, 47%);            /* #6a9955 - Verde per commenti */
+  --keyword: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design per keywords */
+  --string: hsl(17, 47%, 64%);              /* #ce9178 - Arancione/rosa per stringhe */
+  --number: hsl(54, 76%, 68%);              /* #b5cea8 - Verde chiaro per numeri */
+  --variable: hsl(122, 39%, 65%);           /* #81C784 - Verde Material Design chiaro per variabili */
+  --type: hsl(60, 87%, 73%);                /* #4ec9b0 - Turchese per tipi */
+  --error: hsl(0, 73%, 41%);                /* #f44747 - Rosso per errori */
+  --warning: hsl(32, 93%, 66%);             /* #ffcc02 - Giallo per warning */
+  
+  /* === COLORI DI STATO === */
+  --success: hsl(123, 38%, 57%);            /* #89d185 - Verde per successo */
+  --info: hsl(122, 39%, 49%);               /* #4CAF50 - Verde Material Design per info */
+  --priority-high: hsl(0, 73%, 41%);        /* #f44747 - Rosso per priorità alta */
+  --status-failed: hsl(0, 73%, 41%);        /* #f44747 - Rosso per failed */
+  
+  /* === COLORI INTERATTIVI === */
+  --primary: hsl(122, 39%, 49%);            /* #4CAF50 - Verde Material Design */
+  --primary-hover: hsl(122, 39%, 55%);      /* #66BB6A - Verde più chiaro al hover */
+  --selection: hsl(122, 39%, 25%);          /* #2E7D32 - Verde scuro per selezioni */
+  --focus: hsl(122, 39%, 49%);              /* #4CAF50 - Verde Material Design focus */
+}
+
+/* Mappatura per PrimeVue Design Tokens */
+:root {
+  /* Surface Colors */
+  --p-surface-0: var(--background);
+  --p-surface-50: var(--background-secondary);
+  --p-surface-100: var(--card);
+  --p-surface-200: var(--card-hover);
+  
+  /* Content Colors */
+  --p-content-color: var(--foreground);
+  --p-content-muted-color: var(--foreground-muted);
+  
+  /* Primary Brand Colors */
+  --p-primary-color: var(--primary);
+  --p-primary-contrast-color: var(--foreground);
+  --p-primary-hover-color: var(--primary-hover);
+  
+  /* Border Colors */
+  --p-border-color: var(--border);
+  --p-border-hover-color: var(--border-hover);
+  
+  /* State Colors */
+  --p-success-color: var(--success);
+  --p-info-color: var(--info);
+  --p-warn-color: var(--warning);
+  --p-danger-color: var(--error);
+  
+  /* Focus */
+  --p-focus-ring-color: var(--focus);
+  --p-focus-ring-width: 2px;
+  --p-focus-ring-style: solid;
+  --p-focus-ring-offset: 2px;
+}

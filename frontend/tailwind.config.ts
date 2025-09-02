@@ -1,3 +1,5 @@
+// PilotProOS Design System - Minimal Tailwind Configuration
+// Uses CSS Variables from Design System instead of build-time colors
 import type { Config } from 'tailwindcss'
 
 export default {
@@ -5,44 +7,55 @@ export default {
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
+      // Use CSS variables instead of hardcoded colors
       colors: {
-        // Custom colors for PilotPro theme
-        primary: {
-          50: '#f0fdf9',
-          100: '#ccfdf3',
-          200: '#99fae8',
-          300: '#5df4d6',
-          400: '#26d8be',
-          500: '#0db88a',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
-        },
-        secondary: {
-          50: '#fdf4ff',
-          100: '#fae8ff',
-          200: '#f5d0fe',
-          300: '#f0abfc',
-          400: '#e879f9',
-          500: '#d946ef',
-          600: '#c026d3',
-          700: '#a21caf',
-          800: '#86198f',
-          900: '#701a75',
-        },
+        // Primary colors from Design System CSS variables
+        primary: 'var(--color-primary)',
+        'primary-hover': 'var(--color-primary-hover)',
+        'primary-active': 'var(--color-primary-active)',
+        
+        // Background system
+        background: 'var(--color-background)',
+        'background-secondary': 'var(--color-background-secondary)',
+        
+        // Surface system
+        surface: 'var(--color-surface)',
+        'surface-hover': 'var(--color-surface-hover)',
+        
+        // Border system
+        border: 'var(--color-border)',
+        'border-hover': 'var(--color-border-hover)',
+        'border-accent': 'var(--color-border-accent)',
+        
+        // Text system
+        text: 'var(--color-text)',
+        'text-secondary': 'var(--color-text-secondary)',
+        'text-muted': 'var(--color-text-muted)',
+        'text-accent': 'var(--color-text-accent)',
+        
+        // Semantic colors
+        success: 'var(--success)',
+        error: 'var(--error)', 
+        warning: 'var(--warning)',
+        info: 'var(--info)'
       },
+      
+      // Typography from Design System
       fontFamily: {
         sans: ['DM Sans', 'system-ui', 'sans-serif'],
       },
+      
+      // Animations from Design System
       animation: {
         'fade-in': 'fadeIn 0.8s ease-out',
         'slide-up': 'slideUp 0.6s ease-out forwards',
         'scale-in': 'scaleIn 0.5s ease-out forwards',
         'float': 'float 6s ease-in-out infinite',
       },
+      
       keyframes: {
         fadeIn: {
           'from': { opacity: '0', transform: 'translateY(20px)' },
@@ -64,5 +77,4 @@ export default {
     },
   },
   plugins: [],
-  darkMode: 'class',
 } satisfies Config

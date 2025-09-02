@@ -1,49 +1,49 @@
 <template>
-  <div class="min-h-screen bg-black">
-    <!-- Header - same pattern as n8n editor header -->
-    <header class="bg-black sticky top-0 z-50 h-16 border-b border-gray-900">
-      <div class="flex items-center justify-between h-full px-6">
-        <div class="flex items-center gap-4">
+  <div class="min-h-screen bg-background">
+    <!-- Slim Premium Header -->
+    <header class="premium-glass sticky top-0 z-50 h-10 border-b border-border/50">
+      <div class="flex items-center justify-between h-full px-4">
+        <div class="flex items-center gap-3">
           <button 
-            @click="uiStore.toggleSidebar()" 
-            class="text-gray-400 hover:text-white transition-colors"
+            @click="sidebarCollapsed = !sidebarCollapsed" 
+            class="text-text-muted hover:text-primary transition-colors p-1"
           >
-            <Menu class="h-6 w-6" />
+            <Menu class="h-4 w-4" />
           </button>
-          <h1 class="text-xl font-bold text-white">PilotPro Control Center</h1>
+          <h1 class="text-sm font-semibold text-text">PilotPro Control Center</h1>
         </div>
         
-        <div class="flex items-center gap-4">
-          <!-- Live indicator -->
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm text-gray-400">Live</span>
+        <div class="flex items-center gap-3">
+          <!-- Compact Live indicator -->
+          <div class="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-full">
+            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+            <span class="text-xs font-medium text-primary">LIVE</span>
           </div>
           
-          <!-- User menu -->
+          <!-- Compact User menu -->
           <div class="relative">
             <button
               @click="showUserMenu = !showUserMenu"
-              class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              class="flex items-center gap-1.5 text-text-muted hover:text-text transition-colors p-1"
             >
-              <User class="h-5 w-5" />
-              <span class="text-sm">{{ authStore.user?.name || 'User' }}</span>
+              <User class="h-4 w-4" />
+              <span class="text-xs">{{ authStore.user?.name || 'Admin' }}</span>
             </button>
             
-            <!-- User dropdown -->
+            <!-- Compact dropdown -->
             <div
               v-if="showUserMenu"
-              class="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg py-2"
+              class="absolute right-0 mt-1 w-40 bg-surface border border-border rounded-lg shadow-lg py-1"
             >
-              <div class="px-4 py-2 border-b border-gray-700">
-                <p class="text-sm font-medium text-white">{{ authStore.user?.name }}</p>
-                <p class="text-xs text-gray-400">{{ authStore.user?.email }}</p>
+              <div class="px-3 py-1.5 border-b border-border">
+                <p class="text-xs font-medium text-text">{{ authStore.user?.name }}</p>
+                <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
               </div>
               <button
                 @click="handleLogout"
-                class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors flex items-center gap-2"
+                class="w-full px-3 py-1.5 text-left text-xs text-text-secondary hover:text-text hover:bg-surface-hover transition-colors flex items-center gap-2"
               >
-                <LogOut class="h-4 w-4" />
+                <LogOut class="h-3 w-3" />
                 Logout
               </button>
             </div>
@@ -52,35 +52,33 @@
       </div>
     </header>
 
-
     <div class="flex">
-      <!-- Simple Fixed Sidebar -->
-      <aside class="w-60 bg-gray-900 border-r border-gray-700 min-h-screen flex-shrink-0">
-        <div class="p-6">
-          <!-- Logo -->
-          <div class="flex items-center gap-3 mb-8 pb-4 border-b border-gray-800">
-            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
-              <span class="text-white font-bold text-sm">P</span>
-            </div>
-            <div>
-              <h1 class="text-white font-semibold text-sm">PilotPro</h1>
-              <p class="text-gray-400 text-xs">Control Center</p>
-            </div>
-          </div>
+      <!-- Collapsible PREMIUM Sidebar -->
+      <aside 
+        :class="sidebarCollapsed ? 'w-16' : 'w-52'"
+        class="premium-glass border-r border-border min-h-screen flex-shrink-0 premium-scrollbar transition-all duration-300"
+      >
+        <div :class="sidebarCollapsed ? 'p-2' : 'p-4'">
 
           <!-- Navigation -->
-          <nav class="space-y-2">
+          <nav class="space-y-1">
             <router-link
-              v-for="item in navigationItems"
+              v-for="(item, index) in navigationItems"
               :key="item.name"
               :to="item.path"
-              class="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white"
-              :class="[$route.path === item.path ? 'bg-green-600 text-white' : '']"
+              :class="[
+                'flex items-center rounded-lg premium-transition text-text-secondary hover:bg-surface-hover hover:text-text',
+                sidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2',
+                $route.path === item.path ? 'bg-primary text-white' : ''
+              ]"
+              :style="{ animationDelay: `${index * 50}ms` }"
+              :title="sidebarCollapsed ? item.label : ''"
             >
-              <component :is="item.icon" class="h-5 w-5" />
-              <span class="text-sm">{{ item.label }}</span>
+              <component :is="item.icon" :class="sidebarCollapsed ? 'h-4 w-4' : 'h-4 w-4'" />
+              <span v-if="!sidebarCollapsed" class="text-sm font-medium">{{ item.label }}</span>
             </router-link>
           </nav>
+
         </div>
       </aside>
 
@@ -98,6 +96,7 @@
       @click="uiStore.toggleSidebar()"
       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
     ></div>
+    
   </div>
 </template>
 
@@ -106,7 +105,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Shield, Bot, AlertTriangle, Clock
+  Database, Bot, AlertTriangle, ChevronLeft
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
@@ -118,19 +117,30 @@ const router = useRouter()
 
 // Local state
 const showUserMenu = ref(false)
+const sidebarCollapsed = ref(true) // Start collapsed by default
+const isMobile = ref(false)
 
-// Navigation items
+// Check if mobile
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 1024
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
+// Navigation items - streamlined
 const navigationItems = [
-  { name: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { name: 'workflows', path: '/workflows', label: 'Workflows', icon: GitBranch },
-  { name: 'workflow-visual', path: '/workflows/visual', label: 'Visual Flow', icon: GitBranch },
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
-  { name: 'stats', path: '/stats', label: 'Statistics', icon: BarChart3 },
-  { name: 'database', path: '/database', label: 'Database', icon: Database },
-  { name: 'security', path: '/security', label: 'Security', icon: Shield },
-  { name: 'agents', path: '/agents', label: 'AI Agents', icon: Bot },
-  { name: 'alerts', path: '/alerts', label: 'Alerts', icon: AlertTriangle },
-  { name: 'scheduler', path: '/scheduler', label: 'Scheduler', icon: Clock },
+  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard },
+  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu },
+  // Removed unused workflow routes - integrated into command-center
+  { name: 'executions', path: '/executions', label: 'Executions', icon: Play }
+  // Removed security and scheduler routes - functionality not needed
 ]
 
 // Methods
@@ -160,8 +170,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Component-specific styles for layout */
+/* Active route styling using design system */
 .router-link-active {
-  @apply bg-green-600 text-white;
+  background: var(--color-primary);
+  color: white;
 }
 </style>

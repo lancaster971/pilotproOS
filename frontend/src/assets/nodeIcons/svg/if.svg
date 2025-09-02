@@ -1,0 +1,18 @@
+<svg width="48" height="48" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- If condition - exact copy from screenshot -->
+  
+  <!-- Top horizontal line -->
+  <rect x="160" y="120" width="192" height="24" rx="12" fill="#10B981"/>
+  
+  <!-- Central diamond -->
+  <path d="M256 160 L340 256 L256 352 L172 256 Z" fill="#10B981"/>
+  
+  <!-- Vertical connector -->
+  <rect x="246" y="352" width="20" height="40" fill="#10B981"/>
+  
+  <!-- Bottom left branch -->
+  <rect x="120" y="382" width="136" height="24" rx="12" fill="#10B981"/>
+  
+  <!-- Bottom right branch -->
+  <rect x="256" y="382" width="136" height="24" rx="12" fill="#10B981"/>
+</svg>

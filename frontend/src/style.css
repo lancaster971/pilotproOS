@@ -2,139 +2,243 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Import Google Fonts - same as loginPage design */
+/* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
-/* Global font weight override - CRITICAL for design */
+/* Global styles using Design System variables */
 * {
-  font-weight: 300 !important;
   font-family: 'DM Sans', sans-serif;
 }
 
 body {
   font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
   margin: 0;
   padding: 0;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
-/* Control Room Theme - same as n8n styling patterns */
-.control-card {
-  @apply bg-gray-900 border border-gray-800 rounded-lg shadow-lg;
-  transition: all 0.3s ease;
+/* Apply light weight to normal text elements */
+p, span:not(.font-semibold):not(.font-bold), div:not(.font-semibold):not(.font-bold) {
+  font-weight: 300;
 }
+
+/* PREMIUM Design System Component Styles */
+.control-card {
+  background: rgba(17, 24, 39, 0.8) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 20px rgba(16, 185, 129, 0.1) !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Removed scan lines for cleaner look */
 
 .control-card:hover {
-  border-color: rgba(34, 197, 94, 0.3);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+  backdrop-filter: blur(25px) saturate(200%) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 30px rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-4px) scale(1.02) !important;
 }
 
 .btn-control {
-  @apply px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-lg transition-all duration-200 flex items-center gap-2;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 0.5rem;
+  transition: var(--transition-all);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
 }
 
 .btn-control:hover {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-accent);
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .btn-control-primary {
-  @apply px-4 py-2 bg-green-600 hover:bg-green-500 border border-green-500 text-white rounded-lg transition-all duration-200 flex items-center gap-2;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #10b981, #00d26a) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    0 4px 20px rgba(16, 185, 129, 0.4),
+    0 0 20px rgba(16, 185, 129, 0.2) inset !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+}
+
+.btn-control-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%) translateY(-100%);
+  transition: transform 0.6s ease;
+}
+
+.btn-control-primary:hover::before {
+  transform: translateX(100%) translateY(100%);
 }
 
 .btn-control-primary:hover {
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, #00d26a, #10b981) !important;
+  box-shadow: 
+    0 8px 30px rgba(16, 185, 129, 0.6),
+    0 0 30px rgba(16, 185, 129, 0.4) inset !important;
+  transform: translateY(-2px) scale(1.05) !important;
 }
 
 .text-gradient {
-  background: linear-gradient(45deg, #10b981, #059669);
+  background: linear-gradient(
+    45deg,
+    #10b981,
+    #00d26a,
+    #10b981,
+    #34d399,
+    #10b981
+  );
+  background-size: 300% 300%;
+  animation: premiumGradientShift 4s ease-in-out infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-weight: 700 !important;
+  text-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
 }
 
-/* Status indicators */
+@keyframes premiumGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Text utilities using design system */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Timeline styles using design system */
+.timeline-centered {
+  transform: translateX(-20px);
+}
+
+.timeline-centered .p-timeline-event {
+  padding-left: 0.5rem;
+}
+
+.timeline-centered .p-timeline-event-marker {
+  margin-left: 0.75rem;
+}
+
+/* Status indicators using design system variables */
 .status-success {
-  @apply text-green-400 bg-green-500/10 border-green-500/30;
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .status-error {
-  @apply text-red-400 bg-red-500/10 border-red-500/30;
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .status-running {
-  @apply text-blue-400 bg-blue-500/10 border-blue-500/30;
+  color: var(--info);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .status-waiting {
-  @apply text-yellow-400 bg-yellow-500/10 border-yellow-500/30;
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .status-inactive {
-  @apply text-gray-400 bg-gray-500/10 border-gray-500/30;
+  color: var(--color-text-muted);
+  background: rgba(107, 114, 128, 0.1);
+  border-color: rgba(107, 114, 128, 0.3);
 }
 
-/* Neon glow animation for badges */
-@keyframes neonGlow {
-  0% {
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 0 30px rgba(34, 197, 94, 0.1);
-  }
-  100% {
-    box-shadow: 0 0 40px rgba(34, 197, 94, 0.8), 0 0 80px rgba(34, 197, 94, 0.5), 0 0 120px rgba(34, 197, 94, 0.3);
-  }
-}
-
-/* Animation classes */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* Animations using design system keyframes */
 .animate-fade-in {
-  animation: fadeIn 0.8s ease-out;
+  animation: var(--animation-fade-in);
 }
 
 .animate-slide-up {
-  animation: slideUp 0.6s ease-out forwards;
+  animation: var(--animation-slide-up);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar using design system colors */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: var(--color-background-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: var(--color-surface-hover);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: var(--color-border-secondary);
 }
 
-/* Premium Sidebar Styles */
+/* Premium Sidebar Styles - Updated to use design system */
 .sidebar-container {
-  background: transparent;
+  background: var(--color-background);
   backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(55, 65, 81, 0.6);
+  border-right: 1px solid var(--color-border);
   overflow: hidden;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-xl);
+  transition: var(--transition-all);
   z-index: 1000 !important;
   position: relative;
 }
 
 .sidebar-container:hover {
-  border-right-color: rgba(34, 197, 94, 0.3);
-  box-shadow: 4px 0 30px rgba(34, 197, 94, 0.05);
+  border-right-color: var(--color-border-accent);
+  box-shadow: var(--shadow-success-glow);
 }
 
 .sidebar-background {
@@ -144,9 +248,9 @@ body {
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg, 
-    rgba(17, 24, 39, 0.98) 0%, 
-    rgba(31, 41, 55, 0.95) 50%, 
-    rgba(17, 24, 39, 0.98) 100%
+    var(--color-background) 0%, 
+    var(--color-background-secondary) 50%, 
+    var(--color-background) 100%
   );
   backdrop-filter: blur(20px);
   z-index: 1;
@@ -161,12 +265,12 @@ body {
 .sidebar-header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.3);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .sidebar-logo,
 .sidebar-logo-compact {
-  transition: all 0.3s ease;
+  transition: var(--transition-all);
 }
 
 .sidebar-nav {
@@ -181,8 +285,8 @@ body {
   margin: 0.25rem 0;
   border-radius: 0.75rem;
   text-decoration: none;
-  color: rgb(156, 163, 175);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-text-secondary);
+  transition: var(--transition-all);
   cursor: pointer;
   overflow: hidden;
   animation: slideInLeft 0.5s ease-out forwards;
@@ -191,17 +295,17 @@ body {
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(31, 41, 55, 0.8);
-  color: white;
+  background: var(--color-surface);
+  color: var(--color-text);
   transform: translateX(4px);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .sidebar-nav-item.active {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.1));
-  color: white;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
+  background: linear-gradient(135deg, var(--primary-900), var(--primary-950));
+  color: var(--color-text);
+  border: 1px solid var(--primary-700);
+  box-shadow: var(--shadow-success-glow);
 }
 
 .sidebar-nav-item.compact {
@@ -213,7 +317,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: var(--transition-all);
   min-width: 20px;
 }
 
@@ -222,7 +326,7 @@ body {
 }
 
 .sidebar-nav-item.active .sidebar-nav-icon {
-  color: rgb(34, 197, 94);
+  color: var(--color-primary);
 }
 
 .sidebar-nav-label {
@@ -230,21 +334,21 @@ body {
   font-size: 0.875rem;
   white-space: nowrap;
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transition: var(--transition-opacity);
   color: inherit;
 }
 
 .sidebar-nav-description {
   font-size: 0.75rem;
-  color: rgb(156, 163, 175);
+  color: var(--color-text-muted);
   margin-top: 0.125rem;
   opacity: 0.8;
-  transition: opacity 0.3s ease;
+  transition: var(--transition-opacity);
 }
 
 .sidebar-nav-item:hover .sidebar-nav-description {
   opacity: 1;
-  color: rgb(209, 213, 219);
+  color: var(--color-text);
 }
 
 .sidebar-nav-badge {
@@ -254,11 +358,11 @@ body {
   border-radius: 0.375rem;
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  transition: all 0.3s ease;
+  transition: var(--transition-all);
 }
 
 .badge-new {
-  background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
   animation: badgePulse 2s ease-in-out infinite;
 }
@@ -270,8 +374,8 @@ body {
 }
 
 .badge-default {
-  background: rgba(75, 85, 99, 0.8);
-  color: rgb(209, 213, 219);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .sidebar-tooltip {
@@ -279,9 +383,9 @@ body {
   left: 100%;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(17, 24, 39, 0.95);
-  border: 1px solid rgba(55, 65, 81, 0.6);
-  color: white;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.75rem;
@@ -289,7 +393,7 @@ body {
   margin-left: 0.75rem;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: var(--transition-all);
   backdrop-filter: blur(10px);
   z-index: 50;
 }
@@ -306,7 +410,7 @@ body {
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: linear-gradient(180deg, rgb(34, 197, 94), rgb(16, 185, 129));
+  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-hover));
   border-radius: 2px;
   animation: glowPulse 2s ease-in-out infinite;
 }
@@ -314,7 +418,7 @@ body {
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid rgba(55, 65, 81, 0.3);
+  border-top: 1px solid var(--color-border);
 }
 
 .sidebar-toggle-btn {
@@ -324,21 +428,21 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: 0.5rem;
-  background: rgba(31, 41, 55, 0.6);
-  border: 1px solid rgba(55, 65, 81, 0.6);
-  color: rgb(156, 163, 175);
-  transition: all 0.3s ease;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: var(--transition-all);
   cursor: pointer;
 }
 
 .sidebar-toggle-btn:hover {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.4);
-  color: rgb(34, 197, 94);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-accent);
+  color: var(--color-primary);
   transform: scale(1.05);
 }
 
-/* Animations */
+/* Keyframe animations */
 @keyframes slideInLeft {
   to {
     opacity: 1;
@@ -349,11 +453,11 @@ body {
 @keyframes glowPulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 10px var(--color-primary);
   }
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    box-shadow: 0 0 20px var(--color-primary-hover);
   }
 }
 
@@ -385,11 +489,11 @@ body {
   }
   
   .sidebar-background {
-    background: rgba(17, 24, 39, 0.98);
+    background: var(--color-background);
   }
 }
 
 /* Main content adjustment */
 .main-content {
-  transition: margin-left 0.3s ease;
+  transition: var(--transition-all);
 }

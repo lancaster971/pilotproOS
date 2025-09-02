@@ -2,41 +2,71 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
-import './style.css'
 
-// PrimeVue imports
+// Import clean CSS - Design System initialized in App.vue
+import './style.css'
+import './design-system/utilities.css'
+import './design-system/premium.css'
+
+// PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
-import Aura from '@primevue/themes/aura'
+import Nora from '@primevue/themes/nora'
+
+// Chart.js configuration for PrimeVue
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale
+} from 'chart.js'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale
+)
 
 // Import pages
 import LoginPage from './pages/LoginPage.vue'
-import DashboardPage from './pages/DashboardPage.vue'
-import WorkflowsPage from './pages/WorkflowsPage.vue'
-import WorkflowVisualizationPage from './pages/WorkflowVisualizationPage.vue'
+import InsightsPage from './pages/InsightsPage.vue'
+// Removed unused workflow pages
+import WorkflowCommandCenter from './pages/WorkflowCommandCenter.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
-import StatsPage from './pages/StatsPage.vue'
-import DatabasePage from './pages/DatabasePage.vue'
-import SecurityPage from './pages/SecurityPage.vue'
-import AgentsPage from './pages/AgentsPage.vue'
-import AlertsPage from './pages/AlertsPage.vue'
-import SchedulerPage from './pages/SchedulerPage.vue'
+// Removed SecurityPage and SchedulerPage - functionality not needed for business system
+import DesignSystemTestPage from './pages/DesignSystemTestPage.vue'
 
 // Router configuration - same as n8n approach
 const routes = [
   { path: '/login', component: LoginPage, name: 'login' },
   { path: '/', redirect: '/login' },
-  { path: '/dashboard', component: DashboardPage, name: 'dashboard', meta: { requiresAuth: true } },
-  { path: '/workflows', component: WorkflowsPage, name: 'workflows', meta: { requiresAuth: true } },
-  { path: '/workflows/visual', component: WorkflowVisualizationPage, name: 'workflow-visualization', meta: { requiresAuth: true } },
+  { path: '/insights', component: InsightsPage, name: 'insights', meta: { requiresAuth: true } },
+  { path: '/dashboard', redirect: '/insights' }, // Redirect for backward compatibility
+  // Removed unused workflow routes - redirect to command-center
+  { path: '/workflows', redirect: '/command-center' },
+  { path: '/workflows/visual', redirect: '/command-center' },
+  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
-  { path: '/stats', component: StatsPage, name: 'stats', meta: { requiresAuth: true } },
-  { path: '/database', component: DatabasePage, name: 'database', meta: { requiresAuth: true } },
-  { path: '/security', component: SecurityPage, name: 'security', meta: { requiresAuth: true } },
-  { path: '/agents', component: AgentsPage, name: 'agents', meta: { requiresAuth: true } },
-  { path: '/alerts', component: AlertsPage, name: 'alerts', meta: { requiresAuth: true } },
-  { path: '/scheduler', component: SchedulerPage, name: 'scheduler', meta: { requiresAuth: true } },
+  { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
+  { path: '/security', redirect: '/command-center' }, // Security functionality not needed
+  { path: '/scheduler', redirect: '/command-center' }, // Scheduler handled by n8n internally
+  { path: '/design-test', component: DesignSystemTestPage, name: 'design-test' },
 ]
 
 const router = createRouter({
@@ -51,7 +81,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
   } else if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'dashboard' })
+    next({ name: 'insights' })
   } else {
     next()
   }
@@ -61,111 +91,38 @@ router.beforeEach((to, from, next) => {
 const app = createApp(App)
 const pinia = createPinia()
 
-// Configure PrimeVue with custom dark theme
+// CLEAN PrimeVue Configuration - No more inline CSS chaos!
 app.use(PrimeVue, {
   theme: {
-    preset: Aura,
+    preset: Nora,
     options: {
       prefix: 'p',
       darkModeSelector: 'system',
-      cssLayer: false
+      cssLayer: {
+        name: 'primevue',
+        order: 'design-system, primevue, tailwind'
+      }
     }
   },
-  ripple: true,
-  pt: {
-    global: {
-      css: `
-        .p-component {
-          font-family: inherit;
-        }
-        .p-inputtext {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-inputtext::placeholder {
-          color: rgb(156 163 175);
-        }
-        .p-datatable {
-          background: transparent !important;
-        }
-        .p-datatable .p-datatable-header {
-          background: transparent !important;
-          border: none !important;
-          padding: 0 !important;
-        }
-        .p-datatable .p-datatable-thead > tr > th {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: rgb(156 163 175) !important;
-        }
-        .p-datatable .p-datatable-tbody > tr {
-          background: transparent !important;
-          color: white !important;
-        }
-        .p-datatable .p-datatable-tbody > tr:hover {
-          background: rgb(31 41 55) !important;
-        }
-        .p-datatable .p-datatable-tbody > tr > td {
-          border-color: rgb(55 65 81) !important;
-        }
-        .p-paginator {
-          background: rgb(17 24 39) !important;
-          border: none !important;
-          color: rgb(156 163 175) !important;
-        }
-        .p-paginator .p-paginator-element:hover {
-          background: rgb(31 41 55) !important;
-        }
-        .p-paginator .p-paginator-element.p-highlight {
-          background: rgb(34 197 94) !important;
-          color: white !important;
-        }
-        .p-tag {
-          font-size: 0.75rem;
-        }
-        .p-tag.p-tag-success {
-          background: rgb(34 197 94);
-        }
-        .p-tag.p-tag-danger {
-          background: rgb(239 68 68);
-        }
-        .p-tag.p-tag-info {
-          background: rgb(59 130 246);
-        }
-        .p-tag.p-tag-warn {
-          background: rgb(251 191 36);
-        }
-        .p-button {
-          font-size: 0.875rem;
-        }
-        .p-card {
-          background: rgb(17 24 39) !important;
-          border: 1px solid rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-select {
-          background: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-          color: white !important;
-        }
-        .p-select-option {
-          background: rgb(31 41 55) !important;
-          color: white !important;
-        }
-        .p-select-option:hover {
-          background: rgb(55 65 81) !important;
-        }
-        .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
-          background: rgb(34 197 94) !important;
-        }
-      `
-    }
-  }
+  ripple: true
+  // NO MORE PT STYLES! Design system handles everything
 })
 
 app.use(pinia)
 app.use(router)
+
+// Import and register missing PrimeVue components
+import Timeline from 'primevue/timeline'
+import Splitter from 'primevue/splitter'
+import SplitterPanel from 'primevue/splitterpanel'
+import Rating from 'primevue/rating'
+import Skeleton from 'primevue/skeleton'
+
+app.component('Timeline', Timeline)
+app.component('Splitter', Splitter)
+app.component('SplitterPanel', SplitterPanel)
+app.component('Rating', Rating)
+app.component('Skeleton', Skeleton)
 
 // Initialize auth store
 import { useAuthStore } from './stores/auth'
@@ -174,4 +131,5 @@ authStore.initializeAuth()
 
 app.mount('#app')
 
-console.log('🚀 PilotProOS Vue 3 frontend initialized - same stack as n8n!')
+console.log('🎨 PilotProOS Design System initialized!')
+console.log('🚀 Vue 3 frontend ready - clean CSS architecture!')
