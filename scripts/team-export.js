@@ -58,8 +58,8 @@ const exportDatabase = () => {
 const exportWorkflows = () => {
   const spinner = ora('Export workflows n8n...').start();
   try {
-    // Esporta tutti i workflows
-    const workflowsOutput = execSync(`docker exec pilotpros-automation-engine-dev wget -qO- "http://localhost:5678/api/v1/workflows" --header "Accept: application/json" --user="admin:pilotpros_admin_2025"`, { encoding: 'utf8' });
+    // Esporta tutti i workflows (senza autenticazione se N8N_BASIC_AUTH_ACTIVE=false)
+    const workflowsOutput = execSync(`docker exec pilotpros-automation-engine-dev wget -qO- "http://localhost:5678/api/v1/workflows" --header "Accept: application/json"`, { encoding: 'utf8' });
     const workflowsFile = path.join(EXPORT_FOLDER, 'workflows.json');
     writeFileSync(workflowsFile, workflowsOutput);
     
@@ -68,7 +68,7 @@ const exportWorkflows = () => {
     const workflowCount = workflows.data ? workflows.data.length : 0;
     
     // Esporta credenziali
-    const credentialsOutput = execSync(`docker exec pilotpros-automation-engine-dev wget -qO- "http://localhost:5678/api/v1/credentials" --header "Accept: application/json" --user="admin:pilotpros_admin_2025"`, { encoding: 'utf8' });
+    const credentialsOutput = execSync(`docker exec pilotpros-automation-engine-dev wget -qO- "http://localhost:5678/api/v1/credentials" --header "Accept: application/json"`, { encoding: 'utf8' });
     const credentialsFile = path.join(EXPORT_FOLDER, 'credentials.json');
     writeFileSync(credentialsFile, credentialsOutput);
     
