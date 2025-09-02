@@ -159,3 +159,7 @@ BU_Hostinger/frontend_old/
 # Database backups
 *.sql.backup
 *.sqlite.backup
+
+# Team sync exports (private data - never commit)
+team-sync-exports/
+team-export-*.tar.gz

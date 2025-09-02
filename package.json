@@ -35,7 +35,10 @@
     "test:docker": "docker-compose -f docker-compose.dev.yml exec backend-dev npm test",
     "test:backend": "docker-compose -f docker-compose.dev.yml exec backend-dev npm test",
     "test:frontend": "docker-compose -f docker-compose.dev.yml exec frontend-dev npm test",
-    "test:integration": "docker-compose -f docker-compose.dev.yml exec backend-dev npm run test:integration"
+    "test:integration": "docker-compose -f docker-compose.dev.yml exec backend-dev npm run test:integration",
+    "team:export": "node scripts/team-export.js",
+    "team:import": "node scripts/team-import.js",
+    "team:sync": "npm run team:export && echo '\n🔄 Ora chiedi al collega di eseguire: npm run team:import'"
   },
   "dependencies": {
     "concurrently": "^7.6.0",
