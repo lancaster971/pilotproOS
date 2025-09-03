@@ -398,9 +398,31 @@ app.get('/api/business/processes', async (req, res) => {
       ORDER BY w."updatedAt" DESC
     `);
     
+    // Process nodes to add labels for frontend
+    const processedData = (result.rows || []).map(workflow => {
+      let processedNodes = [];
+      
+      try {
+        const nodes = typeof workflow.nodes === 'string' ? JSON.parse(workflow.nodes) : workflow.nodes || [];
+        processedNodes = nodes.map(node => ({
+          ...node,
+          label: node.name || null, // Set label = name for frontend
+          nodeType: node.type || null
+        }));
+      } catch (error) {
+        console.error('Error processing nodes for workflow:', workflow.id, error);
+        processedNodes = [];
+      }
+      
+      return {
+        ...workflow,
+        nodes: processedNodes
+      };
+    });
+    
     res.json({
-      data: result.rows || [],
-      total: result.rows?.length || 0,
+      data: processedData,
+      total: processedData.length,
       _metadata: {
         system: 'Business Process Operating System',
         timestamp: new Date().toISOString(),
