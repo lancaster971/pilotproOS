@@ -429,6 +429,7 @@
                     data.status === 'success' ? 'premium-storage-active' : 'premium-storage-inactive'
                   ]"
                 >
+                  
                   <!-- Main input from top (for agent connections) -->
                   <Handle 
                     v-for="(input, index) in (data.inputs || ['main']).filter(i => i === 'main')"
@@ -459,11 +460,13 @@
                   
                   <!-- Vector stores have no output handles - they are storage endpoints -->
                   
-                  <!-- Horizontal layout: icon + text -->
-                  <div class="premium-storage-icon">
-                    <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" />
+                  <!-- Horizontal layout: icon LEFT + text RIGHT -->
+                  <div style="display: flex; align-items: center; width: 100%; height: 100%; padding: 0 8px;">
+                    <div style="width: 32px; height: 32px; margin-right: 10px; flex-shrink: 0;">
+                      <N8nIcon v-bind="getN8nIconProps(data.nodeType, data.label)" size="w-8 h-8" />
+                    </div>
+                    <div style="color: #ffffff !important; font-size: 13px !important; font-weight: 600 !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; flex: 1;">{{ data.label }}</div>
                   </div>
-                  <div class="premium-storage-name">{{ data.label }}</div>
                 </div>
 
                 <!-- PROCESS NODES: n8n Style Square with External Label -->
