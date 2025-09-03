@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-// IMPORT DIRETTI - nome del nodo = nome del file
+// IMPORT DIRETTI - icone da n8n
 import cronIcon from '../assets/nodeIcons/svg/cron.svg'
 import triggerScheduleIcon from '../assets/nodeIcons/svg/scheduleIcon.svg'
 import supabaseIcon from '../assets/nodeIcons/svg/supabase.svg'
@@ -23,15 +23,10 @@ import gmailIcon from '../assets/nodeIcons/svg/gmail.svg'
 import googleSheetsIcon from '../assets/nodeIcons/svg/googleSheets.svg'
 import googleDriveIcon from '../assets/nodeIcons/svg/googleDrive.svg'
 import openAiIcon from '../assets/nodeIcons/svg/openAi-light.svg'
-import calculatorIcon from '../assets/nodeIcons/svg/calculator.svg'
 import mcpIcon from '../assets/nodeIcons/svg/mcp.svg'
 import ifIcon from '../assets/nodeIcons/svg/if.svg'
-import manualTriggerIcon from '../assets/nodeIcons/svg/manualTrigger.svg'
 import mergeIcon from '../assets/nodeIcons/svg/merge.svg'
 import outlookIcon from '../assets/nodeIcons/svg/outlook.svg'
-import aibotIcon from '../assets/nodeIcons/svg/aibot.svg'
-import subworkflowIcon from '../assets/nodeIcons/svg/subworkflow.svg'
-import setIcon from '../assets/nodeIcons/svg/set.svg'
 import serpApiIcon from '../assets/nodeIcons/svg/serpApi.svg'
 import dateTimeIcon from '../assets/nodeIcons/svg/dateTime.svg'
 import memoryIcon from '../assets/nodeIcons/svg/memory.svg'
@@ -46,7 +41,7 @@ import whatsappIcon from '../assets/nodeIcons/svg/whatsapp.svg'
 import langchainChainIcon from '../assets/nodeIcons/svg/langchainChain.svg'
 import agentIcon from '../assets/nodeIcons/svg/agent.svg'
 
-// MAPPING DIRETTO - nome nodo → import SVG
+// MAPPING DIRETTO - icone complete da n8n
 const iconMap: Record<string, string> = {
   // Base nodes
   'n8n-nodes-base.cron': cronIcon,
@@ -63,17 +58,19 @@ const iconMap: Record<string, string> = {
   'n8n-nodes-base.googleSheets': googleSheetsIcon,
   'n8n-nodes-base.googleDrive': googleDriveIcon,
   'n8n-nodes-base.openAi': openAiIcon,
-  'n8n-nodes-base.calculator': calculatorIcon,
   'n8n-nodes-base.if': ifIcon,
-  'n8n-nodes-base.manualTrigger': manualTriggerIcon,
   'n8n-nodes-base.merge': mergeIcon,
   'n8n-nodes-base.microsoftOutlook': outlookIcon,
   'n8n-nodes-base.microsoftOutlookTrigger': outlookIcon,
-  'n8n-nodes-base.executeWorkflow': subworkflowIcon,
-  'n8n-nodes-base.executeWorkflowTrigger': subworkflowIcon,
-  'n8n-nodes-base.set': setIcon,
+  'n8n-nodes-base.dateTime': dateTimeIcon,
+  'n8n-nodes-base.switch': ifIcon,
+  'n8n-nodes-base.splitInBatches': loopIcon,
+  'n8n-nodes-base.noOp': noOpIcon,
+  'n8n-nodes-base.whatsApp': whatsappIcon,
+  'n8n-nodes-base.whatsAppTrigger': whatsappIcon,
+  'n8n-nodes-base.extractFromFile': convertToFileIcon,
   
-  // Parser nodes - use code icon
+  // Parser nodes
   'n8n-nodes-base.xml': codeIcon,
   'n8n-nodes-base.json': codeIcon,
   'n8n-nodes-base.html': codeIcon,
@@ -81,32 +78,8 @@ const iconMap: Record<string, string> = {
   'n8n-nodes-base.yaml': codeIcon,
   'n8n-nodes-base.markdown': codeIcon,
   
-  // Tool nodes - use code icon  
-  'n8n-nodes-base.itemLists': codeIcon,
-  'n8n-nodes-base.dateTime': dateTimeIcon,
-  'n8n-nodes-base.crypto': codeIcon,
-  'n8n-nodes-base.compress': codeIcon,
-  'n8n-nodes-base.sort': codeIcon,
-  'n8n-nodes-base.aggregate': codeIcon,
-  'n8n-nodes-base.limit': codeIcon,
-  'n8n-nodes-base.filter': codeIcon,
-  'n8n-nodes-base.transform': codeIcon,
-  'n8n-nodes-base.validate': codeIcon,
-  'n8n-nodes-base.wait': codeIcon,
-  'n8n-nodes-base.switch': ifIcon,
-  'n8n-nodes-base.respondToWebhook': codeIcon,
-  'n8n-nodes-base.formTrigger': codeIcon,
-  'n8n-nodes-base.emailReadImap': codeIcon,
-  'n8n-nodes-base.whatsAppTrigger': whatsappIcon,
-  'n8n-nodes-base.whatsApp': whatsappIcon,
-  'n8n-nodes-base.extractFromFile': convertToFileIcon,
-  'n8n-nodes-base.splitInBatches': loopIcon,
-  'n8n-nodes-base.noOp': noOpIcon,
-  
   // LangChain nodes
   '@n8n/n8n-nodes-langchain.agent': agentIcon,
-  '@n8n/n8n-nodes-langchain.toolCalculator': calculatorIcon,
-  '@n8n/n8n-nodes-langchain.toolMcp': mcpIcon,
   '@n8n/n8n-nodes-langchain.toolSerpApi': serpApiIcon,
   '@n8n/n8n-nodes-langchain.toolDateTime': dateTimeIcon,
   '@n8n/n8n-nodes-langchain.memoryPostgresChat': postgresElephantIcon,
@@ -123,11 +96,7 @@ const iconMap: Record<string, string> = {
   '@n8n/n8n-nodes-langchain.outputParserStructured': outputParserIcon,
   '@n8n/n8n-nodes-langchain.chainLlm': langchainChainIcon,
   '@n8n/n8n-nodes-langchain.chainSummarization': langchainChainIcon,
-  
-  // Special overrides
-  'UPSERT_SUPABASE_OVERRIDE': postgresElephantIcon,
-  'CALCULATOR_TOOL_OVERRIDE': calculatorIcon,
-  'MCP_CLIENT_OVERRIDE': mcpIcon,
+  '@n8n/n8n-nodes-langchain.toolMcp': mcpIcon,
 }
 
 interface Props {
