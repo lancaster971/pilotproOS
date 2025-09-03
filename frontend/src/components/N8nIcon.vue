@@ -144,6 +144,12 @@ const placeholderText = computed(() => {
   object-fit: contain;
 }
 
+/* Qdrant originale - ridotto a 40% perché è enorme */
+.node-icon img[src*="qdrant"] {
+  width: 40% !important;
+  height: 40% !important;
+}
+
 .placeholder-icon {
   width: 100%;
   height: 100%;
