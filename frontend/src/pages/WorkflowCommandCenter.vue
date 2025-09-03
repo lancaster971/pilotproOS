@@ -889,6 +889,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
         status: workflowMetadata.is_active ? 'success' : 'inactive',
         type: (() => {
           const nodeType = getNodeTypeFromN8nType(step.nodeType, step.stepName)
+          // DEBUG COMPLETED: Qdrant text now visible!
           return nodeType
         })(),
         nodeType: (() => {
@@ -1693,10 +1694,10 @@ onMounted(async () => {
 }
 
 :deep(.premium-storage-name) {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  color: #ffffff !important; /* BIANCO VISIBILE */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important; /* OMBRA FORTE */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
