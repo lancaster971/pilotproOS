@@ -1,6 +1,6 @@
 <template>
   <MainLayout>
-    <div class="h-[calc(100vh-6rem)] overflow-auto">
+    <div class="h-[calc(100vh-4rem)] overflow-auto">
 
       <!-- KPI Stats Row (Compact) -->
       <div class="grid grid-cols-5 gap-3 mb-3">
@@ -86,7 +86,7 @@
       </div>
 
       <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
-      <div class="flex gap-4 h-[calc(100%-4rem)]">
+      <div class="flex gap-4 h-[calc(100%-6rem)]">
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
@@ -195,7 +195,27 @@
               </button>
             </div>
             
-            <div></div> <!-- Spacer for balance -->
+            <!-- Workflow Toggle Switch -->
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-text-muted">
+                {{ selectedWorkflowData?.is_active ? 'Active' : 'Inactive' }}
+              </span>
+              <button
+                @click="() => { console.log('🔘 Toggle button clicked!', { selectedWorkflowId: selectedWorkflowId.value, disabled: !selectedWorkflowId.value }); toggleWorkflowStatus() }"
+                :disabled="!selectedWorkflowId"
+                :class="[
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
+                  selectedWorkflowData?.is_active ? 'bg-primary' : 'bg-gray-600'
+                ]"
+              >
+                <span
+                  :class="[
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    selectedWorkflowData?.is_active ? 'translate-x-6' : 'translate-x-1'
+                  ]"
+                />
+              </button>
+            </div>
           </div>
           
           <!-- VueFlow -->
@@ -207,15 +227,43 @@
               :min-zoom="0.2"
               :max-zoom="3"
               :connection-line-type="'default'"
-              class="workflow-flow"
+              class="workflow-flow h-full"
             >
               <Background pattern-color="#10b981" :size="1" variant="dots" />
               
-              <!-- Custom n8n-style Controls -->
-              <div class="absolute bottom-4 left-4 flex flex-col gap-2 z-50">
+              <!-- Execute/Stop Button: Central bottom position like n8n -->
+              <div class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+                <button 
+                  v-if="!isExecuting"
+                  @click="executeWorkflow"
+                  :disabled="!selectedWorkflowId"
+                  :class="[
+                    'px-4 py-2 bg-gray-800 border border-gray-600 text-white rounded transition-colors shadow-lg flex items-center gap-2',
+                    'hover:bg-gray-700',
+                    !selectedWorkflowId ? 'opacity-50 cursor-not-allowed' : ''
+                  ]"
+                  title="Execute Workflow"
+                >
+                  <Play class="w-4 h-4" />
+                  Execute Now
+                </button>
+                
+                <button 
+                  v-else
+                  @click="stopWorkflow"
+                  class="px-4 py-2 bg-red-700 border border-red-600 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-red-600"
+                  title="Stop Workflow"
+                >
+                  <Square class="w-4 h-4" />
+                  Stop
+                </button>
+              </div>
+
+              <!-- n8n-style Controls: Bottom Left HORIZONTAL -->
+              <div class="absolute bottom-32 left-4 flex flex-row gap-2 z-50">
                 <!-- Fit View Button -->
                 <button 
-                  @click="() => fitView({ duration: 800, padding: 0.15 })"
+                  @click="() => fitView({ duration: 600, padding: 0.15 })"
                   class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center shadow-lg"
                   title="Fit View"
                 >
@@ -241,18 +289,46 @@
                 >
                   −
                 </button>
-                
-                <!-- Layout Button -->
+              </div>
+              
+              <!-- n8n-style Logs Section - ALWAYS VISIBLE -->
+              <div class="absolute bottom-4 left-16 right-4 z-50">
+                <!-- Logs Button (Always Visible) -->
                 <button 
-                  @click="autoLayoutFlow"
-                  :disabled="!selectedWorkflowId || flowElements.length === 0"
-                  class="w-10 h-10 bg-gray-800 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                  title="Auto Layout"
+                  @click="showLogs = !showLogs"
+                  class="bg-gray-800 border border-gray-600 text-white px-4 py-2 rounded-t-lg shadow-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3 3v6h6V3H3zM5 5h2v2H5V5zM3 15v6h6v-6H3zM5 17h2v2H5v-2zM15 3v6h6V3h-6zM17 5h2v2h-2V5zM15 15v6h6v-6h-6zM17 17h2v2h-2v-2z"/>
+                  <span class="text-sm font-medium">Logs</span>
+                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': showLogs }" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                   </svg>
                 </button>
+                
+                <!-- Logs Panel (Expandable) -->
+                <div 
+                  v-if="showLogs"
+                  class="bg-gray-800 border border-gray-600 border-t-0 rounded-b-lg shadow-lg"
+                  style="max-height: 200px;"
+                >
+                  <!-- Logs Content -->
+                  <div class="p-4 overflow-y-auto" style="max-height: 180px;">
+                    <div v-if="executionLogs.length === 0" class="text-center py-6">
+                      <p class="text-gray-400 text-sm">Nothing to display yet. Execute the workflow to see execution logs.</p>
+                    </div>
+                    <div v-else class="space-y-2">
+                      <div 
+                        v-for="(log, index) in executionLogs" 
+                        :key="index"
+                        class="flex items-start gap-3 text-sm"
+                      >
+                        <span class="text-gray-500 shrink-0 font-mono">{{ log.timestamp }}</span>
+                        <span :class="getLogLevelClass(log.level)" class="shrink-0 min-w-[60px]">{{ log.level }}</span>
+                        <span class="text-gray-200">{{ log.message }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <template #node-custom="{ data }">
@@ -655,13 +731,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { 
   RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft,
-  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit, TrendingUp, CheckCircle, XCircle
+  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit, TrendingUp, CheckCircle, XCircle, Square
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
@@ -669,6 +745,7 @@ import TimelineModal from '../components/common/TimelineModal.vue'
 import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
+import { useToast } from '../composables/useToast'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'
@@ -676,11 +753,30 @@ import '@vue-flow/core/dist/theme-default.css'
 
 // Stores
 const uiStore = useUIStore()
+const { success, error } = useToast()
 
 // State
 const isLoading = ref(false)
 const tenantId = 'client_simulation_a'
 const sidebarCollapsed = ref(false)
+const showLogs = ref(false)
+const executionLogs = ref([
+  {
+    timestamp: '23:32:15',
+    level: 'INFO',
+    message: 'Workflow execution started'
+  },
+  {
+    timestamp: '23:32:16', 
+    level: 'DEBUG',
+    message: 'Processing node: Schedule Trigger'
+  },
+  {
+    timestamp: '23:32:17',
+    level: 'SUCCESS',
+    message: 'AI Agent completed successfully'
+  }
+])
 
 // Workflow data - ONLY REAL DATA
 const realWorkflows = ref<any[]>([])
@@ -791,7 +887,7 @@ const refreshAllData = async () => {
       }
     }
     
-    uiStore.showToast('Success', `${realWorkflows.value.length} workflows loaded`, 'success')
+    success('Workflows Caricati', `${realWorkflows.value.length} processi aziendali disponibili`)
     
   } catch (error: any) {
     console.error('❌ Failed to fetch workflows:', error)
@@ -802,7 +898,7 @@ const refreshAllData = async () => {
       ? 'Cannot connect to backend server. Is it running on port 3001?' 
       : `API Error: ${error.message}`
     
-    uiStore.showToast('Connection Error', errorMsg, 'error')
+    error('Errore di Connessione', errorMsg)
     
     // Set empty array as fallback
     realWorkflows.value = []
@@ -819,6 +915,17 @@ const selectWorkflow = async (workflow: any) => {
   
   // Load detailed workflow structure from backend
   await loadWorkflowStructure(workflow)
+  
+  // Auto-fit dopo selezione - NO ESITAZIONE  
+  nextTick(() => {
+    setTimeout(() => {
+      fitView({ 
+        duration: 500, 
+        padding: 0.15
+      })
+      console.log('🎯 Auto-fitted workflow smoothly')
+    }, 100)
+  })
 }
 
 const loadWorkflowStructure = async (workflow: any) => {
@@ -1005,10 +1112,13 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
   flowElements.value = [...nodes, ...edges]
   console.log('🎯 FlowElements final:', flowElements.value.length, 'elements')
   
-  // Auto-fit after loading
-  setTimeout(() => {
-    fitView({ duration: 800, padding: 0.15 })
-  }, 300)
+  // Auto-fit immediato dopo render - NO ESITAZIONE
+  nextTick(() => {
+    fitView({ 
+      duration: 400, 
+      padding: 0.15
+    })
+  })
 }
 
 const createEnhancedFlow = (workflow: any) => {
@@ -1055,9 +1165,13 @@ const createEnhancedFlow = (workflow: any) => {
   
   flowElements.value = [...nodes, ...edges]
   
-  setTimeout(() => {
-    fitView({ duration: 800 })
-  }, 300)
+  // Auto-fit per enhanced flow - NO ESITAZIONE
+  nextTick(() => {
+    fitView({ 
+      duration: 350, 
+      padding: 0.15
+    })
+  })
 }
 
 // Flow controls
@@ -1131,6 +1245,207 @@ const closeExecutionsModal = () => {
   selectedWorkflowForModal.value = null
   executionData.value = null
   executionsError.value = null
+}
+
+// Execute workflow manually
+const isExecuting = ref(false)
+const currentExecutionId = ref<string | null>(null)
+const executeWorkflow = async () => {
+  if (!selectedWorkflowData.value || !selectedWorkflowId.value) {
+    error('Nessun Workflow', 'Seleziona un workflow da eseguire')
+    return
+  }
+  
+  if (isExecuting.value) return // Prevent double clicks
+  
+  const workflowName = selectedWorkflowData.value.process_name || 'Unknown'
+  isExecuting.value = true
+  
+  try {
+    console.log(`🚀 Executing workflow ${selectedWorkflowId.value}...`)
+    
+    // API call to execute workflow
+    const response = await fetch(`http://localhost:3001/api/business/execute-workflow/${selectedWorkflowId.value}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to execute workflow: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    console.log('✅ Workflow execution result:', result)
+    
+    if (result.success && result.data.executionStarted) {
+      // Store execution ID for stop functionality
+      currentExecutionId.value = result.data.executionId
+      
+      success(
+        'Esecuzione Avviata',
+        `Il workflow "${workflowName}" è stato avviato con successo`
+      )
+      
+      // Keep executing state until manually stopped or timeout
+      // Refresh workflow data after execution
+      setTimeout(() => {
+        fetchRealWorkflows()
+      }, 2000)
+    } else {
+      // Execution failed
+      isExecuting.value = false
+      currentExecutionId.value = null
+      
+      error(
+        'Esecuzione Fallita',
+        result.data?.n8nApiResult?.error || `Impossibile eseguire il workflow "${workflowName}"`
+      )
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Failed to execute workflow:', error)
+    
+    // Reset state on error
+    isExecuting.value = false
+    currentExecutionId.value = null
+    
+    error(
+      'Errore di Esecuzione',
+      `Impossibile eseguire il workflow "${workflowName}". ${error.message}`
+    )
+  }
+}
+
+// Stop workflow execution
+const stopWorkflow = async () => {
+  if (!selectedWorkflowId.value || !currentExecutionId.value) {
+    error('Errore Stop', 'Nessuna esecuzione da fermare')
+    return
+  }
+  
+  const workflowName = selectedWorkflowData.value?.process_name || 'Unknown'
+  
+  try {
+    console.log(`🛑 Stopping workflow ${selectedWorkflowId.value}, execution ${currentExecutionId.value}...`)
+    
+    // API call to stop workflow
+    const response = await fetch(`http://localhost:3001/api/business/stop-workflow/${selectedWorkflowId.value}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ executionId: currentExecutionId.value })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to stop workflow: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    console.log('✅ Workflow stop result:', result)
+    
+    if (result.success) {
+      success(
+        'Esecuzione Fermata',
+        `Il workflow "${workflowName}" è stato fermato con successo`
+      )
+    } else {
+      error(
+        'Errore Stop',
+        result.data?.n8nApiResult?.error || `Impossibile fermare il workflow "${workflowName}"`
+      )
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Failed to stop workflow:', error)
+    
+    error(
+      'Errore di Stop',
+      `Impossibile fermare il workflow "${workflowName}". ${error.message}`
+    )
+  } finally {
+    // Reset execution state
+    isExecuting.value = false
+    currentExecutionId.value = null
+  }
+}
+
+// Toggle workflow active status
+const toggleWorkflowStatus = async () => {
+  console.log('🚀 toggleWorkflowStatus called!')
+  console.log('📊 selectedWorkflowData:', selectedWorkflowData.value)
+  console.log('📊 selectedWorkflowId:', selectedWorkflowId.value)
+  
+  if (!selectedWorkflowData.value || !selectedWorkflowId.value) {
+    console.log('❌ No workflow selected for toggle - EARLY RETURN')
+    return
+  }
+  
+  console.log('📊 Current workflow data:', selectedWorkflowData.value)
+  
+  const currentStatus = selectedWorkflowData.value.is_active || false
+  const newStatus = !currentStatus
+  
+  console.log(`🔄 Will toggle workflow ${selectedWorkflowId.value} from ${currentStatus} to ${newStatus}`)
+  
+  try {    
+    // Optimistic update
+    console.log('🔄 Doing optimistic update...')
+    selectedWorkflowData.value.is_active = newStatus
+    
+    // Update in workflows list  
+    const workflowIndex = realWorkflows.value.findIndex(w => w.id === selectedWorkflowId.value)
+    if (workflowIndex !== -1) {
+      realWorkflows.value[workflowIndex].is_active = newStatus
+      console.log('✅ Updated workflow in list')
+    }
+    
+    // API call to backend
+    const response = await fetch(`http://localhost:3001/api/business/toggle-workflow/${selectedWorkflowId.value}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ active: newStatus })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to toggle workflow: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    console.log('✅ Workflow status updated:', result)
+    
+    // Show appropriate success message
+    if (result.success) {
+      success(
+        `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
+        `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} con successo`
+      )
+    } else {
+      error(
+        'Errore Parziale',
+        result.data?.n8nApiResult?.error || 'Aggiornamento database riuscito, ma errore sincronizzazione n8n'
+      )
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Failed to toggle workflow:', error)
+    
+    // Revert optimistic update
+    selectedWorkflowData.value.is_active = currentStatus
+    const workflowIndex = realWorkflows.value.findIndex(w => w.id === selectedWorkflowId.value)
+    if (workflowIndex !== -1) {
+      realWorkflows.value[workflowIndex].is_active = currentStatus
+    }
+    
+    error(
+      'Errore di Attivazione',
+      `Impossibile ${newStatus ? 'attivare' : 'disattivare'} il workflow. ${error.message}`
+    )
+  }
 }
 
 // Load real execution data from API
@@ -1428,6 +1743,16 @@ const getHandleType = (connectionType: string) => {
   return 'main'
 }
 
+const getLogLevelClass = (level: string) => {
+  switch (level) {
+    case 'SUCCESS': return 'text-green-400 font-semibold'
+    case 'INFO': return 'text-blue-400 font-semibold'
+    case 'DEBUG': return 'text-gray-400 font-semibold'
+    case 'WARN': return 'text-yellow-400 font-semibold'
+    case 'ERROR': return 'text-red-400 font-semibold'
+    default: return 'text-gray-400 font-semibold'
+  }
+}
 
 // Lifecycle
 onMounted(async () => {

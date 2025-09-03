@@ -97,6 +97,9 @@
       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
     ></div>
     
+    <!-- Toast Container -->
+    <ToastContainer />
+    
   </div>
 </template>
 
@@ -109,6 +112,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
+import ToastContainer from '../ToastContainer.vue'
 
 // Stores
 const authStore = useAuthStore()
