@@ -1,8 +1,9 @@
-# ONESERVER - Architettura Tecnica Dettagliata
+# PilotProOS - Architettura Tecnica Dettagliata
 
-**Documento**: Architettura 3-Layer Sistema Monolitico  
-**Versione**: 1.0.0  
+**Documento**: Architettura 3-Layer con Reverse Proxy System  
+**Versione**: 1.6.0  
 **Target**: Team Tecnico di Sviluppo  
+**Ultimo aggiornamento**: 2025-09-05  
 
 ---
 

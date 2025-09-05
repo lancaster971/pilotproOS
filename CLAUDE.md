@@ -608,8 +608,7 @@ All environment variables are defined in project root. Key configs:
 
 ### **🤖 AI & Automazione**
 - **`docs/ai-agent.md`** - AI Agent conversazionale con NLP italiano
-- **`docs/team-sync-api.md`** - API Team Synchronization con export/import automatizzati
-- **`docs/team-sync-system.md`** - Sistema completo sincronizzazione team + troubleshooting
+- **`docs/TEAM_SYNC_COMPLETE.md`** - Sistema completo sincronizzazione team con export/import e conflict resolution
 
 ### **🎭 Personalizzazione & Security**
 - **`docs/CUSTOMIZATION-STRATEGY.md`** - Strategia completa reverse proxy con client branding
@@ -623,8 +622,8 @@ All environment variables are defined in project root. Key configs:
 - **`docs/component-migration.md`** - Piano migrazione componenti legacy
 
 ### **🛠️ Development & Setup**
-- **`docs/SETUP_ENGINE_IMPLEMENTATION.md`** - Engine setup automatizzato per deployment clienti
-- **`docs/MODAL_IMPLEMENTATION_GUIDE.md`** - Guida completa sistema modal enterprise
+- **`docs/SETUP_ENGINE_COMPLETE.md`** - Sistema automatizzato deployment clienti con n8n silent setup e branding
+- **`docs/MODAL_SYSTEM_COMPLETE.md`** - Sistema modal enterprise completo con business data parser e timeline
 - **`docs/RAW_DATA_FOR_MODAL_SYSTEM.md`** - Sistema estrazione dati business per timeline
 - **`docs/CSS_REFACTORING_ANALYSIS.md`** - Analisi refactoring CSS e design system
 
@@ -640,9 +639,7 @@ All environment variables are defined in project root. Key configs:
 - **`docs/CHANGELOG.md`** - Change log completo progetto
 
 ### **🔧 Maintenance & Cleanup**
-- **`docs/CLEANUP_SUMMARY.md`** - Riassunto operazioni cleanup e ottimizzazione
-- **`docs/FINAL_CLEANUP_STATUS.md`** - Status finale cleanup sistema
-- **`docs/REST_CLEANUP_PLAN.md`** - Piano cleanup endpoint REST legacy
-- **`docs/ANALYSIS.md`** - Analisi tecniche e decisioni architetturali
+- **`docs/FINAL_CLEANUP_STATUS.md`** - Status finale cleanup sistema e ottimizzazioni
+- **`docs/https-production-roadmap.md`** - Roadmap implementazione HTTPS production
 
 **NOTA IMPORTANTE**: La cartella `docs/` contiene l'architettura COMPLETA del sistema con tutti i dettagli implementativi, script di deployment, configurazioni di sicurezza, strategie di personalizzazione, e specifiche tecniche avanzate. **Consultare sempre i docs/ prima di modificare il sistema** per comprendere l'impatto delle modifiche e seguire le best practices stabilite.
