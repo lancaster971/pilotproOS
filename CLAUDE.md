@@ -2,6 +2,38 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## 🔴 **CRITICAL: DATA RECOVERY IN PROGRESS**
+
+⚠️ **IMMEDIATE PRIORITY**: Sistema operativo MA database vuoto dopo Docker reset accidentale
+
+### **STATUS CRITICO**:
+- **31 workflow PERSI** (database vuoto: 0 instead of 31)
+- **600+ executions PERSE** + credentials + business analytics
+- **WorkflowCommandCenter**: Selettore vuoto (dovrebbe avere 31 workflow)
+- **Dashboard KPI**: Tutti a zero (dovrebbe mostrare metriche reali)
+
+### **RECOVERY RICHIESTO URGENTEMENTE**:
+1. **Trovare backup volumi**: `postgres-volume-*.tar.gz` e `n8n-volume-*.tar.gz` 
+2. **Mettere nella root**: `/Users/tizianoannicchiarico/pilotproOS/`
+3. **Seguire procedura**: `docs/DATA_RECOVERY_PLAN.md`
+4. **Ripristinare**: 31 workflows + 600+ executions + credentials
+
+### **Comandi Quick Recovery**:
+```bash
+# 1. Verificare presenza backup nella root
+ls -la *-volume-*.tar.gz
+
+# 2. Eseguire recovery completo (se backup presenti)
+npm run docker:stop
+# ... seguire STEP 2-4 in DATA_RECOVERY_PLAN.md
+```
+
+**FINO AL RECOVERY**: Sistema funziona ma TUTTI i dati business sono VUOTI.
+
+---
+
 ## Project Overview
 
 PilotProOS is a containerized Business Process Operating System - a comprehensive automation platform designed for SMB deployment. The system provides a business-friendly interface that completely abstracts away the underlying technical stack (n8n, PostgreSQL, Express) through an anonymization layer.
@@ -13,17 +45,38 @@ PilotProOS is a containerized Business Process Operating System - a comprehensiv
 
 ## Development Commands
 
-### ⚠️ **CRITICAL WARNING: DOCKER VOLUME BACKUP**
-**SEMPRE fare backup dei volumi Docker prima di operazioni distruttive!**
-- `docker:reset` con `-v` flag **CANCELLA DEFINITIVAMENTE** tutti i dati (PostgreSQL + n8n)
-- `docker:clean` **RIMUOVE TUTTO** inclusi volumi e immagini
-- **REGOLA FERREA**: Backup prima di qualsiasi reset/clean operation
+### 🔴 **EMERGENCY: DOCKER VOLUME RECOVERY STATUS**
 
-**Quick Backup Command**:
+⚠️ **CURRENT SITUATION**: Volumi Docker sono stati cancellati accidentalmente!
+
+**Recovery Status**:
+- ❌ **PostgreSQL Volume**: `pilotpros_postgres_dev_data` - PERSO (database vuoto)
+- ❌ **n8n Volume**: `pilotpros_n8n_dev_data` - PERSO (0 workflows instead of 31) 
+- ⚠️ **Recovery Dependency**: In attesa backup volumi `.tar.gz` per ripristino
+
+**🚨 IMMEDIATE ACTION REQUIRED**:
 ```bash
-# SEMPRE eseguire prima di docker:reset o docker:clean
-docker run --rm -v pilotpros_postgres_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/postgres-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
-docker run --rm -v pilotpros_n8n_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/n8n-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
+# 1. Trovare i backup volumi Docker (formato .tar.gz)
+# 2. Mettere nella root del progetto:
+# postgres-volume-YYYYMMDD-HHMMSS.tar.gz
+# n8n-volume-YYYYMMDD-HHMMSS.tar.gz
+
+# 3. Verificare presenza:
+ls -la *-volume-*.tar.gz
+
+# 4. Seguire procedura recovery in docs/DATA_RECOVERY_PLAN.md
+```
+
+### ⚠️ **FUTURE PREVENTION: BACKUP SYSTEM**
+```bash
+# SEMPRE fare backup prima di operazioni distruttive:
+npm run docker:backup  # Crea backup timestamped automatici
+
+# VERIFICARE presenza backup:
+ls -la *-volume-*.tar.gz
+
+# MAI usare docker:reset senza backup:
+npm run docker:reset-safe  # Reset con backup automatico
 ```
 
 ### Root-level Commands (Docker-First Cross-OS Development)
