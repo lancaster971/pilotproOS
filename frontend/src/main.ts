@@ -150,6 +150,3 @@ const authStore = useAuthStore()
 authStore.initializeAuth()
 
 app.mount('#app')
-
-console.log('🎨 PilotProOS Design System initialized!')
-console.log('🚀 Vue 3 frontend ready - clean CSS architecture!')
