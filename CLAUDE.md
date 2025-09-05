@@ -13,6 +13,19 @@ PilotProOS is a containerized Business Process Operating System - a comprehensiv
 
 ## Development Commands
 
+### ⚠️ **CRITICAL WARNING: DOCKER VOLUME BACKUP**
+**SEMPRE fare backup dei volumi Docker prima di operazioni distruttive!**
+- `docker:reset` con `-v` flag **CANCELLA DEFINITIVAMENTE** tutti i dati (PostgreSQL + n8n)
+- `docker:clean` **RIMUOVE TUTTO** inclusi volumi e immagini
+- **REGOLA FERREA**: Backup prima di qualsiasi reset/clean operation
+
+**Quick Backup Command**:
+```bash
+# SEMPRE eseguire prima di docker:reset o docker:clean
+docker run --rm -v pilotpros_postgres_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/postgres-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
+docker run --rm -v pilotpros_n8n_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/n8n-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
+```
+
 ### Root-level Commands (Docker-First Cross-OS Development)
 ```bash
 # 🚀 DOCKER-FIRST DEVELOPMENT (Auto-installs Docker if missing)
@@ -22,10 +35,20 @@ npm run reset             # Clean reset: stop containers + reinstall
 
 # 🐳 DOCKER MANAGEMENT
 npm run docker:stop       # Stop all development containers
-npm run docker:reset      # Reset containers + database + restart
+npm run docker:restart    # Safe restart containers (preserva volumi)
+npm run docker:reset      # ⚠️ BLOCCATO - mostra warning per prevenire data loss
+npm run docker:reset-safe # Reset con backup automatico prima
 npm run docker:logs       # View all container logs in real-time
 npm run docker:psql       # Connect to PostgreSQL database directly
-npm run docker:clean      # Remove all containers, volumes, and images
+npm run docker:backup     # Crea backup timestamped dei volumi
+npm run docker:clean      # ⚠️ Remove all containers, volumes, and images
+
+# ⚠️ CRITICAL: BACKUP DOCKER VOLUMES BEFORE DESTRUCTIVE OPERATIONS
+# SEMPRE fare backup prima di docker:reset, docker:clean, o operazioni con -v flag
+docker volume list | grep pilotpros  # List volumes to backup
+docker run --rm -v pilotpros_postgres_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/postgres-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
+docker run --rm -v pilotpros_n8n_dev_data:/data -v $(pwd):/backup ubuntu tar czf /backup/n8n-volume-$(date +%Y%m%d-%H%M%S).tar.gz /data
+# RECOVERY: docker volume create pilotpros_postgres_dev_data && docker run --rm -v pilotpros_postgres_dev_data:/data -v $(pwd):/backup ubuntu tar xzf /backup/postgres-volume-YYYYMMDD-HHMMSS.tar.gz -C /
 
 # 🔄 BACKUP & DATA
 npm run import:backup     # Import workflow/credentials backup (from BU_Hostinger)
