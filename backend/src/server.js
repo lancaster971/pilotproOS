@@ -14,6 +14,11 @@ import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
 import businessLogger from './utils/logger.js';
 
+// Drizzle ORM imports
+import { db } from './db/connection.js';
+import { workflowEntity, executionEntity } from './db/schema.js';
+import { eq, desc, sql, count, avg, and, gte } from 'drizzle-orm';
+
 // Business sanitization utilities
 import { 
   sanitizeBusinessData, 
@@ -382,25 +387,28 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Business Processes API (simplified for icon testing)
+// Business Processes API (Drizzle ORM - Type Safe)
 app.get('/api/business/processes', async (req, res) => {
   try {
-    const result = await dbPool.query(`
-      SELECT 
-        w.id,
-        w.name as process_name,
-        w.active as is_active,
-        w.nodes,
-        w.connections,
-        w."createdAt" as created_at,
-        w."updatedAt" as updated_at
-      FROM n8n.workflow_entity w
-      WHERE w."isArchived" = false
-      ORDER BY w."updatedAt" DESC
-    `);
+    // ✅ DRIZZLE ORM: Type-safe query with compile-time validation
+    const workflows = await db
+      .select({
+        id: workflowEntity.id,
+        process_name: workflowEntity.name,
+        is_active: workflowEntity.active,
+        nodes: workflowEntity.nodes,
+        connections: workflowEntity.connections,
+        created_at: workflowEntity.createdAt,
+        updated_at: workflowEntity.updatedAt
+      })
+      .from(workflowEntity)
+      .where(eq(workflowEntity.isArchived, false))
+      .orderBy(desc(workflowEntity.updatedAt));
+    
+    businessLogger.info('Workflows fetched via Drizzle ORM', { count: workflows.length });
     
     // Process nodes to add labels for frontend
-    const processedData = (result.rows || []).map(workflow => {
+    const processedData = workflows.map(workflow => {
       let processedNodes = [];
       
       try {
@@ -523,39 +531,44 @@ app.get('/api/debug/execution/:id', async (req, res) => {
   }
 });
 
-// Process Executions API (for ExecutionsPage)
+// Process Executions API (Drizzle ORM - Type Safe)
 app.get('/api/business/process-runs', async (req, res) => {
   try {
-    console.log('🎯 process-runs endpoint called');
+    businessLogger.info('Process runs endpoint called');
     
-    const result = await dbPool.query(`
-      SELECT 
-        e.id as run_id,
-        e."workflowId" as process_id,
-        w.name as process_name,
-        e."startedAt" as start_time,
-        e."stoppedAt" as end_time,
-        'webhook' as mode,
-        e.finished as is_completed,
-        e.status,
-        CASE 
-          WHEN e.finished = true AND e.status = 'success' THEN 'Completed Successfully'
-          WHEN e.finished = true AND e.status = 'error' THEN 'Requires Attention' 
-          WHEN e.finished = false THEN 'In Progress'
-          ELSE 'Waiting'
-        END as business_status,
-        EXTRACT(EPOCH FROM (COALESCE(e."stoppedAt", NOW()) - e."startedAt")) * 1000 as duration_ms
-      FROM n8n.execution_entity e
-      LEFT JOIN n8n.workflow_entity w ON w.id = e."workflowId"
-      WHERE w."isArchived" = false
-      ORDER BY e."startedAt" DESC
-    `);
+    // ✅ DRIZZLE ORM: Type-safe join query with complex business logic
+    const executions = await db
+      .select({
+        run_id: executionEntity.id,
+        process_id: executionEntity.workflowId,
+        process_name: workflowEntity.name,
+        start_time: executionEntity.startedAt,
+        end_time: executionEntity.stoppedAt,
+        mode: sql`${'webhook'}`.as('mode'),
+        is_completed: executionEntity.finished,
+        status: executionEntity.status,
+        business_status: sql`
+          CASE 
+            WHEN ${executionEntity.finished} = true AND ${executionEntity.status} = 'success' THEN 'Completed Successfully'
+            WHEN ${executionEntity.finished} = true AND ${executionEntity.status} = 'error' THEN 'Requires Attention' 
+            WHEN ${executionEntity.finished} = false THEN 'In Progress'
+            ELSE 'Waiting'
+          END
+        `.as('business_status'),
+        duration_ms: sql`
+          EXTRACT(EPOCH FROM (COALESCE(${executionEntity.stoppedAt}, NOW()) - ${executionEntity.startedAt})) * 1000
+        `.as('duration_ms')
+      })
+      .from(executionEntity)
+      .leftJoin(workflowEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(eq(workflowEntity.isArchived, false))
+      .orderBy(desc(executionEntity.startedAt));
     
-    console.log(`✅ Found ${result.rows?.length || 0} process executions`);
+    businessLogger.info('Process executions fetched via Drizzle ORM', { count: executions.length });
     
     res.json({
-      data: result.rows || [],
-      total: result.rows?.length || 0,
+      data: executions,
+      total: executions.length,
       _metadata: {
         system: 'Business Process Operating System',
         timestamp: new Date().toISOString(),
@@ -571,32 +584,34 @@ app.get('/api/business/process-runs', async (req, res) => {
   }
 });
 
-// Process Details API (for workflow visualization)
+// Process Details API (Drizzle ORM - Type Safe)
 app.get('/api/business/process-details/:processId', async (req, res) => {
   try {
     const { processId } = req.params;
     
-    const workflowResult = await dbPool.query(`
-      SELECT 
-        w.id,
-        w.name as process_name,
-        w.active as is_active,
-        w.nodes,
-        w.connections,
-        w."createdAt" as created_at,
-        w."updatedAt" as updated_at
-      FROM n8n.workflow_entity w
-      WHERE w.id = $1 AND w."isArchived" = false
-    `, [processId]);
+    // ✅ DRIZZLE ORM: Type-safe single workflow query
+    const workflows = await db
+      .select({
+        id: workflowEntity.id,
+        process_name: workflowEntity.name,
+        is_active: workflowEntity.active,
+        nodes: workflowEntity.nodes,
+        connections: workflowEntity.connections,
+        created_at: workflowEntity.createdAt,
+        updated_at: workflowEntity.updatedAt
+      })
+      .from(workflowEntity)
+      .where(eq(workflowEntity.id, parseInt(processId)))
+      .where(eq(workflowEntity.isArchived, false));
     
-    if (workflowResult.rows.length === 0) {
+    if (workflows.length === 0) {
       return res.status(404).json({
         error: 'Business process not found',
         processId: processId
       });
     }
     
-    const workflow = workflowResult.rows[0];
+    const workflow = workflows[0];
     const nodes = workflow.nodes || [];
     const connections = workflow.connections || {};
     
@@ -649,24 +664,33 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
   }
 });
 
-// Business Analytics API (basic version for dashboard)
+// Business Analytics API (Drizzle ORM - Type Safe Aggregations)
 app.get('/api/business/analytics', async (req, res) => {
   try {
-    const analyticsQuery = `
-      SELECT 
-        COUNT(DISTINCT w.id) as total_processes,
-        COUNT(DISTINCT CASE WHEN w.active = true THEN w.id END) as active_processes,
-        COUNT(e.id) as total_executions,
-        COUNT(CASE WHEN e.status = 'success' THEN 1 END) as successful_executions,
-        AVG(EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000) as avg_duration_ms
-      FROM n8n.workflow_entity w
-      LEFT JOIN n8n.execution_entity e ON w.id = e."workflowId"
-      WHERE w."isArchived" = false
-        AND (e."startedAt" IS NULL OR e."startedAt" >= NOW() - INTERVAL '7 days')
-    `;
+    // ✅ DRIZZLE ORM: Complex aggregation query with business logic
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    const result = await dbPool.query(analyticsQuery);
-    const data = result.rows[0];
+    const analytics = await db
+      .select({
+        total_processes: count(sql`DISTINCT ${workflowEntity.id}`),
+        active_processes: count(sql`DISTINCT CASE WHEN ${workflowEntity.active} = true THEN ${workflowEntity.id} END`),
+        total_executions: count(executionEntity.id),
+        successful_executions: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`),
+        avg_duration_ms: avg(sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt})) * 1000`)
+      })
+      .from(workflowEntity)
+      .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(and(
+        eq(workflowEntity.isArchived, false),
+        sql`(${executionEntity.startedAt} IS NULL OR ${executionEntity.startedAt} >= ${sevenDaysAgo})`
+      ));
+    
+    const data = analytics[0];
+    businessLogger.info('Analytics calculated via Drizzle ORM', { 
+      total_processes: data.total_processes,
+      total_executions: data.total_executions
+    });
     
     const successRate = data.total_executions > 0 
       ? (data.successful_executions / data.total_executions * 100) 
