@@ -13,7 +13,7 @@
               @click="$emit('close')"
               class="text-text-muted hover:text-text"
             >
-              <X class="h-5 w-5" />
+              <Icon icon="lucide:x" class="h-5 w-5" />
             </button>
           </div>
 
@@ -57,8 +57,8 @@
                 class="btn-control-primary"
                 :class="{ 'opacity-50 cursor-not-allowed': !formData.name || isCreating }"
               >
-                <Plus v-if="!isCreating" class="h-4 w-4" />
-                <Loader2 v-else class="h-4 w-4 animate-spin" />
+                <Icon v-if="!isCreating" icon="lucide:plus" class="h-4 w-4" />
+                <Icon v-else icon="lucide:loader-2" class="h-4 w-4 animate-spin" />
                 {{ isCreating ? 'Creando...' : 'Crea Workflow' }}
               </button>
             </div>
@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { X, Plus, Loader2 } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { useWorkflowsStore } from '../../stores/workflows'
 import { useUIStore } from '../../stores/ui'
 

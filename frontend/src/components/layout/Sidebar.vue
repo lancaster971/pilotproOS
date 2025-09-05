@@ -34,7 +34,7 @@
           
           <!-- Icon -->
           <div class="sidebar-nav-icon">
-            <component :is="item.icon" class="w-5 h-5" />
+            <Icon :icon="item.icon" class="w-5 h-5" />
           </div>
           
           <!-- Content -->
@@ -64,7 +64,7 @@
             <span class="text-xs text-text-muted">Sistema Online</span>
           </div>
           <button class="sidebar-toggle-btn">
-            <ChevronLeft class="w-4 h-4" />
+            <Icon icon="lucide:chevron-left" class="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -74,10 +74,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { 
-  LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, ChevronLeft, Workflow
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 
 interface Props {
   sidebarOpen: boolean
@@ -102,32 +99,32 @@ const navigationItems = computed<NavigationItem[]>(() => [
     path: '/insights',
     label: 'Insights',
     description: 'Panoramica generale',
-    icon: LayoutDashboard,
+    icon: 'lucide:layout-dashboard',
     badge: { text: 'Live', type: 'new' }
   },
   {
     path: '/command-center', 
     label: 'Processi',
     description: 'Automazioni business',
-    icon: Workflow
+    icon: 'lucide:workflow'
   },
   {
     path: '/executions',
     label: 'Esecuzioni', 
     description: 'Cronologia processi',
-    icon: Play
+    icon: 'lucide:play'
   },
   {
     path: '/stats',
     label: 'Analytics',
     description: 'Metriche e KPI',
-    icon: BarChart3
+    icon: 'lucide:bar-chart-3'
   },
   {
     path: '/database',
     label: 'Database',
     description: 'Gestione dati',
-    icon: Database
+    icon: 'lucide:database'
   },
   // Removed security and scheduler routes - functionality not needed for business system
 ])

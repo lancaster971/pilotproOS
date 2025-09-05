@@ -11,14 +11,14 @@
           @click="$emit('toggle-sidebar')" 
           class="header-toggle-btn p-2 rounded-lg transition-all duration-200 hover:bg-surface-200/50"
         >
-          <Menu class="h-5 w-5 text-foreground-muted hover:text-foreground" />
+          <Icon icon="lucide:menu" class="h-5 w-5 text-foreground-muted hover:text-foreground" />
         </button>
         
         <!-- Breadcrumb/Title -->
         <div class="flex items-center gap-2">
           <h1 class="text-lg font-semibold text-foreground">{{ pageTitle }}</h1>
           <div v-if="subtitle" class="flex items-center gap-2">
-            <ChevronRight class="h-4 w-4 text-foreground-muted" />
+            <Icon icon="lucide:chevron-right" class="h-4 w-4 text-foreground-muted" />
             <span class="text-sm text-foreground-muted">{{ subtitle }}</span>
           </div>
         </div>
@@ -27,7 +27,7 @@
       <!-- Center section - Search (optional) -->
       <div class="flex-1 max-w-md mx-8 hidden lg:block">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground-muted" />
+          <Icon icon="lucide:search" class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground-muted" />
           <input
             type="text"
             placeholder="Cerca processi, esecuzioni..."
@@ -50,7 +50,7 @@
 
         <!-- Notifications -->
         <button class="header-action-btn relative p-2 rounded-lg">
-          <Bell class="h-5 w-5" />
+          <Icon icon="lucide:bell" class="h-5 w-5" />
           <div class="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full flex items-center justify-center">
             <span class="text-xs text-white font-bold">3</span>
           </div>
@@ -58,7 +58,7 @@
 
         <!-- Settings -->
         <button class="header-action-btn p-2 rounded-lg">
-          <Settings class="h-5 w-5" />
+          <Icon icon="lucide:settings" class="h-5 w-5" />
         </button>
 
         <!-- User menu -->
@@ -73,7 +73,7 @@
             class="header-action-btn p-2 rounded-lg text-error-500 hover:bg-error-500/10 hover:text-error-400"
             title="Logout"
           >
-            <LogOut class="h-5 w-5" />
+            <Icon icon="lucide:log-out" class="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -84,9 +84,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { 
-  Menu, LogOut, ChevronRight, Search, Bell, Settings
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 
 defineEmits<{
   'toggle-sidebar': []

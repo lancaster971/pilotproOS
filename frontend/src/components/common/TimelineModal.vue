@@ -3,7 +3,7 @@
     :show="show"
     :title="modalTitle"
     :subtitle="modalSubtitle"
-    :header-icon="Bot"
+    :header-icon="'lucide:bot'"
     :tabs="tabs"
     default-tab="executions"
     :is-loading="isLoading"
@@ -140,7 +140,7 @@
 
         <!-- No Data -->
         <div v-else class="text-center py-12 text-gray-400">
-          <List class="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <Icon icon="lucide:list" class="w-12 h-12 mx-auto mb-4 opacity-50" />
           <h3 class="text-lg font-medium mb-2">Process Not Yet Configured</h3>
           <p class="text-sm mb-2">This business process doesn't have steps configured for client reporting.</p>
           <div class="bg-blue-400/10 border border-blue-400/20 rounded-lg p-4 mt-4 max-w-md mx-auto">
@@ -158,7 +158,7 @@
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center">
-            <Code class="w-5 h-5 text-gray-400 mr-2" />
+            <Icon icon="lucide:code" class="w-5 h-5 text-gray-400 mr-2" />
             <h3 class="text-lg font-medium text-white">Raw Timeline Data</h3>
           </div>
           <div class="flex gap-2">
@@ -166,14 +166,14 @@
               @click="generateBusinessReport"
               class="flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
             >
-              <FileText class="w-4 h-4 mr-1.5" />
+              <Icon icon="lucide:file-text" class="w-4 h-4 mr-1.5" />
               Generate Report
             </button>
             <button
               @click="showJsonData"
               class="flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
             >
-              <Code class="w-4 h-4 mr-1.5" />
+              <Icon icon="lucide:code" class="w-4 h-4 mr-1.5" />
               Show JSON
             </button>
           </div>
@@ -197,10 +197,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { 
-  Bot, CheckCircle, XCircle, Clock, Settings, ChevronDown, ChevronRight,
-  Mail, Package, FileText, Tag, Code, Download, List
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import DetailModal from './DetailModal.vue'
 import { useModal } from '../../composables/useModal'
 import { useBusinessParser } from '../../composables/useBusinessParser'
@@ -240,8 +237,8 @@ const modalSubtitle = computed(() => {
 })
 
 const tabs = [
-  { id: 'executions', label: 'Executions Details', icon: List },
-  { id: 'raw', label: 'Raw Data', icon: Code },
+  { id: 'executions', label: 'Executions Details', icon: 'lucide:list' },
+  { id: 'raw', label: 'Raw Data', icon: 'lucide:code' },
 ]
 
 // Timeline logic
@@ -358,11 +355,11 @@ const handleForceRefresh = async () => {
 // Step visualization helpers
 const getStepIcon = (status: string) => {
   switch (status) {
-    case 'success': return CheckCircle
-    case 'error': return XCircle
-    case 'running': return Settings
-    case 'not-executed': return Clock
-    default: return Clock
+    case 'success': return 'lucide:check-circle'
+    case 'error': return 'lucide:x-circle'
+    case 'running': return 'lucide:settings'
+    case 'not-executed': return 'lucide:clock'
+    default: return 'lucide:clock'
   }
 }
 

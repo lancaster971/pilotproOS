@@ -6,18 +6,18 @@
         @click="refreshActivity"
         class="text-gray-400 hover:text-white transition-colors"
       >
-        <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
+        <Icon icon="lucide:refresh-cw" :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
       </button>
     </div>
     
     <div class="space-y-3">
       <div v-if="isLoading" class="text-center py-4">
-        <Loader2 class="h-6 w-6 animate-spin text-green-400 mx-auto" />
+        <Icon icon="lucide:loader-2" class="h-6 w-6 animate-spin text-green-400 mx-auto" />
         <p class="text-gray-500 text-sm mt-2">Caricamento attività...</p>
       </div>
       
       <div v-else-if="activities.length === 0" class="text-center py-8 text-gray-500">
-        <Activity class="h-12 w-12 mx-auto mb-4 text-gray-600" />
+        <Icon icon="lucide:activity" class="h-12 w-12 mx-auto mb-4 text-gray-600" />
         <p>Nessuna attività recente</p>
       </div>
       
@@ -30,7 +30,7 @@
           class="p-1.5 rounded-full"
           :class="getActivityColor(activity.type)"
         >
-          <component :is="getActivityIcon(activity.type)" class="h-3 w-3" />
+          <Icon :icon="getActivityIcon(activity.type)" class="h-3 w-3" />
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-white text-sm">{{ activity.message }}</p>
@@ -49,10 +49,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { 
-  RefreshCw, Loader2, Activity, CheckCircle, XCircle, 
-  Play, GitBranch, Database
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 
 // Types
 interface ActivityItem {
@@ -105,11 +102,11 @@ const refreshActivity = async () => {
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case 'workflow_executed': return Play
-    case 'workflow_created': return GitBranch
-    case 'execution_failed': return XCircle
-    case 'sync_completed': return Database
-    default: return Activity
+    case 'workflow_executed': return 'lucide:play'
+    case 'workflow_created': return 'lucide:git-branch'
+    case 'execution_failed': return 'lucide:x-circle'
+    case 'sync_completed': return 'lucide:database'
+    default: return 'lucide:activity'
   }
 }
 

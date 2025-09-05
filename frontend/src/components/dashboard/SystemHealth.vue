@@ -6,7 +6,7 @@
         @click="refreshHealth"
         class="text-gray-400 hover:text-white transition-colors"
       >
-        <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
+        <Icon icon="lucide:refresh-cw" :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
       </button>
     </div>
 
@@ -36,7 +36,7 @@
           class="flex items-center justify-between p-2 rounded"
         >
           <div class="flex items-center gap-2">
-            <component :is="service.icon" class="h-4 w-4 text-gray-400" />
+            <Icon :icon="service.icon" class="h-4 w-4 text-gray-400" />
             <span class="text-white text-sm">{{ service.name }}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -104,9 +104,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { 
-  RefreshCw, Server, Database, GitBranch, Activity
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { businessAPI } from '../../services/api'
 
 // Local state
@@ -118,10 +116,10 @@ const apiResponse = ref(89)
 const uptime = ref(15 * 24 * 3600) // 15 days in seconds
 
 const services = ref([
-  { name: 'PostgreSQL', icon: Database, status: 'running' },
-  { name: 'n8n Engine', icon: GitBranch, status: 'running' },
-  { name: 'Backend API', icon: Server, status: 'running' },
-  { name: 'Scheduler', icon: Activity, status: 'running' },
+  { name: 'PostgreSQL', icon: 'lucide:database', status: 'running' },
+  { name: 'n8n Engine', icon: 'lucide:git-branch', status: 'running' },
+  { name: 'Backend API', icon: 'lucide:server', status: 'running' },
+  { name: 'Scheduler', icon: 'lucide:activity', status: 'running' },
 ])
 
 // Methods

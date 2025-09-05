@@ -14,7 +14,7 @@
               @click="$emit('close')"
               class="text-text-muted hover:text-text transition-colors"
             >
-              <X class="h-5 w-5" />
+              <Icon icon="lucide:x" class="h-5 w-5" />
             </button>
           </div>
 
@@ -29,7 +29,7 @@
           <!-- Error State -->
           <div v-else-if="error" class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
             <div class="flex items-center gap-2">
-              <AlertCircle class="h-4 w-4 text-red-400" />
+              <Icon icon="lucide:alert-circle" class="h-4 w-4 text-red-400" />
               <span class="text-red-400 text-sm">{{ error }}</span>
             </div>
           </div>
@@ -56,8 +56,8 @@
               class="btn-control-primary"
               :class="{ 'opacity-50 cursor-not-allowed': isLoading || !canSubmit }"
             >
-              <component v-if="!isLoading" :is="submitIcon" class="h-4 w-4" />
-              <Loader2 v-else class="h-4 w-4 animate-spin" />
+              <Icon v-if="!isLoading" :icon="submitIcon" class="h-4 w-4" />
+              <Icon v-else icon="lucide:loader-2" class="h-4 w-4 animate-spin" />
               {{ submitText }}
             </button>
           </div>
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { X, AlertCircle, Loader2, Check } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { useModal } from '../../composables/useModal'
 
 interface Props {
@@ -91,7 +91,7 @@ const props = withDefaults(defineProps<Props>(), {
   submitText: 'Conferma',
   showSubmit: true,
   canSubmit: true,
-  submitIcon: Check,
+  submitIcon: 'lucide:check',
   isLoading: false,
   error: null
 })

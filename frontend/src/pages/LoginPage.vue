@@ -84,8 +84,8 @@
                         @click="showPassword = !showPassword"
                         class="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-700 rounded-r-lg transition-colors"
                       >
-                        <Eye v-if="!showPassword" class="h-4 w-4 text-gray-400" />
-                        <EyeOff v-else class="h-4 w-4 text-gray-400" />
+                        <Icon v-if="!showPassword" icon="lucide:eye" class="h-4 w-4 text-gray-400" />
+                        <Icon v-else icon="lucide:eye-off" class="h-4 w-4 text-gray-400" />
                       </button>
                     </div>
                   </div>
@@ -96,7 +96,7 @@
                     :disabled="authStore.isLoading"
                     :class="{ 'opacity-50 cursor-not-allowed': authStore.isLoading }"
                   >
-                    <Loader2 v-if="authStore.isLoading" class="h-4 w-4 animate-spin" />
+                    <Icon v-if="authStore.isLoading" icon="lucide:loader-2" class="h-4 w-4 animate-spin" />
                     <span>
                       {{ authStore.isLoading 
                         ? (isSignUp ? 'Creazione account...' : 'Accesso in corso...') 
@@ -141,7 +141,7 @@
       @click="scrollToTop"
       class="fixed bottom-8 right-8 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50"
     >
-      <ArrowUp class="h-5 w-5" />
+      <Icon icon="lucide:arrow-up" class="h-5 w-5" />
     </button>
   </div>
 </template>
@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Eye, EyeOff, Loader2, ArrowUp } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
 

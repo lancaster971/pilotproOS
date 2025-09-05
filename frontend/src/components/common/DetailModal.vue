@@ -11,7 +11,7 @@
         <div class="flex items-center justify-between p-6 border-b border-border">
           <div class="flex items-center gap-4">
             <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <component :is="headerIcon" class="h-6 w-6 text-green-400" />
+              <Icon :icon="headerIcon" class="h-6 w-6 text-green-400" />
             </div>
             <div>
               <h2 class="text-xl font-semibold text-text">{{ title }}</h2>
@@ -33,14 +33,14 @@
               class="p-2 text-text-muted hover:text-green-400 disabled:text-gray-600 transition-colors"
               :title="isLoading ? 'Aggiornamento...' : 'Aggiorna dati'"
             >
-              <RefreshCw :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
+              <Icon icon="lucide:refresh-cw" :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
             </button>
             
             <button
               @click="$emit('close')"
               class="p-2 text-text-muted hover:text-red-400 transition-colors"
             >
-              <X class="h-5 w-5" />
+              <Icon icon="lucide:x" class="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { X, RefreshCw, FileText } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { useModal } from '../../composables/useModal'
 
 export interface Tab {
@@ -131,7 +131,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  headerIcon: FileText,
+  headerIcon: 'lucide:file-text',
   tabs: () => [],
   loadingText: 'Caricamento dati...',
   showRefresh: true,

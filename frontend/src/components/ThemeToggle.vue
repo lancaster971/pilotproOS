@@ -1,7 +1,7 @@
 <template>
   <div class="fixed top-4 right-4 z-50">
     <div class="flex items-center gap-2 premium-glass p-3 rounded-lg enterprise-shadow premium-hover-lift">
-      <Palette class="w-4 h-4 text-primary" />
+      <Icon icon="lucide:palette" class="w-4 h-4 text-primary" />
       <span class="text-xs font-semibold text-primary">Theme:</span>
       <select 
         v-model="currentTheme"
@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { switchTheme, getCurrentTheme, type ThemeName } from '../design-system'
-import { Palette } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 
 const currentTheme = ref<ThemeName>('default')
 

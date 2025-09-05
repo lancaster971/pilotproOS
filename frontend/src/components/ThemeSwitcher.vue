@@ -2,7 +2,7 @@
   <div class="theme-switcher">
     <div class="flex items-center gap-3 p-4 bg-surface border border-border rounded-lg">
       <div class="flex items-center gap-2">
-        <Palette class="w-4 h-4 text-primary" />
+        <Icon icon="lucide:palette" class="w-4 h-4 text-primary" />
         <span class="text-sm font-medium text-text">Theme:</span>
       </div>
       
@@ -29,7 +29,7 @@
         <h3 class="text-text font-semibold mb-2">Surface Example</h3>
         <p class="text-text-secondary text-sm mb-3">This card uses the design system variables.</p>
         <div class="btn-control-primary">
-          <Check class="w-4 h-4" />
+          <Icon icon="lucide:check" class="w-4 h-4" />
           <span>Primary Action</span>
         </div>
       </div>
@@ -48,7 +48,7 @@
         <h3 class="text-text font-semibold mb-2">Interactive Elements</h3>
         <div class="space-y-2">
           <div class="btn-control">
-            <Settings class="w-4 h-4" />
+            <Icon icon="lucide:settings" class="w-4 h-4" />
             <span>Normal Button</span>
           </div>
           <div class="text-gradient text-lg font-semibold">
@@ -89,7 +89,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { switchTheme, getCurrentTheme, getCSSVariable, themes, type ThemeName } from '../design-system'
-import { Palette, Check, Settings } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 
 const currentTheme = ref<ThemeName>('default')
 const availableThemes = themes
