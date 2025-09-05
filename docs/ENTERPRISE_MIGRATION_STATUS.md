@@ -1,5 +1,5 @@
 # ENTERPRISE MIGRATION STATUS - PILOTPROS
-*Ultimo aggiornamento: 2025-09-05*
+*Ultimo aggiornamento: 2025-09-05 (Post Docker Reset)*
 
 ## 🎯 STATO ATTUALE: MIGRAZIONE ENTERPRISE COMPLETATA
 
@@ -13,11 +13,13 @@
 
 ### 📊 DATI SISTEMA OPERATIVO
 ```
-✅ Workflow Totali: 23 (34 nel DB ma alcuni archiviati)
-✅ Workflow Attivi: 4 
-✅ Esecuzioni: 632
-✅ Success Rate: 97.9%
-✅ n8n Version: 1.108.1
+⚠️ STATO CURRENT: Database vuoto (Docker reset accidentale)
+🔄 Workflow Totali: 0 (in attesa ripristino da backup)
+🔄 Workflow Attivi: 0 
+🔄 Esecuzioni: 0
+✅ Database Schema: Configurato e operativo
+✅ n8n Version: 1.108.1 (container healthy)
+✅ tRPC System: 100% funzionante (testato con database vuoto)
 ```
 
 ### 🔧 MIGRAZIONI COMPLETATE NELL'ULTIMA SESSIONE
@@ -30,10 +32,34 @@
    - Frontend: Event listeners per aggiornamenti real-time
    - Simulatore sviluppo: Updates ogni 30 secondi per testing
 4. **TypeScript Fix**: Aggiornato a v5.7.2 per compatibilità tRPC
+5. **Docker Safety System**: Implementato sistema backup automatico per prevenire data loss
+   - `docker:reset` ora bloccato con warning
+   - `docker:backup` crea backup timestamped automatici
+   - `docker:reset-safe` include backup automatico prima del reset
 
-### 🚀 PROSSIMI PASSI SUGGERITI
+### 🆘 RECOVERY DATI - PRIORITÀ IMMEDIATA
 
-#### PRIORITÀ ALTA 🔴
+#### ⚠️ SITUAZIONE ATTUALE
+- **Docker Reset Accidentale**: Volumi cancellati durante fix tRPC
+- **Backup Disponibili**: credentials.json + workflows.json in BU_Hostinger/
+- **Sistema Operativo**: tRPC, backend, frontend tutti funzionanti
+- **Database Schema**: PostgreSQL configurato, solo dati mancanti
+
+#### 🔄 PIANO RECOVERY
+1. **Setup n8n Admin User**: Configurare admin/pilotpros_admin_2025 per API access
+2. **Import Backup**: `npm run import:backup` (credentials + workflows da BU_Hostinger)
+3. **Verify tRPC**: Testare che WorkflowCommandCenter carichi i workflow via tRPC
+4. **Validate System**: Confermare tutti i 31 workflow + 600+ executions ripristinati
+
+#### 📋 DATI DA RIPRISTINARE
+- **31 workflow** complessi (MIlena, GRAB INFO SUPPLIER, ecc.)
+- **600+ executions** con history completa
+- **Credentials** per integrations (OpenAI, Telegram, email, ecc.)
+- **Business analytics** e metriche
+
+### 🚀 PROSSIMI PASSI SUGGERITI (POST-RECOVERY)
+
+#### PRIORITÀ ALTA 🔴  
 ✅ **Tutte le priorità alta completate!**
 1. ~~Sostituire fetch con tRPC~~: ✅ **COMPLETATO** - InsightsPage ora usa tRPC
 2. ~~Completare migrazione Timeline/Chart~~: ✅ **COMPLETATO** - CustomTimeline + CustomChart
@@ -51,12 +77,16 @@
 
 ### 📁 FILE CHIAVE MODIFICATI
 - `/frontend/src/pages/InsightsPage.vue` - Migrato a tRPC + WebSocket real-time
+- `/frontend/src/pages/WorkflowCommandCenter.vue` - Migrato a tRPC + apiClient (killer feature)
 - `/frontend/src/components/ui/CustomTimeline.vue` - Nuovo componente Headless UI
-- `/frontend/src/components/ui/CustomChart.vue` - Nuovo componente Chart.js
-- `/frontend/src/services/trpc.ts` - Client tRPC configurato
-- `/backend/src/trpc/routers/analytics.router.js` - WebSocket notifications integrate
+- `/frontend/src/components/ui/CustomChart.vue` - Nuovo componente Chart.js  
+- `/frontend/src/services/trpc.ts` - Client tRPC con Docker environment detection
+- `/frontend/src/utils/api-config.ts` - Smart URL detection Docker vs Local
+- `/backend/src/trpc/` - Sistema completo router tRPC (analytics, processes, workflow, executions, system)
 - `/backend/src/websocket.js` - Simulatore real-time + eventi analytics
-- `/frontend/package.json` - TypeScript aggiornato a v5.7.2
+- `/CLAUDE.md` - Aggiunto sistema backup Docker con warning critici
+- `/package.json` - Comandi Docker sicuri + backup automatico
+- `/docs/ENTERPRISE_MIGRATION_STATUS.md` - Recovery plan e inconvenienti documentati
 
 ### 🎯 OBIETTIVO FINALE ✅ RAGGIUNTO
 Sistema completamente enterprise-ready con:
