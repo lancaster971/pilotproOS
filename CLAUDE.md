@@ -596,14 +596,53 @@ All environment variables are defined in project root. Key configs:
 - **✅ Real-Time Enrichment**: Live data processing with debug logging and comprehensive error handling
 - **✅ Production Validated**: Complete system tested with actual workflow data and customer scenarios
 
-## 📚 **DOCUMENTATION COMPLETA**
+## 📚 **DOCUMENTAZIONE COMPLETA**
 
-Per informazioni dettagliate consultare la documentazione tecnica completa in `/docs/`:
+**Tutta la documentazione tecnica è organizzata nella cartella `/docs/` per facilità di consultazione e manutenzione.**
 
+### **🏗️ Architettura & Deployment**
 - **`docs/architecture.md`** - Architettura 3-layer dettagliata con Clean Architecture + n8n Compatibility System
 - **`docs/deployment.md`** - Sistema deployment 4-script enterprise (5 minuti) + Zero-Downtime n8n Upgrades  
-- **`docs/ai-agent.md`** - AI Agent conversazionale con NLP italiano
 - **`docs/postgresql-setup.md`** - Configurazione PostgreSQL per n8n integration + Migration Management
 - **`docs/n8n-upgrade-troubleshooting.md`** - Troubleshooting completo per upgrade n8n e compatibility issues
 
-**NOTA IMPORTANTE**: I docs/ contengono l'architettura COMPLETA del sistema con tutti i dettagli implementativi, script di deployment, configurazioni di sicurezza, e specifiche tecniche avanzate. Consultare sempre i docs/ prima di modificare il sistema.
+### **🤖 AI & Automazione**
+- **`docs/ai-agent.md`** - AI Agent conversazionale con NLP italiano
+- **`docs/team-sync-api.md`** - API Team Synchronization con export/import automatizzati
+- **`docs/team-sync-system.md`** - Sistema completo sincronizzazione team + troubleshooting
+
+### **🎭 Personalizzazione & Security**
+- **`docs/CUSTOMIZATION-STRATEGY.md`** - Strategia completa reverse proxy con client branding
+- **`docs/REVERSE_PROXY_README.md`** - Sistema reverse proxy con network isolation per nascondere stack tecnico
+- **`docs/developer-access-instructions.md`** - Istruzioni accesso sviluppatori e configurazioni auth
+
+### **🗂️ Project Management & Migration**
+- **`docs/MIGRATION-SUMMARY.md`** - Riepilogo completo migrazioni tRPC + Enterprise
+- **`docs/TRPC_MIGRATION_COMPLETE.md`** - Dettagli implementazione tRPC Enterprise
+- **`docs/SISTEMA_VALIDATO.md`** - Validazione completa sistema con test production
+- **`docs/component-migration.md`** - Piano migrazione componenti legacy
+
+### **🛠️ Development & Setup**
+- **`docs/SETUP_ENGINE_IMPLEMENTATION.md`** - Engine setup automatizzato per deployment clienti
+- **`docs/MODAL_IMPLEMENTATION_GUIDE.md`** - Guida completa sistema modal enterprise
+- **`docs/RAW_DATA_FOR_MODAL_SYSTEM.md`** - Sistema estrazione dati business per timeline
+- **`docs/CSS_REFACTORING_ANALYSIS.md`** - Analisi refactoring CSS e design system
+
+### **📊 Analytics & Data**
+- **`docs/MILENA_SUPER_DETAILED_RAW_DATA.md`** - Dataset completo workflow Milena per testing
+- **`docs/DATA_RECOVERY_PLAN.md`** - Piano recovery dati e backup strategie
+- **`docs/REAL_STATUS_UPDATE.md`** - Status real-time sistema e componenti attivi
+
+### **📋 Workflow & Team**
+- **`docs/TEAM_WORKFLOW.md`** - Workflow development team e best practices
+- **`docs/GUIDA_SINCRONIZZAZIONE_MAC_B.md`** - Guida sincronizzazione team Mac
+- **`docs/reUse.md`** - Strategie riuso componenti e codice
+- **`docs/CHANGELOG.md`** - Change log completo progetto
+
+### **🔧 Maintenance & Cleanup**
+- **`docs/CLEANUP_SUMMARY.md`** - Riassunto operazioni cleanup e ottimizzazione
+- **`docs/FINAL_CLEANUP_STATUS.md`** - Status finale cleanup sistema
+- **`docs/REST_CLEANUP_PLAN.md`** - Piano cleanup endpoint REST legacy
+- **`docs/ANALYSIS.md`** - Analisi tecniche e decisioni architetturali
+
+**NOTA IMPORTANTE**: La cartella `docs/` contiene l'architettura COMPLETA del sistema con tutti i dettagli implementativi, script di deployment, configurazioni di sicurezza, strategie di personalizzazione, e specifiche tecniche avanzate. **Consultare sempre i docs/ prima di modificare il sistema** per comprendere l'impatto delle modifiche e seguire le best practices stabilite.
