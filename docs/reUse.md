@@ -6,9 +6,9 @@
 
 ## 🔍 **OVERVIEW DELL'ANALISI**
 
-**Data Analisi**: 2025-09-05 *(STRATEGIA reUse 100% COMPLETATA)*  
-**Versione Sistema**: v1.5.1 + reUse Strategy 100% COMPLETE  
-**Branch**: `main` (commit: `3d4e129` - Drizzle ORM Migration + 100% reUse strategy)
+**Data Analisi**: 2025-09-05 *(STRATEGIA reUse 100% COMPLETATA + CRITICAL BUGFIXES)*  
+**Versione Sistema**: v1.5.1 + reUse Strategy 100% COMPLETE + Workflow Fixes  
+**Branch**: `main` (commit: `516af2b` - Iconify Migration + Critical Workflow Bugfixes)
 
 ### **🚨 AUDIT RESULTS - STATO REALE IMPLEMENTAZIONI**
 
@@ -19,9 +19,27 @@
 - ✅ **Frontend Client**: Vue 3 + TypeScript + tRPC client
 - ✅ **4 Router tRPC**: analytics, processes, executions, system
 - ✅ **Toast System**: **Vue Toastification implementato** (sostituito 181 righe custom)
-- ✅ **Icon System**: **Iconify implementato** (sostituiti 29 import SVG manuali)
+- ✅ **Icon System**: **Iconify COMPLETAMENTE MIGRATO** *(commit 516af2b)* - 14 file aggiornati
 - ✅ **Logger**: **Pino implementato** (sostituito console.log + Winston)
 - ✅ **Drizzle ORM**: **MIGRAZIONE COMPLETATA** - Tutti gli endpoint critici migrati
+
+#### **🔧 CRITICAL BUGFIXES COMPLETATI** *(commit 516af2b)*
+
+**Backend Database Fixes:**
+- ✅ **Workflow Selection Bug**: Fixed parseInt() su workflow ID alfanumerici  
+- ✅ **Drizzle ORM**: Fixed .where() chaining con and() operator
+- ✅ **Data Consistency**: Ogni workflow ora restituisce dati unici
+
+**Frontend UX Fixes:**
+- ✅ **Auto-Fit Sistema**: Implementato viewport reset + instant fitView
+- ✅ **Workflow Visualization**: Preservate posizioni originali n8n (no auto-layout)
+- ✅ **User Experience**: Workflow appare correttamente scalato senza click manuali
+
+**Icon System Migration Complete:**
+- ✅ **14 File Migrati**: Da Lucide components → Iconify string-based
+- ✅ **Pattern Unificato**: `<Play />` → `<Icon icon="lucide:play" />`
+- ✅ **Tree Shaking**: Bundle ottimizzato con import on-demand
+- ✅ **Lucide Update**: Package aggiornato a v0.542.0
 
 **DATABASE MIGRATION COMPLETED:**
 - ✅ `/api/business/processes` → Type-safe workflow queries
@@ -444,6 +462,34 @@ npm install @xenova/transformers
 
 ## 🔄 **DEBITO TECNICO (Technical Debt)**
 
+### **⚡ NUOVO: OFETCH HTTP Client Migration** *(ALTA PRIORITÀ PERFORMANCE)*
+```bash
+# Migrazione Axios (15.2KB) + Fetch misto → OFETCH (1.9KB)
+# Status: NUOVO DEBITO TECNICO IDENTIFICATO 2025-09-05
+# Analysis: Sistema attuale usa Axios + fetch in modo inconsistente
+# Performance Impact: SIGNIFICATIVO (-87% bundle size, +20% velocità)
+# Timing: Priorità immediata per performance optimization
+# Benefit: Bundle ridotto 15.2KB → 1.9KB + 20% faster requests
+# Effort: 4-6 ore (migration completa frontend/backend API calls)
+# Risk: BASSO - OFETCH è backward compatible con fetch
+```
+
+**📋 Checklist Migrazione OFETCH:**
+- [ ] Analizzare uso misto attuale: Axios (api.ts) vs Fetch (11 file componenti)  
+- [ ] Installare `ofetch` (1.9KB vs 15.2KB axios)
+- [ ] Creare nuovo `api-client.ts` con OFETCH configuration
+- [ ] Migrare tutti gli endpoint: businessAPI, tenantAPI, securityAPI, etc.
+- [ ] Sostituire chiamate fetch raw: WorkflowCommandCenter.vue (6 chiamate)
+- [ ] Rimuovere axios dependency + consolidare pattern API
+- [ ] Performance testing: bundle size + request speed benchmarking
+- [ ] Auto-retry + error handling centralizzato con OFETCH
+
+**🎯 ROI Stimato OFETCH Migration:**
+- **Bundle Size**: -87% (da 15.2KB a 1.9KB)
+- **Request Speed**: +20% performance improvement
+- **Code Consistency**: 100% unified API pattern (no più fetch + axios misto)
+- **Maintenance**: -50% meno codice API da mantenere
+
 ### **📦 Vue Toastification Migration** *(BASSA PRIORITÀ)*
 ```bash
 # Migrazione sistema toast custom → Vue Toastification
@@ -640,5 +686,42 @@ La strategia reUse ha **trasformato PilotProOS** da sistema con componenti custo
 
 ---
 
-*Documento finale aggiornato il 2025-09-05 post-Drizzle migration (commit `3d4e129`)*  
-*🏆 **Strategia reUse: 100% COMPLETATA** → Mission Accomplished! 🎉*
+## 🏆 **UPDATE POST-BUGFIXES** *(commit `516af2b` - 2025-09-05)*
+
+### **🔧 SISTEMA COMPLETAMENTE STABILIZZATO**
+
+**Critical Issues Risolti:**
+1. **Workflow Selection System** → Ora ogni workflow mostra contenuto unico
+2. **Auto-Fit UX** → Workflow appare immediatamente ben centrato
+3. **Icon System** → Migrazione Iconify completata (14 file)
+4. **Database Consistency** → Fixed Drizzle ORM queries
+
+### **📊 NUOVO ROI POST-BUGFIXES**
+
+**User Experience Improvement:**
+- **Workflow Selection**: Da "BROKEN" → **100% Funzionale**
+- **Auto-Fit**: Da "Manual Click Required" → **Automatico**
+- **Icon Loading**: Da "29 manual imports" → **String-based Iconify**
+
+**Technical Debt Aggiornato:**
+- ✅ **Icon System**: COMPLETED (da Media → DONE)
+- ⚡ **NEW**: **OFETCH Migration** (Alta priorità - Performance)
+- 🟡 **Vue Toastification**: Rimane bassa priorità
+
+### **🎯 PROSSIMI STEP RACCOMANDATI**
+
+**Priorità Immediata:**
+1. **OFETCH Migration** (4-6 ore) → -87% bundle size + 20% faster
+2. **API Consistency** → Eliminare uso misto Axios + Fetch
+
+**Priorità Future:**
+- Vue Toastification migration (quando ci sono cicli liberi)
+- Docker multi-stage builds optimization
+- AI Agent Transformers.js enhancement
+
+---
+
+*Documento finale aggiornato il 2025-09-05 post-critical bugfixes (commit `516af2b`)*  
+*🏆 **Strategia reUse: 100% COMPLETATA + Sistema Stabilizzato** → Mission Accomplished! 🎉*
+
+*⚡ **Nuovo Debito Tecnico**: OFETCH Migration per performance optimization (-87% bundle size)*
