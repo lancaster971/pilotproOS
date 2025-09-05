@@ -68,10 +68,10 @@ const dbPool = new Pool({
 // Test database connection on startup
 dbPool.connect((err, client, release) => {
   if (err) {
-    console.error('❌ Database connection failed:', err);
+    businessLogger.error('Database connection failed', { error: err.message });
     process.exit(1);
   } else {
-    console.log('✅ PostgreSQL connected (pilotpros_db)');
+    businessLogger.info('PostgreSQL connected successfully', { database: 'pilotpros_db' });
     release();
   }
 });
@@ -2554,13 +2554,10 @@ const server = createServer(app);
 const io = initializeWebSocket(server);
 
 server.listen(port, host, () => {
-  console.log('🚀 PilotProOS Backend API Server');
-  console.log('================================');
-  console.log(`✅ Server: http://${host}:${port}`);
-  console.log(`✅ WebSocket: ws://${host}:${port}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ Database: ${process.env.DB_NAME || 'pilotpros_db'}`);
-  console.log('');
-  console.log('🎯 Business Process Operating System Ready!');
-  console.log('Ready to serve business automation requests...');
+  businessLogger.info('PilotProOS Backend API Server started', {
+    server: `http://${host}:${port}`,
+    websocket: `ws://${host}:${port}`,
+    environment: process.env.NODE_ENV || 'development',
+    database: process.env.DB_NAME || 'pilotpros_db'
+  });
 });
