@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
+import businessLogger from './utils/logger.js';
 
 // Business sanitization utilities
 import { 

@@ -25,4 +25,14 @@ export const db = drizzle(client, { schema })
 // Export connection for compatibility with existing code
 export const dbPool = client
 
+// Helper function to test connection
+export async function testConnection() {
+  try {
+    await client`SELECT 1`
+    return { success: true, message: 'Database connection successful' }
+  } catch (error) {
+    return { success: false, message: error.message }
+  }
+}
+
 console.log('✅ Drizzle ORM connected successfully')

@@ -12,6 +12,7 @@ import {
   formatBusinessDuration,
   generateBusinessInsights
 } from '../utils/business-terminology.js';
+import businessLogger from '../utils/logger.js';
 
 /**
  * Middleware di sanitizzazione response
@@ -31,7 +32,7 @@ export function businessSanitizer() {
       
       // Log della sanitizzazione (solo in development)
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[SANITIZER] ${req.method} ${req.path} - Response sanitized`);
+        businessLogger.info('Response sanitized', { method: req.method, path: req.path });
       }
       
       return originalJson.call(this, enhancedData);
@@ -290,13 +291,18 @@ async function logBusinessOperation(operation) {
     // In production, salveremmo nel database
     if (process.env.NODE_ENV === 'production') {
       // TODO: Implementare salvataggio in business_analytics table
-      console.log('[BUSINESS_OP]', operation);
+      businessLogger.api('Business operation logged', operation);
     } else {
       // In development, log semplice
-      console.log(`[BUSINESS] ${operation.method} ${operation.endpoint} - ${operation.duration}ms - ${operation.statusCode}`);
+      businessLogger.api('Business API call completed', {
+        method: operation.method,
+        endpoint: operation.endpoint, 
+        duration: operation.duration,
+        statusCode: operation.statusCode
+      });
     }
   } catch (error) {
-    console.error('Failed to log business operation:', error);
+    businessLogger.error('Failed to log business operation', error);
   }
 }
 
@@ -306,7 +312,7 @@ async function logBusinessOperation(operation) {
  */
 export function businessErrorHandler() {
   return (error, req, res, next) => {
-    console.error('❌ Business API Error:', error);
+    businessLogger.error('Business API Error', error);
     
     // Determina il tipo di errore business
     let businessError = {

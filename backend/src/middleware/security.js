@@ -4,6 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import businessLogger from '../utils/logger.js';
 
 /**
  * Mappatura termini da sostituire per privacy cliente
@@ -100,13 +101,13 @@ export function sanitizationMiddleware(req: Request, res: Response, next: NextFu
       if (process.env.NODE_ENV === 'development') {
         const hasN8nReferences = JSON.stringify(body).toLowerCase().includes('n8n');
         if (hasN8nReferences) {
-          console.log('🔒 Sanitization applied to response:', req.path);
+          businessLogger.info('Sanitization applied to response', { path: req.path });
         }
       }
       
       return originalJson(sanitizedBody);
     } catch (error) {
-      console.error('❌ Sanitization error:', error);
+      businessLogger.error('Sanitization error', error, { path: req.path });
       // In caso di errore, passa il body originale per non bloccare l'API
       return originalJson(body);
     }
@@ -157,7 +158,9 @@ export function containsN8nReferences(obj: any): boolean {
  */
 export function validateNoN8nReferences(obj: any, context: string = 'unknown'): void {
   if (containsN8nReferences(obj)) {
-    console.warn(`⚠️ N8N reference found in ${context}. Cliente NON deve vedere questo!`);
-    console.warn('🔒 Applicare sanitizzazione prima di inviare al frontend');
+    businessLogger.warn('N8N reference found - Cliente NON deve vedere questo!', { 
+      context, 
+      action: 'apply_sanitization_before_frontend' 
+    });
   }
 }

@@ -8,7 +8,7 @@ import './style.css'
 import './design-system/utilities.css'
 import './design-system/premium.css'
 
-// Vue Toastification - Replace custom toast system
+// Vue Toastification - Battle-tested toast system  
 import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
@@ -115,7 +115,7 @@ app.use(PrimeVue, {
 app.use(pinia)
 app.use(router)
 
-// Vue Toastification configuration
+// Vue Toastification configuration - Battle-tested accessibility & mobile support
 app.use(Toast, {
   position: POSITION.TOP_RIGHT,
   timeout: 5000,

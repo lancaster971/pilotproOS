@@ -1,6 +1,0 @@
-<svg width="48" height="48" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- No Operation - Freccia semplice -->
-  
-  <!-- Freccia che punta a destra -->
-  <path d="M150 256 L350 256 M300 200 L350 256 L300 312" fill="none" stroke="#F8FAFC" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
