@@ -100,7 +100,7 @@
               @click="sidebarCollapsed = !sidebarCollapsed"
               class="p-1 text-text-muted hover:text-text transition-colors"
             >
-              <ChevronLeft :class="{ 'rotate-180': sidebarCollapsed }" class="w-4 h-4 transition-transform" />
+              <Icon icon="lucide:chevron-left" :class="{ 'rotate-180': sidebarCollapsed }" class="w-4 h-4 transition-transform" />
             </button>
           </div>
           
@@ -174,7 +174,7 @@
                 :disabled="!selectedWorkflowId"
                 class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
-                <Eye class="w-3 h-3" />
+                <Icon icon="lucide:eye" class="w-3 h-3" />
                 Details
               </button>
               <button 
@@ -182,7 +182,7 @@
                 :disabled="!selectedWorkflowId"
                 class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
-                <Clock class="w-3 h-3" />
+                <Icon icon="lucide:clock" class="w-3 h-3" />
                 Timeline
               </button>
               <button 
@@ -244,7 +244,7 @@
                   ]"
                   title="Execute Workflow"
                 >
-                  <Play class="w-4 h-4" />
+                  <Icon icon="lucide:play" class="w-4 h-4" />
                   Execute Now
                 </button>
                 
@@ -634,7 +634,7 @@
         :show="showExecutionsModal"
         :title="`Process Executions: ${selectedWorkflowForModal.process_name}`"
         :subtitle="`ID: ${selectedWorkflowForModal.id}`"
-        :header-icon="Play"
+        :header-icon="'lucide:play'"
         :tabs="executionTabs"
         default-tab="executions"
         :is-loading="isLoadingExecutions"
@@ -656,9 +656,9 @@
                   class="flex items-center justify-between p-4 bg-surface rounded-lg border border-border"
                 >
                   <div class="flex items-center gap-3">
-                    <CheckCircle v-if="exec.finished && !exec.error" class="h-5 w-5 text-green-400" />
-                    <XCircle v-else-if="exec.error" class="h-5 w-5 text-red-400" />
-                    <Clock v-else class="h-5 w-5 text-yellow-400" />
+                    <Icon v-if="exec.finished && !exec.error" icon="lucide:check-circle" class="h-5 w-5 text-green-400" />
+                    <Icon v-else-if="exec.error" icon="lucide:x-circle" class="h-5 w-5 text-red-400" />
+                    <Icon v-else icon="lucide:clock" class="h-5 w-5 text-yellow-400" />
                     
                     <div>
                       <p class="text-text font-medium">Execution #{{ exec.id }}</p>
@@ -685,7 +685,7 @@
               </div>
               
               <div v-else class="text-center py-8">
-                <Play class="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <Icon icon="lucide:play" class="w-12 h-12 text-text-muted mx-auto mb-4" />
                 <p class="text-text-muted">No executions found for this process</p>
               </div>
             </div>
@@ -698,7 +698,7 @@
               <div class="control-card p-4">
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-sm text-text-muted">Total Executions</span>
-                  <Play class="h-4 w-4 text-gray-600" />
+                  <Icon icon="lucide:play" class="h-4 w-4 text-gray-600" />
                 </div>
                 <p class="text-lg font-bold text-text">{{ data?.totalExecutions || 0 }}</p>
               </div>
@@ -706,7 +706,7 @@
               <div class="control-card p-4">
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-sm text-text-muted">Success Rate</span>
-                  <CheckCircle class="h-4 w-4 text-gray-600" />
+                  <Icon icon="lucide:check-circle" class="h-4 w-4 text-gray-600" />
                 </div>
                 <p class="text-lg font-bold text-green-400">
                   {{ data?.successRate ? `${data.successRate.toFixed(1)}%` : 'N/A' }}
@@ -716,7 +716,7 @@
               <div class="control-card p-4">
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-sm text-text-muted">Avg Duration</span>
-                  <Clock class="h-4 w-4 text-gray-600" />
+                  <Icon icon="lucide:clock" class="h-4 w-4 text-gray-600" />
                 </div>
                 <p class="text-lg font-bold text-text">
                   {{ formatDuration(data?.avgDuration || 0) }}
@@ -735,10 +735,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import { 
-  RefreshCw, GitBranch, Eye, Clock, Play, Settings, Database, Mail, Bot, ChevronLeft,
-  Code, Brain, Globe, FileText, Zap, Cpu, Workflow, MessageSquare, Link, Edit, TrendingUp, CheckCircle, XCircle, Square
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
@@ -785,6 +782,9 @@ const selectedWorkflowId = ref('')
 const selectedWorkflowData = ref<any>(null)
 const workflowDetails = ref<any>(null)
 
+// Abort controller to cancel previous requests
+let currentWorkflowController: AbortController | null = null
+
 // Modal state
 const showDetailModal = ref(false)
 const showTimelineModal = ref(false)
@@ -796,8 +796,8 @@ const isLoadingExecutions = ref(false)
 const executionsError = ref<string | null>(null)
 const executionData = ref<any>(null)
 const executionTabs = [
-  { id: 'executions', label: 'Executions', icon: Play },
-  { id: 'stats', label: 'Statistics', icon: TrendingUp }
+  { id: 'executions', label: 'Executions', icon: 'lucide:play' },
+  { id: 'stats', label: 'Statistics', icon: 'lucide:trending-up' }
 ]
 
 // Action buttons state
@@ -877,15 +877,9 @@ const refreshAllData = async () => {
       })
     }
     
-    // DISABILITATO - causava loop infinito
-    // Manual selection only
-    if (!selectedWorkflowId.value && realWorkflows.value.length > 0) {
-      const firstWorkflow = realWorkflows.value[0]
-      if (firstWorkflow) {
-        console.log('🎯 Selecting first workflow only:', firstWorkflow.process_name)
-        await selectWorkflow(firstWorkflow)
-      }
-    }
+    // Manual selection only - NO AUTO-SELECTION of first workflow
+    // This was causing the bug where clicking any workflow showed the same content
+    console.log('✅ Workflows loaded, manual selection required')
     
     success('Workflows Caricati', `${realWorkflows.value.length} processi aziendali disponibili`)
     
@@ -908,50 +902,70 @@ const refreshAllData = async () => {
 }
 
 const selectWorkflow = async (workflow: any) => {
-  selectedWorkflowId.value = workflow.id  // ✅ FIX: Use workflow.id not workflow.process_id
+  console.log('🔘 [FORCE TEST] CLICK DETECTED - selectWorkflow called with:', {
+    workflowName: workflow.process_name,
+    workflowId: workflow.id,
+    currentSelectedId: selectedWorkflowId.value
+  })
+  
+  // Set selected workflow
+  selectedWorkflowId.value = workflow.id
   selectedWorkflowData.value = workflow
   
-  console.log('🎯 Selected workflow:', workflow.process_name, 'ID:', workflow.id)
+  console.log('✅ Workflow selected:', workflow.name, 'ID:', workflow.id)
   
   // Load detailed workflow structure from backend
   await loadWorkflowStructure(workflow)
-  
-  // Auto-fit dopo selezione - NO ESITAZIONE  
-  nextTick(() => {
-    setTimeout(() => {
-      fitView({ 
-        duration: 500, 
-        padding: 0.15
-      })
-      console.log('🎯 Auto-fitted workflow smoothly')
-    }, 100)
-  })
 }
 
 const loadWorkflowStructure = async (workflow: any) => {
   try {
-    console.log('🔍 Loading REAL structure for:', workflow.process_name)
+    // Cancel previous request if it exists
+    if (currentWorkflowController) {
+      console.log('🚫 Cancelling previous workflow request')
+      currentWorkflowController.abort()
+    }
     
-    const response = await fetch(`http://localhost:3001/api/business/process-details/${workflow.id}`)  // ✅ FIX: Use workflow.id
+    // Create new abort controller for this request
+    currentWorkflowController = new AbortController()
+    
+    console.log('🔍 Loading REAL structure for:', workflow.process_name, 'with ID:', workflow.id)
+    
+    const url = `http://localhost:3001/api/business/process-details/${workflow.id}`
+    console.log('📡 Fetching details from:', url)
+    
+    const response = await fetch(url, {
+      signal: currentWorkflowController.signal
+    })
     
     if (response.ok) {
       const data = await response.json()
       workflowDetails.value = data.data
       
-      console.log('✅ REAL workflow structure loaded:', data.data.nodeCount, 'nodes')
+      console.log('✅ REAL workflow structure loaded for', workflow.process_name, ':', data.data.nodeCount, 'nodes')
       
       // Create VueFlow from REAL data
       createFlowFromRealData(data.data, workflow)
       
     } else {
-      console.warn('⚠️ Workflow details not available, using enhanced representation')
+      console.warn('⚠️ Workflow details not available for', workflow.process_name, 'status:', response.status)
+      console.warn('🔄 Using enhanced representation instead')
       createEnhancedFlow(workflow)
     }
     
   } catch (error: any) {
-    console.error('❌ Failed to load workflow structure:', error)
+    if (error.name === 'AbortError') {
+      console.log('🚫 Request cancelled for', workflow.process_name)
+      return
+    }
+    
+    console.error('❌ Failed to load workflow structure for', workflow.process_name, ':', error)
+    console.error('🔄 Falling back to enhanced flow')
     createEnhancedFlow(workflow)
   }
+  
+  // Auto-fit is handled immediately by createFlowFromRealData/createEnhancedFlow
+  console.log('✅ Workflow structure loading completed')
 }
 
 const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
@@ -1112,12 +1126,18 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
   flowElements.value = [...nodes, ...edges]
   console.log('🎯 FlowElements final:', flowElements.value.length, 'elements')
   
-  // Auto-fit immediato dopo render - NO ESITAZIONE
+  // Force proper fit - reset viewport then fit
   nextTick(() => {
-    fitView({ 
-      duration: 400, 
-      padding: 0.15
-    })
+    // Force reset viewport and zoom
+    setViewport({ x: 0, y: 0, zoom: 0.5 })
+    
+    setTimeout(() => {
+      fitView({ 
+        duration: 0,  // Instant fit
+        padding: 0.2   // More padding to ensure visibility
+      })
+      console.log('🎯 Forced fit applied with viewport reset')
+    }, 50)
   })
 }
 
@@ -1165,12 +1185,18 @@ const createEnhancedFlow = (workflow: any) => {
   
   flowElements.value = [...nodes, ...edges]
   
-  // Auto-fit per enhanced flow - NO ESITAZIONE
+  // Force proper fit for enhanced flow  
   nextTick(() => {
-    fitView({ 
-      duration: 350, 
-      padding: 0.15
-    })
+    // Force reset viewport and zoom
+    setViewport({ x: 0, y: 0, zoom: 0.5 })
+    
+    setTimeout(() => {
+      fitView({ 
+        duration: 0,  // Instant fit
+        padding: 0.2   // More padding to ensure visibility
+      })
+      console.log('🎯 Forced fit applied for enhanced flow')
+    }, 50)
   })
 }
 
@@ -1710,29 +1736,29 @@ const getN8nIconProps = (nodeType: string, nodeName: string = '') => {
 const getNodeIcon = (nodeType: string, nodeName: string = '') => {
   // First check by nodeType for specific icons
   if (nodeType?.includes('code')) return Code
-  if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) return Globe
-  if (nodeType?.includes('function')) return Zap
-  if (nodeType?.includes('webhook')) return Link
-  if (nodeType?.includes('email') || nodeType?.includes('outlook') || nodeType?.includes('gmail')) return Mail
-  if (nodeType?.includes('googleDrive') || nodeType?.includes('file')) return FileText
+  if (nodeType?.includes('httpRequest') || nodeName.toLowerCase().includes('scarica')) return 'lucide:globe'
+  if (nodeType?.includes('function')) return 'lucide:zap'
+  if (nodeType?.includes('webhook')) return 'lucide:link'
+  if (nodeType?.includes('email') || nodeType?.includes('outlook') || nodeType?.includes('gmail')) return 'lucide:mail'
+  if (nodeType?.includes('googleDrive') || nodeType?.includes('file')) return 'lucide:file-text'
   
   // Trigger icons - specific first, then generic
-  if (nodeType?.includes('scheduleTrigger') || nodeType?.includes('intervalTrigger') || nodeType?.includes('cronTrigger')) return Clock
-  if (nodeType?.includes('trigger')) return Play
+  if (nodeType?.includes('scheduleTrigger') || nodeType?.includes('intervalTrigger') || nodeType?.includes('cronTrigger')) return 'lucide:clock'
+  if (nodeType?.includes('trigger')) return 'lucide:play'
   
-  if (nodeType?.includes('agent')) return Bot
-  if (nodeType?.includes('database') || nodeType?.includes('supabase') || nodeType?.includes('vectorStore')) return Database
+  if (nodeType?.includes('agent')) return 'lucide:bot'
+  if (nodeType?.includes('database') || nodeType?.includes('supabase') || nodeType?.includes('vectorStore')) return 'lucide:database'
   
   // Fallback to general type
   if (typeof nodeType === 'string') {
-    if (nodeType === 'trigger') return Play
-    if (nodeType === 'ai') return Bot
-    if (nodeType === 'storage') return Database
-    if (nodeType === 'tool') return Cpu
+    if (nodeType === 'trigger') return 'lucide:play'
+    if (nodeType === 'ai') return 'lucide:bot'
+    if (nodeType === 'storage') return 'lucide:database'
+    if (nodeType === 'tool') return 'lucide:cpu'
   }
   
   // Default
-  return Settings
+  return 'lucide:settings'
 }
 
 const getHandleType = (connectionType: string) => {
@@ -1753,6 +1779,17 @@ const getLogLevelClass = (level: string) => {
     default: return 'text-gray-400 font-semibold'
   }
 }
+
+// Debug watchers
+watch(selectedWorkflowData, (newData, oldData) => {
+  console.log('🔍 [DEBUG] selectedWorkflowData changed:', {
+    newData: newData?.process_name,
+    oldData: oldData?.process_name,
+    newId: newData?.id,
+    oldId: oldData?.id,
+    stackTrace: new Error().stack?.split('\n')[2]?.trim()
+  })
+})
 
 // Lifecycle
 onMounted(async () => {

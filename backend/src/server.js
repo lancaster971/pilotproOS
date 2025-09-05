@@ -590,6 +590,7 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
     const { processId } = req.params;
     
     // ✅ DRIZZLE ORM: Type-safe single workflow query
+    // 🐛 BUG FIX: Workflow IDs are strings, not integers!
     const workflows = await db
       .select({
         id: workflowEntity.id,
@@ -601,8 +602,10 @@ app.get('/api/business/process-details/:processId', async (req, res) => {
         updated_at: workflowEntity.updatedAt
       })
       .from(workflowEntity)
-      .where(eq(workflowEntity.id, parseInt(processId)))
-      .where(eq(workflowEntity.isArchived, false));
+      .where(and(
+        eq(workflowEntity.id, processId),  // 🔧 REMOVED parseInt() - IDs are strings!
+        eq(workflowEntity.isArchived, false)
+      ));
     
     if (workflows.length === 0) {
       return res.status(404).json({
