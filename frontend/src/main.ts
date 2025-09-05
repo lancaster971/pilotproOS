@@ -8,6 +8,10 @@ import './style.css'
 import './design-system/utilities.css'
 import './design-system/premium.css'
 
+// Vue Toastification - Replace custom toast system
+import Toast, { POSITION } from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
+
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
 import Nora from '@primevue/themes/nora'
@@ -110,6 +114,22 @@ app.use(PrimeVue, {
 
 app.use(pinia)
 app.use(router)
+
+// Vue Toastification configuration
+app.use(Toast, {
+  position: POSITION.TOP_RIGHT,
+  timeout: 5000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: "button",
+  icon: true,
+  rtl: false
+})
 
 // Import and register missing PrimeVue components
 import Timeline from 'primevue/timeline'

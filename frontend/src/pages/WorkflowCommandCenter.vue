@@ -745,7 +745,7 @@ import TimelineModal from '../components/common/TimelineModal.vue'
 import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
-import { useToast } from '../composables/useToast'
+import { useToast } from 'vue-toastification'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'

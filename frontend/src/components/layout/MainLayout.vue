@@ -98,7 +98,6 @@
     ></div>
     
     <!-- Toast Container -->
-    <ToastContainer />
     
   </div>
 </template>
@@ -112,7 +111,6 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
-import ToastContainer from '../ToastContainer.vue'
 
 // Stores
 const authStore = useAuthStore()
