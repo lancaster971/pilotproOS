@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { tenantAPI, monitoringAPI } from '../services/api'
+import { tenantAPI, businessAPI } from '../services/api-client'
 
 // 🔒 Tipi TypeScript per Enterprise Data Layer
 

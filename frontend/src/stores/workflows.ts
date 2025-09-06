@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Workflow, WorkflowStats } from '../types'
-import { apiClient } from '../services/api'
+import { businessAPI } from '../services/api-client'
 
 export const useWorkflowsStore = defineStore('workflows', () => {
   // State - same structure as n8n workflow store

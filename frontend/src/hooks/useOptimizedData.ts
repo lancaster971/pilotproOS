@@ -4,7 +4,7 @@
 import { useEffect, useMemo } from 'react'
 import { useDataStore } from '../store/dataStore'
 import { useSmartSync } from '../services/smartSyncService'
-import { aiAgentsAPI } from '../services/api'
+import { agentsAPI } from '../services/api-client'
 
 // 🎯 Interfacce per hook return types
 interface UseWorkflowsReturn {

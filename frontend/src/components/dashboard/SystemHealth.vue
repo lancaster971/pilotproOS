@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import { businessAPI } from '../../services/api'
+import { businessAPI } from '../../services/api-client'
 
 // Local state
 const isLoading = ref(false)

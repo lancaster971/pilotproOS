@@ -490,6 +490,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useUIStore } from '../../stores/ui'
+import { businessAPI } from '../../services/api-client'
 import type { Workflow } from '../../types'
 
 // Props
@@ -559,14 +560,8 @@ const loadWorkflowDetails = async () => {
       callStack: new Error().stack?.split('\n')[1]?.trim()
     })
     
-    // Get detailed workflow data from backend
-    const response = await fetch(`http://localhost:3001/api/business/process-details/${props.workflow.id}`)
-    
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    // Get detailed workflow data from backend using OFETCH
+    const data = await businessAPI.getProcessDetails(props.workflow.id)
     console.log('✅ Workflow details loaded:', data.data)
     
     // Extract business description from sticky notes
@@ -621,14 +616,11 @@ const loadWorkflowDetails = async () => {
 const loadBusinessDescription = async () => {
   try {
     // Get sticky notes content from n8n workflow
-    const response = await fetch(`http://localhost:3001/api/business/sticky-notes/${props.workflow.id}`)
-    
-    if (response.ok) {
-      const data = await response.json()
-      if (data.data?.stickyNotes?.length > 0) {
-        businessDescription.value = data.data.stickyNotes.map((note: any) => note.content).filter(Boolean)
-        console.log('✅ Business description loaded from sticky notes:', businessDescription.value.length)
-      }
+    const data = await businessAPI.getProcessDetails(props.workflow.id)
+      
+    if (data?.data?.stickyNotes?.length > 0) {
+      businessDescription.value = data.data.stickyNotes.map((note: any) => note.content).filter(Boolean)
+      console.log('✅ Business description loaded from sticky notes:', businessDescription.value.length)
     }
   } catch (err) {
     console.warn('⚠️ Could not load sticky notes:', err)

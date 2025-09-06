@@ -334,6 +334,7 @@ import {
 } from 'lucide-vue-next'
 import { useWorkflowsStore } from '../../stores/workflows'
 import { useUIStore } from '../../stores/ui'
+import { businessAPI } from '../../services/api-client'
 import type { Workflow } from '../../types'
 
 // VueFlow styles
@@ -375,11 +376,10 @@ const refreshWorkflowData = async () => {
   isRefreshing.value = true
   
   try {
-    // Fetch detailed workflow data from backend
-    const response = await fetch(`http://localhost:3001/api/business/process-details/${props.workflow.id}`)
+    // Fetch detailed workflow data from backend using OFETCH
+    const data = await businessAPI.getProcessDetails(props.workflow.id)
     
-    if (response.ok) {
-      const data = await response.json()
+    if (data) {
       workflowDetails.value = data.data
       
       // Create flow for modal visualization

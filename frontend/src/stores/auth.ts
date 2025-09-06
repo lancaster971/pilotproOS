@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '../types'
-import { apiClient } from '../services/api'
+import { authAPI } from '../services/api-client'
 
 export const useAuthStore = defineStore('auth', () => {
   // State - same pattern as n8n stores
