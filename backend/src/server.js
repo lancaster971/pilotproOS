@@ -17,7 +17,7 @@ import businessLogger from './utils/logger.js';
 // Drizzle ORM imports
 import { db } from './db/connection.js';
 import { workflowEntity, executionEntity } from './db/schema.js';
-import { eq, desc, sql, count, avg, and, gte } from 'drizzle-orm';
+import { eq, desc, sql, count, avg, max, and, gte } from 'drizzle-orm';
 
 // Business sanitization utilities
 import { 
@@ -120,10 +120,10 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
+// Rate limiting (RELAXED for development)
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000,
+  windowMs: 1 * 60 * 1000, // 1 minute window for development  
+  max: 10000, // 10000 requests per minute for development
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false
@@ -736,16 +736,43 @@ app.get('/api/business/analytics', async (req, res) => {
   }
 });
 
-// Business Statistics API (simple version)
+// Business Statistics API (REAL DATA from PostgreSQL)
 app.get('/api/business/statistics', async (req, res) => {
   try {
+    // ✅ REAL DATA: Same query as analytics API
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+    
+    const analytics = await db
+      .select({
+        total_processes: count(sql`DISTINCT ${workflowEntity.id}`),
+        active_processes: count(sql`DISTINCT CASE WHEN ${workflowEntity.active} = true THEN ${workflowEntity.id} END`),
+        total_executions: count(executionEntity.id),
+        successful_executions: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`),
+        avg_duration_ms: avg(sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt})) * 1000`)
+      })
+      .from(workflowEntity)
+      .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(and(
+        eq(workflowEntity.isArchived, false),
+        sql`(${executionEntity.startedAt} IS NULL OR ${executionEntity.startedAt} >= ${sevenDaysAgoISO})`
+      ));
+    
+    const data = analytics[0];
+    const successRate = data.total_executions > 0 
+      ? (data.successful_executions / data.total_executions * 100) 
+      : 0;
+    
     const stats = {
-      totalProcesses: 20,
-      activeProcesses: 2,
-      totalExecutions: 181,
-      successRate: 91.7,
-      avgProcessingTime: 296000
+      totalProcesses: parseInt(data.total_processes) || 0,
+      activeProcesses: parseInt(data.active_processes) || 0,
+      totalExecutions: parseInt(data.total_executions) || 0,
+      successRate: Math.round(successRate * 10) / 10,
+      avgProcessingTime: Math.round(data.avg_duration_ms || 0)
     };
+    
+    businessLogger.info('Statistics calculated from REAL PostgreSQL data', stats);
     
     res.json({
       data: stats,
@@ -764,18 +791,103 @@ app.get('/api/business/statistics', async (req, res) => {
 // Business Automation Insights API (simple version)
 app.get('/api/business/automation-insights', async (req, res) => {
   try {
+    // ✅ REAL DATA: Calculate insights from actual workflow data
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+    
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const fourteenDaysAgoISO = fourteenDaysAgo.toISOString();
+    
+    // Get current week data
+    const currentWeek = await db
+      .select({
+        total_processes: count(sql`DISTINCT ${workflowEntity.id}`),
+        active_processes: count(sql`DISTINCT CASE WHEN ${workflowEntity.active} = true THEN ${workflowEntity.id} END`),
+        total_executions: count(executionEntity.id),
+        successful_executions: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`)
+      })
+      .from(workflowEntity)
+      .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(and(
+        eq(workflowEntity.isArchived, false),
+        sql`(${executionEntity.startedAt} IS NULL OR ${executionEntity.startedAt} >= ${sevenDaysAgoISO})`
+      ));
+    
+    // Get previous week for comparison
+    const previousWeek = await db
+      .select({
+        total_executions: count(executionEntity.id),
+        successful_executions: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`)
+      })
+      .from(workflowEntity)
+      .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(and(
+        eq(workflowEntity.isArchived, false),
+        sql`(${executionEntity.startedAt} >= ${fourteenDaysAgoISO} AND ${executionEntity.startedAt} < ${sevenDaysAgoISO})`
+      ));
+    
+    const current = currentWeek[0];
+    const previous = previousWeek[0];
+    
+    // Calculate real metrics
+    const weeklyGrowth = previous.total_executions > 0 
+      ? ((current.total_executions - previous.total_executions) / previous.total_executions * 100) 
+      : 0;
+    
+    const currentSuccessRate = current.total_executions > 0 
+      ? (current.successful_executions / current.total_executions * 100) 
+      : 0;
+    
+    const previousSuccessRate = previous.total_executions > 0 
+      ? (previous.successful_executions / previous.total_executions * 100) 
+      : 0;
+    
+    const performanceImprovement = previousSuccessRate > 0 
+      ? (currentSuccessRate - previousSuccessRate) 
+      : 0;
+    
+    const automationCoverage = current.total_processes > 0 
+      ? (current.active_processes / current.total_processes * 100) 
+      : 0;
+    
+    // Generate dynamic recommendations based on real data
+    const recommendations = [];
+    if (current.active_processes < current.total_processes) {
+      recommendations.push(`Activate ${current.total_processes - current.active_processes} inactive processes to improve automation coverage`);
+    }
+    if (currentSuccessRate < 95) {
+      recommendations.push(`Monitor ${Math.round((100 - currentSuccessRate) / 100 * current.total_executions)} failed executions for optimization opportunities`);
+    }
+    if (performanceImprovement < 0) {
+      recommendations.push('Performance has declined - schedule maintenance for optimal operation');
+    } else if (performanceImprovement > 5) {
+      recommendations.push('Excellent performance improvement - consider scaling successful patterns');
+    } else {
+      recommendations.push('Maintain current optimization practices for consistent performance');
+    }
+    
     const insights = {
-      recommendations: [
-        'Consider activating inactive processes to improve automation coverage',
-        'Monitor processes with lower success rates for optimization opportunities',
-        'Schedule regular maintenance for optimal performance'
-      ],
+      recommendations,
       trends: {
-        weeklyGrowth: 5.2,
-        performanceImprovement: 12.1,
-        automationCoverage: 85
+        weeklyGrowth: Math.round(weeklyGrowth * 10) / 10,
+        performanceImprovement: Math.round(performanceImprovement * 10) / 10,
+        automationCoverage: Math.round(automationCoverage * 10) / 10
+      },
+      performance: {
+        successfulExecutions: parseInt(current.successful_executions) || 0,
+        failedExecutions: (parseInt(current.total_executions) || 0) - (parseInt(current.successful_executions) || 0)
+      },
+      businessImpact: {
+        timeSavedHours: Math.round(((parseInt(current.successful_executions) || 0) * 5) / 60),
+        costSavings: `€${Math.round((parseInt(current.successful_executions) || 0) * 2.5)}`,
+        roi: automationCoverage > 80 ? 'High' : automationCoverage > 60 ? 'Medium' : 'Low',
+        businessImpactScore: Math.round(automationCoverage * currentSuccessRate / 100)
       }
     };
+    
+    businessLogger.info('Automation insights calculated from REAL data', insights);
     
     res.json({
       data: insights,
@@ -791,19 +903,88 @@ app.get('/api/business/automation-insights', async (req, res) => {
   }
 });
 
-// Business Integration Health API (simple version)
+// Business Integration Health API (REAL DATA from PostgreSQL)
 app.get('/api/business/integration-health', async (req, res) => {
   try {
+    // ✅ REAL DATA: Calculate actual integration status from workflows
+    const integrationStats = await db
+      .select({
+        total_workflows: count(sql`DISTINCT ${workflowEntity.id}`),
+        active_workflows: count(sql`DISTINCT CASE WHEN ${workflowEntity.active} = true THEN ${workflowEntity.id} END`),
+        recent_executions: count(sql`CASE WHEN ${executionEntity.startedAt} >= NOW() - INTERVAL '1 hour' THEN 1 END`),
+        successful_recent: count(sql`CASE WHEN ${executionEntity.startedAt} >= NOW() - INTERVAL '1 hour' AND ${executionEntity.status} = 'success' THEN 1 END`)
+      })
+      .from(workflowEntity)
+      .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(eq(workflowEntity.isArchived, false));
+    
+    const stats = integrationStats[0];
+    
+    // Calculate real health metrics
+    const databaseHealth = stats.total_workflows > 0 ? 'connected' : 'disconnected';
+    const automationHealth = stats.active_workflows > 0 ? 'available' : 'inactive';
+    const recentActivityHealth = stats.recent_executions > 0 ? 'operational' : 'quiet';
+    
+    const totalConnections = parseInt(stats.active_workflows) || 0;
+    const healthyConnections = parseInt(stats.successful_recent) || 0;
+    const activeConnections = parseInt(stats.recent_executions) || 0;
+    const issuesCount = activeConnections - healthyConnections;
+    
+    // Calculate uptime based on success rate
+    const uptimePercentage = activeConnections > 0 
+      ? (healthyConnections / activeConnections * 100)
+      : 99.0;
+    
+    // Determine overall status
+    let overallStatus = 'healthy';
+    if (uptimePercentage < 90) overallStatus = 'degraded';
+    if (uptimePercentage < 70) overallStatus = 'critical';
+    if (stats.active_workflows === 0) overallStatus = 'inactive';
+    
+    // Generate top services from real workflow data
+    const topServices = [];
+    if (stats.active_workflows > 0) {
+      topServices.push({
+        name: 'Business Automation Engine',
+        status: automationHealth,
+        connections: parseInt(stats.active_workflows),
+        lastCheck: new Date().toISOString()
+      });
+    }
+    if (stats.total_workflows > 0) {
+      topServices.push({
+        name: 'PostgreSQL Database',
+        status: databaseHealth,
+        connections: parseInt(stats.total_workflows),
+        lastCheck: new Date().toISOString()
+      });
+    }
+    if (activeConnections > 0) {
+      topServices.push({
+        name: 'Process Execution Engine',
+        status: recentActivityHealth,
+        connections: activeConnections,
+        lastCheck: new Date().toISOString()
+      });
+    }
+    
     const health = {
-      status: 'healthy',
+      status: overallStatus,
+      totalConnections,
+      activeConnections,
+      healthyConnections,
+      needsAttention: issuesCount,
       integrations: {
-        database: 'connected',
-        automation_engine: 'available',
-        external_apis: 'operational'
+        database: databaseHealth,
+        automation_engine: automationHealth,
+        external_apis: recentActivityHealth
       },
-      uptime: '99.8%',
-      lastCheck: new Date().toISOString()
+      uptime: `${Math.round(uptimePercentage * 10) / 10}%`,
+      lastCheck: new Date().toISOString(),
+      services: topServices
     };
+    
+    businessLogger.info('Integration health calculated from REAL data', health);
     
     res.json({
       data: health,
@@ -816,6 +997,245 @@ app.get('/api/business/integration-health', async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching integration health:', error);
     res.status(500).json({ error: 'Failed to fetch integration health' });
+  }
+});
+
+// Business Top Performers API (REAL DATA from PostgreSQL)
+app.get('/api/business/top-performers', async (req, res) => {
+  try {
+    // ✅ REAL DATA: Get actual top performing workflows
+    const topPerformers = await db
+      .select({
+        workflow_id: workflowEntity.id,
+        process_name: workflowEntity.name,
+        execution_count: count(executionEntity.id),
+        success_count: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`),
+        avg_duration_ms: avg(sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt})) * 1000`),
+        last_execution: max(executionEntity.startedAt)
+      })
+      .from(workflowEntity)
+      .innerJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
+      .where(and(
+        eq(workflowEntity.active, true),
+        eq(workflowEntity.isArchived, false),
+        sql`${executionEntity.startedAt} >= NOW() - INTERVAL '30 days'`
+      ))
+      .groupBy(workflowEntity.id, workflowEntity.name)
+      .having(sql`COUNT(${executionEntity.id}) >= 3`) // Minimum 3 executions
+      .orderBy(sql`(COUNT(CASE WHEN ${executionEntity.status} = 'success' THEN 1 END)::float / COUNT(${executionEntity.id})::float) DESC, COUNT(${executionEntity.id}) DESC`)
+      .limit(5);
+    
+    // Calculate success rates and format data
+    const formattedPerformers = topPerformers.map(performer => ({
+      workflow_id: performer.workflow_id,
+      process_name: performer.process_name || `Process ${performer.workflow_id}`,
+      execution_count: parseInt(performer.execution_count) || 0,
+      success_rate: performer.execution_count > 0 
+        ? Math.round((performer.success_count / performer.execution_count) * 100)
+        : 0,
+      avg_duration_ms: Math.round(performer.avg_duration_ms || 0),
+      last_execution: performer.last_execution
+    }));
+    
+    businessLogger.info(`Top performers calculated from REAL data: ${formattedPerformers.length} workflows found`);
+    
+    res.json({
+      data: formattedPerformers,
+      total: formattedPerformers.length,
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/top-performers'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching top performers:', error);
+    res.status(500).json({ error: 'Failed to fetch top performers' });
+  }
+});
+
+// Business Hourly Analytics API (REAL DATA from PostgreSQL)
+app.get('/api/business/hourly-analytics', async (req, res) => {
+  try {
+    // ✅ REAL DATA: Get actual hourly execution distribution
+    const hourlyData = await db
+      .select({
+        hour: sql`EXTRACT(HOUR FROM ${executionEntity.startedAt})`,
+        execution_count: count(executionEntity.id),
+        success_count: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`),
+        avg_duration: avg(sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt}))`)
+      })
+      .from(executionEntity)
+      .innerJoin(workflowEntity, eq(executionEntity.workflowId, workflowEntity.id))
+      .where(and(
+        sql`${executionEntity.startedAt} >= NOW() - INTERVAL '7 days'`,
+        eq(workflowEntity.isArchived, false)
+      ))
+      .groupBy(sql`EXTRACT(HOUR FROM ${executionEntity.startedAt})`)
+      .orderBy(sql`EXTRACT(HOUR FROM ${executionEntity.startedAt})`);
+    
+    // Fill missing hours with 0
+    const hourlyStats = Array.from({ length: 24 }, (_, hour) => {
+      const found = hourlyData.find(d => parseInt(d.hour) === hour);
+      return {
+        hour: hour.toString().padStart(2, '0') + ':00',
+        executions: found ? parseInt(found.execution_count) : 0,
+        success_rate: found && found.execution_count > 0 
+          ? Math.round((found.success_count / found.execution_count) * 100)
+          : 0,
+        avg_duration: found ? Math.round(found.avg_duration || 0) : 0
+      };
+    });
+    
+    // Calculate peaks and insights
+    const executionCounts = hourlyStats.map(h => h.executions);
+    const peakHour = hourlyStats.find(h => h.executions === Math.max(...executionCounts))?.hour || '00:00';
+    const quietHour = hourlyStats.find(h => h.executions === Math.min(...executionCounts.filter(c => c > 0)))?.hour || '00:00';
+    const totalDayExecutions = executionCounts.reduce((sum, count) => sum + count, 0);
+    const avgHourlyLoad = Math.round(totalDayExecutions / 24);
+    const peakValue = Math.max(...executionCounts);
+    
+    businessLogger.info(`Hourly analytics calculated from REAL data: ${hourlyStats.length} hours, peak at ${peakHour}`);
+    
+    res.json({
+      hourlyStats,
+      insights: {
+        peakHour: parseInt(peakHour.split(':')[0]),
+        quietHour: parseInt(quietHour.split(':')[0]),
+        avgHourlyLoad,
+        peakValue,
+        totalDayExecutions,
+        activityVariance: peakValue > 0 ? Math.round(((peakValue - avgHourlyLoad) / peakValue) * 100) : 0,
+        workingHours: hourlyStats.filter(h => h.executions > 0).length,
+        efficiency: Math.round(hourlyStats.reduce((sum, h) => sum + h.success_rate, 0) / 24)
+      },
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/hourly-analytics'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching hourly analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch hourly analytics' });
+  }
+});
+
+// Business Daily Trend API (REAL DATA from PostgreSQL)  
+app.get('/api/business/daily-trend', async (req, res) => {
+  try {
+    // ✅ REAL DATA: Get actual daily execution trend for 30 days
+    const dailyData = await db
+      .select({
+        date: sql`DATE(${executionEntity.startedAt})`,
+        execution_count: count(executionEntity.id),
+        success_count: count(sql`CASE WHEN ${executionEntity.status} = 'success' THEN 1 END`),
+        failed_count: count(sql`CASE WHEN ${executionEntity.status} != 'success' THEN 1 END`),
+        avg_duration: avg(sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt}))`)
+      })
+      .from(executionEntity)
+      .innerJoin(workflowEntity, eq(executionEntity.workflowId, workflowEntity.id))
+      .where(and(
+        sql`${executionEntity.startedAt} >= NOW() - INTERVAL '30 days'`,
+        eq(workflowEntity.isArchived, false)
+      ))
+      .groupBy(sql`DATE(${executionEntity.startedAt})`)
+      .orderBy(sql`DATE(${executionEntity.startedAt})`);
+    
+    // Fill missing days with 0
+    const dailyStats = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const found = dailyData.find(d => d.date === dateStr);
+      dailyStats.push({
+        date: date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }),
+        dateISO: dateStr,
+        executions: found ? parseInt(found.execution_count) : 0,
+        successes: found ? parseInt(found.success_count) : 0,
+        failures: found ? parseInt(found.failed_count) : 0,
+        success_rate: found && found.execution_count > 0 
+          ? Math.round((found.success_count / found.execution_count) * 100)
+          : 0
+      });
+    }
+    
+    businessLogger.info(`Daily trend calculated from REAL data: ${dailyStats.length} days`);
+    
+    res.json({
+      dailyStats,
+      labels: dailyStats.map(d => d.date),
+      successData: dailyStats.map(d => d.successes),
+      failedData: dailyStats.map(d => d.failures),
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/daily-trend'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching daily trend:', error);
+    res.status(500).json({ error: 'Failed to fetch daily trend' });
+  }
+});
+
+// Business Live Events API (REAL DATA from PostgreSQL)
+app.get('/api/business/live-events', async (req, res) => {
+  try {
+    // ✅ REAL DATA: Get actual recent executions as live events
+    const recentExecutions = await db
+      .select({
+        execution_id: executionEntity.id,
+        workflow_name: workflowEntity.name,
+        status: executionEntity.status,
+        started_at: executionEntity.startedAt,
+        duration: sql`EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt}))`
+      })
+      .from(executionEntity)
+      .innerJoin(workflowEntity, eq(executionEntity.workflowId, workflowEntity.id))
+      .where(and(
+        sql`${executionEntity.startedAt} >= NOW() - INTERVAL '2 hours'`,
+        eq(workflowEntity.isArchived, false)
+      ))
+      .orderBy(desc(executionEntity.startedAt))
+      .limit(10);
+    
+    // Transform to live events format
+    const liveEvents = recentExecutions.map(exec => {
+      const duration = Math.round(exec.duration || 0);
+      const timeAgo = new Date(exec.started_at).toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      return {
+        title: exec.status === 'success' 
+          ? `Process completato`
+          : `Process ${exec.status}`,
+        description: exec.status === 'success'
+          ? `${exec.workflow_name} - ${duration}s`
+          : `${exec.workflow_name} - attenzione richiesta`,
+        time: timeAgo,
+        type: exec.status === 'success' ? 'success' : exec.status === 'error' ? 'error' : 'info'
+      };
+    });
+    
+    businessLogger.info(`Live events calculated from REAL data: ${liveEvents.length} recent executions`);
+    
+    res.json({
+      events: liveEvents,
+      total: liveEvents.length,
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/live-events'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching live events:', error);
+    res.status(500).json({ error: 'Failed to fetch live events' });
   }
 });
 
