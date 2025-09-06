@@ -673,6 +673,7 @@ app.get('/api/business/analytics', async (req, res) => {
     // ✅ DRIZZLE ORM: Complex aggregation query with business logic
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoISO = sevenDaysAgo.toISOString();
     
     const analytics = await db
       .select({
@@ -686,7 +687,7 @@ app.get('/api/business/analytics', async (req, res) => {
       .leftJoin(executionEntity, eq(workflowEntity.id, executionEntity.workflowId))
       .where(and(
         eq(workflowEntity.isArchived, false),
-        sql`(${executionEntity.startedAt} IS NULL OR ${executionEntity.startedAt} >= ${sevenDaysAgo})`
+        sql`(${executionEntity.startedAt} IS NULL OR ${executionEntity.startedAt} >= ${sevenDaysAgoISO})`
       ));
     
     const data = analytics[0];
