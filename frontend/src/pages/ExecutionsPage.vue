@@ -236,7 +236,7 @@ import TimelineModal from '../components/common/TimelineModal.vue'
 import { useAuthStore } from '../stores/auth'
 import { useWorkflowsStore } from '../stores/workflows'
 import { useUIStore } from '../stores/ui'
-import { businessAPI } from '../services/api'
+import { businessAPI } from '../services/api-client'
 import webSocketService from '../services/websocket'
 import type { Execution } from '../types'
 
@@ -297,11 +297,9 @@ const refreshExecutions = async () => {
   try {
     console.log('🌐 Making API call to /process-runs...')
     
-    // Test with direct fetch first
-    const testResponse = await fetch('http://localhost:3001/api/business/process-runs')
-    console.log('🧪 Direct fetch status:', testResponse.status)
-    const testData = await testResponse.json()
-    console.log('🧪 Direct fetch data length:', testData.data?.length)
+    // Use OFETCH API client instead of direct fetch
+    const testData = await businessAPI.getProcessRuns()
+    console.log('✅ OFETCH data loaded, length:', testData.data?.length)
     
     // Now try with businessAPI
     const response = await businessAPI.get('/process-runs')

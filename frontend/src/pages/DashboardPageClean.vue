@@ -169,7 +169,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { TrendingUp, CheckCircle, Server, GitBranch, Play, Database } from 'lucide-vue-next'
 import AppLayout from '../layouts/AppLayout.vue'
-import { businessAPI } from '../services/api'
+import { businessAPI } from '../services/api-client'
 import webSocketService from '../services/websocket'
 
 // Local state
@@ -182,19 +182,16 @@ const loadData = async () => {
   try {
     console.log('🔄 Loading REAL data from PilotProOS backend...')
     
-    const processesResponse = await fetch('http://localhost:3001/api/business/processes')
-    if (processesResponse.ok) {
-      const processesData = await processesResponse.json()
-      workflowCount.value = processesData.total || 0
-      activeWorkflows.value = processesData.summary?.active || 0
-    }
+    // Use OFETCH API client for processes
+    const processesData = await businessAPI.getProcesses()
+    workflowCount.value = processesData.total || processesData.data?.length || 0
+    activeWorkflows.value = processesData.summary?.active || 0
     
-    const analyticsResponse = await fetch('http://localhost:3001/api/business/analytics')
-    if (analyticsResponse.ok) {
-      const analyticsData = await analyticsResponse.json()
-      executionsToday.value = analyticsData.overview?.totalExecutions || 0
-      successRate.value = analyticsData.overview?.successRate || 0
-    }
+    // Use OFETCH API client for analytics
+    const analyticsData = await businessAPI.getAnalytics()
+    console.log('✅ Analytics data loaded:', analyticsData)
+    executionsToday.value = analyticsData.overview?.totalExecutions || 0
+    successRate.value = analyticsData.overview?.successRate || 0
     
     console.log(`📊 Dashboard loaded: ${workflowCount.value} workflows, ${activeWorkflows.value} active`)
     

@@ -542,7 +542,7 @@ import Rating from 'primevue/rating'
 import Skeleton from 'primevue/skeleton'
 import Toast from 'primevue/toast'
 
-import { businessAPI } from '../services/api'
+import { businessAPI } from '../services/api-client'
 import webSocketService from '../services/websocket'
 
 // Real Data from Backend APIs
@@ -784,10 +784,6 @@ const premiumChartOptions = ref({
       borderWidth: 2,
       backgroundColor: '#fff'
     }
-  },
-  interaction: {
-    intersect: false,
-    mode: 'index'
   }
 })
 
@@ -926,21 +922,14 @@ const loadData = async () => {
   try {
     console.log('🔄 Loading ALL REAL data from PilotProOS backend...')
     
-    // Load all data in parallel
-    const [processesResponse, analyticsResponse, insightsResponse, statisticsResponse, healthResponse] = await Promise.all([
-      fetch('http://localhost:3001/api/business/processes'),
-      fetch('http://localhost:3001/api/business/analytics'),
-      fetch('http://localhost:3001/api/business/automation-insights'),
-      fetch('http://localhost:3001/api/business/statistics'),
-      fetch('http://localhost:3001/api/business/integration-health')
+    // Load all data in parallel with OFETCH
+    const [processesData, analyticsData, insightsData, statisticsData, healthData] = await Promise.all([
+      businessAPI.getProcesses(),
+      businessAPI.getAnalytics(),
+      businessAPI.getAutomationInsights(),
+      businessAPI.getStatistics(),
+      businessAPI.getIntegrationHealth()
     ])
-    
-    // Parse all responses
-    const processesData = processesResponse.ok ? await processesResponse.json() : null
-    const analyticsData = analyticsResponse.ok ? await analyticsResponse.json() : null
-    const insightsData = insightsResponse.ok ? await insightsResponse.json() : null
-    const statisticsData = statisticsResponse.ok ? await statisticsResponse.json() : null
-    const healthData = healthResponse.ok ? await healthResponse.json() : null
     
     console.log('✅ All data loaded:', { processesData, analyticsData, insightsData })
     

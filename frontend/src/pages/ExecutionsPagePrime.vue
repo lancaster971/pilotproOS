@@ -210,6 +210,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RefreshCw, Search, Play, MoreHorizontal } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
+import { businessAPI } from '../services/api-client'
 
 // Local state
 const isLoading = ref(false)
@@ -254,15 +255,16 @@ const refreshExecutions = async () => {
   isLoading.value = true
   
   try {
-    const response = await fetch('http://localhost:3001/api/business/process-runs')
-    const data = await response.json()
+    const data = await businessAPI.getProcessRuns()
     
     if (data.data && Array.isArray(data.data)) {
       executions.value = data.data
+    } else {
+      executions.value = []
     }
     
   } catch (error: any) {
-    console.error('❌ ERROR in refreshExecutions:', error)
+    console.error('❌ ERROR loading executions:', error.message)
     executions.value = []
   } finally {
     isLoading.value = false

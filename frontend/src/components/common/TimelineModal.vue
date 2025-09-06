@@ -201,6 +201,7 @@ import { Icon } from '@iconify/vue'
 import DetailModal from './DetailModal.vue'
 import { useModal } from '../../composables/useModal'
 import { useBusinessParser } from '../../composables/useBusinessParser'
+import { businessAPI, $fetch } from '../../services/api-client'
 
 interface Props {
   workflowId: string
@@ -254,13 +255,8 @@ const loadTimeline = async () => {
       url += `?executionId=${props.executionId}`
     }
     
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    // Use OFETCH API client instead of direct fetch
+    const data = await businessAPI.getWorkflowDetails(props.workflowId)
     console.log('✅ Process timeline loaded:', data.data)
     
     // Check if no business nodes are configured
@@ -330,16 +326,11 @@ const handleForceRefresh = async () => {
   try {
     console.log('🔥 Force refresh: Process timeline for', props.workflowId)
     
-    // Try force refresh endpoint first
+    // Try force refresh endpoint first  
     try {
-      const refreshResponse = await fetch(`http://localhost:3001/api/business/process-refresh/${props.workflowId}`, {
-        method: 'POST'
-      })
-      
-      if (refreshResponse.ok) {
-        console.log('✅ Force refresh succeeded')
-        showToast('success', 'Timeline data refreshed successfully')
-      }
+      await businessAPI.refreshProcess(props.workflowId)
+      console.log('✅ Force refresh succeeded')
+      showToast('success', 'Timeline data refreshed successfully')
     } catch (refreshError) {
       console.warn('⚠️ Force refresh endpoint not available:', refreshError)
     }

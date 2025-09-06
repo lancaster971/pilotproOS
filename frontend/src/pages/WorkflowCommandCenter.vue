@@ -743,6 +743,7 @@ import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
 import { useToast } from 'vue-toastification'
+import { businessAPI, $fetch } from '../services/api-client'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'
@@ -850,32 +851,24 @@ const refreshAllData = async () => {
   try {
     console.log('🔄 Loading ALL REAL workflow data for Command Center...')
     
-    // Get all workflows from backend with cache busting via URL param
-    const [workflowsResponse, analyticsResponse] = await Promise.all([
-      fetch(`http://localhost:3001/api/business/processes?_t=${Date.now()}&refresh=true`),
-      fetch(`http://localhost:3001/api/business/analytics?_t=${Date.now()}`)
+    // Get all workflows from backend with cache busting via URL param - OFETCH Migration
+    const [workflowsData, analyticsResponse] = await Promise.all([
+      businessAPI.getProcesses({ _t: Date.now(), refresh: true }),
+      businessAPI.getAnalytics({ _t: Date.now() })
     ])
-    
-    if (!workflowsResponse.ok) {
-      throw new Error(`Backend API error: ${workflowsResponse.status}`)
-    }
-    
-    const workflowsData = await workflowsResponse.json()
     console.log('✅ REAL workflows loaded:', workflowsData.data?.length || 0)
     console.log('📋 Raw data preview:', workflowsData.data?.slice(0, 3))
     
     realWorkflows.value = workflowsData.data || []
     console.log('🔄 Set realWorkflows to:', realWorkflows.value.length, 'items')
     
-    // Get analytics data for KPI calculations
-    if (analyticsResponse.ok) {
-      analyticsData.value = await analyticsResponse.json()
-      console.log('✅ REAL analytics loaded:', {
-        totalExecutions: analyticsData.value.overview?.totalExecutions,
-        successRate: analyticsData.value.overview?.successRate,
-        avgDuration: analyticsData.value.overview?.avgDurationSeconds
-      })
-    }
+    // Get analytics data for KPI calculations - OFETCH handles response automatically
+    analyticsData.value = analyticsResponse
+    console.log('✅ REAL analytics loaded:', {
+      totalExecutions: analyticsData.value.overview?.totalExecutions,
+      successRate: analyticsData.value.overview?.successRate,
+      avgDuration: analyticsData.value.overview?.avgDurationSeconds
+    })
     
     // Manual selection only - NO AUTO-SELECTION of first workflow
     // This was causing the bug where clicking any workflow showed the same content
@@ -931,27 +924,16 @@ const loadWorkflowStructure = async (workflow: any) => {
     
     console.log('🔍 Loading REAL structure for:', workflow.process_name, 'with ID:', workflow.id)
     
-    const url = `http://localhost:3001/api/business/process-details/${workflow.id}`
-    console.log('📡 Fetching details from:', url)
+    console.log('📡 Fetching details with OFETCH for workflow:', workflow.id)
     
-    const response = await fetch(url, {
-      signal: currentWorkflowController.signal
-    })
+    // Use OFETCH API client instead of direct fetch
+    const data = await businessAPI.getProcessDetails(workflow.id)
+    workflowDetails.value = data.data
     
-    if (response.ok) {
-      const data = await response.json()
-      workflowDetails.value = data.data
-      
-      console.log('✅ REAL workflow structure loaded for', workflow.process_name, ':', data.data.nodeCount, 'nodes')
-      
-      // Create VueFlow from REAL data
-      createFlowFromRealData(data.data, workflow)
-      
-    } else {
-      console.warn('⚠️ Workflow details not available for', workflow.process_name, 'status:', response.status)
-      console.warn('🔄 Using enhanced representation instead')
-      createEnhancedFlow(workflow)
-    }
+    console.log('✅ REAL workflow structure loaded for', workflow.process_name, ':', data.data.nodeCount, 'nodes')
+    
+    // Create VueFlow from REAL data
+    createFlowFromRealData(data.data, workflow)
     
   } catch (error: any) {
     if (error.name === 'AbortError') {
@@ -1290,19 +1272,8 @@ const executeWorkflow = async () => {
   try {
     console.log(`🚀 Executing workflow ${selectedWorkflowId.value}...`)
     
-    // API call to execute workflow
-    const response = await fetch(`http://localhost:3001/api/business/execute-workflow/${selectedWorkflowId.value}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to execute workflow: ${response.status}`)
-    }
-    
-    const result = await response.json()
+    // API call to execute workflow - OFETCH Migration
+    const result = await businessAPI.executeWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow execution result:', result)
     
     if (result.success && result.data.executionStarted) {
@@ -1356,20 +1327,8 @@ const stopWorkflow = async () => {
   try {
     console.log(`🛑 Stopping workflow ${selectedWorkflowId.value}, execution ${currentExecutionId.value}...`)
     
-    // API call to stop workflow
-    const response = await fetch(`http://localhost:3001/api/business/stop-workflow/${selectedWorkflowId.value}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ executionId: currentExecutionId.value })
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to stop workflow: ${response.status}`)
-    }
-    
-    const result = await response.json()
+    // API call to stop workflow - OFETCH Migration
+    const result = await businessAPI.stopWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow stop result:', result)
     
     if (result.success) {
@@ -1428,20 +1387,8 @@ const toggleWorkflowStatus = async () => {
       console.log('✅ Updated workflow in list')
     }
     
-    // API call to backend
-    const response = await fetch(`http://localhost:3001/api/business/toggle-workflow/${selectedWorkflowId.value}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ active: newStatus })
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to toggle workflow: ${response.status}`)
-    }
-    
-    const result = await response.json()
+    // API call to backend - OFETCH Migration
+    const result = await businessAPI.toggleWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow status updated:', result)
     
     // Show appropriate success message
@@ -1484,13 +1431,8 @@ const loadExecutionData = async () => {
   try {
     console.log('🔄 Loading executions for workflow:', selectedWorkflowForModal.value.id)
     
-    const response = await fetch(`http://localhost:3001/api/business/process-executions/${selectedWorkflowForModal.value.id}`)
-    
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    // API call - OFETCH Migration
+    const data = await businessAPI.getProcessExecutionsForWorkflow(selectedWorkflowForModal.value.id)
     console.log('✅ Executions loaded:', data.data)
     
     executionData.value = data.data
@@ -1794,12 +1736,27 @@ watch(selectedWorkflowData, (newData, oldData) => {
 // Lifecycle
 onMounted(async () => {
   console.log('🚀 WorkflowCommandCenter mounted, loading data...')
-  await refreshAllData()
-  console.log('📊 Final state:', { 
-    workflows: realWorkflows.value.length, 
-    totalExecutions: totalExecutions.value,
-    activeWorkflows: activeWorkflows.value 
-  })
+  try {
+    await refreshAllData()
+    console.log('📊 Final state:', { 
+      workflows: realWorkflows.value.length, 
+      totalExecutions: totalExecutions.value,
+      activeWorkflows: activeWorkflows.value 
+    })
+  } catch (error) {
+    console.error('❌ ERROR in onMounted:', error)
+    console.error('❌ Error stack:', error.stack)
+    // Forza un reload alternativo
+    try {
+      console.log('🔄 Trying alternative data load...')
+      const workflowsData = await businessAPI.getProcesses({ _t: Date.now() })
+      console.log('🔧 Alternative data:', workflowsData)
+      realWorkflows.value = workflowsData.data || []
+      console.log('🔧 Alternative workflows set:', realWorkflows.value.length)
+    } catch (altError) {
+      console.error('❌ Alternative load also failed:', altError)
+    }
+  }
 })
 </script>
 
