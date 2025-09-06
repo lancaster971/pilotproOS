@@ -229,11 +229,14 @@ p, span:not(.font-semibold):not(.font-bold), div:not(.font-semibold):not(.font-b
   background: var(--color-background);
   backdrop-filter: blur(10px);
   border-right: 1px solid var(--color-border);
-  overflow: hidden;
+  overflow-y: auto;
   box-shadow: var(--shadow-xl);
   transition: var(--transition-all);
   z-index: 1000 !important;
-  position: relative;
+  position: fixed;
+  top: 2.5rem;
+  left: 0;
+  height: calc(100vh - 2.5rem);
 }
 
 .sidebar-container:hover {

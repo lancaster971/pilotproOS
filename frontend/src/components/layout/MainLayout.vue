@@ -56,7 +56,8 @@
       <!-- Collapsible PREMIUM Sidebar -->
       <aside 
         :class="sidebarCollapsed ? 'w-16' : 'w-52'"
-        class="premium-glass border-r border-border min-h-screen flex-shrink-0 premium-scrollbar transition-all duration-300"
+        class="premium-glass border-r border-border flex-shrink-0 premium-scrollbar transition-all duration-300 fixed left-0 z-40 overflow-y-auto"
+        style="top: 2.5rem; height: calc(100vh - 2.5rem);"
       >
         <div :class="sidebarCollapsed ? 'p-2' : 'p-4'">
 
@@ -83,7 +84,10 @@
       </aside>
 
       <!-- Main content area -->
-      <main class="flex-1">
+      <main 
+        :class="sidebarCollapsed ? 'ml-16' : 'ml-52'"
+        class="flex-1 transition-all duration-300"
+      >
         <div class="p-6">
           <slot />
         </div>

@@ -99,6 +99,18 @@ export const businessAPI = {
   
   // Compatibility info
   getCompatibility: () => baseFetch('/api/system/compatibility'),
+  
+  // Top performing workflows
+  getTopPerformers: () => baseFetch('/api/business/top-performers'),
+  
+  // Hourly analytics with real distribution
+  getHourlyAnalytics: () => baseFetch('/api/business/hourly-analytics'),
+  
+  // Daily trend for 30 days with real data
+  getDailyTrend: () => baseFetch('/api/business/daily-trend'),
+  
+  // Live events from recent executions
+  getLiveEvents: () => baseFetch('/api/business/live-events'),
 }
 
 // Tenant API - Same interface as Axios version
