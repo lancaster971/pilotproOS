@@ -1,0 +1,35 @@
+# MILHENA AI Agent Dockerfile
+# Ultra-light container for LangChain + Ollama integration
+
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for network operations
+RUN apk add --no-cache curl
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY src/ ./src/
+
+# Create logs directory
+RUN mkdir -p logs && chown -R node:node logs
+
+# Switch to non-root user for security
+USER node
+
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:3002/api/health || exit 1
+
+# Expose port
+EXPOSE 3002
+
+# Start MILHENA
+CMD ["npm", "start"]
