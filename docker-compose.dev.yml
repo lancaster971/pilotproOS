@@ -249,14 +249,15 @@ services:
       - "3002:3002"
     networks:
       - pilotpros-dev
-    command: sh -c "
-      echo '🤖 MILHENA - Waiting for Ollama...' &&
-      sleep 10 &&
-      echo '📥 Downloading Gemma:2b model...' &&
-      curl -X POST http://milhena-ollama:11434/api/pull -d '{\"name\":\"gemma:2b\"}' -H 'Content-Type: application/json' || echo 'Model download initiated' &&
-      echo '🚀 Starting MILHENA Agent...' &&
-      npm run dev
-    "
+    command: >
+      sh -c "
+        echo '🤖 MILHENA - Waiting for Ollama...' &&
+        sleep 10 &&
+        echo '📥 Downloading Gemma:2b model...' &&
+        curl -X POST http://milhena-ollama:11434/api/pull -d '{\"name\":\"gemma:2b\"}' -H 'Content-Type: application/json' || echo 'Model download initiated' &&
+        echo '🚀 Starting MILHENA Agent...' &&
+        npm run dev
+      "
 
   # Nginx Reverse Proxy for Webhook Accessibility
   nginx-dev:
