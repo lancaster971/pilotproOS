@@ -103,6 +103,9 @@
     
     <!-- Toast Container -->
     
+    <!-- MILHENA AI Chat Widget (Global) -->
+    <MilhenaChat />
+    
   </div>
 </template>
 
@@ -115,6 +118,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
+import MilhenaChat from '../ai/MilhenaChat.vue'
 
 // Stores
 const authStore = useAuthStore()
