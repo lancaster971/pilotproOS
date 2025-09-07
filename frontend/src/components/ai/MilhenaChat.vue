@@ -77,15 +77,16 @@
             </p>
           </div>
 
-          <!-- Quick actions for AI responses -->
-          <div v-if="message.type === 'assistant' && message.quickActions" class="flex flex-wrap gap-2 mt-3 mr-4">
+          <!-- Suggested queries as clickable text (like ChatGPT) -->
+          <!-- Suggested queries as subtle clickable text (ChatGPT style) -->
+          <div v-if="message.type === 'assistant' && message.quickActions" class="mt-3 mr-4 space-y-1">
             <button
               v-for="action in message.quickActions"
-              :key="action.label"
+              :key="action.query"
               @click="sendMessage(action.query)"
-              class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs hover:bg-primary/20 transition-colors border border-primary/20"
+              class="block text-sm text-text-muted hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 text-left underline-offset-2 hover:underline"
             >
-              {{ action.label }}
+              {{ action.query }}
             </button>
           </div>
         </div>
@@ -124,12 +125,13 @@
           </button>
         </div>
         
-        <div class="flex flex-wrap gap-2">
+        <!-- Subtle example suggestions (ChatGPT style) -->
+        <div class="space-y-1">
           <button 
             v-for="example in quickExamples"
             :key="example"
             @click="sendMessage(example)"
-            class="px-2 py-1 text-xs bg-surface hover:bg-surface-hover border border-border rounded-lg text-text-muted hover:text-text transition-colors"
+            class="block text-xs text-text-muted hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 text-left underline-offset-2 hover:underline"
           >
             {{ example }}
           </button>
@@ -170,9 +172,9 @@ onMounted(() => {
     content: 'Ciao! Sono MILHENA, il tuo Manager Intelligente per l\'automazione business.\n\nPuoi chiedermi qualsiasi cosa sui tuoi processi automatizzati. Sono qui per aiutarti!',
     timestamp: new Date(),
     quickActions: [
-      { label: 'Stato Processi', query: 'Mostra lo stato dei miei processi' },
-      { label: 'Analytics', query: 'Report delle performance' },
-      { label: 'Problemi', query: 'Ci sono errori da controllare?' }
+      { query: 'Mostra lo stato dei miei processi' },
+      { query: 'Report delle performance' },
+      { query: 'Ci sono errori da controllare?' }
     ]
   }];
 });
@@ -278,25 +280,25 @@ function formatTime(timestamp) {
 function getQuickActionsForIntent(intent) {
   const actions = {
     'process_status': [
-      { label: 'Analytics', query: 'Mostra le metriche dettagliate' },
-      { label: 'Problemi', query: 'Ci sono errori da controllare?' }
+      { query: 'Mostra le metriche dettagliate' },
+      { query: 'Ci sono errori da controllare?' }
     ],
     'analytics': [
-      { label: 'Trend', query: 'Mostra i trend settimanali' },
-      { label: 'KPI', query: 'Quali sono i KPI principali?' }
+      { query: 'Mostra i trend settimanali' },
+      { query: 'Quali sono i KPI principali?' }
     ],
     'troubleshooting': [
-      { label: 'Soluzioni', query: 'Come posso risolvere questi problemi?' },
-      { label: 'Stato', query: 'Mostra lo stato generale del sistema' }
+      { query: 'Come posso risolvere questi problemi?' },
+      { query: 'Mostra lo stato generale del sistema' }
     ],
     'management': [
-      { label: 'Altri Processi', query: 'Mostra tutti i processi disponibili' },
-      { label: 'Performance', query: 'Come stanno andando le performance?' }
+      { query: 'Mostra tutti i processi disponibili' },
+      { query: 'Come stanno andando le performance?' }
     ]
   };
   
   return actions[intent] || [
-    { label: 'Aiuto', query: 'Cosa puoi fare per me?' }
+    { query: 'Cosa puoi fare per me?' }
   ];
 }
 </script>
