@@ -17,9 +17,14 @@
           <Bot class="w-5 h-5 text-primary" />
           <span class="font-medium text-text">MILHENA</span>
         </div>
-        <button @click="isOpen = false" class="text-text-muted hover:text-text">
-          <X class="w-4 h-4" />
-        </button>
+        <div class="flex items-center space-x-1">
+          <button @click="clearChat" class="text-text-muted hover:text-text p-1" title="Pulisci chat">
+            <Trash2 class="w-4 h-4" />
+          </button>
+          <button @click="isOpen = false" class="text-text-muted hover:text-text p-1">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <!-- Messages -->
@@ -59,7 +64,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Bot, X, Send } from 'lucide-vue-next';
+import { Bot, X, Send, Trash2 } from 'lucide-vue-next';
 import { ofetch } from 'ofetch';
 import { useToast } from 'vue-toastification';
 
@@ -114,5 +119,14 @@ async function send() {
   }
   
   thinking.value = false;
+}
+
+function clearChat() {
+  messages.value = [{
+    id: '1',
+    text: 'Ciao! Sono MILHENA, il tuo Manager Intelligente. Chiedimi qualsiasi cosa sui tuoi processi aziendali.',
+    isUser: false
+  }];
+  toast.success('Chat pulita');
 }
 </script>

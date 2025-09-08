@@ -57,7 +57,7 @@ const apiClient = ofetch.create({
 // Initialize Ollama with LangChain (battle-tested AI framework)
 const llm = new ChatOllama({
   baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
-  model: 'gemma:2b', // Ultra-light model for speed
+  model: 'gemma3:4b', // Better model for business intelligence (3.3GB - already available locally)
   temperature: 0.3,   // Consistent business responses
   maxTokens: 500,     // Limit for concise answers
 });
@@ -87,20 +87,28 @@ function sanitizeBusinessResponse(response) {
   return sanitized;
 }
 
-// MILHENA Chat Prompt Template (Italian business-focused)
+// MILHENA Chat Prompt Template (STRONG Italian business enforcement)
 const chatPrompt = ChatPromptTemplate.fromTemplate(`
-Sei MILHENA, Manager Intelligente per automazione processi business italiani.
+RISPONDERE SEMPRE E SOLO IN ITALIANO PROFESSIONALE.
 
-REGOLE FONDAMENTALI:
-- Rispondi SEMPRE in italiano professionale
-- Massimo 3 frasi concise e utili
-- USA SOLO terminologia business (mai termini tecnici)
-- Se non hai informazioni specifiche, suggerisci di controllare la dashboard
+Tu sei MILHENA, Manager Intelligente per l'automazione business.
 
-CONTESTO SISTEMA: {context}
-DOMANDA UTENTE: {question}
+DATI DISPONIBILI:
+{context}
 
-RISPOSTA MILHENA:`);
+DOMANDA CLIENTE: {question}
+
+ISTRUZIONI CRITICHE:
+1. ANALIZZA i dati forniti
+2. ESTRAI informazioni business utili
+3. RISPONDI in italiano professionale
+4. MASSIMO 3 frasi concise
+5. MAI citare tecnologie (sostituisci con "processi business")
+
+EXEMPLE RISPOSTA:
+"Hai 4 processi business attualmente attivi con performance eccellenti (99.5% successo). Il sistema ha processato 2280 operazioni risparmiando 189 ore di lavoro. Tutti i processi funzionano perfettamente!"
+
+RISPOSTA MILHENA IN ITALIANO:`);
 
 // Create LangChain processing chain (zero custom logic)
 const processingChain = RunnableSequence.from([
@@ -109,25 +117,44 @@ const processingChain = RunnableSequence.from([
   new StringOutputParser(),
 ]);
 
-// Intent classification with LangChain
-const intentPrompt = ChatPromptTemplate.fromTemplate(`
-Classifica questa richiesta business italiana in UNA categoria:
+// Simplified intent classification with keyword matching
+function classifyIntent(query) {
+  const lowerQuery = query.toLowerCase();
+  
+  // Analytics keywords (highest priority for reports)
+  if (lowerQuery.includes('report') || lowerQuery.includes('statistiche') || 
+      lowerQuery.includes('analytics') || lowerQuery.includes('metriche') ||
+      lowerQuery.includes('settimana') || lowerQuery.includes('mese') || 
+      lowerQuery.includes('performance')) {
+    return 'analytics';
+  }
+  
+  // Process status keywords  
+  if (lowerQuery.includes('processi') || lowerQuery.includes('stato') || 
+      lowerQuery.includes('come va') || lowerQuery.includes('sistema') ||
+      lowerQuery.includes('attivi') || lowerQuery.includes('operativi')) {
+    return 'process_status';
+  }
+  
+  // Management keywords
+  if (lowerQuery.includes('avvia') || lowerQuery.includes('ferma') || 
+      lowerQuery.includes('pausa') || lowerQuery.includes('attiva') ||
+      lowerQuery.includes('controllo') || lowerQuery.includes('gestisci')) {
+    return 'management';
+  }
+  
+  // Troubleshooting keywords
+  if (lowerQuery.includes('errori') || lowerQuery.includes('problemi') || 
+      lowerQuery.includes('perché') || lowerQuery.includes('fallisce') ||
+      lowerQuery.includes('diagnosi') || lowerQuery.includes('risolvi')) {
+    return 'troubleshooting';
+  }
+  
+  // Default fallback
+  return 'process_status';
+}
 
-CATEGORIE VALIDE:
-- process_status: stato processi, sistema operativo, health check
-- analytics: report, statistiche, metriche, performance
-- management: avvia/ferma processi, controllo workflow
-- troubleshooting: errori, problemi, diagnosi
-
-QUERY: {query}
-
-RISPONDI SOLO CON LA CATEGORIA (es: "process_status")`);
-
-const intentChain = RunnableSequence.from([
-  intentPrompt,
-  llm,
-  new StringOutputParser(),
-]);
+// Intent classification now handled by keyword matching function above
 
 // Main MILHENA chat endpoint
 app.post('/api/chat', async (req, res) => {
@@ -146,55 +173,54 @@ app.post('/api/chat', async (req, res) => {
       contextKeys: Object.keys(context)
     });
 
-    // Step 1: Classify intent using LangChain
-    const intent = await intentChain.invoke({ 
-      query: query.trim().toLowerCase() 
-    });
-    
-    const cleanIntent = intent.trim().toLowerCase();
+    // Step 1: Classify intent using keyword matching (more reliable than LLM for simple classification)
+    const cleanIntent = classifyIntent(query);
     logger.info('Intent Classified', { intent: cleanIntent });
 
     // Step 2: Get business data from backend APIs (using existing endpoints)
     let businessData = {};
     
     try {
+      // REAL API CALLS using existing tRPC endpoints
       switch (cleanIntent) {
         case 'process_status':
-          businessData = await apiClient('/api/business/workflows/status');
+          businessData = await apiClient('/api/business/processes');
           break;
           
         case 'analytics':
-          businessData = await apiClient('/api/business/analytics/dashboard');
+          businessData = await apiClient('/api/business/analytics');
           break;
           
         case 'troubleshooting':
-          businessData = await apiClient('/api/business/executions?status=error&limit=10');
+          businessData = await apiClient('/api/business/process-runs?status=error');
           break;
           
         case 'management':
-          businessData = await apiClient('/api/business/workflows');
+          businessData = await apiClient('/api/business/processes');
           break;
           
         default:
-          businessData = { message: 'Informazioni generali disponibili nella dashboard' };
+          businessData = { message: 'Controlla la dashboard per informazioni dettagliate' };
       }
     } catch (apiError) {
-      logger.warn('Backend API unavailable, using fallback', { error: apiError.message });
+      logger.warn('Backend API unavailable, using intelligent fallback', { error: apiError.message });
       businessData = { 
         fallback: true,
         message: 'Dati temporaneamente non disponibili, sistema operativo normale' 
       };
     }
 
-    // Step 3: Generate business response using LangChain
-    const contextString = JSON.stringify({
-      intent: cleanIntent,
-      data: businessData,
-      timestamp: new Date().toISOString()
-    });
+    // Step 3: Generate business response using LangChain with REAL DATA
+    const businessContext = `
+DATI REALI SISTEMA:
+${JSON.stringify(businessData, null, 2)}
+
+INTENT RILEVATO: ${cleanIntent}
+TIMESTAMP: ${new Date().toLocaleString('it-IT')}
+`;
 
     const response = await processingChain.invoke({
-      context: contextString,
+      context: businessContext,
       question: query
     });
 

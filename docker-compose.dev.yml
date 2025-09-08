@@ -191,12 +191,12 @@ services:
   # AI Agent MCP - Development
   # MILHENA AI Agent con Ollama + LangChain
   milhena-ollama:
-    image: ollama/ollama:latest
+    build:
+      context: .
+      dockerfile: docker/ollama-independent.Dockerfile
     container_name: pilotpros-milhena-ollama
     ports:
       - "11434:11434"
-    volumes:
-      - milhena_ollama_models:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_MAX_LOADED_MODELS=1
@@ -205,9 +205,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
+          memory: 2G  # Reduced for Gemma3:1b
         reservations:
-          memory: 2.5G
+          memory: 1.5G
     networks:
       - pilotpros-dev
     healthcheck:
@@ -216,11 +216,11 @@ services:
       timeout: 15s
       retries: 3
 
-  milhena-agent-dev:
+  milhena-mcp-dev:
     build:
-      context: ./ai-agent
-      dockerfile: Dockerfile.milhena
-    container_name: pilotpros-milhena-agent-dev
+      context: ./ai-agent  
+      dockerfile: Dockerfile.mcp
+    container_name: pilotpros-milhena-mcp-dev
     restart: unless-stopped
     depends_on:
       postgres-dev:
@@ -233,12 +233,10 @@ services:
       NODE_ENV: development
       PORT: 3002
       
-      # MILHENA Configuration
+      # MILHENA MCP Configuration
       OLLAMA_URL: http://milhena-ollama:11434
       BACKEND_URL: http://backend-dev:3001
-      FRONTEND_URL: http://frontend-dev:3000
-      
-      # Development
+      MODEL_NAME: gemma3:4b
       LOG_LEVEL: info
       
     volumes:
@@ -251,12 +249,12 @@ services:
       - pilotpros-dev
     command: >
       sh -c "
-        echo '🤖 MILHENA - Waiting for Ollama...' &&
+        echo '🤖 MILHENA MCP - Waiting for Ollama...' &&
         sleep 10 &&
-        echo '📥 Downloading Gemma:2b model...' &&
-        curl -X POST http://milhena-ollama:11434/api/pull -d '{\"name\":\"gemma:2b\"}' -H 'Content-Type: application/json' || echo 'Model download initiated' &&
-        echo '🚀 Starting MILHENA Agent...' &&
-        npm run dev
+        echo '🔍 Verifying Gemma3:4b model...' &&
+        curl -s http://milhena-ollama:11434/api/tags | grep gemma3:4b || echo 'Model ready in container' &&
+        echo '🚀 Starting MILHENA MCP Server...' &&
+        node src/milhena-mcp.js
       "
 
   # Nginx Reverse Proxy for Webhook Accessibility

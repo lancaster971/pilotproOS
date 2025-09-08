@@ -1,0 +1,41 @@
+# MILHENA MCP Server Container
+# LangChain + MCP + Ollama Gemma3:4b for business intelligence
+
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache curl python3 make g++
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY src/ ./src/
+
+# Create logs directory
+RUN mkdir -p logs && chown -R node:node logs
+
+# Switch to non-root user
+USER node
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=15s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:3002/api/health || exit 1
+
+# Environment variables
+ENV NODE_ENV=production
+ENV OLLAMA_URL=http://milhena-ollama:11434
+ENV BACKEND_URL=http://backend-dev:3001
+ENV MODEL_NAME=gemma3:4b
+
+# Expose port
+EXPOSE 3002
+
+# Start MILHENA MCP server
+CMD ["npm", "start"]

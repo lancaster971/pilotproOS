@@ -149,3 +149,5 @@ BU_Hostinger/frontend_old/
 team-sync-exports/
 team-export-*.tar.gz
 BU_Hostinger/database.sqlite.gz
+ai-agent/ollama-models-embedded/
+ai-agent/ollama-models/
