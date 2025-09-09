@@ -9,14 +9,14 @@ RUN apk add --no-cache curl
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy ai-agent package files
+COPY ai-agent/package*.json ./
 
-# Install production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies (use npm install instead of npm ci since we don't always have package-lock.json)
+RUN npm install --production && npm cache clean --force
 
 # Copy source code - ALL files including n8n-mcp implementation
-COPY src/ ./src/
+COPY ai-agent/src/ ./src/
 
 # Create logs directory
 RUN mkdir -p logs && chown -R node:node logs

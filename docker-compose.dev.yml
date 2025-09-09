@@ -188,66 +188,8 @@ services:
       - backend-dev
     command: npm run dev -- --host 0.0.0.0 --port 3000
 
-  # MILHENA AI Agent - Claude API (fast & reliable)
-  milhena-api-dev:
-    build:
-      context: ./ai-agent
-      dockerfile: ../docker/milhena-api.Dockerfile
-    container_name: pilotpros-milhena-api-dev
-    ports:
-      - "3002:3002"
-    environment:
-      - NODE_ENV=development
-      - BACKEND_URL=http://backend-dev:3001
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - PORT=3002
-    depends_on:
-      backend-dev:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - pilotpros-dev
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  milhena-mcp-dev:
-    build:
-      context: ./ai-agent  
-      dockerfile: Dockerfile.mcp
-    container_name: pilotpros-milhena-mcp-dev
-    restart: unless-stopped
-    depends_on:
-      postgres-dev:
-        condition: service_healthy
-      backend-dev:
-        condition: service_started
-    environment:
-      NODE_ENV: development
-      PORT: 3002
-      
-      # MILHENA MCP Configuration  
-      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
-      BACKEND_URL: http://backend-dev:3001
-      LOG_LEVEL: info
-      
-    volumes:
-      - ./ai-agent:/app
-      - ./logs/milhena-agent-dev:/app/logs
-      - /app/node_modules
-    ports:
-      - "3002:3002"
-    networks:
-      - pilotpros-dev
-    command: >
-      sh -c "
-        echo '🤖 MILHENA MCP - Waiting for backend...' &&
-        sleep 5 &&
-        echo '🚀 Starting MILHENA MCP Server...' &&
-        node src/milhena-mcp-server.js
-      "
+  # AI Agent directory reserved for future implementation
 
   # Nginx Reverse Proxy for Webhook Accessibility
   nginx-dev:

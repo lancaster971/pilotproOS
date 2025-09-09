@@ -1,61 +1,43 @@
 <template>
-  <div class="fixed bottom-4 right-4 z-50">
-    <!-- Simple chat toggle -->
-    <button 
-      v-if="!isOpen"
-      @click="isOpen = true"
-      class="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all"
-    >
-      <Bot class="w-6 h-6 text-white" />
-    </button>
-
-    <!-- Simple chat window -->
-    <div v-else class="control-card w-96 h-[600px] flex flex-col">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-3 border-b border-border/50">
-        <div class="flex items-center space-x-2">
-          <Bot class="w-5 h-5 text-primary" />
-          <span class="font-medium text-text">MILHENA</span>
+  <div class="milhena-chat-container">
+    <!-- AI Chat Interface - To Be Implemented -->
+    <div class="chat-placeholder">
+      <div class="placeholder-content">
+        <div class="placeholder-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 text-gray-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+          </svg>
         </div>
-        <div class="flex items-center space-x-1">
-          <button @click="clearChat" class="text-text-muted hover:text-text p-1" title="Pulisci chat">
-            <Trash2 class="w-4 h-4" />
-          </button>
-          <button @click="isOpen = false" class="text-text-muted hover:text-text p-1">
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Messages -->
-      <div class="flex-1 overflow-y-auto p-3 space-y-3">
-        <div v-for="msg in messages" :key="msg.id">
-          <div :class="[
-            'p-3 rounded-lg text-sm max-w-[85%]',
-            msg.isUser ? 'bg-primary text-white ml-auto' : 'bg-surface text-text'
-          ]">
-            {{ msg.text }}
+        
+        <h3 class="text-xl font-semibold text-gray-700 mb-2">
+          Chat AI - In Sviluppo
+        </h3>
+        
+        <p class="text-gray-500 text-center mb-4">
+          L'interfaccia chat AI sarà implementata in futuro per fornire assistenza intelligente sui processi di automazione.
+        </p>
+        
+        <div class="features-preview">
+          <div class="feature-item">
+            <span class="feature-icon">🤖</span>
+            <span class="feature-text">Assistente AI per automazione</span>
+          </div>
+          
+          <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <span class="feature-text">Analisi processi business</span>
+          </div>
+          
+          <div class="feature-item">
+            <span class="feature-icon">🔍</span>
+            <span class="feature-text">Ricerca workflow intelligente</span>
           </div>
         </div>
         
-        <div v-if="thinking" class="flex items-center space-x-2 text-text-muted">
-          <Bot class="w-4 h-4" />
-          <span class="text-sm">Pensando...</span>
-        </div>
-      </div>
-
-      <!-- Input -->
-      <div class="p-3 border-t border-border/50">
-        <div class="flex space-x-2">
-          <input
-            v-model="input"
-            @keydown.enter="send"
-            placeholder="Scrivi a MILHENA..."
-            class="flex-1 px-3 py-2 border border-border rounded bg-surface text-text placeholder-text-muted text-sm"
-          />
-          <button @click="send" class="px-3 py-2 bg-primary text-white rounded hover:bg-primary-hover">
-            <Send class="w-4 h-4" />
-          </button>
+        <div class="implementation-note">
+          <p class="text-sm text-gray-400">
+            Implementazione prevista: Q1 2025
+          </p>
         </div>
       </div>
     </div>
@@ -63,70 +45,44 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Bot, X, Send, Trash2 } from 'lucide-vue-next';
-import { ofetch } from 'ofetch';
-import { useToast } from 'vue-toastification';
-
-const toast = useToast();
-const isOpen = ref(false);
-const input = ref('');
-const thinking = ref(false);
-const messages = ref([]);
-
-const api = ofetch.create({ baseURL: 'http://localhost:3002/api' });
-
-onMounted(() => {
-  messages.value = [{
-    id: '1',
-    text: 'Ciao! Sono MILHENA, il tuo Manager Intelligente. Chiedimi qualsiasi cosa sui tuoi processi aziendali.',
-    isUser: false
-  }];
-});
-
-async function send() {
-  if (!input.value.trim()) return;
-  
-  messages.value.push({
-    id: Date.now(),
-    text: input.value,
-    isUser: true
-  });
-  
-  const query = input.value;
-  input.value = '';
-  thinking.value = true;
-
-  try {
-    const response = await api('/chat', {
-      method: 'POST',
-      body: { query }
-    });
-
-    messages.value.push({
-      id: Date.now() + 1,
-      text: response.response || 'Risposta ricevuta.',
-      isUser: false
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    messages.value.push({
-      id: Date.now() + 1,
-      text: 'Mi dispiace, ho avuto un problema. Riprova tra qualche istante.',
-      isUser: false
-    });
-    toast.error('MILHENA non disponibile');
-  }
-  
-  thinking.value = false;
-}
-
-function clearChat() {
-  messages.value = [{
-    id: '1',
-    text: 'Ciao! Sono MILHENA, il tuo Manager Intelligente. Chiedimi qualsiasi cosa sui tuoi processi aziendali.',
-    isUser: false
-  }];
-  toast.success('Chat pulita');
-}
+// Empty script - no AI agent implementation
+console.log('AI Chat placeholder - implementation pending');
 </script>
+
+<style scoped>
+.milhena-chat-container {
+  @apply w-full h-full flex items-center justify-center p-8;
+}
+
+.chat-placeholder {
+  @apply max-w-md w-full;
+}
+
+.placeholder-content {
+  @apply bg-white rounded-lg shadow-lg p-8 text-center;
+}
+
+.placeholder-icon {
+  @apply flex justify-center mb-4;
+}
+
+.features-preview {
+  @apply space-y-3 mb-6;
+}
+
+.feature-item {
+  @apply flex items-center justify-center space-x-3 text-gray-600;
+}
+
+.feature-icon {
+  @apply text-2xl;
+}
+
+.feature-text {
+  @apply text-sm font-medium;
+}
+
+.implementation-note {
+  @apply pt-4 border-t border-gray-200;
+}
+</style>
