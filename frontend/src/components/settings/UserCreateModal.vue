@@ -202,7 +202,6 @@ const getSelectedRolePermissions = () => {
 const getRoleLabel = (role) => {
   const labels = {
     admin: 'Amministratore',
-    editor: 'Editor', 
     viewer: 'Visualizzatore'
   }
   return labels[role] || role

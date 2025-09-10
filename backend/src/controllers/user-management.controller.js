@@ -10,10 +10,9 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { PasswordValidator } from '../utils/password-validator.js';
 
-// Available roles and their permissions
+// Available roles and their permissions (simplified to 2 roles)
 const ROLES = {
   admin: ['users:read', 'users:write', 'users:delete', 'workflows:read', 'workflows:write', 'workflows:delete', 'system:read', 'system:write'],
-  editor: ['users:read', 'workflows:read', 'workflows:write', 'system:read'],
   viewer: ['workflows:read', 'system:read']
 };
 

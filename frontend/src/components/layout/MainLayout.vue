@@ -137,11 +137,11 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
 })
 
-// Navigation items with role-based filtering
+// Navigation items with role-based filtering (simplified to 2 roles)
 const allNavigationItems = [
-  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard, roles: ['admin', 'editor', 'viewer'] },
-  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu, roles: ['admin', 'editor', 'viewer'] },
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play, roles: ['admin', 'editor', 'viewer'] },
+  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard, roles: ['admin', 'viewer'] },
+  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu, roles: ['admin', 'viewer'] },
+  { name: 'executions', path: '/executions', label: 'Executions', icon: Play, roles: ['admin', 'viewer'] },
   { name: 'settings', path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
 ]
 

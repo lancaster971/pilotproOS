@@ -305,7 +305,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RefreshCw, UserPlus, AlertCircle, Edit2, Trash2, Users, Shield } from 'lucide-vue-next'
+import { RefreshCw, UserPlus, AlertCircle, Edit2, Trash2, Users, Shield, Key, Server } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import UserCreateModal from '../components/settings/UserCreateModal.vue'
 import UserEditModal from '../components/settings/UserEditModal.vue'
