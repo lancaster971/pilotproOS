@@ -46,6 +46,9 @@ import { DatabaseCompatibilityService } from './services/database-compatibility.
 import { N8nFieldMapper } from './utils/n8n-field-mapper.js';
 import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 
+// Enhanced Authentication System
+import enhancedAuthController from './controllers/enhanced-auth.controller.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -2957,6 +2960,11 @@ function extractBusinessContext(executionData, timeline) {
   
   return context;
 }
+
+// ============================================================================
+// ENHANCED AUTHENTICATION ROUTES
+// ============================================================================
+app.use('/api/auth/enhanced', enhancedAuthController);
 
 // Business error handler
 app.use((error, req, res, next) => {
