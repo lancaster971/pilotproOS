@@ -132,6 +132,7 @@ Essential docs in `/docs/` folder:
 - `n8n-upgrade-troubleshooting.md` - n8n compatibility system
 - `developer-access-instructions.md` - Developer setup guide
 - `DATA_RECOVERY_PLAN.md` - Backup and recovery procedures
+- `Debiti_Tecnici.md` - Technical debt analysis and roadmap
 
 ---
 
