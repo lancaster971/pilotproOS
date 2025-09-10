@@ -133,6 +133,7 @@ Essential docs in `/docs/` folder:
 - `developer-access-instructions.md` - Developer setup guide
 - `DATA_RECOVERY_PLAN.md` - Backup and recovery procedures
 - `Debiti_Tecnici.md` - Technical debt analysis and roadmap
+- `Business_Intelligence_Service.md` - Smart data processing for Timeline big data
 
 ---
 
