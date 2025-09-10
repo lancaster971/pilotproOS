@@ -7,51 +7,26 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Request, Response, NextFunction } from 'express';
 import { DatabaseConnection } from '../database/connection.js';
 
-export interface AuthConfig {
-  jwtSecret: string;
-  jwtExpiresIn: string;
-  saltRounds: number;
-  apiKeyLength: number;
-}
-
-export const defaultAuthConfig: AuthConfig = {
+export const defaultAuthConfig = {
   jwtSecret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   saltRounds: parseInt(process.env.SALT_ROUNDS || '12'),
   apiKeyLength: 32
 };
 
-export interface JwtPayload {
-  userId: string;
-  tenantId?: string;
-  role: 'admin' | 'tenant' | 'readonly';
-  permissions: string[];
-  iat?: number;
-  exp?: number;
-}
+// JWT Payload structure (removed TypeScript interface for JavaScript compatibility)
+// Expected structure: { userId, tenantId?, role, permissions, iat?, exp? }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: 'admin' | 'tenant' | 'readonly';
-  tenant_id?: string;
-  api_key?: string;
-  permissions: string[];
-  created_at: Date;
-  last_login_at?: Date;
-}
+// AuthUser structure (removed TypeScript interface for JavaScript compatibility) 
+// Expected structure: { id, email, role, tenant_id?, api_key?, permissions, created_at, last_login_at? }
 
 /**
  * JWT Authentication Service
  */
 export class JwtAuthService {
-  private config: AuthConfig;
-  private db: DatabaseConnection;
-
-  constructor(config?: Partial<AuthConfig>) {
+  constructor(config) {
     this.config = { ...defaultAuthConfig, ...config };
     this.db = DatabaseConnection.getInstance();
     
@@ -63,8 +38,8 @@ export class JwtAuthService {
   /**
    * Genera JWT token per utente
    */
-  generateToken(user: AuthUser): string {
-    const payload: JwtPayload = {
+  generateToken(user) {
+    const payload = {
       userId: user.id,
       tenantId: user.tenant_id,
       role: user.role,
@@ -81,7 +56,7 @@ export class JwtAuthService {
   /**
    * Verifica e decodifica JWT token
    */
-  verifyToken(token: string): JwtPayload {
+  verifyToken(token) {
     try {
       return jwt.verify(token, this.config.jwtSecret) as JwtPayload;
     } catch (error) {
@@ -98,28 +73,28 @@ export class JwtAuthService {
   /**
    * Hash password con bcrypt
    */
-  async hashPassword(password: string): Promise<string> {
+  async hashPassword(password) {
     return await bcrypt.hash(password, this.config.saltRounds);
   }
 
   /**
    * Verifica password
    */
-  async verifyPassword(password: string, hash: string): Promise<boolean> {
+  async verifyPassword(password, hash) {
     return await bcrypt.compare(password, hash);
   }
 
   /**
    * Genera API key sicura
    */
-  generateApiKey(): string {
+  generateApiKey() {
     return crypto.randomBytes(this.config.apiKeyLength).toString('hex');
   }
 
   /**
    * Login utente con email/password
    */
-  async login(email: string, password: string): Promise<{ user: AuthUser; token: string }> {
+  async login(email, password) {
     try {
       // Cerca utente nel database
       const userRecord = await this.db.getOne(`
@@ -148,7 +123,7 @@ export class JwtAuthService {
       `, [userRecord.id]);
 
       // Crea user object (senza password)
-      const user: AuthUser = {
+      const user = {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
@@ -173,7 +148,7 @@ export class JwtAuthService {
   /**
    * Verifica API Key
    */
-  async verifyApiKey(apiKey: string): Promise<AuthUser | null> {
+  async verifyApiKey(apiKey): Promise<AuthUser | null> {
     try {
       const userRecord = await this.db.getOne(`
         SELECT 
@@ -208,11 +183,11 @@ export class JwtAuthService {
    * Crea nuovo utente
    */
   async createUser(userData: {
-    email: string;
-    password: string;
+    email;
+    password;
     role: 'admin' | 'tenant' | 'readonly';
-    tenant_id?: string;
-    permissions?: string[];
+    tenant_id?;
+    permissions?[];
   }): Promise<AuthUser> {
     try {
       // Verifica che l'email non esista già
@@ -272,7 +247,7 @@ export class JwtAuthService {
   /**
    * Parse JSON sicuro con fallback
    */
-  private safeJsonParse(jsonString: string): string[] {
+  private safeJsonParse(jsonString)[] {
     try {
       if (!jsonString || typeof jsonString !== 'string') {
         return [];
@@ -296,7 +271,7 @@ export class JwtAuthService {
   /**
    * Ottieni permessi di default per ruolo
    */
-  private getDefaultPermissions(role: string): string[] {
+  private getDefaultPermissions(role)[] {
     switch (role) {
       case 'admin':
         return [
@@ -322,12 +297,12 @@ export class JwtAuthService {
    * Middleware Express per autenticazione JWT
    */
   authenticateToken() {
-    return async (req: Request & { user?: AuthUser }, res: Response, next: NextFunction) => {
+    return async (req: Request & { user? }, res: Response, next: NextFunction) => {
       try {
         const authHeader = req.headers['authorization'];
         const apiKey = req.headers['x-api-key'] as string;
 
-        let user: AuthUser | null = null;
+        let user | null = null;
 
         if (apiKey) {
           // Autenticazione con API Key
@@ -374,8 +349,8 @@ export class JwtAuthService {
   /**
    * Middleware per verifica permessi
    */
-  requirePermission(permission: string) {
-    return (req: Request & { user?: AuthUser }, res: Response, next: NextFunction) => {
+  requirePermission(permission) {
+    return (req: Request & { user? }, res: Response, next: NextFunction) => {
       if (!req.user) {
         return res.status(401).json({
           error: 'Unauthorized',
@@ -397,8 +372,8 @@ export class JwtAuthService {
   /**
    * Middleware per isolamento tenant
    */
-  requireTenantAccess(tenantIdParam: string = 'tenantId') {
-    return (req: Request & { user?: AuthUser }, res: Response, next: NextFunction) => {
+  requireTenantAccess(tenantIdParam = 'tenantId') {
+    return (req: Request & { user? }, res: Response, next: NextFunction) => {
       if (!req.user) {
         return res.status(401).json({
           error: 'Unauthorized',
@@ -428,7 +403,7 @@ export class JwtAuthService {
   /**
    * Ottieni utente per ID
    */
-  private async getUserById(userId: string): Promise<AuthUser | null> {
+  private async getUserById(userId): Promise<AuthUser | null> {
     try {
       const userRecord = await this.db.getOne(`
         SELECT 

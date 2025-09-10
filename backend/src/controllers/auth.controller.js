@@ -61,7 +61,7 @@ const db = DatabaseConnection.getInstance();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -161,7 +161,7 @@ router.post('/login', async (req: Request, res: Response) => {
 router.post('/register', 
   authService.authenticateToken(),
   authService.requirePermission('users:write'),
-  async (req: Request & { user?: AuthUser }, res: Response) => {
+  async (req, res) => {
     try {
       const { email, password, role, tenantId, permissions } = req.body;
 
@@ -196,7 +196,7 @@ router.post('/register',
 
       // Log audit
       await logAuditAction({
-        userId: req.user!.id,
+        userId: req.user.id,
         action: 'create_user',
         resourceType: 'auth_users',
         resourceId: user.id,
@@ -267,9 +267,9 @@ router.post('/register',
  */
 router.get('/profile',
   authService.authenticateToken(),
-  async (req: Request & { user?: AuthUser }, res: Response) => {
+  async (req, res) => {
     try {
-      const user = req.user!;
+      const user = req.user;
 
       res.json({
         user: {
@@ -326,10 +326,10 @@ router.get('/profile',
  */
 router.put('/profile',
   authService.authenticateToken(),
-  async (req: Request & { user?: AuthUser }, res: Response) => {
+  async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user!.id;
+      const userId = req.user.id;
 
       if (newPassword) {
         if (!currentPassword) {
@@ -421,7 +421,7 @@ router.put('/profile',
 router.get('/users',
   authService.authenticateToken(),
   authService.requirePermission('users:read'),
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const users = await db.getMany(`
         SELECT 
@@ -490,11 +490,11 @@ router.get('/users',
 router.delete('/users/:id',
   authService.authenticateToken(),
   authService.requirePermission('users:delete'),
-  async (req: Request & { user?: AuthUser }, res: Response) => {
+  async (req, res) => {
     try {
       const { id } = req.params;
 
-      if (id === req.user!.id) {
+      if (id === req.user.id) {
         return res.status(400).json({
           error: 'Bad Request',
           message: 'Cannot delete your own account'
@@ -509,7 +509,7 @@ router.delete('/users/:id',
 
       // Log audit
       await logAuditAction({
-        userId: req.user!.id,
+        userId: req.user.id,
         action: 'delete_user',
         resourceType: 'auth_users',
         resourceId: id,
@@ -592,7 +592,7 @@ router.delete('/users/:id',
 router.get('/audit',
   authService.authenticateToken(),
   authService.requirePermission('system:read'),
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const { limit = 50, offset = 0, userId, action } = req.query;
 

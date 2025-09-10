@@ -5,41 +5,27 @@
  * Extends JwtAuthService with enterprise authentication features
  */
 
-import { JwtAuthService, AuthUser } from '../auth/jwt-auth.js';
-import { getLDAPService, LDAPUser } from './ldap.service.js';
-import { getMFAService, MFASetupResult } from './mfa.service.js';
+import { JwtAuthService } from '../auth/jwt-auth.js';
+import { getLDAPService } from './ldap.service.js';
+import { getMFAService } from './mfa.service.js';
 import { DatabaseService } from './database.js';
 
-export interface EnhancedAuthResult {
-  user: AuthUser;
-  token?: string;
-  requiresMFA?: boolean;
-  mfaSession?: string;
-}
-
-export interface LoginOptions {
-  method?: 'local' | 'ldap' | 'auto';
-  skipMFA?: boolean;
-}
-
 export class EnhancedAuthService extends JwtAuthService {
-  private ldapService = getLDAPService();
-  private mfaService = getMFAService();
-  private dbService = DatabaseService.getInstance();
+  constructor() {
+    super();
+    this.ldapService = getLDAPService();
+    this.mfaService = getMFAService();
+    this.dbService = DatabaseService.getInstance();
+  }
 
   /**
    * Enhanced login with LDAP + MFA support
    */
-  async enhancedLogin(
-    email: string, 
-    password: string, 
-    options: LoginOptions = {}
-  ): Promise<EnhancedAuthResult> {
+  async enhancedLogin(email, password, options = {}) {
     try {
       const { method = 'auto', skipMFA = false } = options;
-      let authResult: EnhancedAuthResult;
+      let authResult = null;
 
-      // Determine authentication method
       if (method === 'ldap' || (method === 'auto' && await this.shouldUseLDAP(email))) {
         authResult = await this.authenticateWithLDAP(email, password);
       } else {
@@ -57,7 +43,7 @@ export class EnhancedAuthService extends JwtAuthService {
           return {
             user: authResult.user,
             requiresMFA: true,
-            mfaSession,
+            mfaSession: mfaSession,
             // Don't return full JWT token until MFA is verified
           };
         }
@@ -78,7 +64,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Authenticate with LDAP
    */
-  private async authenticateWithLDAP(email: string, password: string): Promise<EnhancedAuthResult> {
+  async authenticateWithLDAP(email, password) {
     try {
       // Authenticate with LDAP server
       const ldapUser = await this.ldapService.authenticateUser(email, password);
@@ -108,7 +94,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Authenticate with local credentials
    */
-  private async authenticateLocal(email: string, password: string): Promise<EnhancedAuthResult> {
+  async authenticateLocal(email, password) {
     try {
       const { user } = await this.login(email, password);
       return { user };
@@ -121,7 +107,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Verify MFA and complete authentication
    */
-  async verifyMFAAndCompleteAuth(mfaSession: string, mfaToken: string): Promise<EnhancedAuthResult> {
+  async verifyMFAAndCompleteAuth(mfaSession, mfaToken) {
     try {
       // Get MFA session
       const session = await this.getMFASession(mfaSession);
@@ -135,7 +121,7 @@ export class EnhancedAuthService extends JwtAuthService {
         throw new Error('Invalid MFA token');
       }
 
-      // Mark MFA session as verified
+      // Mark MFA session as used
       await this.verifyMFASession(mfaSession);
 
       // Get user and generate full JWT token
@@ -158,7 +144,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Setup MFA for user
    */
-  async setupMFA(userId: string): Promise<MFASetupResult> {
+  async setupMFA(userId) {
     try {
       const user = await this.getUserById(userId);
       if (!user) {
@@ -175,7 +161,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Verify MFA setup token
    */
-  async verifyMFASetup(userId: string, token: string): Promise<boolean> {
+  async verifyMFASetup(userId, token) {
     try {
       return await this.mfaService.verifySetupToken(userId, token);
     } catch (error) {
@@ -187,7 +173,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Disable MFA for user
    */
-  async disableMFA(userId: string): Promise<void> {
+  async disableMFA(userId) {
     try {
       await this.mfaService.disableMFA(userId);
       console.log('✅ MFA disabled for user:', userId);
@@ -200,7 +186,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Check if email should use LDAP authentication
    */
-  private async shouldUseLDAP(email: string): Promise<boolean> {
+  async shouldUseLDAP(email) {
     try {
       // Check if user exists with LDAP auth method
       const user = await this.dbService.getOne(`
@@ -223,7 +209,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Create MFA session
    */
-  private async createMFASession(userId: string): Promise<string> {
+  async createMFASession(userId) {
     try {
       const sessionToken = this.generateApiKey(); // Reuse API key generation
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -243,7 +229,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Get MFA session
    */
-  private async getMFASession(sessionToken: string): Promise<any> {
+  async getMFASession(sessionToken) {
     try {
       return await this.dbService.getOne(`
         SELECT * FROM pilotpros.mfa_sessions 
@@ -258,7 +244,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Mark MFA session as verified
    */
-  private async verifyMFASession(sessionToken: string): Promise<void> {
+  async verifyMFASession(sessionToken) {
     try {
       await this.dbService.query(`
         UPDATE pilotpros.mfa_sessions 
@@ -274,7 +260,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Get user by ID (override to handle UUID)
    */
-  private async getUserById(userId: string): Promise<AuthUser | null> {
+  async getUserById(userId) {
     try {
       const userRecord = await this.dbService.getOne(`
         SELECT 
@@ -293,9 +279,9 @@ export class EnhancedAuthService extends JwtAuthService {
       return {
         id: userRecord.id,
         email: userRecord.email,
-        role: userRecord.role || 'user',
-        tenant_id: 'pilotpros', // Single tenant mode
-        permissions: this.getDefaultPermissions(userRecord.role || 'user'),
+        role: userRecord.role,
+        tenant_id: null, // Single tenant mode
+        permissions: [], // Add permissions if needed
         created_at: userRecord.created_at,
         last_login_at: userRecord.last_login
       };
@@ -308,11 +294,7 @@ export class EnhancedAuthService extends JwtAuthService {
   /**
    * Get authentication status for user
    */
-  async getAuthStatus(userId: string): Promise<{
-    ldapEnabled: boolean;
-    mfaEnabled: boolean;
-    authMethod: string;
-  }> {
+  async getAuthStatus(userId) {
     try {
       const user = await this.dbService.getOne(`
         SELECT auth_method, mfa_enabled FROM pilotpros.users WHERE id = $1
@@ -337,9 +319,9 @@ export class EnhancedAuthService extends JwtAuthService {
 }
 
 // Singleton pattern
-let enhancedAuthServiceInstance: EnhancedAuthService | null = null;
+let enhancedAuthServiceInstance = null;
 
-export function getEnhancedAuthService(): EnhancedAuthService {
+export function getEnhancedAuthService() {
   if (!enhancedAuthServiceInstance) {
     enhancedAuthServiceInstance = new EnhancedAuthService();
   }

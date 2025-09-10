@@ -5,29 +5,12 @@
  * Compatible with Google Authenticator, Microsoft Authenticator, Authy
  */
 
-import { TOTP, Secret } from 'otpauth';
-import * as QRCode from 'qrcode';
+import { Secret, TOTP } from 'otpauth';
+import QRCode from 'qrcode';
 import { DatabaseService } from './database.js';
 import { randomBytes } from 'crypto';
 
-export interface MFASetupResult {
-  secret: string;
-  qrCodeUrl: string;
-  backupCodes: string[];
-}
-
-export interface MFAUserSettings {
-  id: number;
-  user_id: string;
-  secret: string;
-  backup_codes: string[];
-  enabled: boolean;
-  verified_at?: Date;
-}
-
 export class MFAService {
-  private dbService: DatabaseService;
-
   constructor() {
     this.dbService = DatabaseService.getInstance();
   }
@@ -35,14 +18,14 @@ export class MFAService {
   /**
    * Generate MFA secret and QR code for user setup
    */
-  async setupMFA(userId: string, userEmail: string): Promise<MFASetupResult> {
+  async setupMFA(userId, userEmail) {
     try {
       // Generate a random secret
       const secret = new Secret({ size: 32 });
       
       // Create TOTP instance
       const totp = new TOTP({
-        issuer: 'PilotProOS',
+        issuer: 'PilotPro',
         label: userEmail,
         algorithm: 'SHA1',
         digits: 6,
@@ -63,8 +46,8 @@ export class MFAService {
 
       return {
         secret: secret.base32,
-        qrCodeUrl,
-        backupCodes,
+        qrCodeUrl: qrCodeUrl,
+        backupCodes: backupCodes,
       };
     } catch (error) {
       console.error('❌ MFA setup failed:', error);
@@ -75,7 +58,7 @@ export class MFAService {
   /**
    * Verify TOTP token during setup
    */
-  async verifySetupToken(userId: string, token: string): Promise<boolean> {
+  async verifySetupToken(userId, token) {
     try {
       const mfaSettings = await this.getUserMFASettings(userId);
       if (!mfaSettings) {
@@ -100,7 +83,7 @@ export class MFAService {
   /**
    * Verify TOTP token for authentication
    */
-  async verifyAuthToken(userId: string, token: string): Promise<boolean> {
+  async verifyAuthToken(userId, token) {
     try {
       const mfaSettings = await this.getUserMFASettings(userId);
       if (!mfaSettings || !mfaSettings.enabled) {
@@ -129,10 +112,10 @@ export class MFAService {
   /**
    * Verify TOTP token using otpauth
    */
-  private verifyTOTPToken(secret: string, token: string): boolean {
+  verifyTOTPToken(secret, token) {
     try {
       const totp = new TOTP({
-        issuer: 'PilotProOS',
+        issuer: 'PilotPro',
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
@@ -141,7 +124,7 @@ export class MFAService {
 
       // Validate token with time window tolerance
       const delta = totp.validate({
-        token,
+        token: token,
         window: 1, // Allow 1 step tolerance (30 seconds before/after)
       });
 
@@ -155,8 +138,8 @@ export class MFAService {
   /**
    * Generate backup codes
    */
-  private generateBackupCodes(): string[] {
-    const codes: string[] = [];
+  generateBackupCodes() {
+    const codes = [];
     for (let i = 0; i < 10; i++) {
       // Generate 8-character alphanumeric codes
       const code = randomBytes(4).toString('hex').toUpperCase();
@@ -168,7 +151,7 @@ export class MFAService {
   /**
    * Check if token is a backup code format
    */
-  private isBackupCode(token: string): boolean {
+  isBackupCode(token) {
     // Backup codes are 8 character hex strings
     return /^[A-F0-9]{8}$/.test(token.toUpperCase());
   }
@@ -176,7 +159,7 @@ export class MFAService {
   /**
    * Verify backup code
    */
-  private async verifyBackupCode(userId: string, code: string): Promise<boolean> {
+  async verifyBackupCode(userId, code) {
     try {
       const mfaSettings = await this.getUserMFASettings(userId);
       if (!mfaSettings) {
@@ -186,6 +169,7 @@ export class MFAService {
       const backupCodes = mfaSettings.backup_codes;
       const upperCode = code.toUpperCase();
 
+      // Check if code exists in backup codes
       if (backupCodes.includes(upperCode)) {
         // Remove used backup code
         const updatedCodes = backupCodes.filter(c => c !== upperCode);
@@ -210,7 +194,7 @@ export class MFAService {
   /**
    * Get user MFA settings
    */
-  async getUserMFASettings(userId: string): Promise<MFAUserSettings | null> {
+  async getUserMFASettings(userId) {
     try {
       const settings = await this.dbService.getOne(`
         SELECT * FROM pilotpros.user_mfa WHERE user_id = $1
@@ -235,7 +219,7 @@ export class MFAService {
   /**
    * Save MFA settings to database
    */
-  private async saveMFASettings(userId: string, secret: string, backupCodes: string[], enabled: boolean): Promise<void> {
+  async saveMFASettings(userId, secret, backupCodes, enabled) {
     try {
       await this.dbService.query(`
         INSERT INTO pilotpros.user_mfa (user_id, secret, backup_codes, enabled)
@@ -257,7 +241,7 @@ export class MFAService {
   /**
    * Enable MFA for user
    */
-  private async enableMFA(userId: string): Promise<void> {
+  async enableMFA(userId) {
     try {
       await this.dbService.query(`
         UPDATE pilotpros.user_mfa 
@@ -281,7 +265,7 @@ export class MFAService {
   /**
    * Disable MFA for user
    */
-  async disableMFA(userId: string): Promise<void> {
+  async disableMFA(userId) {
     try {
       await this.dbService.query(`
         UPDATE pilotpros.user_mfa 
@@ -305,7 +289,7 @@ export class MFAService {
   /**
    * Generate new backup codes
    */
-  async regenerateBackupCodes(userId: string): Promise<string[]> {
+  async regenerateBackupCodes(userId) {
     try {
       const backupCodes = this.generateBackupCodes();
       
@@ -326,7 +310,7 @@ export class MFAService {
   /**
    * Check if user has MFA enabled
    */
-  async isMFAEnabled(userId: string): Promise<boolean> {
+  async isMFAEnabled(userId) {
     try {
       const settings = await this.getUserMFASettings(userId);
       return settings ? settings.enabled : false;
@@ -338,9 +322,9 @@ export class MFAService {
 }
 
 // Singleton pattern
-let mfaServiceInstance: MFAService | null = null;
+let mfaServiceInstance = null;
 
-export function getMFAService(): MFAService {
+export function getMFAService() {
   if (!mfaServiceInstance) {
     mfaServiceInstance = new MFAService();
   }

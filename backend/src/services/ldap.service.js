@@ -9,31 +9,7 @@ import { Client } from 'ldapts';
 import { authenticate } from 'ldap-authentication';
 import { DatabaseService } from './database.js';
 
-export interface LDAPConfig {
-  id: number;
-  name: string;
-  server_url: string;
-  bind_dn?: string;
-  bind_password?: string;
-  user_search_base: string;
-  user_filter: string;
-  group_search_base?: string;
-  group_filter?: string;
-  enabled: boolean;
-  ssl_enabled: boolean;
-}
-
-export interface LDAPUser {
-  dn: string;
-  email: string;
-  fullName?: string;
-  groups?: string[];
-  attributes: Record<string, any>;
-}
-
 export class LDAPService {
-  private dbService: DatabaseService;
-
   constructor() {
     this.dbService = DatabaseService.getInstance();
   }
@@ -41,7 +17,7 @@ export class LDAPService {
   /**
    * Get active LDAP configuration
    */
-  async getLDAPConfig(): Promise<LDAPConfig | null> {
+  async getLDAPConfig() {
     try {
       const config = await this.dbService.getOne(`
         SELECT * FROM pilotpros.ldap_config 
@@ -61,7 +37,7 @@ export class LDAPService {
    * Authenticate user with LDAP
    * Uses ldap-authentication for simple authentication
    */
-  async authenticateUser(email: string, password: string): Promise<LDAPUser | null> {
+  async authenticateUser(email, password) {
     try {
       const config = await this.getLDAPConfig();
       if (!config) {
@@ -72,9 +48,9 @@ export class LDAPService {
       const options = {
         ldapOpts: {
           url: config.server_url,
-          tlsOptions: config.ssl_enabled ? {
+          tlsOptions: {
             rejectUnauthorized: false, // For self-signed certs in dev
-          } : undefined,
+          },
         },
         adminDn: config.bind_dn,
         adminPassword: config.bind_password,
@@ -94,10 +70,10 @@ export class LDAPService {
       }
 
       // Parse LDAP user response
-      const ldapUser: LDAPUser = {
+      const ldapUser = {
         dn: user.dn,
         email: user.mail || email,
-        fullName: user.displayName || user.cn,
+        fullName: user.displayName || user.cn || email,
         groups: this.parseGroups(user.memberOf),
         attributes: user,
       };
@@ -114,10 +90,10 @@ export class LDAPService {
   /**
    * Test LDAP connection
    */
-  async testConnection(config: Partial<LDAPConfig>): Promise<boolean> {
+  async testConnection(config) {
     try {
       const client = new Client({
-        url: config.server_url!,
+        url: config.server_url,
         timeout: 5000,
         connectTimeout: 5000,
       });
@@ -136,7 +112,7 @@ export class LDAPService {
   /**
    * Search for users in LDAP
    */
-  async searchUsers(searchTerm: string, config?: LDAPConfig): Promise<LDAPUser[]> {
+  async searchUsers(searchTerm, config) {
     try {
       const ldapConfig = config || await this.getLDAPConfig();
       if (!ldapConfig) {
@@ -145,7 +121,7 @@ export class LDAPService {
 
       const client = new Client({
         url: ldapConfig.server_url,
-        timeout: 10000,
+        timeout: 5000,
       });
 
       await client.bind(ldapConfig.bind_dn || '', ldapConfig.bind_password || '');
@@ -155,22 +131,22 @@ export class LDAPService {
       
       const searchResult = await client.search(ldapConfig.user_search_base, {
         scope: 'sub',
-        filter,
+        filter: filter,
         attributes: ['dn', 'mail', 'displayName', 'cn', 'sAMAccountName'],
       });
 
       await client.unbind();
 
       // Parse search results
-      const users: LDAPUser[] = searchResult.searchEntries.map((entry: any) => ({
+      const users = searchResult.searchEntries.map((entry) => ({
         dn: entry.dn,
         email: entry.mail,
         fullName: entry.displayName || entry.cn,
-        groups: [],
+        groups: this.parseGroups(entry.memberOf),
         attributes: entry,
       }));
 
-      console.log(`✅ LDAP search found ${users.length} users for term: ${searchTerm}`);
+      console.log(`✅ LDAP search found ${users.length} users for term:`, searchTerm);
       return users;
 
     } catch (error) {
@@ -182,7 +158,7 @@ export class LDAPService {
   /**
    * Sync LDAP user to local database
    */
-  async syncUserToDatabase(ldapUser: LDAPUser): Promise<string> {
+  async syncUserToDatabase(ldapUser) {
     try {
       // Check if user already exists
       const existingUser = await this.dbService.getOne(`
@@ -190,8 +166,7 @@ export class LDAPService {
         WHERE email = $1 OR ldap_dn = $2
       `, [ldapUser.email, ldapUser.dn]);
 
-      let userId: string;
-
+      let userId;
       if (existingUser) {
         // Update existing user
         await this.dbService.query(`
@@ -238,7 +213,7 @@ export class LDAPService {
   /**
    * Parse LDAP groups from memberOf attribute
    */
-  private parseGroups(memberOf: string | string[]): string[] {
+  parseGroups(memberOf) {
     if (!memberOf) return [];
     
     const groups = Array.isArray(memberOf) ? memberOf : [memberOf];
@@ -253,7 +228,7 @@ export class LDAPService {
   /**
    * Save/Update LDAP configuration
    */
-  async saveLDAPConfig(config: Omit<LDAPConfig, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+  async saveLDAPConfig(config) {
     try {
       const result = await this.dbService.getOne(`
         INSERT INTO pilotpros.ldap_config (
@@ -268,11 +243,11 @@ export class LDAPService {
         config.bind_dn,
         config.bind_password,
         config.user_search_base,
-        config.user_filter,
+        config.user_filter || '(objectClass=person)',
         config.group_search_base,
-        config.group_filter,
-        config.enabled,
-        config.ssl_enabled
+        config.group_filter || '(objectClass=group)',
+        config.enabled !== false,
+        config.ssl_enabled || false
       ]);
 
       console.log('✅ LDAP configuration saved with ID:', result.id);
@@ -285,9 +260,9 @@ export class LDAPService {
 }
 
 // Singleton pattern
-let ldapServiceInstance: LDAPService | null = null;
+let ldapServiceInstance = null;
 
-export function getLDAPService(): LDAPService {
+export function getLDAPService() {
   if (!ldapServiceInstance) {
     ldapServiceInstance = new LDAPService();
   }

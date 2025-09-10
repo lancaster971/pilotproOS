@@ -142,7 +142,7 @@ router.post('/login', async (req, res) => {
  *       401:
  *         description: Invalid MFA token or session
  */
-router.post('/mfa/verify', async (req: Request, res: Response) => {
+router.post('/mfa/verify', async (req, res) => {
   try {
     const { mfaSession, mfaToken } = req.body;
 
@@ -204,9 +204,9 @@ router.post('/mfa/verify', async (req: Request, res: Response) => {
  */
 router.post('/mfa/setup',
   authService.authenticateToken(),
-  async (req: Request & { user?: any }, res: Response) => {
+  async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = req.user.id;
       const setupResult = await enhancedAuthService.setupMFA(userId);
 
       res.json({
@@ -251,9 +251,9 @@ router.post('/mfa/setup',
  */
 router.post('/mfa/verify-setup',
   authService.authenticateToken(),
-  async (req: Request & { user?: any }, res: Response) => {
+  async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = req.user.id;
       const { token } = req.body;
 
       if (!token) {
@@ -302,9 +302,9 @@ router.post('/mfa/verify-setup',
  */
 router.post('/mfa/disable',
   authService.authenticateToken(),
-  async (req: Request & { user?: any }, res: Response) => {
+  async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = req.user.id;
       await enhancedAuthService.disableMFA(userId);
 
       res.json({
@@ -348,9 +348,9 @@ router.post('/mfa/disable',
  */
 router.get('/status',
   authService.authenticateToken(),
-  async (req: Request & { user?: any }, res: Response) => {
+  async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = req.user.id;
       const status = await enhancedAuthService.getAuthStatus(userId);
 
       res.json({
@@ -402,7 +402,7 @@ router.get('/status',
 router.post('/ldap/test',
   authService.authenticateToken(),
   authService.requirePermission('system:admin'),
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const ldapConfig = req.body;
       const connectionOk = await ldapService.testConnection(ldapConfig);
@@ -463,7 +463,7 @@ router.post('/ldap/test',
 router.post('/ldap/config',
   authService.authenticateToken(),
   authService.requirePermission('system:admin'),
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const config = req.body;
       const configId = await ldapService.saveLDAPConfig(config);
@@ -499,9 +499,9 @@ router.post('/ldap/config',
  */
 router.post('/backup-codes',
   authService.authenticateToken(),
-  async (req: Request & { user?: any }, res: Response) => {
+  async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = req.user.id;
       const backupCodes = await mfaService.regenerateBackupCodes(userId);
 
       res.json({
