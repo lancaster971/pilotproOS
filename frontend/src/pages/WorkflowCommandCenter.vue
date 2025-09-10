@@ -201,6 +201,7 @@
                 {{ selectedWorkflowData?.is_active ? 'Active' : 'Inactive' }}
               </span>
               <button
+                v-if="canExecute"
                 @click="() => { console.log('🔘 Toggle button clicked!', { selectedWorkflowId: selectedWorkflowId.value, disabled: !selectedWorkflowId.value }); toggleWorkflowStatus() }"
                 :disabled="!selectedWorkflowId"
                 :class="[
@@ -231,8 +232,8 @@
             >
               <Background pattern-color="#10b981" :size="1" variant="dots" />
               
-              <!-- Execute/Stop Button: Central bottom position like n8n -->
-              <div class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+              <!-- Execute/Stop Button: Central bottom position like n8n (Only for admin/editor) -->
+              <div v-if="canExecute" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
                 <button 
                   v-if="!isExecuting"
                   @click="executeWorkflow"
@@ -742,6 +743,7 @@ import TimelineModal from '../components/common/TimelineModal.vue'
 import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
+import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { businessAPI, $fetch } from '../services/api-client'
 
@@ -751,6 +753,11 @@ import '@vue-flow/core/dist/theme-default.css'
 
 // Stores
 const uiStore = useUIStore()
+const authStore = useAuthStore()
+
+// Computed property for role-based permissions
+const isViewer = computed(() => authStore.user?.role === 'viewer')
+const canExecute = computed(() => !isViewer.value)
 const { success, error } = useToast()
 
 // State

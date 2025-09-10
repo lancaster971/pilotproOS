@@ -13,13 +13,7 @@
           <h1 class="text-sm font-semibold text-text">PilotPro Control Center</h1>
         </div>
         
-        <div class="flex items-center gap-3">
-          <!-- Compact Live indicator -->
-          <div class="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-full">
-            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
-            <span class="text-xs font-medium text-primary">LIVE</span>
-          </div>
-          
+        <div class="flex items-center gap-3">          
           <!-- Compact User menu -->
           <div class="relative">
             <button
@@ -27,7 +21,7 @@
               class="flex items-center gap-1.5 text-text-muted hover:text-text transition-colors p-1"
             >
               <User class="h-4 w-4" />
-              <span class="text-xs">{{ authStore.user?.name || 'Admin' }}</span>
+              <span class="text-xs">{{ authStore.user?.email?.split('@')[0] || 'User' }}</span>
             </button>
             
             <!-- Compact dropdown -->
@@ -36,7 +30,7 @@
               class="absolute right-0 mt-1 w-40 bg-surface border border-border rounded-lg shadow-lg py-1"
             >
               <div class="px-3 py-1.5 border-b border-border">
-                <p class="text-xs font-medium text-text">{{ authStore.user?.name }}</p>
+                <p class="text-xs font-medium text-text">{{ authStore.user?.email?.split('@')[0] }}</p>
                 <p class="text-xs text-text-muted">{{ authStore.user?.email }}</p>
               </div>
               <button
@@ -109,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
@@ -143,15 +137,19 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
 })
 
-// Navigation items - streamlined
-const navigationItems = [
-  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard },
-  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu },
-  // Removed unused workflow routes - integrated into command-center
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
-  { name: 'settings', path: '/settings', label: 'Settings', icon: Settings }
-  // Removed security and scheduler routes - functionality not needed
+// Navigation items with role-based filtering
+const allNavigationItems = [
+  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard, roles: ['admin', 'editor', 'viewer'] },
+  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu, roles: ['admin', 'editor', 'viewer'] },
+  { name: 'executions', path: '/executions', label: 'Executions', icon: Play, roles: ['admin', 'editor', 'viewer'] },
+  { name: 'settings', path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
 ]
+
+// Filter navigation based on user role
+const navigationItems = computed(() => {
+  const userRole = authStore.user?.role || 'viewer'
+  return allNavigationItems.filter(item => item.roles.includes(userRole))
+})
 
 // Methods
 const handleLogout = () => {
