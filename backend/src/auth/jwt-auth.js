@@ -133,7 +133,7 @@ export class JwtAuthService {
     try {
       const result = await this.db`
         SELECT 
-          u.id, u.email, u.role, u.permissions, u.created_at, u.last_login
+          u.id, u.email, u.role, u.created_at, u.last_login
         FROM pilotpros.users u
         JOIN pilotpros.api_keys ak ON u.id = ak.user_id
         WHERE ak.api_key = ${apiKey} AND ak.is_active = true AND u.is_active = true
@@ -340,7 +340,7 @@ export class JwtAuthService {
     try {
       const result = await this.db`
         SELECT 
-          id, email, role, permissions, created_at, last_login
+          id, email, role, created_at, last_login
         FROM pilotpros.users 
         WHERE id = ${userId} AND is_active = true
       `;

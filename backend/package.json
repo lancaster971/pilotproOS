@@ -23,6 +23,7 @@
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
     "ldap-authentication": "^3.3.4",
+    "ldapauth-fork": "^6.1.0",
     "ldapts": "^4.2.6",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
@@ -33,6 +34,7 @@
     "postgres": "^3.4.7",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
+    "uuid": "^13.0.0",
     "winston": "^3.10.0",
     "ws": "^8.14.0"
   },

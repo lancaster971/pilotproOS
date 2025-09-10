@@ -113,7 +113,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Bot, AlertTriangle, ChevronLeft
+  Database, Bot, AlertTriangle, ChevronLeft, Settings
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
@@ -148,7 +148,8 @@ const navigationItems = [
   { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard },
   { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu },
   // Removed unused workflow routes - integrated into command-center
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play }
+  { name: 'executions', path: '/executions', label: 'Executions', icon: Play },
+  { name: 'settings', path: '/settings', label: 'Settings', icon: Settings }
   // Removed security and scheduler routes - functionality not needed
 ]
 

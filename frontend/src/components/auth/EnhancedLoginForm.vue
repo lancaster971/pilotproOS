@@ -21,7 +21,7 @@
         <input
           id="email"
           v-model="credentials.email"
-          type="email"
+          type="text"
           required
           class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
           placeholder="Enter your email"
@@ -197,7 +197,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await fetch('/api/auth/enhanced/login', {
+    const response = await fetch('http://localhost:3001/api/auth/enhanced/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

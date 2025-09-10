@@ -52,6 +52,7 @@ import InsightsPage from './pages/InsightsPage.vue'
 import WorkflowCommandCenter from './pages/WorkflowCommandCenter.vue'
 import ExecutionsPage from './pages/ExecutionsPage.vue'
 import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
+import SettingsPage from './pages/SettingsPage.vue'
 // Removed SecurityPage and SchedulerPage - functionality not needed for business system
 import DesignSystemTestPage from './pages/DesignSystemTestPage.vue'
 
@@ -67,6 +68,7 @@ const routes = [
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
+  { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
   { path: '/security', redirect: '/command-center' }, // Security functionality not needed
   { path: '/scheduler', redirect: '/command-center' }, // Scheduler handled by n8n internally

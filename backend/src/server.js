@@ -49,6 +49,9 @@ import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 // Enhanced Authentication System
 import enhancedAuthController from './controllers/enhanced-auth.controller.js';
 
+// Authentication Configuration Controller
+import authConfigController from './controllers/auth-config.controller.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -2965,6 +2968,25 @@ function extractBusinessContext(executionData, timeline) {
 // ENHANCED AUTHENTICATION ROUTES
 // ============================================================================
 app.use('/api/auth/enhanced', enhancedAuthController);
+
+// ============================================================================
+// USER MANAGEMENT ROUTES (Settings Page)
+// ============================================================================
+import * as userManagementController from './controllers/user-management.controller.js';
+import { getAuthService } from './auth/jwt-auth.js';
+
+const authService = getAuthService();
+
+app.get('/api/users', authService.authenticateToken(), userManagementController.getUsers);
+app.post('/api/users', authService.authenticateToken(), userManagementController.createUser);
+app.put('/api/users/:userId', authService.authenticateToken(), userManagementController.updateUser);
+app.delete('/api/users/:userId', authService.authenticateToken(), userManagementController.deleteUser);
+app.get('/api/roles', authService.authenticateToken(), userManagementController.getRolesAndPermissions);
+
+// Authentication Configuration Routes
+app.get('/api/auth/configuration', authService.authenticateToken(), authConfigController.getAuthConfig);
+app.post('/api/auth/save-configuration', authService.authenticateToken(), authConfigController.saveAuthConfig);
+app.post('/api/auth/test-configuration', authService.authenticateToken(), authConfigController.testAuthConfig);
 
 // Business error handler
 app.use((error, req, res, next) => {

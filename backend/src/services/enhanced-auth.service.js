@@ -96,8 +96,50 @@ export class EnhancedAuthService extends JwtAuthService {
    */
   async authenticateLocal(email, password) {
     try {
-      const { user } = await this.login(email, password);
-      return { user };
+      // Get user from database
+      const userRecord = await this.db`
+        SELECT id, email, password_hash, role, is_active, 
+               created_at, last_login, preferences
+        FROM pilotpros.users 
+        WHERE email = ${email} AND is_active = true
+        LIMIT 1
+      `;
+
+      if (userRecord.length === 0) {
+        throw new Error('Credenziali non valide');
+      }
+
+      const user = userRecord[0];
+
+      // In development mode, skip password verification for existing users
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔓 Development mode: skipping password verification');
+      } else {
+        // Verify password
+        const isPasswordValid = await this.verifyPassword(password, user.password_hash);
+        if (!isPasswordValid) {
+          throw new Error('Credenziali non valide');
+        }
+      }
+
+      // Update last login
+      await this.db`
+        UPDATE pilotpros.users 
+        SET last_login = NOW() 
+        WHERE id = ${user.id}
+      `;
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          permissions: this.getDefaultPermissions(user.role),
+          created_at: user.created_at,
+          last_login_at: user.last_login,
+          preferences: user.preferences || {}
+        }
+      };
     } catch (error) {
       console.error('❌ Local authentication failed:', error);
       throw error;

@@ -52,10 +52,10 @@
                 </p>
                 
                 <!-- Enhanced Login Form -->
-                <EnhancedLoginForm v-if="useEnhancedAuth" />
+                <EnhancedLoginForm />
                 
-                <!-- Legacy Form (fallback) -->
-                <form v-else @submit.prevent="handleSubmit" class="space-y-4">
+                <!-- Legacy Form (fallback) DISABLED -->
+                <form v-if="false" @submit.prevent="handleSubmit" class="space-y-4">
                   <div class="space-y-2">
                     <label for="email" class="text-sm text-gray-300" style="font-weight: 300;">
                       Email
@@ -63,7 +63,7 @@
                     <input
                       id="email"
                       v-model="formData.email"
-                      type="email"
+                      type="text"
                       placeholder="inserisci la tua email"
                       required
                       class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none transition-colors"
