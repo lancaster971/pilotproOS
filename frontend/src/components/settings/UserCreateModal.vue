@@ -59,9 +59,17 @@
           :feedback="false"
           toggleMask
           class="w-full"
-          placeholder="Minimo 6 caratteri"
+          placeholder="Password sicura"
           required
         />
+        <div class="mt-2 text-xs text-text-muted">
+          <div class="font-medium mb-1">Requisiti password:</div>
+          <ul class="list-disc list-inside space-y-0.5">
+            <li>Almeno 8 caratteri</li>
+            <li>Almeno una maiuscola (A-Z)</li>
+            <li>Almeno un carattere speciale (!@#$%^&*)</li>
+          </ul>
+        </div>
       </div>
 
       <!-- Role -->
@@ -81,19 +89,6 @@
         />
       </div>
 
-      <!-- Role Permissions Preview -->
-      <div v-if="form.role" class="bg-surface rounded-lg p-3 border border-surface-border">
-        <h4 class="text-sm font-medium text-text mb-2">Permessi per {{ getRoleLabel(form.role) }}:</h4>
-        <div class="flex flex-wrap gap-1">
-          <Tag 
-            v-for="permission in getSelectedRolePermissions()" 
-            :key="permission"
-            :value="formatPermission(permission)"
-            severity="info"
-            class="text-xs"
-          />
-        </div>
-      </div>
 
       <!-- Error Message -->
       <Message v-if="error" severity="error" :closable="false">
@@ -207,7 +202,6 @@ const getSelectedRolePermissions = () => {
 const getRoleLabel = (role) => {
   const labels = {
     admin: 'Amministratore',
-    editor: 'Editor', 
     viewer: 'Visualizzatore'
   }
   return labels[role] || role

@@ -81,6 +81,52 @@
   padding: 1rem !important;
 }
 
+/* === PREMIUM FORM CONTROLS === */
+.p-radiobutton .p-radiobutton-box {
+  background: rgba(17, 24, 39, 0.8) !important;
+  border: 2px solid rgba(156, 163, 175, 0.5) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.p-radiobutton .p-radiobutton-box:hover {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  background: rgba(17, 24, 39, 0.9) !important;
+}
+
+.p-radiobutton .p-radiobutton-box.p-highlight {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 1) !important;
+}
+
+.p-radiobutton .p-radiobutton-box .p-radiobutton-icon {
+  background: rgba(16, 185, 129, 1) !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.p-checkbox .p-checkbox-box {
+  background: rgba(17, 24, 39, 0.8) !important;
+  border: 2px solid rgba(156, 163, 175, 0.5) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.p-checkbox .p-checkbox-box:hover {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  background: rgba(17, 24, 39, 0.9) !important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 1) !important;
+}
+
+.p-checkbox .p-checkbox-box .p-checkbox-icon {
+  color: rgba(16, 185, 129, 1) !important;
+  font-size: 12px !important;
+}
+
 /* === SUBTLE PREMIUM EFFECTS (REDUCED GLOW) === */
 .premium-neon-pulse {
   filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.3));

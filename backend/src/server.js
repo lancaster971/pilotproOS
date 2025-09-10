@@ -33,6 +33,9 @@ import {
 // Business step parser for timeline
 import { humanizeStepData, generateDetailedReport } from './utils/business-step-parser.js';
 
+// Business Intelligence Service for big data handling
+import businessIntelligenceService from './services/business-intelligence.service.js';
+
 import { 
   businessSanitizer,
   sanitizeBusinessParams,
@@ -1537,37 +1540,48 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
     if (false && savedBusinessData && savedBusinessData.length > 0) {
       console.log(`✅ Found ${savedBusinessData.length} saved business records - returning from database`);
       
-      // Convert DB records to expected API format
-      const businessNodes = savedBusinessData.map(record => ({
-        showTag: record.show_tag,
-        name: record.node_name,
-        type: record.node_type, 
-        nodeType: record.business_category || 'business',
-        executed: true,
-        status: 'success',
-        data: {
-          nodeType: record.node_type,
-          nodeName: record.node_name,
-          executedAt: record.extracted_at || new Date().toISOString(),
-          hasInputData: !!record.raw_input_data,
-          hasOutputData: !!record.raw_output_data,
-          rawInputData: record.raw_input_data || null,
-          rawOutputData: record.raw_output_data || null,
-          inputJson: record.raw_input_data || {},
-          outputJson: record.raw_output_data || {},
-          nodeCategory: record.business_category,
-          suggestedSummary: record.business_summary,
-          totalDataSize: record.data_size || 0,
-          // Business fields for easy frontend access
-          emailSender: record.email_sender,
-          emailSubject: record.email_subject, 
-          emailContent: record.email_content,
-          aiClassification: record.ai_classification,
-          aiResponse: record.ai_response,
-          orderId: record.order_id,
-          orderCustomer: record.order_customer
-        },
-        _nodeId: record.node_id
+      // Convert DB records to expected API format with Business Intelligence processing
+      const businessNodes = await Promise.all(savedBusinessData.map(async (record) => {
+        // Process large data through Business Intelligence Service
+        const processedData = await businessIntelligenceService.processNodeOutput(
+          record.raw_output_data || record.raw_input_data,
+          record.node_type,
+          record.node_name
+        );
+        
+        return {
+          showTag: record.show_tag,
+          name: record.node_name,
+          type: record.node_type, 
+          nodeType: record.business_category || 'business',
+          executed: true,
+          status: 'success',
+          data: {
+            nodeType: record.node_type,
+            nodeName: record.node_name,
+            executedAt: record.extracted_at || new Date().toISOString(),
+            hasInputData: !!record.raw_input_data,
+            hasOutputData: !!record.raw_output_data,
+            rawInputData: record.raw_input_data || null,
+            rawOutputData: record.raw_output_data || null,
+            inputJson: record.raw_input_data || {},
+            outputJson: record.raw_output_data || {},
+            nodeCategory: record.business_category,
+            suggestedSummary: record.business_summary,
+            totalDataSize: record.data_size || 0,
+            // Business Intelligence processed summary
+            intelligentSummary: processedData,
+            // Business fields for easy frontend access
+            emailSender: record.email_sender,
+            emailSubject: record.email_subject, 
+            emailContent: record.email_content,
+            aiClassification: record.ai_classification,
+            aiResponse: record.ai_response,
+            orderId: record.order_id,
+            orderCustomer: record.order_customer
+          },
+          _nodeId: record.node_id
+        };
       }));
       
       // Get workflow details for status
@@ -1785,6 +1799,8 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
     }
     
     for (const node of showNodes) {
+      // Process nodes sequentially to handle async Business Intelligence processing
+      await (async () => {
       const nodeName = node.name;
       const hasExecutionData = runData[nodeName];
       
@@ -1851,6 +1867,28 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
               
               businessData = extractRealBusinessData(inputData, outputData, node.type, nodeName);
               
+              // Process large data through Business Intelligence Service
+              if (outputData || inputData) {
+                const dataToProcess = outputData || inputData;
+                const dataSize = JSON.stringify(dataToProcess).length;
+                
+                // Only process through Business Intelligence if data is large
+                if (dataSize > 5000) { // > 5KB threshold
+                  console.log(`🧠 Processing large data (${dataSize} bytes) through Business Intelligence Service for ${nodeName}`);
+                  try {
+                    const intelligentSummary = await businessIntelligenceService.processNodeOutput(
+                      dataToProcess,
+                      node.type,
+                      nodeName
+                    );
+                    businessData.intelligentSummary = intelligentSummary;
+                    console.log(`✅ Business Intelligence processing complete for ${nodeName}: type=${intelligentSummary.type}`);
+                  } catch (biError) {
+                    console.error(`⚠️ Business Intelligence processing failed for ${nodeName}:`, biError);
+                  }
+                }
+              }
+              
               // Save business data when fallback to n8n (DB was empty)
               if (businessData && Object.keys(businessData).length > 0) {
                 const nodeDataToSave = {
@@ -1886,6 +1924,7 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
         data: businessData,
         _nodeId: node.id
       });
+      })(); // Close async IIFE
     }
     
     // Add global execution error node if needed

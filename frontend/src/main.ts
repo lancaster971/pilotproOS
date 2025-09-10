@@ -68,7 +68,7 @@ const routes = [
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
-  { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true } },
+  { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
   { path: '/security', redirect: '/command-center' }, // Security functionality not needed
   { path: '/scheduler', redirect: '/command-center' }, // Scheduler handled by n8n internally
@@ -80,17 +80,42 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard - same pattern as n8n
+// Auth guard with role-based access control
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('pilotpro_token')
   
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'insights' })
-  } else {
-    next()
+    return
   }
+  
+  if (to.name === 'login' && isAuthenticated) {
+    next({ name: 'insights' }) // Redirect authenticated users away from login
+    return
+  }
+  
+  // Role-based access control
+  if (to.meta.requiresRole && isAuthenticated) {
+    try {
+      const token = localStorage.getItem('pilotpro_token')
+      if (token) {
+        // Decode JWT to get user role (simple base64 decode)
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const userRole = payload.role || 'viewer'
+        
+        if (to.meta.requiresRole === 'admin' && userRole !== 'admin') {
+          next({ name: 'insights' }) // Redirect non-admin users away from admin pages
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error)
+      next({ name: 'login' })
+      return
+    }
+  }
+  
+  next()
 })
 
 // Create app with same structure as n8n
