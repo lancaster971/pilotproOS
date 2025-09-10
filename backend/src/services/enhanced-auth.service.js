@@ -8,14 +8,14 @@
 import { JwtAuthService } from '../auth/jwt-auth.js';
 import { getLDAPService } from './ldap.service.js';
 import { getMFAService } from './mfa.service.js';
-import { DatabaseService } from './database.js';
+import { dbPool } from '../db/connection.js';
 
 export class EnhancedAuthService extends JwtAuthService {
   constructor() {
     super();
     this.ldapService = getLDAPService();
     this.mfaService = getMFAService();
-    this.dbService = DatabaseService.getInstance();
+    this.db = dbPool;
   }
 
   /**
@@ -189,9 +189,10 @@ export class EnhancedAuthService extends JwtAuthService {
   async shouldUseLDAP(email) {
     try {
       // Check if user exists with LDAP auth method
-      const user = await this.dbService.getOne(`
-        SELECT auth_method FROM pilotpros.users WHERE email = $1
-      `, [email]);
+      const result = await this.db`
+        SELECT auth_method FROM pilotpros.users WHERE email = ${email}
+      `;
+      const user = result[0];
 
       if (user && user.auth_method === 'ldap') {
         return true;
@@ -214,10 +215,10 @@ export class EnhancedAuthService extends JwtAuthService {
       const sessionToken = this.generateApiKey(); // Reuse API key generation
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      await this.dbService.query(`
+      await this.db`
         INSERT INTO pilotpros.mfa_sessions (user_id, session_token, expires_at)
-        VALUES ($1, $2, $3)
-      `, [userId, sessionToken, expiresAt]);
+        VALUES (${userId}, ${sessionToken}, ${expiresAt})
+      `;
 
       return sessionToken;
     } catch (error) {
@@ -231,10 +232,11 @@ export class EnhancedAuthService extends JwtAuthService {
    */
   async getMFASession(sessionToken) {
     try {
-      return await this.dbService.getOne(`
+      const result = await this.db`
         SELECT * FROM pilotpros.mfa_sessions 
-        WHERE session_token = $1 AND mfa_verified = false
-      `, [sessionToken]);
+        WHERE session_token = ${sessionToken} AND mfa_verified = false
+      `;
+      return result[0];
     } catch (error) {
       console.error('❌ Failed to get MFA session:', error);
       return null;
@@ -246,11 +248,11 @@ export class EnhancedAuthService extends JwtAuthService {
    */
   async verifyMFASession(sessionToken) {
     try {
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.mfa_sessions 
         SET mfa_verified = true 
-        WHERE session_token = $1
-      `, [sessionToken]);
+        WHERE session_token = ${sessionToken}
+      `;
     } catch (error) {
       console.error('❌ Failed to verify MFA session:', error);
       throw error;
@@ -262,14 +264,15 @@ export class EnhancedAuthService extends JwtAuthService {
    */
   async getUserById(userId) {
     try {
-      const userRecord = await this.dbService.getOne(`
+      const result = await this.db`
         SELECT 
           id, email, role, full_name,
           auth_method, ldap_dn, mfa_enabled,
           created_at, last_login, preferences
         FROM pilotpros.users 
-        WHERE id = $1 AND is_active = true
-      `, [userId]);
+        WHERE id = ${userId} AND is_active = true
+      `;
+      const userRecord = result[0];
 
       if (!userRecord) {
         return null;
@@ -296,9 +299,10 @@ export class EnhancedAuthService extends JwtAuthService {
    */
   async getAuthStatus(userId) {
     try {
-      const user = await this.dbService.getOne(`
-        SELECT auth_method, mfa_enabled FROM pilotpros.users WHERE id = $1
-      `, [userId]);
+      const result = await this.db`
+        SELECT auth_method, mfa_enabled FROM pilotpros.users WHERE id = ${userId}
+      `;
+      const user = result[0];
 
       const ldapConfig = await this.ldapService.getLDAPConfig();
 

@@ -51,7 +51,11 @@
                   {{ isSignUp ? SIGNUP_DESCRIPTION : LOGIN_DESCRIPTION }}
                 </p>
                 
-                <form @submit.prevent="handleSubmit" class="space-y-4">
+                <!-- Enhanced Login Form -->
+                <EnhancedLoginForm v-if="useEnhancedAuth" />
+                
+                <!-- Legacy Form (fallback) -->
+                <form v-else @submit.prevent="handleSubmit" class="space-y-4">
                   <div class="space-y-2">
                     <label for="email" class="text-sm text-gray-300" style="font-weight: 300;">
                       Email
@@ -152,6 +156,7 @@ import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+import EnhancedLoginForm from '../components/auth/EnhancedLoginForm.vue'
 
 // Constants - same as new loginPage design
 const LOGIN_TITLE = "Bentornato"
@@ -170,6 +175,7 @@ const router = useRouter()
 const isSignUp = ref(false)
 const showPassword = ref(false)
 const showBackToTop = ref(false)
+const useEnhancedAuth = ref(true) // Enable enhanced auth by default
 
 const formData = ref({
   email: '',

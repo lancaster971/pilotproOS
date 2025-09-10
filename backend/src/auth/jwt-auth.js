@@ -1,13 +1,13 @@
 /**
  * JWT Authentication
  * 
- * Sistema di autenticazione per API multi-tenant con JWT tokens
+ * Sistema di autenticazione per API con JWT tokens
  */
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { DatabaseConnection } from '../database/connection.js';
+import { dbPool } from '../db/connection.js';
 
 export const defaultAuthConfig = {
   jwtSecret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
@@ -16,8 +16,8 @@ export const defaultAuthConfig = {
   apiKeyLength: 32
 };
 
-// JWT Payload structure: { userId, tenantId?, role, permissions, iat?, exp? }
-// AuthUser structure: { id, email, role, tenant_id?, api_key?, permissions, created_at, last_login_at? }
+// JWT Payload structure: { userId, role, permissions, iat?, exp? }
+// AuthUser structure: { id, email, role, permissions, created_at, last_login_at? }
 
 /**
  * JWT Authentication Service
@@ -25,7 +25,7 @@ export const defaultAuthConfig = {
 export class JwtAuthService {
   constructor(config) {
     this.config = { ...defaultAuthConfig, ...config };
-    this.db = DatabaseConnection.getInstance();
+    this.db = dbPool;
     
     if (this.config.jwtSecret.length < 32) {
       throw new Error('JWT_SECRET deve essere almeno 32 caratteri');
@@ -38,7 +38,6 @@ export class JwtAuthService {
   generateToken(user) {
     const payload = {
       userId: user.id,
-      tenantId: user.tenant_id,
       role: user.role,
       permissions: user.permissions
     };
@@ -86,13 +85,14 @@ export class JwtAuthService {
    */
   async login(email, password) {
     try {
-      const userRecord = await this.db.getOne(`
+      const result = await this.db`
         SELECT 
-          id, email, password_hash, role, tenant_id,
-          permissions, created_at, last_login
+          id, email, password_hash, role,
+          created_at, last_login
         FROM pilotpros.users 
-        WHERE email = $1 AND is_active = true
-      `, [email]);
+        WHERE email = ${email} AND is_active = true
+      `;
+      const userRecord = result[0];
 
       if (!userRecord) {
         throw new Error('Credenziali non valide');
@@ -104,16 +104,15 @@ export class JwtAuthService {
       }
 
       // Update last login
-      await this.db.query(`
-        UPDATE pilotpros.users SET last_login = CURRENT_TIMESTAMP WHERE id = $1
-      `, [userRecord.id]);
+      await this.db`
+        UPDATE pilotpros.users SET last_login = CURRENT_TIMESTAMP WHERE id = ${userRecord.id}
+      `;
 
       const user = {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
-        tenant_id: userRecord.tenant_id,
-        permissions: this.safeJsonParse(userRecord.permissions),
+        permissions: this.getDefaultPermissions(userRecord.role),
         created_at: userRecord.created_at,
         last_login_at: new Date()
       };
@@ -132,13 +131,14 @@ export class JwtAuthService {
    */
   async verifyApiKey(apiKey) {
     try {
-      const userRecord = await this.db.getOne(`
+      const result = await this.db`
         SELECT 
-          u.id, u.email, u.role, u.tenant_id, u.permissions, u.created_at, u.last_login
+          u.id, u.email, u.role, u.permissions, u.created_at, u.last_login
         FROM pilotpros.users u
         JOIN pilotpros.api_keys ak ON u.id = ak.user_id
-        WHERE ak.api_key = $1 AND ak.is_active = true AND u.is_active = true
-      `, [apiKey]);
+        WHERE ak.api_key = ${apiKey} AND ak.is_active = true AND u.is_active = true
+      `;
+      const userRecord = result[0];
 
       if (!userRecord) {
         return null;
@@ -148,8 +148,7 @@ export class JwtAuthService {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
-        tenant_id: userRecord.tenant_id,
-        permissions: this.safeJsonParse(userRecord.permissions),
+        permissions: this.getDefaultPermissions(userRecord.role),
         created_at: userRecord.created_at,
         last_login_at: userRecord.last_login
       };
@@ -167,15 +166,15 @@ export class JwtAuthService {
       email,
       password,
       role = 'user',
-      tenant_id,
       permissions = []
     } = userData;
 
     try {
       // Check if user exists
-      const existingUser = await this.db.getOne(`
-        SELECT id FROM pilotpros.users WHERE email = $1
-      `, [email]);
+      const existingUsers = await this.db`
+        SELECT id FROM pilotpros.users WHERE email = ${email}
+      `;
+      const existingUser = existingUsers[0];
 
       if (existingUser) {
         throw new Error('Utente già esistente');
@@ -185,19 +184,19 @@ export class JwtAuthService {
       const defaultPermissions = this.getDefaultPermissions(role);
       const userPermissions = [...new Set([...defaultPermissions, ...permissions])];
 
-      const userRecord = await this.db.getOne(`
+      const result = await this.db`
         INSERT INTO pilotpros.users (
-          email, password_hash, role, tenant_id, permissions
-        ) VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, email, role, tenant_id, permissions, created_at
-      `, [email, passwordHash, role, tenant_id, JSON.stringify(userPermissions)]);
+          email, password_hash, role
+        ) VALUES (${email}, ${passwordHash}, ${role})
+        RETURNING id, email, role, created_at
+      `;
+      const userRecord = result[0];
 
       const user = {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
-        tenant_id: userRecord.tenant_id,
-        permissions: userPermissions,
+        permissions: this.getDefaultPermissions(userRecord.role),
         created_at: userRecord.created_at,
         last_login_at: null
       };
@@ -318,9 +317,9 @@ export class JwtAuthService {
   }
 
   /**
-   * Middleware per controllo accesso tenant
+   * Middleware per controllo accesso (single-tenant mode)
    */
-  requireTenantAccess(tenantIdParam = 'tenantId') {
+  requireAccess() {
     return (req, res, next) => {
       if (!req.user) {
         return res.status(401).json({
@@ -329,19 +328,7 @@ export class JwtAuthService {
         });
       }
 
-      // Admin can access any tenant
-      if (req.user.role === 'admin') {
-        return next();
-      }
-
-      const requestedTenantId = req.params[tenantIdParam];
-      if (req.user.tenant_id !== requestedTenantId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accesso tenant non autorizzato'
-        });
-      }
-
+      // In single-tenant mode, all authenticated users have access
       next();
     };
   }
@@ -351,12 +338,13 @@ export class JwtAuthService {
    */
   async getUserById(userId) {
     try {
-      const userRecord = await this.db.getOne(`
+      const result = await this.db`
         SELECT 
-          id, email, role, tenant_id, permissions, created_at, last_login
+          id, email, role, permissions, created_at, last_login
         FROM pilotpros.users 
-        WHERE id = $1 AND is_active = true
-      `, [userId]);
+        WHERE id = ${userId} AND is_active = true
+      `;
+      const userRecord = result[0];
 
       if (!userRecord) {
         return null;
@@ -366,8 +354,7 @@ export class JwtAuthService {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
-        tenant_id: userRecord.tenant_id,
-        permissions: this.safeJsonParse(userRecord.permissions),
+        permissions: this.getDefaultPermissions(userRecord.role),
         created_at: userRecord.created_at,
         last_login_at: userRecord.last_login
       };

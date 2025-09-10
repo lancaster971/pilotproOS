@@ -5,38 +5,22 @@
  * Fornisce un pool di connessioni ottimizzato e funzioni helper per query.
  */
 
-import { Pool, PoolConfig, QueryResult, QueryResultRow } from 'pg';
-import { getEnvConfig } from '../config/environment.js';
+import { Pool } from 'pg';
 
-/**
- * Configurazione database estesa con tutte le opzioni
- */
-export interface DatabaseConfig {
-  type: 'postgres' | 'mysql';
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  ssl?: boolean;
-  max?: number;           // Massimo numero di connessioni nel pool
-  idleTimeoutMillis?: number;
-  connectionTimeoutMillis?: number;
-}
 
 /**
  * Classe singleton per gestire la connessione al database
  */
 export class DatabaseConnection {
-  private static instance: DatabaseConnection;
-  private pool: Pool | null = null;
-  private config: DatabaseConfig | null = null;
-  private isConnected: boolean = false;
+  static instance = null;
+  pool = null;
+  config = null;
+  isConnected = false;
 
   /**
    * Costruttore privato per pattern singleton
    */
-  private constructor() {
+  constructor() {
     // Config caricata in connect() per assicurare che dotenv sia già stato inizializzato
   }
 
@@ -45,7 +29,7 @@ export class DatabaseConnection {
    * 
    * @returns Istanza della connessione database
    */
-  public static getInstance(): DatabaseConnection {
+  static getInstance() {
     if (!DatabaseConnection.instance) {
       DatabaseConnection.instance = new DatabaseConnection();
     }
@@ -57,7 +41,7 @@ export class DatabaseConnection {
    * 
    * @returns Configurazione database completa
    */
-  private loadDatabaseConfig(): DatabaseConfig {
+  loadDatabaseConfig() {
     const env = process.env;
     
     // Se DATABASE_URL è presente, parsalo
@@ -79,7 +63,7 @@ export class DatabaseConnection {
     
     // Altrimenti usa variabili separate
     return {
-      type: (env.DB_TYPE as 'postgres' | 'mysql') || 'postgres',
+      type: env.DB_TYPE || 'postgres',
       host: env.DB_HOST || 'localhost',
       port: parseInt(env.DB_PORT || '5432'),
       database: env.DB_NAME || 'n8n_mcp',
@@ -97,7 +81,7 @@ export class DatabaseConnection {
    * 
    * @returns Promise che si risolve quando la connessione è stabilita
    */
-  public async connect(): Promise<void> {
+  async connect() {
     if (this.isConnected && this.pool) {
       console.log('Database già connesso');
       return;
@@ -115,7 +99,7 @@ export class DatabaseConnection {
 
     try {
       // Configurazione pool per PostgreSQL
-      const poolConfig: PoolConfig = {
+      const poolConfig = {
         host: this.config.host,
         port: this.config.port,
         database: this.config.database,
@@ -161,7 +145,7 @@ export class DatabaseConnection {
    * 
    * @returns Promise che si risolve se la connessione è valida
    */
-  private async testConnection(): Promise<void> {
+  async testConnection() {
     if (!this.pool) {
       throw new Error('Pool non inizializzato');
     }
@@ -177,7 +161,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query parametrizzata
    * @returns Promise con il risultato della query
    */
-  public async query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+  async query(text, params) {
     if (!this.pool) {
       throw new Error('Database non connesso. Chiamare connect() prima di eseguire query.');
     }
@@ -185,7 +169,7 @@ export class DatabaseConnection {
     const start = Date.now();
     
     try {
-      const result = await this.pool.query<T>(text, params);
+      const result = await this.pool.query(text, params);
       
       // Log query in modalità debug
       if (process.env.LOG_LEVEL === 'debug') {
@@ -210,7 +194,7 @@ export class DatabaseConnection {
    * @param callback - Funzione che contiene le operazioni da eseguire in transazione
    * @returns Promise con il risultato della transazione
    */
-  public async transaction<T>(callback: (client: any) => Promise<T>): Promise<T> {
+  async transaction(callback) {
     if (!this.pool) {
       throw new Error('Database non connesso');
     }
@@ -237,7 +221,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query
    * @returns Promise con la prima riga o null
    */
-  public async getOne<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<T | null> {
+  async getOne(text, params) {
     const result = await this.query<T>(text, params);
     return result.rows[0] || null;
   }
@@ -249,7 +233,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query
    * @returns Promise con array di righe
    */
-  public async getMany<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<T[]> {
+  async getMany(text, params) {
     const result = await this.query<T>(text, params);
     return result.rows;
   }
@@ -261,7 +245,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query
    * @returns Promise con l'ID della riga inserita
    */
-  public async insert<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<T> {
+  async insert(text, params) {
     const queryText = text.includes('RETURNING') ? text : `${text} RETURNING *`;
     const result = await this.query<T>(queryText, params);
     return result.rows[0];
@@ -274,7 +258,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query
    * @returns Promise con il numero di righe modificate
    */
-  public async update(text: string, params?: any[]): Promise<number> {
+  async update(text, params) {
     const result = await this.query(text, params);
     return result.rowCount || 0;
   }
@@ -286,7 +270,7 @@ export class DatabaseConnection {
    * @param params - Parametri per la query
    * @returns Promise con il numero di righe eliminate
    */
-  public async delete(text: string, params?: any[]): Promise<number> {
+  async delete(text, params) {
     const result = await this.query(text, params);
     return result.rowCount || 0;
   }
@@ -297,7 +281,7 @@ export class DatabaseConnection {
    * @param tableName - Nome della tabella da verificare
    * @returns Promise con booleano che indica se la tabella esiste
    */
-  public async tableExists(tableName: string): Promise<boolean> {
+  async tableExists(tableName) {
     const query = `
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -306,8 +290,8 @@ export class DatabaseConnection {
       ) as exists
     `;
     
-    const result = await this.getOne<{ exists: boolean }>(query, [tableName]);
-    return result?.exists || false;
+    const result = await this.getOne(query, [tableName]);
+    return result && result.exists || false;
   }
 
   /**
@@ -315,7 +299,7 @@ export class DatabaseConnection {
    * 
    * @returns Promise che si risolve quando lo schema è creato
    */
-  public async initializeSchema(): Promise<void> {
+  async initializeSchema() {
     try {
       console.log('Inizializzazione schema database...');
       
@@ -345,7 +329,7 @@ export class DatabaseConnection {
    * 
    * @returns Configurazione del database
    */
-  public getConfig(): DatabaseConfig {
+  getConfig() {
     if (!this.config) {
       throw new Error('Database configuration not initialized');
     }
@@ -357,7 +341,7 @@ export class DatabaseConnection {
    * 
    * @returns Promise che si risolve quando la connessione è chiusa
    */
-  public async disconnect(): Promise<void> {
+  async disconnect() {
     if (this.pool) {
       await this.pool.end();
       this.pool = null;
@@ -371,7 +355,7 @@ export class DatabaseConnection {
    * 
    * @returns Oggetto con statistiche del pool
    */
-  public getPoolStats(): any {
+  getPoolStats() {
     if (!this.pool) {
       return null;
     }
@@ -394,7 +378,7 @@ export const db = DatabaseConnection.getInstance();
  * 
  * @returns Promise che si risolve quando il database è pronto
  */
-export async function initializeDatabase(): Promise<void> {
+export async function initializeDatabase() {
   const database = DatabaseConnection.getInstance();
   await database.connect();
   
@@ -416,18 +400,18 @@ export async function initializeDatabase(): Promise<void> {
  * @param retryDelay - Delay tra i tentativi in ms
  * @returns Promise con il risultato della query
  */
-export async function queryWithRetry<T>(
-  queryFn: () => Promise<T>,
-  maxRetries: number = 3,
-  retryDelay: number = 1000
-): Promise<T> {
-  let lastError: Error | null = null;
+export async function queryWithRetry(
+  queryFn,
+  maxRetries = 3,
+  retryDelay = 1000
+) {
+  let lastError = null;
   
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await queryFn();
     } catch (error) {
-      lastError = error as Error;
+      lastError = error;
       console.warn(`Tentativo ${i + 1} fallito:`, error);
       
       if (i < maxRetries - 1) {

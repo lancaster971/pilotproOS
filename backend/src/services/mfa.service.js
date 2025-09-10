@@ -7,12 +7,12 @@
 
 import { Secret, TOTP } from 'otpauth';
 import QRCode from 'qrcode';
-import { DatabaseService } from './database.js';
+import { dbPool } from '../db/connection.js';
 import { randomBytes } from 'crypto';
 
 export class MFAService {
   constructor() {
-    this.dbService = DatabaseService.getInstance();
+    this.db = dbPool;
   }
 
   /**
@@ -174,11 +174,11 @@ export class MFAService {
         // Remove used backup code
         const updatedCodes = backupCodes.filter(c => c !== upperCode);
         
-        await this.dbService.query(`
+        await this.db`
           UPDATE pilotpros.user_mfa 
-          SET backup_codes = $1, updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = $2
-        `, [JSON.stringify(updatedCodes), userId]);
+          SET backup_codes = ${JSON.stringify(updatedCodes)}, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = ${userId}
+        `;
 
         console.log('✅ Backup code used successfully for user:', userId);
         return true;
@@ -196,9 +196,10 @@ export class MFAService {
    */
   async getUserMFASettings(userId) {
     try {
-      const settings = await this.dbService.getOne(`
-        SELECT * FROM pilotpros.user_mfa WHERE user_id = $1
-      `, [userId]);
+      const result = await this.db`
+        SELECT * FROM pilotpros.user_mfa WHERE user_id = ${userId}
+      `;
+      const settings = result[0];
 
       if (!settings) {
         return null;
@@ -221,16 +222,16 @@ export class MFAService {
    */
   async saveMFASettings(userId, secret, backupCodes, enabled) {
     try {
-      await this.dbService.query(`
+      await this.db`
         INSERT INTO pilotpros.user_mfa (user_id, secret, backup_codes, enabled)
-        VALUES ($1, $2, $3, $4)
+        VALUES (${userId}, ${secret}, ${JSON.stringify(backupCodes)}, ${enabled})
         ON CONFLICT (user_id) 
         DO UPDATE SET 
-          secret = $2,
-          backup_codes = $3,
-          enabled = $4,
+          secret = ${secret},
+          backup_codes = ${JSON.stringify(backupCodes)},
+          enabled = ${enabled},
           updated_at = CURRENT_TIMESTAMP
-      `, [userId, secret, JSON.stringify(backupCodes), enabled]);
+      `;
 
     } catch (error) {
       console.error('❌ Failed to save MFA settings:', error);
@@ -243,18 +244,18 @@ export class MFAService {
    */
   async enableMFA(userId) {
     try {
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.user_mfa 
         SET enabled = true, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $1
-      `, [userId]);
+        WHERE user_id = ${userId}
+      `;
 
       // Update user table
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.users 
         SET mfa_enabled = true, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `, [userId]);
+        WHERE id = ${userId}
+      `;
 
     } catch (error) {
       console.error('❌ Failed to enable MFA:', error);
@@ -267,17 +268,17 @@ export class MFAService {
    */
   async disableMFA(userId) {
     try {
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.user_mfa 
         SET enabled = false, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $1
-      `, [userId]);
+        WHERE user_id = ${userId}
+      `;
 
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.users 
         SET mfa_enabled = false, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `, [userId]);
+        WHERE id = ${userId}
+      `;
 
       console.log('✅ MFA disabled for user:', userId);
     } catch (error) {
@@ -293,11 +294,11 @@ export class MFAService {
     try {
       const backupCodes = this.generateBackupCodes();
       
-      await this.dbService.query(`
+      await this.db`
         UPDATE pilotpros.user_mfa 
-        SET backup_codes = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $2
-      `, [JSON.stringify(backupCodes), userId]);
+        SET backup_codes = ${JSON.stringify(backupCodes)}, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ${userId}
+      `;
 
       console.log('✅ Backup codes regenerated for user:', userId);
       return backupCodes;

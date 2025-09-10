@@ -26,7 +26,7 @@
     "ldapts": "^4.2.6",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
-    "otpauth": "^9.1.1",
+    "otpauth": "^9.4.1",
     "pg": "^8.11.0",
     "pino": "^9.9.4",
     "pino-pretty": "^13.1.1",

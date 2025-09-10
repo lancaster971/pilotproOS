@@ -146,7 +146,7 @@ services:
       N8N_ADMIN_PASSWORD: pilotpros_admin_2025
       
       # Security (development)
-      JWT_SECRET: pilotpros_dev_jwt_secret_2025
+      JWT_SECRET: pilotpros_dev_jwt_secret_2025_secure
       BCRYPT_ROUNDS: 4  # Faster in development
       
       # Development specific

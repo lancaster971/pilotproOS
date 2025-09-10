@@ -7,11 +7,11 @@
 
 import { Client } from 'ldapts';
 import { authenticate } from 'ldap-authentication';
-import { DatabaseService } from './database.js';
+import { dbPool } from '../db/connection.js';
 
 export class LDAPService {
   constructor() {
-    this.dbService = DatabaseService.getInstance();
+    this.db = dbPool;
   }
 
   /**
@@ -19,12 +19,13 @@ export class LDAPService {
    */
   async getLDAPConfig() {
     try {
-      const config = await this.dbService.getOne(`
+      const result = await this.db`
         SELECT * FROM pilotpros.ldap_config 
         WHERE enabled = true 
         ORDER BY created_at DESC 
         LIMIT 1
-      `);
+      `;
+      const config = result[0];
       
       return config || null;
     } catch (error) {
@@ -161,47 +162,49 @@ export class LDAPService {
   async syncUserToDatabase(ldapUser) {
     try {
       // Check if user already exists
-      const existingUser = await this.dbService.getOne(`
+      const existingUsers = await this.db`
         SELECT id FROM pilotpros.users 
-        WHERE email = $1 OR ldap_dn = $2
-      `, [ldapUser.email, ldapUser.dn]);
+        WHERE email = ${ldapUser.email} OR ldap_dn = ${ldapUser.dn}
+      `;
+      const existingUser = existingUsers[0];
 
       let userId;
       if (existingUser) {
         // Update existing user
-        await this.dbService.query(`
+        await this.db`
           UPDATE pilotpros.users SET
-            full_name = $1,
-            ldap_dn = $2,
+            full_name = ${ldapUser.fullName},
+            ldap_dn = ${ldapUser.dn},
             auth_method = 'ldap',
             last_ldap_sync = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3
-        `, [ldapUser.fullName, ldapUser.dn, existingUser.id]);
+          WHERE id = ${existingUser.id}
+        `;
         
         userId = existingUser.id;
         console.log('✅ Updated existing LDAP user:', ldapUser.email);
       } else {
         // Create new user
-        const newUser = await this.dbService.getOne(`
+        const newUserResult = await this.db`
           INSERT INTO pilotpros.users (
             email, full_name, ldap_dn, auth_method, 
             password_hash, role, last_ldap_sync
-          ) VALUES ($1, $2, $3, 'ldap', '', 'user', CURRENT_TIMESTAMP)
+          ) VALUES (${ldapUser.email}, ${ldapUser.fullName}, ${ldapUser.dn}, 'ldap', '', 'user', CURRENT_TIMESTAMP)
           RETURNING id
-        `, [ldapUser.email, ldapUser.fullName, ldapUser.dn]);
+        `;
+        const newUser = newUserResult[0];
         
         userId = newUser.id;
         console.log('✅ Created new LDAP user:', ldapUser.email);
       }
 
       // Update/create user auth method
-      await this.dbService.query(`
+      await this.db`
         INSERT INTO pilotpros.user_auth_methods (user_id, method, ldap_dn, enabled)
-        VALUES ($1, 'ldap', $2, true)
+        VALUES (${userId}, 'ldap', ${ldapUser.dn}, true)
         ON CONFLICT (user_id, method) 
-        DO UPDATE SET ldap_dn = $2, enabled = true
-      `, [userId, ldapUser.dn]);
+        DO UPDATE SET ldap_dn = ${ldapUser.dn}, enabled = true
+      `;
 
       return userId;
     } catch (error) {
@@ -230,25 +233,17 @@ export class LDAPService {
    */
   async saveLDAPConfig(config) {
     try {
-      const result = await this.dbService.getOne(`
+      const resultArray = await this.db`
         INSERT INTO pilotpros.ldap_config (
           name, server_url, bind_dn, bind_password,
           user_search_base, user_filter, group_search_base,
           group_filter, enabled, ssl_enabled
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ) VALUES (${config.name}, ${config.server_url}, ${config.bind_dn}, ${config.bind_password},
+          ${config.user_search_base}, ${config.user_filter || '(objectClass=person)'}, ${config.group_search_base},
+          ${config.group_filter || '(objectClass=group)'}, ${config.enabled !== false}, ${config.ssl_enabled || false})
         RETURNING id
-      `, [
-        config.name,
-        config.server_url,
-        config.bind_dn,
-        config.bind_password,
-        config.user_search_base,
-        config.user_filter || '(objectClass=person)',
-        config.group_search_base,
-        config.group_filter || '(objectClass=group)',
-        config.enabled !== false,
-        config.ssl_enabled || false
-      ]);
+      `;
+      const result = resultArray[0];
 
       console.log('✅ LDAP configuration saved with ID:', result.id);
       return result.id;
