@@ -4,14 +4,14 @@
  * Endpoints REST per gestione autenticazione e utenti
  */
 
-import express, { Request, Response } from 'express';
-import { getAuthService, AuthUser } from '../auth/jwt-auth.js';
-import { DatabaseConnection } from '../database/connection.js';
-import { resolveTenantId, validateTenantId, getTenantConfig } from '../config/tenant-config.js';
+import express from 'express';
+import { getAuthService } from '../auth/jwt-auth.js';
+// import { DatabaseConnection } from '../database/connection.js'; // Temporarily disabled
+// import { resolveTenantId, validateTenantId, getTenantConfig } from '../config/tenant-config.js'; // Temporarily disabled
 
 const router = express.Router();
 const authService = getAuthService();
-const db = DatabaseConnection.getInstance();
+// const db = DatabaseConnection.getInstance(); // Temporarily disabled
 
 /**
  * @swagger
@@ -61,6 +61,16 @@ const db = DatabaseConnection.getInstance();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+// Configuration endpoint for frontend
+router.get('/config', async (req, res) => {
+  res.json({
+    authMethods: ['local'],
+    ldapEnabled: false,
+    mfaEnabled: false,
+    registrationEnabled: true
+  });
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -603,9 +613,9 @@ router.get('/audit',
         FROM auth_audit_log a
         LEFT JOIN auth_users u ON a.user_id = u.id
       `;
-      const params: any[] = [];
+      const params = [];
 
-      const conditions: string[] = [];
+      const conditions = [];
       if (userId) {
         conditions.push(`a.user_id = $${params.length + 1}`);
         params.push(userId);
@@ -620,15 +630,15 @@ router.get('/audit',
       }
 
       query += ` ORDER BY a.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-      params.push(parseInt(limit as string), parseInt(offset as string));
+      params.push(parseInt(limit), parseInt(offset));
 
       const auditLogs = await db.getMany(query, params);
 
       res.json({
         logs: auditLogs,
         pagination: {
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
+          limit: parseInt(limit),
+          offset: parseInt(offset),
           total: auditLogs.length
         }
       });
@@ -645,17 +655,7 @@ router.get('/audit',
 /**
  * Utility per log audit
  */
-async function logAuditAction(data: {
-  userId?: string;
-  action: string;
-  resourceType?: string;
-  resourceId?: string;
-  success: boolean;
-  errorMessage?: string;
-  ip?: string;
-  userAgent?: string;
-  details?: any;
-}) {
+async function logAuditAction(data) {
   try {
     await db.query(`
       INSERT INTO auth_audit_log (

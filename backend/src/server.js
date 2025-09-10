@@ -52,6 +52,9 @@ import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 // Enhanced Authentication System
 import enhancedAuthController from './controllers/enhanced-auth.controller.js';
 
+// Basic Authentication Controller (login/logout)
+import authController from './controllers/auth.controller.js';
+
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
 
@@ -3004,8 +3007,12 @@ function extractBusinessContext(executionData, timeline) {
 }
 
 // ============================================================================
-// ENHANCED AUTHENTICATION ROUTES
+// AUTHENTICATION ROUTES
 // ============================================================================
+// Basic auth routes (login, logout, etc.)
+app.use('/api/auth', authController);
+
+// Enhanced auth routes (LDAP, MFA, etc.)
 app.use('/api/auth/enhanced', enhancedAuthController);
 
 // ============================================================================

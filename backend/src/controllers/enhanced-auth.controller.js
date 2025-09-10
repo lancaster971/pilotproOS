@@ -7,13 +7,13 @@
 
 import express from 'express';
 import { getEnhancedAuthService } from '../services/enhanced-auth.service.js';
-import { getLDAPService } from '../services/ldap.service.js';
+// import { getLDAPService } from '../services/ldap.service.js'; // Temporarily disabled
 import { getMFAService } from '../services/mfa.service.js';
 import { getAuthService } from '../auth/jwt-auth.js';
 
 const router = express.Router();
 const enhancedAuthService = getEnhancedAuthService();
-const ldapService = getLDAPService();
+// const ldapService = getLDAPService(); // Temporarily disabled
 const mfaService = getMFAService();
 const authService = getAuthService();
 

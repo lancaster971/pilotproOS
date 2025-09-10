@@ -6,14 +6,14 @@
  */
 
 import { JwtAuthService } from '../auth/jwt-auth.js';
-import { getLDAPService } from './ldap.service.js';
+// import { getLDAPService } from './ldap.service.js'; // Temporarily disabled for Docker fix
 import { getMFAService } from './mfa.service.js';
 import { dbPool } from '../db/connection.js';
 
 export class EnhancedAuthService extends JwtAuthService {
   constructor() {
     super();
-    this.ldapService = getLDAPService();
+    // this.ldapService = getLDAPService(); // Temporarily disabled
     this.mfaService = getMFAService();
     this.db = dbPool;
   }
