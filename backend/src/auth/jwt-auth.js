@@ -16,11 +16,8 @@ export const defaultAuthConfig = {
   apiKeyLength: 32
 };
 
-// JWT Payload structure (removed TypeScript interface for JavaScript compatibility)
-// Expected structure: { userId, tenantId?, role, permissions, iat?, exp? }
-
-// AuthUser structure (removed TypeScript interface for JavaScript compatibility) 
-// Expected structure: { id, email, role, tenant_id?, api_key?, permissions, created_at, last_login_at? }
+// JWT Payload structure: { userId, tenantId?, role, permissions, iat?, exp? }
+// AuthUser structure: { id, email, role, tenant_id?, api_key?, permissions, created_at, last_login_at? }
 
 /**
  * JWT Authentication Service
@@ -48,44 +45,37 @@ export class JwtAuthService {
 
     return jwt.sign(payload, this.config.jwtSecret, {
       expiresIn: this.config.jwtExpiresIn,
-      issuer: 'n8n-mcp-server',
-      subject: user.id
-    } as jwt.SignOptions);
+      algorithm: 'HS256'
+    });
   }
 
   /**
-   * Verifica e decodifica JWT token
+   * Verifica validità JWT token
    */
   verifyToken(token) {
     try {
-      return jwt.verify(token, this.config.jwtSecret) as JwtPayload;
+      return jwt.verify(token, this.config.jwtSecret);
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Token JWT non valido');
-      } else if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('Token JWT scaduto');
-      } else {
-        throw new Error('Errore verifica token');
-      }
+      throw new Error(`Token non valido: ${error.message}`);
     }
   }
 
   /**
-   * Hash password con bcrypt
+   * Hash password usando bcrypt
    */
   async hashPassword(password) {
-    return await bcrypt.hash(password, this.config.saltRounds);
+    return bcrypt.hash(password, this.config.saltRounds);
   }
 
   /**
-   * Verifica password
+   * Verifica password contro hash
    */
   async verifyPassword(password, hash) {
-    return await bcrypt.compare(password, hash);
+    return bcrypt.compare(password, hash);
   }
 
   /**
-   * Genera API key sicura
+   * Genera API key random
    */
   generateApiKey() {
     return crypto.randomBytes(this.config.apiKeyLength).toString('hex');
@@ -96,66 +86,58 @@ export class JwtAuthService {
    */
   async login(email, password) {
     try {
-      // Cerca utente nel database
       const userRecord = await this.db.getOne(`
         SELECT 
-          id, email, password_hash, role, tenant_id, permissions,
-          api_key, created_at, last_login_at
-        FROM auth_users 
-        WHERE email = $1 AND active = true
-      `, [email.toLowerCase()]);
+          id, email, password_hash, role, tenant_id,
+          permissions, created_at, last_login
+        FROM pilotpros.users 
+        WHERE email = $1 AND is_active = true
+      `, [email]);
 
       if (!userRecord) {
         throw new Error('Credenziali non valide');
       }
 
-      // Verifica password
-      const passwordValid = await this.verifyPassword(password, userRecord.password_hash);
-      if (!passwordValid) {
+      const isValidPassword = await this.verifyPassword(password, userRecord.password_hash);
+      if (!isValidPassword) {
         throw new Error('Credenziali non valide');
       }
 
-      // Aggiorna ultimo login
+      // Update last login
       await this.db.query(`
-        UPDATE auth_users 
-        SET last_login_at = CURRENT_TIMESTAMP
-        WHERE id = $1
+        UPDATE pilotpros.users SET last_login = CURRENT_TIMESTAMP WHERE id = $1
       `, [userRecord.id]);
 
-      // Crea user object (senza password)
       const user = {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
         tenant_id: userRecord.tenant_id,
-        api_key: userRecord.api_key,
-        permissions: typeof userRecord.permissions === 'string' ? JSON.parse(userRecord.permissions) : userRecord.permissions || [],
+        permissions: this.safeJsonParse(userRecord.permissions),
         created_at: userRecord.created_at,
         last_login_at: new Date()
       };
 
-      // Genera token
       const token = this.generateToken(user);
-
+      
       return { user, token };
-
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login failed:', error);
       throw error;
     }
   }
 
   /**
-   * Verifica API Key
+   * Verifica API key
    */
-  async verifyApiKey(apiKey): Promise<AuthUser | null> {
+  async verifyApiKey(apiKey) {
     try {
       const userRecord = await this.db.getOne(`
         SELECT 
-          id, email, role, tenant_id, permissions,
-          api_key, created_at, last_login_at
-        FROM auth_users 
-        WHERE api_key = $1 AND active = true
+          u.id, u.email, u.role, u.tenant_id, u.permissions, u.created_at, u.last_login
+        FROM pilotpros.users u
+        JOIN pilotpros.api_keys ak ON u.id = ak.user_id
+        WHERE ak.api_key = $1 AND ak.is_active = true AND u.is_active = true
       `, [apiKey]);
 
       if (!userRecord) {
@@ -167,200 +149,166 @@ export class JwtAuthService {
         email: userRecord.email,
         role: userRecord.role,
         tenant_id: userRecord.tenant_id,
-        api_key: userRecord.api_key,
-        permissions: typeof userRecord.permissions === 'string' ? JSON.parse(userRecord.permissions) : userRecord.permissions || [],
+        permissions: this.safeJsonParse(userRecord.permissions),
         created_at: userRecord.created_at,
-        last_login_at: userRecord.last_login_at
+        last_login_at: userRecord.last_login
       };
-
     } catch (error) {
-      console.error('API Key verification error:', error);
+      console.error('❌ API key verification failed:', error);
       return null;
     }
   }
 
   /**
-   * Crea nuovo utente
+   * Registra nuovo utente
    */
-  async createUser(userData: {
-    email;
-    password;
-    role: 'admin' | 'tenant' | 'readonly';
-    tenant_id?;
-    permissions?[];
-  }): Promise<AuthUser> {
-    try {
-      // Verifica che l'email non esista già
-      const existing = await this.db.getOne(
-        'SELECT id FROM auth_users WHERE email = $1',
-        [userData.email.toLowerCase()]
-      );
+  async register(userData) {
+    const {
+      email,
+      password,
+      role = 'user',
+      tenant_id,
+      permissions = []
+    } = userData;
 
-      if (existing) {
-        throw new Error('Email già registrata');
+    try {
+      // Check if user exists
+      const existingUser = await this.db.getOne(`
+        SELECT id FROM pilotpros.users WHERE email = $1
+      `, [email]);
+
+      if (existingUser) {
+        throw new Error('Utente già esistente');
       }
 
-      // Hash password
-      const passwordHash = await this.hashPassword(userData.password);
-      
-      // Genera API key
-      const apiKey = this.generateApiKey();
+      const passwordHash = await this.hashPassword(password);
+      const defaultPermissions = this.getDefaultPermissions(role);
+      const userPermissions = [...new Set([...defaultPermissions, ...permissions])];
 
-      // Definisci permessi di default basati su ruolo
-      const defaultPermissions = this.getDefaultPermissions(userData.role);
-      const permissions = userData.permissions || defaultPermissions;
-
-      // Inserisci utente
       const userRecord = await this.db.getOne(`
-        INSERT INTO auth_users (
-          id, email, password_hash, role, tenant_id, permissions,
-          api_key, active, created_at
-        ) VALUES (
-          gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP
-        ) RETURNING 
-          id, email, role, tenant_id, permissions, api_key, created_at
-      `, [
-        userData.email.toLowerCase(),
-        passwordHash,
-        userData.role,
-        userData.tenant_id,
-        JSON.stringify(permissions),
-        apiKey
-      ]);
+        INSERT INTO pilotpros.users (
+          email, password_hash, role, tenant_id, permissions
+        ) VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, email, role, tenant_id, permissions, created_at
+      `, [email, passwordHash, role, tenant_id, JSON.stringify(userPermissions)]);
 
-      return {
+      const user = {
         id: userRecord.id,
         email: userRecord.email,
         role: userRecord.role,
         tenant_id: userRecord.tenant_id,
-        api_key: userRecord.api_key,
-        permissions: this.safeJsonParse(userRecord.permissions),
-        created_at: userRecord.created_at
+        permissions: userPermissions,
+        created_at: userRecord.created_at,
+        last_login_at: null
       };
 
+      const token = this.generateToken(user);
+      
+      return { user, token };
     } catch (error) {
-      console.error('Create user error:', error);
+      console.error('❌ Registration failed:', error);
       throw error;
     }
   }
 
   /**
-   * Parse JSON sicuro con fallback
+   * Parse JSON sicuro per permissions
    */
-  private safeJsonParse(jsonString)[] {
+  safeJsonParse(jsonString) {
+    if (!jsonString) return [];
+    if (Array.isArray(jsonString)) return jsonString;
+    
     try {
-      if (!jsonString || typeof jsonString !== 'string') {
-        return [];
-      }
-      
-      // Rimuovi eventuali caratteri spurii all'inizio
-      const cleanString = jsonString.replace(/^[^[{]*/, '').trim();
-      
-      if (!cleanString.startsWith('[') && !cleanString.startsWith('{')) {
-        console.warn('Invalid JSON format, using empty permissions:', jsonString.substring(0, 50));
-        return [];
-      }
-      
-      return JSON.parse(cleanString);
-    } catch (error) {
-      console.warn('JSON parse error, using empty permissions:', error, 'String:', jsonString?.substring(0, 100));
+      return JSON.parse(jsonString);
+    } catch {
       return [];
     }
   }
 
   /**
-   * Ottieni permessi di default per ruolo
+   * Get default permissions per role
    */
-  private getDefaultPermissions(role)[] {
-    switch (role) {
-      case 'admin':
-        return [
-          'scheduler:read', 'scheduler:write', 'scheduler:control',
-          'tenants:read', 'tenants:write', 'tenants:delete',
-          'users:read', 'users:write', 'users:delete',
-          'logs:read', 'stats:read', 'system:read'
-        ];
-      case 'tenant':
-        return [
-          'scheduler:read', 'tenants:read', 'logs:read', 'stats:read'
-        ];
-      case 'readonly':
-        return [
-          'scheduler:read', 'tenants:read', 'logs:read', 'stats:read'
-        ];
-      default:
-        return ['scheduler:read'];
-    }
+  getDefaultPermissions(role) {
+    const rolePermissions = {
+      'admin': [
+        'users:read', 'users:write', 'users:delete',
+        'workflows:read', 'workflows:write', 'workflows:delete',
+        'system:read', 'system:write'
+      ],
+      'user': [
+        'workflows:read', 'workflows:write',
+        'executions:read'
+      ],
+      'readonly': [
+        'workflows:read', 'executions:read'
+      ]
+    };
+
+    return rolePermissions[role] || [];
   }
 
   /**
-   * Middleware Express per autenticazione JWT
+   * Middleware per autenticazione JWT/API Key
    */
   authenticateToken() {
-    return async (req: Request & { user? }, res: Response, next: NextFunction) => {
+    return async (req, res, next) => {
       try {
-        const authHeader = req.headers['authorization'];
-        const apiKey = req.headers['x-api-key'] as string;
+        const authHeader = req.headers.authorization;
+        let user = null;
 
-        let user | null = null;
-
-        if (apiKey) {
-          // Autenticazione con API Key
-          user = await this.verifyApiKey(apiKey);
-          if (!user) {
-            return res.status(401).json({
-              error: 'Unauthorized',
-              message: 'API Key non valida'
-            });
-          }
-        } else if (authHeader?.startsWith('Bearer ')) {
-          // Autenticazione con JWT Token
+        if (authHeader?.startsWith('Bearer ')) {
+          // JWT Token authentication
           const token = authHeader.substring(7);
           const payload = this.verifyToken(token);
-          
-          // Recupera utente completo dal database
           user = await this.getUserById(payload.userId);
-          if (!user) {
-            return res.status(401).json({
-              error: 'Unauthorized',
-              message: 'Utente non trovato'
-            });
-          }
-        } else {
+        } else if (authHeader?.startsWith('ApiKey ')) {
+          // API Key authentication  
+          const apiKey = authHeader.substring(7);
+          user = await this.verifyApiKey(apiKey);
+        } else if (req.headers['x-api-key']) {
+          // API Key in custom header
+          user = await this.verifyApiKey(req.headers['x-api-key']);
+        }
+
+        if (!user) {
           return res.status(401).json({
-            error: 'Unauthorized',
+            success: false,
             message: 'Token di autenticazione richiesto'
           });
         }
 
-        // Aggiungi user alla request
         req.user = user;
         next();
-
       } catch (error) {
+        console.error('❌ Authentication failed:', error);
         return res.status(401).json({
-          error: 'Unauthorized',
-          message: error instanceof Error ? error.message : 'Autenticazione fallita'
+          success: false,
+          message: 'Token non valido'
         });
       }
     };
   }
 
   /**
-   * Middleware per verifica permessi
+   * Middleware per controllo permessi
    */
   requirePermission(permission) {
-    return (req: Request & { user? }, res: Response, next: NextFunction) => {
+    return (req, res, next) => {
       if (!req.user) {
         return res.status(401).json({
-          error: 'Unauthorized',
+          success: false,
           message: 'Autenticazione richiesta'
         });
       }
 
-      if (!req.user.permissions.includes(permission)) {
+      const userPermissions = req.user.permissions || [];
+      const hasPermission = userPermissions.includes(permission) || 
+                           userPermissions.includes('*') ||
+                           req.user.role === 'admin';
+
+      if (!hasPermission) {
         return res.status(403).json({
-          error: 'Forbidden',
+          success: false,
           message: `Permesso richiesto: ${permission}`
         });
       }
@@ -370,29 +318,27 @@ export class JwtAuthService {
   }
 
   /**
-   * Middleware per isolamento tenant
+   * Middleware per controllo accesso tenant
    */
   requireTenantAccess(tenantIdParam = 'tenantId') {
-    return (req: Request & { user? }, res: Response, next: NextFunction) => {
+    return (req, res, next) => {
       if (!req.user) {
         return res.status(401).json({
-          error: 'Unauthorized',
+          success: false,
           message: 'Autenticazione richiesta'
         });
       }
 
-      const requestedTenantId = req.params[tenantIdParam] || req.body.tenantId;
-
-      // Admin può accedere a tutti i tenant
+      // Admin can access any tenant
       if (req.user.role === 'admin') {
         return next();
       }
 
-      // Altri ruoli possono accedere solo al proprio tenant
+      const requestedTenantId = req.params[tenantIdParam];
       if (req.user.tenant_id !== requestedTenantId) {
         return res.status(403).json({
-          error: 'Forbidden',
-          message: 'Accesso negato a questo tenant'
+          success: false,
+          message: 'Accesso tenant non autorizzato'
         });
       }
 
@@ -401,16 +347,15 @@ export class JwtAuthService {
   }
 
   /**
-   * Ottieni utente per ID
+   * Get user by ID
    */
-  private async getUserById(userId): Promise<AuthUser | null> {
+  async getUserById(userId) {
     try {
       const userRecord = await this.db.getOne(`
         SELECT 
-          id, email, role, tenant_id, permissions,
-          api_key, created_at, last_login_at
-        FROM auth_users 
-        WHERE id = $1 AND active = true
+          id, email, role, tenant_id, permissions, created_at, last_login
+        FROM pilotpros.users 
+        WHERE id = $1 AND is_active = true
       `, [userId]);
 
       if (!userRecord) {
@@ -422,28 +367,21 @@ export class JwtAuthService {
         email: userRecord.email,
         role: userRecord.role,
         tenant_id: userRecord.tenant_id,
-        api_key: userRecord.api_key,
-        permissions: typeof userRecord.permissions === 'string' ? JSON.parse(userRecord.permissions) : userRecord.permissions || [],
+        permissions: this.safeJsonParse(userRecord.permissions),
         created_at: userRecord.created_at,
-        last_login_at: userRecord.last_login_at
+        last_login_at: userRecord.last_login
       };
-
     } catch (error) {
-      console.error('Get user by ID error:', error);
+      console.error('❌ Failed to get user by ID:', error);
       return null;
     }
   }
 }
 
-/**
- * Istanza singleton del servizio auth
- */
-let authServiceInstance: JwtAuthService | null = null;
+// Singleton instance
+let authServiceInstance = null;
 
-/**
- * Ottieni istanza singleton del servizio auth
- */
-export function getAuthService(config?: Partial<AuthConfig>): JwtAuthService {
+export function getAuthService(config) {
   if (!authServiceInstance) {
     authServiceInstance = new JwtAuthService(config);
   }
