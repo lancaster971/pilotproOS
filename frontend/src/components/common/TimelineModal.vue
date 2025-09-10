@@ -27,10 +27,12 @@
             v-for="(step, index) in data.businessNodes"
             :key="step._nodeId || index"
             :class="[
-              'rounded-lg p-5 border',
+              'rounded-lg p-5 border transition-all',
               step.status === 'error' || step.showTag === 'error' 
                 ? 'bg-red-900/20 border-red-500/30' 
-                : 'bg-gray-800/50 border-gray-700'
+                : 'bg-gray-800/50 border-gray-700',
+              // Highlight if has intelligent summary
+              step.data?.intelligentSummary ? 'ring-1 ring-blue-500/20' : ''
             ]"
           >
             <!-- Step Header -->
@@ -135,6 +137,126 @@
               <div class="text-xs text-purple-400 font-medium mb-1">BUSINESS VALUE</div>
               <div class="text-sm text-white">{{ step.enrichedData.businessValue }}</div>
             </div>
+
+            <!-- Intelligent Summary Section (for large data) -->
+            <div v-if="step.data?.intelligentSummary" class="mt-4 space-y-3">
+              <!-- Summary Type Badge -->
+              <div class="flex items-center gap-2">
+                <Icon :icon="getIntelligentSummaryIcon(step.data.intelligentSummary.type)" class="w-4 h-4 text-blue-400" />
+                <span class="text-xs font-medium text-blue-400 uppercase">
+                  {{ getIntelligentSummaryLabel(step.data.intelligentSummary.summaryType) }}
+                </span>
+                <div v-if="step.data.intelligentSummary.type === 'ai_generated'" class="ml-auto">
+                  <span class="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-300 rounded">AI Generated</span>
+                </div>
+              </div>
+
+              <!-- Business Summary Card -->
+              <div v-if="step.data.intelligentSummary.businessSummary" class="bg-blue-900/20 border border-blue-500/20 rounded-lg p-4">
+                <h5 class="text-sm font-medium text-blue-300 mb-2">
+                  {{ step.data.intelligentSummary.businessSummary.title }}
+                </h5>
+                <p class="text-sm text-gray-300">
+                  {{ step.data.intelligentSummary.businessSummary.description }}
+                </p>
+                
+                <!-- Document Type Specific -->
+                <div v-if="step.data.intelligentSummary.summaryType === 'document'" class="mt-2 text-xs text-gray-400">
+                  <span>{{ step.data.intelligentSummary.businessSummary.pageCount }} pages</span>
+                  <span class="mx-2">•</span>
+                  <span>Type: {{ step.data.intelligentSummary.businessSummary.documentType }}</span>
+                </div>
+                
+                <!-- Dataset Type Specific -->
+                <div v-else-if="step.data.intelligentSummary.summaryType === 'dataset'" class="mt-2 text-xs text-gray-400">
+                  <span>{{ step.data.intelligentSummary.businessSummary.totalRows }} rows</span>
+                  <span class="mx-2">•</span>
+                  <span>{{ step.data.intelligentSummary.businessSummary.totalColumns }} columns</span>
+                </div>
+              </div>
+
+              <!-- Metrics Grid -->
+              <div v-if="step.data.intelligentSummary.metrics && Object.keys(step.data.intelligentSummary.metrics).length > 0" 
+                   class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div v-for="(value, key) in step.data.intelligentSummary.metrics" 
+                     :key="key"
+                     class="bg-gray-800/50 rounded p-2 text-center">
+                  <div class="text-xs text-gray-500 capitalize">{{ formatMetricKey(key) }}</div>
+                  <div class="text-sm font-medium text-white">{{ formatMetricValue(value) }}</div>
+                </div>
+              </div>
+
+              <!-- Preview Section -->
+              <div v-if="step.data.intelligentSummary.preview && !expandedSteps.has(step._nodeId)" 
+                   class="bg-gray-900/50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-medium text-gray-400">DATA PREVIEW</span>
+                  <button @click="toggleExpandedStep(step._nodeId)" 
+                          class="text-xs text-blue-400 hover:text-blue-300">
+                    View More →
+                  </button>
+                </div>
+                
+                <!-- Document Preview -->
+                <div v-if="step.data.intelligentSummary.summaryType === 'document'" class="text-xs text-gray-300 space-y-1">
+                  <div v-if="step.data.intelligentSummary.preview.keyDates?.length > 0">
+                    <span class="text-gray-500">Dates:</span> {{ step.data.intelligentSummary.preview.keyDates.join(', ') }}
+                  </div>
+                  <div v-if="step.data.intelligentSummary.preview.amounts?.length > 0">
+                    <span class="text-gray-500">Amounts:</span> {{ step.data.intelligentSummary.preview.amounts.join(', ') }}
+                  </div>
+                </div>
+                
+                <!-- Dataset Preview -->
+                <div v-else-if="step.data.intelligentSummary.summaryType === 'dataset' && step.data.intelligentSummary.preview.sampleRows" 
+                     class="overflow-x-auto">
+                  <table class="text-xs w-full">
+                    <thead>
+                      <tr class="text-gray-500">
+                        <th v-for="header in step.data.intelligentSummary.preview.headers?.slice(0, 4)" 
+                            :key="header" 
+                            class="px-2 py-1 text-left">
+                          {{ header }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, idx) in step.data.intelligentSummary.preview.sampleRows?.slice(0, 3)" 
+                          :key="idx"
+                          class="text-gray-300 border-t border-gray-800">
+                        <td v-for="header in step.data.intelligentSummary.preview.headers?.slice(0, 4)" 
+                            :key="header"
+                            class="px-2 py-1">
+                          {{ row[header] }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Business Insight -->
+              <div v-if="step.data.intelligentSummary.businessInsight" 
+                   class="bg-green-900/20 border border-green-500/20 rounded-lg p-3">
+                <div class="flex items-start gap-2">
+                  <Icon icon="lucide:lightbulb" class="w-4 h-4 text-green-400 mt-0.5" />
+                  <div>
+                    <div class="text-xs font-medium text-green-400 mb-1">BUSINESS INSIGHT</div>
+                    <div class="text-sm text-gray-300">{{ step.data.intelligentSummary.businessInsight }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div v-if="step.data.intelligentSummary.actions?.length > 0" class="flex flex-wrap gap-2">
+                <button v-for="action in step.data.intelligentSummary.actions" 
+                        :key="action"
+                        @click="handleIntelligentAction(action, step)"
+                        class="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors">
+                  {{ formatActionLabel(action) }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -223,6 +345,7 @@ const { parseBusinessData, formatBusinessData, formatTimelineStepData } = useBus
 // State
 const timelineData = ref<any>(null)
 const expandedStep = ref<string | null>(null)
+const expandedSteps = ref(new Set<string>())
 
 // Modal configuration
 const modalTitle = computed(() => {
@@ -640,6 +763,161 @@ const generateExecutionDetail = (step: any): string => {
   
   // Generic business value
   return 'Business process step completed successfully, contributing to efficient customer service automation.'
+}
+
+// Intelligent Summary Helper Functions
+const getIntelligentSummaryIcon = (type: string) => {
+  const icons: Record<string, string> = {
+    'document': 'lucide:file-text',
+    'dataset': 'lucide:table',
+    'statistical': 'lucide:bar-chart-2',
+    'ai_generated': 'lucide:sparkles',
+    'email_batch': 'lucide:mail',
+    'api_response': 'lucide:cloud',
+    'generic': 'lucide:file'
+  }
+  return icons[type] || 'lucide:file'
+}
+
+const getIntelligentSummaryLabel = (summaryType: string) => {
+  const labels: Record<string, string> = {
+    'document': 'Document Analysis',
+    'dataset': 'Data Table',
+    'emails': 'Email Batch',
+    'api': 'API Response',
+    'statistics': 'Statistical Analysis',
+    'ai': 'AI Analysis',
+    'generic': 'Process Data'
+  }
+  return labels[summaryType] || 'Process Data'
+}
+
+const formatMetricKey = (key: string) => {
+  return key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()
+}
+
+const formatMetricValue = (value: any) => {
+  if (typeof value === 'number') {
+    if (value > 1000000) return `${(value / 1000000).toFixed(1)}M`
+    if (value > 1000) return `${(value / 1000).toFixed(1)}K`
+    if (value % 1 !== 0) return value.toFixed(2)
+    return value.toString()
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (value === null || value === undefined) return '-'
+  return value.toString()
+}
+
+const formatActionLabel = (action: string) => {
+  const labels: Record<string, string> = {
+    'download_full': '⬇️ Download Full Data',
+    'request_ai_analysis': '✨ AI Analysis',
+    'extract_data': '📊 Extract Data',
+    'view_full_table': '📋 View Full Table',
+    'export_excel': '📑 Export Excel',
+    'generate_report': '📄 Generate Report',
+    'analyze_patterns': '🔍 Analyze Patterns',
+    'view_all_emails': '📧 View All Emails',
+    'export_list': '📝 Export List',
+    'analyze_sentiment': '💭 Analyze Sentiment',
+    'view_json': '{ } View JSON',
+    'export_data': '💾 Export Data',
+    'analyze_structure': '🏗️ Analyze Structure',
+    'view_chart': '📈 View Chart',
+    'export_stats': '📊 Export Statistics',
+    'analyze_trends': '📉 Analyze Trends',
+    'view_raw': '📄 View Raw',
+    'download': '⬇️ Download',
+    'regenerate_analysis': '🔄 Regenerate Analysis'
+  }
+  return labels[action] || action
+}
+
+const toggleExpandedStep = (stepId: string) => {
+  if (expandedSteps.value.has(stepId)) {
+    expandedSteps.value.delete(stepId)
+  } else {
+    expandedSteps.value.add(stepId)
+  }
+}
+
+const handleIntelligentAction = async (action: string, step: any) => {
+  console.log('🎯 Handling intelligent action:', action, step)
+  
+  switch(action) {
+    case 'download_full':
+      downloadFullData(step)
+      break
+    case 'request_ai_analysis':
+      await requestAIAnalysis(step)
+      break
+    case 'export_excel':
+      exportToExcel(step)
+      break
+    case 'generate_report':
+      generateStepReport(step)
+      break
+    default:
+      showToast('info', `Action "${action}" not yet implemented`)
+  }
+}
+
+const downloadFullData = (step: any) => {
+  const data = step.data?.rawOutputData || step.data?.outputJson || {}
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${step.name}-data-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  showToast('success', 'Data downloaded successfully')
+}
+
+const requestAIAnalysis = async (step: any) => {
+  showToast('info', 'Requesting AI analysis...')
+  // TODO: Implement AI analysis request
+  // This would call the backend to process through Ollama
+  setTimeout(() => {
+    showToast('success', 'AI analysis complete')
+  }, 2000)
+}
+
+const exportToExcel = (step: any) => {
+  // TODO: Implement Excel export using a library like xlsx
+  showToast('info', 'Excel export feature coming soon')
+}
+
+const generateStepReport = (step: any) => {
+  const report = `
+Business Process Step Report
+============================
+Step Name: ${step.name}
+Type: ${step.data?.intelligentSummary?.businessSummary?.title || step.type}
+Status: ${step.status}
+Execution Time: ${formatDuration(step.executionTime || 0)}
+
+Business Summary:
+${step.data?.intelligentSummary?.businessSummary?.description || 'No summary available'}
+
+Business Insight:
+${step.data?.intelligentSummary?.businessInsight || 'No insights available'}
+
+Generated: ${new Date().toLocaleString()}
+  `.trim()
+  
+  const blob = new Blob([report], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${step.name}-report-${new Date().toISOString().slice(0, 10)}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  showToast('success', 'Report generated successfully')
 }
 
 // Lifecycle

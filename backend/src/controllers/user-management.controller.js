@@ -8,6 +8,7 @@
 import { dbPool } from '../db/connection.js';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { PasswordValidator } from '../utils/password-validator.js';
 
 // Available roles and their permissions
 const ROLES = {
@@ -78,6 +79,16 @@ export const createUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Email e password sono richieste'
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = PasswordValidator.validate(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password non valida',
+        errors: passwordValidation.errors
       });
     }
 
@@ -183,16 +194,35 @@ export const updateUser = async (req, res) => {
     
     // Hash new password if provided
     if (password) {
+      // Validate password strength
+      const passwordValidation = PasswordValidator.validate(password);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password non valida',
+          errors: passwordValidation.errors
+        });
+      }
       updates.password_hash = await bcrypt.hash(password, 10);
     }
 
     // Update user
     if (Object.keys(updates).length > 0) {
-      const setClause = Object.keys(updates).map(key => `${key} = $${key}`).join(', ');
-      await dbPool.query(
-        `UPDATE pilotpros.users SET ${setClause} WHERE id = $userId`,
-        { ...updates, userId }
-      );
+      const fields = Object.keys(updates);
+      const values = Object.values(updates);
+      
+      if (fields.includes('email')) {
+        await dbPool`UPDATE pilotpros.users SET email = ${updates.email} WHERE id = ${userId}`;
+      }
+      if (fields.includes('role')) {
+        await dbPool`UPDATE pilotpros.users SET role = ${updates.role} WHERE id = ${userId}`;
+      }
+      if (fields.includes('is_active')) {
+        await dbPool`UPDATE pilotpros.users SET is_active = ${updates.is_active} WHERE id = ${userId}`;
+      }
+      if (fields.includes('password_hash')) {
+        await dbPool`UPDATE pilotpros.users SET password_hash = ${updates.password_hash} WHERE id = ${userId}`;
+      }
     }
 
     // Get updated user
@@ -284,7 +314,8 @@ export const getRolesAndPermissions = async (req, res) => {
       roles: Object.keys(ROLES).map(role => ({
         name: role,
         permissions: ROLES[role]
-      }))
+      })),
+      passwordRequirements: PasswordValidator.getRequirements()
     });
   } catch (error) {
     console.error('❌ Failed to get roles:', error);

@@ -1,8 +1,27 @@
 export interface ParsedBusinessData {
   summary: string
   details: string[]
-  type: 'email' | 'ai' | 'order' | 'vector' | 'parcel' | 'reply' | 'workflow' | 'generic'
+  type: 'email' | 'ai' | 'order' | 'vector' | 'parcel' | 'reply' | 'workflow' | 'generic' | 'document' | 'dataset' | 'statistical' | 'error'
   confidence: 'high' | 'medium' | 'low'
+}
+
+export interface IntelligentSummary {
+  type: 'document' | 'dataset' | 'statistical' | 'ai_generated' | 'email_batch' | 'api_response' | 'generic' | 'direct' | 'pre-processed'
+  summaryType: 'document' | 'dataset' | 'emails' | 'api' | 'statistics' | 'ai' | 'generic' | 'direct'
+  businessSummary?: {
+    title: string
+    description: string
+    [key: string]: any
+  }
+  metrics?: Record<string, any>
+  preview?: any
+  businessInsight?: string
+  statistics?: any
+  dataQuality?: any
+  visualization?: any
+  recommendations?: string[]
+  actions?: string[]
+  fullDataAvailable?: boolean
 }
 
 export function useBusinessParser() {
@@ -565,10 +584,79 @@ export function useBusinessParser() {
     return 'Operazione completata con successo'
   }
 
+  const parseIntelligentSummary = (summary: IntelligentSummary): ParsedBusinessData => {
+    // Convert intelligent summary to parsed business data format
+    const details: string[] = []
+    
+    // Add business summary as primary detail
+    if (summary.businessSummary) {
+      details.push(summary.businessSummary.description)
+      
+      // Add specific details based on summary type
+      if (summary.summaryType === 'document' && summary.businessSummary.pageCount) {
+        details.push(`Pages: ${summary.businessSummary.pageCount}`)
+      }
+      if (summary.summaryType === 'dataset') {
+        if (summary.businessSummary.totalRows) {
+          details.push(`Rows: ${summary.businessSummary.totalRows}`)
+        }
+        if (summary.businessSummary.totalColumns) {
+          details.push(`Columns: ${summary.businessSummary.totalColumns}`)
+        }
+      }
+    }
+    
+    // Add key metrics
+    if (summary.metrics) {
+      Object.entries(summary.metrics).slice(0, 3).forEach(([key, value]) => {
+        details.push(`${key}: ${value}`)
+      })
+    }
+    
+    // Add business insight
+    if (summary.businessInsight) {
+      details.push(`Insight: ${summary.businessInsight}`)
+    }
+    
+    // Map summary type to ParsedBusinessData type
+    let dataType: ParsedBusinessData['type'] = 'generic'
+    switch (summary.summaryType) {
+      case 'document':
+        dataType = 'document'
+        break
+      case 'dataset':
+        dataType = 'dataset'
+        break
+      case 'emails':
+        dataType = 'email'
+        break
+      case 'statistics':
+        dataType = 'statistical'
+        break
+      case 'ai':
+        dataType = 'ai'
+        break
+    }
+    
+    return {
+      summary: summary.businessSummary?.title || 'Process Data',
+      details,
+      type: dataType,
+      confidence: summary.type === 'ai_generated' ? 'medium' : 'high'
+    }
+  }
+
+  const formatIntelligentData = (summary: IntelligentSummary): string => {
+    const parsed = parseIntelligentSummary(summary)
+    return formatBusinessData(parsed)
+  }
+
   return {
     parseBusinessData,
     formatBusinessData,
     formatTimelineStepData,
-    sanitizeNodeType
+    sanitizeNodeType,
+    parseIntelligentSummary,
+    formatIntelligentData
   }
 }

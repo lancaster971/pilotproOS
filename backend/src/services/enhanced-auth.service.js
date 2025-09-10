@@ -111,15 +111,10 @@ export class EnhancedAuthService extends JwtAuthService {
 
       const user = userRecord[0];
 
-      // In development mode, skip password verification for existing users
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔓 Development mode: skipping password verification');
-      } else {
-        // Verify password
-        const isPasswordValid = await this.verifyPassword(password, user.password_hash);
-        if (!isPasswordValid) {
-          throw new Error('Credenziali non valide');
-        }
+      // Verify password
+      const isPasswordValid = await this.verifyPassword(password, user.password_hash);
+      if (!isPasswordValid) {
+        throw new Error('Credenziali non valide');
       }
 
       // Update last login
