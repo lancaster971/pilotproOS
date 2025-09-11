@@ -161,7 +161,6 @@ const roleOptions = computed(() => {
 
 // API Base URL
 const API_BASE = 'http://localhost:3001'
-const getAuthToken = () => localStorage.getItem('pilotpro_token')
 
 // Create user
 const createUser = async () => {
@@ -172,9 +171,9 @@ const createUser = async () => {
     const response = await fetch(`${API_BASE}/api/users`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
+        'Content-Type': 'application/json'
       },
+      credentials: 'include', // Include HttpOnly cookies
       body: JSON.stringify(form.value)
     })
 

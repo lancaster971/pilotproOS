@@ -214,7 +214,6 @@ onMounted(() => {
 
 // API Base URL
 const API_BASE = 'http://localhost:3001'
-const getAuthToken = () => localStorage.getItem('pilotpro_token')
 
 // Update user
 const updateUser = async () => {
@@ -236,9 +235,9 @@ const updateUser = async () => {
     const response = await fetch(`${API_BASE}/api/users/${props.user.id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
+        'Content-Type': 'application/json'
       },
+      credentials: 'include', // Include HttpOnly cookies
       body: JSON.stringify(updateData)
     })
 
