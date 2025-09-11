@@ -120,17 +120,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Auto-logout timer management
+  // Auto-refresh token management (refresh before expiry)
   const setAutoLogoutTimer = () => {
     clearAutoLogoutTimer()
     
-    // Set timer for 14 minutes (1 minute before token expiry for safety)
+    // Set timer for 13 minutes to refresh token BEFORE it expires
     autoLogoutTimer.value = setTimeout(async () => {
-      console.log('⏰ Auto-logout: Token expired')
-      await logout()
-      // Optional: Show notification to user
-      error.value = 'Sessione scaduta. Effettua nuovamente il login.'
-    }, 14 * 60 * 1000) // 14 minutes
+      console.log('🔄 Auto-refresh: Refreshing token before expiry...')
+      
+      try {
+        // Call refresh endpoint to get new tokens
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include' // Send refresh token cookie
+        })
+        
+        if (response.ok) {
+          console.log('✅ Token refreshed successfully!')
+          // Reset timer for another 13 minutes
+          setAutoLogoutTimer()
+        } else {
+          // Only logout if refresh fails (refresh token expired after 7 days)
+          console.log('❌ Token refresh failed, logging out')
+          await logout()
+          error.value = 'Sessione scaduta. Effettua nuovamente il login.'
+        }
+      } catch (err) {
+        console.error('❌ Error refreshing token:', err)
+        // Keep user logged in if network error - will retry on next API call
+        setAutoLogoutTimer() // Retry in another 13 minutes
+      }
+    }, 13 * 60 * 1000) // 13 minutes (refresh 2 minutes before expiry)
   }
 
   const clearAutoLogoutTimer = () => {

@@ -364,7 +364,6 @@ const currentAuthMethod = ref({
 
 // API configuration
 const API_BASE = 'http://localhost:3001'
-const getAuthToken = () => localStorage.getItem('pilotpro_token')
 
 // Load users and roles
 const loadUsers = async () => {
@@ -374,14 +373,10 @@ const loadUsers = async () => {
   try {
     const [usersResponse, rolesResponse] = await Promise.all([
       fetch(`${API_BASE}/api/users`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
+        credentials: 'include' // Include HttpOnly cookies
       }),
       fetch(`${API_BASE}/api/roles`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
+        credentials: 'include' // Include HttpOnly cookies
       })
     ])
 
@@ -410,9 +405,7 @@ const loadUsers = async () => {
 const loadAuthConfig = async () => {
   try {
     const response = await fetch(`${API_BASE}/api/auth/config`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
-      }
+      credentials: 'include' // Include HttpOnly cookies
     })
 
     const data = await response.json()
@@ -467,9 +460,7 @@ const deleteUser = async () => {
   try {
     const response = await fetch(`${API_BASE}/api/users/${userToDelete.value.id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`
-      }
+      credentials: 'include' // Include HttpOnly cookies
     })
 
     const data = await response.json()
