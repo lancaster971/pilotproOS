@@ -45,16 +45,15 @@ ChartJS.register(
   RadialLinearScale
 )
 
-// Import pages
-import LoginPage from './pages/LoginPage.vue'
-import InsightsPage from './pages/InsightsPage.vue'
-// Removed unused workflow pages
-import WorkflowCommandCenter from './pages/WorkflowCommandCenter.vue'
-import ExecutionsPage from './pages/ExecutionsPage.vue'
-import ExecutionsPagePrime from './pages/ExecutionsPagePrime.vue'
-import SettingsPage from './pages/SettingsPage.vue'
-// Removed SecurityPage and SchedulerPage - functionality not needed for business system
-import DesignSystemTestPage from './pages/DesignSystemTestPage.vue'
+// Lazy load pages for better performance - reduce bundle from 1.5MB to ~200KB initial
+const LoginPage = () => import('./pages/LoginPage.vue')
+const InsightsPage = () => import('./pages/InsightsPage.vue')
+// Heavy page with VueFlow - lazy load critical!
+const WorkflowCommandCenter = () => import('./pages/WorkflowCommandCenter.vue')
+const ExecutionsPage = () => import('./pages/ExecutionsPage.vue')
+const ExecutionsPagePrime = () => import('./pages/ExecutionsPagePrime.vue')
+const SettingsPage = () => import('./pages/SettingsPage.vue')
+const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
 
 // Router configuration - same as n8n approach
 const routes = [

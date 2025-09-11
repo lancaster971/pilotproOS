@@ -959,7 +959,7 @@ const refreshAllData = async () => {
     // This was causing the bug where clicking any workflow showed the same content
     console.log('✅ Workflows loaded, manual selection required')
     
-    success('Workflows Caricati', `${realWorkflows.value.length} processi aziendali disponibili`)
+    // Rimosso toast fastidioso - non serve notificare ogni caricamento
     
   } catch (error: any) {
     console.error('❌ Failed to fetch workflows:', error)
