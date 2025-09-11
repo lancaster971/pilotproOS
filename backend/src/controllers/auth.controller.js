@@ -82,7 +82,10 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const { user, token } = await authService.login(email, password);
+    const { user, accessToken, refreshToken } = await authService.login(email, password, req.ip);
+
+    // Set secure HttpOnly cookies
+    authService.setAuthCookies(res, accessToken, refreshToken);
 
     // Log audit
     await logAuditAction({
@@ -99,11 +102,10 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        tenantId: user.tenant_id,
         permissions: user.permissions
       },
-      token,
-      expiresIn: '24h'
+      // Don't send tokens in response - they're in HttpOnly cookies
+      expiresIn: '15m'
     });
 
   } catch (error) {
@@ -252,6 +254,93 @@ router.post('/register',
     }
   }
 );
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: Refreshes expired access token using refresh token in HttpOnly cookie
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 expiresIn:
+ *                   type: string
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    
+    if (!refreshToken) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Refresh token non trovato'
+      });
+    }
+
+    const { user, accessToken, refreshToken: newRefreshToken } = await authService.refreshAccessToken(refreshToken);
+    
+    // Set new cookies
+    authService.setAuthCookies(res, accessToken, newRefreshToken);
+
+    res.json({
+      message: 'Token refreshed successfully',
+      expiresIn: '15m'
+    });
+
+  } catch (error) {
+    authService.clearAuthCookies(res);
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Token refresh failed'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: Clears authentication cookies and invalidates session
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ */
+router.post('/logout', async (req, res) => {
+  try {
+    // Revoke refresh token session if present
+    const refreshToken = req.cookies?.refresh_token;
+    if (refreshToken) {
+      await authService.revokeSession(refreshToken);
+    }
+
+    // Clear HttpOnly cookies
+    authService.clearAuthCookies(res);
+    
+    res.json({
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Still clear cookies even if session revocation fails
+    authService.clearAuthCookies(res);
+    res.json({
+      message: 'Logout successful'
+    });
+  }
+});
 
 /**
  * @swagger

@@ -51,11 +51,11 @@
                   {{ isSignUp ? SIGNUP_DESCRIPTION : LOGIN_DESCRIPTION }}
                 </p>
                 
-                <!-- Enhanced Login Form -->
-                <EnhancedLoginForm />
+                <!-- Enhanced Login Form DISABLED - using fixed auth system -->
+                <!-- <EnhancedLoginForm /> -->
                 
-                <!-- Legacy Form (fallback) DISABLED -->
-                <form v-if="false" @submit.prevent="handleSubmit" class="space-y-4">
+                <!-- Main Login Form -->
+                <form @submit.prevent="handleSubmit" class="space-y-4">
                   <div class="space-y-2">
                     <label for="email" class="text-sm text-gray-300" style="font-weight: 300;">
                       Email
@@ -92,6 +92,11 @@
                         <Icon v-else icon="lucide:eye-off" class="h-4 w-4 text-gray-400" />
                       </button>
                     </div>
+                  </div>
+
+                  <!-- Error Message Display -->
+                  <div v-if="localError" class="bg-red-900/50 border border-red-500/50 text-red-200 px-3 py-2 rounded-lg text-sm">
+                    {{ localError }}
                   </div>
                   
                   <button 
@@ -155,8 +160,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { useAuthStore } from '../stores/auth'
-import { useUIStore } from '../stores/ui'
-import EnhancedLoginForm from '../components/auth/EnhancedLoginForm.vue'
+import { useToast } from 'vue-toastification'
 
 // Constants - same as new loginPage design
 const LOGIN_TITLE = "Bentornato"
@@ -168,7 +172,7 @@ const BRAND_DESCRIPTION = "Trasformiamo il modo di lavorare delle aziende attrav
 
 // Stores - Pinia composition pattern like n8n
 const authStore = useAuthStore()
-const uiStore = useUIStore()
+const toast = useToast()
 const router = useRouter()
 
 // Local state
@@ -182,6 +186,8 @@ const formData = ref({
   password: '',
 })
 
+const localError = ref('')
+
 // Methods
 const toggleMode = () => {
   isSignUp.value = !isSignUp.value
@@ -190,18 +196,22 @@ const toggleMode = () => {
 }
 
 const handleSubmit = async () => {
+  console.log('🔍 LOGIN SUBMIT:', formData.value)
+  localError.value = '' // Clear previous errors
+  
   try {
     if (isSignUp.value) {
       // For signup, redirect to demo booking
       window.location.href = '/prenota-demo'
     } else {
       // Login with any credentials
+      console.log('🔐 Calling authStore.login...')
       await authStore.login(formData.value.email, formData.value.password)
-      uiStore.showToast('Login', 'Accesso effettuato con successo!', 'success')
       router.push('/dashboard')
     }
   } catch (error: any) {
-    uiStore.showToast('Errore', error.message || 'Credenziali non valide', 'error')
+    console.error('❌ Login error:', error)
+    localError.value = error.message || 'Credenziali non valide'
   }
 }
 

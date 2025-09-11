@@ -9,34 +9,55 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('pilotpro_token'))
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const autoLogoutTimer = ref<NodeJS.Timeout | null>(null)
 
   // Getters
   const isAuthenticated = computed(() => !!token.value)
   const tenantId = computed(() => user.value?.tenantId || 'client_simulation_a')
 
-  // Actions - same API pattern as n8n
+  // Actions - HttpOnly cookies + real API
   const login = async (email: string, password: string) => {
     isLoading.value = true
     error.value = null
 
     try {
-      // Simulate authentication for demo
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('🌐 Making fetch to /api/auth/login...')
       
-      const mockUser: User = {
-        id: '1',
-        email: email,
-        name: 'Admin User',
-        role: 'admin',
-        tenantId: 'client_simulation_a',
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include' // Include HttpOnly cookies
+      })
+
+      console.log('📡 Response received:', response.status, response.statusText)
+      
+      const data = await response.json()
+      console.log('📄 Response data:', data)
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed')
+      }
+
+      // HttpOnly cookies are set automatically by browser
+      user.value = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.email.split('@')[0], // Use email prefix as name
+        role: data.user.role,
+        tenantId: 'pilotpros_client',
         createdAt: new Date().toISOString(),
       }
 
-      user.value = mockUser
-      token.value = 'demo-token-' + Date.now()
-      localStorage.setItem('pilotpro_token', token.value)
+      // No token in localStorage - it's in HttpOnly cookies
+      token.value = 'authenticated' // Flag for UI state
       
-      console.log('✅ Login successful:', mockUser)
+      // Set auto-logout timer for 15 minutes (matching access token expiry)
+      setAutoLogoutTimer()
+      
+      console.log('✅ Login successful with HttpOnly cookies:', user.value)
       
     } catch (err: any) {
       error.value = err.message || 'Login failed'
@@ -47,27 +68,82 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include' // Clear HttpOnly cookies
+      })
+    } catch (error) {
+      console.error('❌ Logout API failed:', error)
+    }
+
+    // Clear client state
     user.value = null
     token.value = null
-    localStorage.removeItem('pilotpro_token')
-    console.log('✅ Logout successful')
+    localStorage.removeItem('pilotpro_token') // Legacy cleanup
+    console.log('✅ Logout successful - HttpOnly cookies cleared')
   }
 
-  const initializeAuth = () => {
-    const savedToken = localStorage.getItem('pilotpro_token')
-    if (savedToken) {
-      token.value = savedToken
-      // Mock user for demo
-      user.value = {
-        id: '1',
-        email: 'admin@pilotpro.com',
-        name: 'Admin User',
-        role: 'admin',
-        tenantId: 'client_simulation_a',
-        createdAt: new Date().toISOString(),
+  const initializeAuth = async () => {
+    // Clean up old localStorage token
+    localStorage.removeItem('pilotpro_token')
+    
+    // Check if user is already authenticated via HttpOnly cookies
+    try {
+      const response = await fetch('/api/auth/profile', {
+        credentials: 'include' // Send HttpOnly cookies
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        user.value = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.email.split('@')[0],
+          role: data.user.role,
+          tenantId: 'pilotpros_client',
+          createdAt: data.user.createdAt,
+        }
+        
+        token.value = 'authenticated'
+        setAutoLogoutTimer() // Set timer if already authenticated
+        console.log('✅ Auth initialized from HttpOnly cookies:', user.value)
+      } else {
+        // Silent fail for 401 - user just not authenticated
+        console.log('ℹ️ No existing authentication found (expected)')
       }
-      console.log('✅ Auth initialized from localStorage')
+    } catch (error) {
+      // Suppress network errors on auth init
+      console.log('ℹ️ Auth initialization skipped (no connection)')
+    }
+  }
+
+  // Auto-logout timer management
+  const setAutoLogoutTimer = () => {
+    clearAutoLogoutTimer()
+    
+    // Set timer for 14 minutes (1 minute before token expiry for safety)
+    autoLogoutTimer.value = setTimeout(async () => {
+      console.log('⏰ Auto-logout: Token expired')
+      await logout()
+      // Optional: Show notification to user
+      error.value = 'Sessione scaduta. Effettua nuovamente il login.'
+    }, 14 * 60 * 1000) // 14 minutes
+  }
+
+  const clearAutoLogoutTimer = () => {
+    if (autoLogoutTimer.value) {
+      clearTimeout(autoLogoutTimer.value)
+      autoLogoutTimer.value = null
+    }
+  }
+
+  // Reset timer on user activity
+  const resetAutoLogoutTimer = () => {
+    if (isAuthenticated.value) {
+      setAutoLogoutTimer()
     }
   }
 
@@ -86,5 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     initializeAuth,
+    resetAutoLogoutTimer,
+    clearAutoLogoutTimer,
   }
 })

@@ -74,12 +74,18 @@ const iconifyMap: Record<string, string> = {
   '@n8n/n8n-nodes-langchain.chainSummarization': 'mdi:format-list-text',
   
   // Additional common mappings
-  'n8n-nodes-base.start': 'mdi:play-circle-outline',
-  'n8n-nodes-base.set': 'mdi:pencil-outline',
-  'n8n-nodes-base.filter': 'mdi:filter-outline',
-  'n8n-nodes-base.sort': 'mdi:sort-variant',
-  'n8n-nodes-base.limit': 'mdi:numeric',
-  'n8n-nodes-base.itemLists': 'mdi:format-list-bulleted-square'
+  'n8n-nodes-base.start': 'vscode-icons:file-type-light-powershell',
+  'n8n-nodes-base.set': 'vscode-icons:file-type-settings',
+  'n8n-nodes-base.filter': 'vscode-icons:file-type-light-testcafe',
+  'n8n-nodes-base.sort': 'vscode-icons:file-type-light-tree',
+  'n8n-nodes-base.limit': 'vscode-icons:file-type-light-lilypond',
+  'n8n-nodes-base.itemLists': 'vscode-icons:file-type-light-list',
+  
+  // VSCode Icons examples - più icone professionali
+  'n8n-nodes-base.javascript': 'vscode-icons:file-type-js-official',
+  'n8n-nodes-base.typescript': 'vscode-icons:file-type-typescript-official',
+  'n8n-nodes-base.python': 'vscode-icons:file-type-python',
+  'n8n-nodes-base.database': 'vscode-icons:file-type-sql'
 }
 
 // Computed icon name

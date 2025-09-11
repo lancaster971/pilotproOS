@@ -80,9 +80,22 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard with role-based access control
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('pilotpro_token')
+// Auth guard with HttpOnly cookies support
+router.beforeEach(async (to, from, next) => {
+  // Import auth store inside guard to avoid circular imports
+  const { useAuthStore } = await import('./stores/auth')
+  const authStore = useAuthStore()
+  
+  // Initialize auth if not already done
+  if (!authStore.user && authStore.token !== 'authenticated') {
+    try {
+      await authStore.initializeAuth()
+    } catch (error) {
+      console.log('Auth initialization failed:', error)
+    }
+  }
+  
+  const isAuthenticated = authStore.isAuthenticated
   
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
@@ -94,23 +107,12 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  // Role-based access control
-  if (to.meta.requiresRole && isAuthenticated) {
-    try {
-      const token = localStorage.getItem('pilotpro_token')
-      if (token) {
-        // Decode JWT to get user role (simple base64 decode)
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        const userRole = payload.role || 'viewer'
-        
-        if (to.meta.requiresRole === 'admin' && userRole !== 'admin') {
-          next({ name: 'insights' }) // Redirect non-admin users away from admin pages
-          return
-        }
-      }
-    } catch (error) {
-      console.error('Error checking user role:', error)
-      next({ name: 'login' })
+  // Role-based access control using user object from store
+  if (to.meta.requiresRole && isAuthenticated && authStore.user) {
+    const userRole = authStore.user.role || 'viewer'
+    
+    if (to.meta.requiresRole === 'admin' && userRole !== 'admin') {
+      next({ name: 'insights' }) // Redirect non-admin users away from admin pages
       return
     }
   }
@@ -171,9 +173,24 @@ app.component('SplitterPanel', SplitterPanel)
 app.component('Rating', Rating)
 app.component('Skeleton', Skeleton)
 
-// Initialize auth store
-import { useAuthStore } from './stores/auth'
-const authStore = useAuthStore()
-authStore.initializeAuth()
+// Setup user activity detection for auto-logout reset
+let activityTimer: NodeJS.Timeout | null = null
+
+const resetActivityTimer = () => {
+  // Debounce activity detection
+  if (activityTimer) clearTimeout(activityTimer)
+  
+  activityTimer = setTimeout(async () => {
+    const { useAuthStore } = await import('./stores/auth')
+    const authStore = useAuthStore()
+    authStore.resetAutoLogoutTimer()
+  }, 1000) // 1 second debounce
+}
+
+// Listen for user activity events
+const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+activityEvents.forEach(event => {
+  document.addEventListener(event, resetActivityTimer, { passive: true })
+})
 
 app.mount('#app')

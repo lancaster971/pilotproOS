@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -131,6 +132,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cookieParser());
 
 // Rate limiting (RELAXED for development)
 app.use(rateLimit({
