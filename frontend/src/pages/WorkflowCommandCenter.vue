@@ -855,6 +855,9 @@ const avgRunTime = computed(() => {
 const refreshAllData = async () => {
   isLoading.value = true
   
+  // Salva l'ID selezionato prima del refresh
+  const previousSelectedId = selectedWorkflowId.value
+  
   try {
     console.log('🔄 Loading ALL REAL workflow data for Command Center...')
     
@@ -898,6 +901,26 @@ const refreshAllData = async () => {
     realWorkflows.value = []
   } finally {
     isLoading.value = false
+    
+    // Dopo il refresh, riseleziona il workflow precedente o il primo disponibile
+    if (realWorkflows.value.length > 0) {
+      if (previousSelectedId) {
+        // Prova a riselezionare il workflow precedente
+        const previousWorkflow = realWorkflows.value.find(w => w.id === previousSelectedId)
+        if (previousWorkflow) {
+          console.log('🔄 Re-selecting previous workflow:', previousWorkflow.process_name)
+          await selectWorkflow(previousWorkflow)
+        } else {
+          // Se non esiste più, seleziona il primo
+          console.log('🎯 Previous workflow not found, selecting first:', realWorkflows.value[0].process_name)
+          await selectWorkflow(realWorkflows.value[0])
+        }
+      } else {
+        // Se non c'era selezione, seleziona il primo
+        console.log('🎯 Auto-selecting first workflow after refresh:', realWorkflows.value[0].process_name)
+        await selectWorkflow(realWorkflows.value[0])
+      }
+    }
   }
 }
 
@@ -1750,6 +1773,12 @@ onMounted(async () => {
       totalExecutions: totalExecutions.value,
       activeWorkflows: activeWorkflows.value 
     })
+    
+    // Seleziona automaticamente il primo workflow se presente
+    if (realWorkflows.value.length > 0 && !selectedWorkflowId.value) {
+      console.log('🎯 Auto-selecting first workflow:', realWorkflows.value[0].process_name)
+      await selectWorkflow(realWorkflows.value[0])
+    }
   } catch (error) {
     console.error('❌ ERROR in onMounted:', error)
     console.error('❌ Error stack:', error.stack)
@@ -1760,6 +1789,12 @@ onMounted(async () => {
       console.log('🔧 Alternative data:', workflowsData)
       realWorkflows.value = workflowsData.data || []
       console.log('🔧 Alternative workflows set:', realWorkflows.value.length)
+      
+      // Seleziona automaticamente il primo workflow anche nel fallback
+      if (realWorkflows.value.length > 0 && !selectedWorkflowId.value) {
+        console.log('🎯 Auto-selecting first workflow (fallback):', realWorkflows.value[0].process_name)
+        await selectWorkflow(realWorkflows.value[0])
+      }
     } catch (altError) {
       console.error('❌ Alternative load also failed:', altError)
     }
