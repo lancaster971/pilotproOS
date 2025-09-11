@@ -21,45 +21,46 @@ import {
 export const n8nSchema = pgSchema('n8n')
 
 export const workflowEntity = n8nSchema.table('workflow_entity', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 36 }).primaryKey(),
   name: varchar('name', { length: 128 }).notNull(),
   active: boolean('active').default(false).notNull(),
-  nodes: jsonb('nodes').default(sql`'[]'`).notNull(),
-  connections: jsonb('connections').default(sql`'{}'`).notNull(),
-  settings: jsonb('settings').default(sql`'{}'`).notNull(),
-  staticData: jsonb('staticData').default(sql`'{}'`).notNull(),
-  createdAt: timestamp('createdAt').defaultNow().notNull(),
-  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  nodes: json('nodes').default(sql`'[]'`).notNull(),
+  connections: json('connections').default(sql`'{}'`).notNull(),
+  settings: json('settings'),
+  staticData: json('staticData'),
+  pinData: json('pinData'),
+  createdAt: timestamp('createdAt', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   versionId: varchar('versionId', { length: 36 }),
+  triggerCount: integer('triggerCount').default(0).notNull(),
+  meta: json('meta'),
+  parentFolderId: varchar('parentFolderId', { length: 36 }),
   isArchived: boolean('isArchived').default(false).notNull(),
 })
 
 export const executionEntity = n8nSchema.table('execution_entity', {
   id: serial('id').primaryKey(),
-  finished: boolean('finished').default(false).notNull(),
-  mode: varchar('mode', { length: 255 }).notNull(),
-  retryOf: varchar('retryOf', { length: 255 }),
-  retrySuccessId: varchar('retrySuccessId', { length: 255 }),
-  status: varchar('status', { length: 255 }),
-  startedAt: timestamp('startedAt').notNull(),
-  stoppedAt: timestamp('stoppedAt'),
-  workflowData: jsonb('workflowData').notNull(),
-  workflowId: varchar('workflowId', { length: 255 }),
-  waitTill: timestamp('waitTill'),
-  executionData: jsonb('executionData'),
-  customData: jsonb('customData'),
-  deletedAt: timestamp('deletedAt'),
-  metadata: jsonb('metadata'),
+  finished: boolean('finished').notNull(),
+  mode: varchar('mode').notNull(),
+  retryOf: varchar('retryOf'),
+  retrySuccessId: varchar('retrySuccessId'),
+  status: varchar('status').notNull(),
+  startedAt: timestamp('startedAt', { withTimezone: true, precision: 3 }),
+  stoppedAt: timestamp('stoppedAt', { withTimezone: true, precision: 3 }),
+  workflowId: varchar('workflowId', { length: 36 }).notNull(),
+  waitTill: timestamp('waitTill', { withTimezone: true, precision: 3 }),
+  deletedAt: timestamp('deletedAt', { withTimezone: true, precision: 3 }),
+  createdAt: timestamp('createdAt', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
 })
 
 export const credentialsEntity = n8nSchema.table('credentials_entity', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 36 }).primaryKey(),
   name: varchar('name', { length: 128 }).notNull(),
   data: text('data').notNull(),
-  type: varchar('type', { length: 32 }).notNull(),
-  nodesAccess: jsonb('nodesAccess').default(sql`'[]'`).notNull(),
-  createdAt: timestamp('createdAt').defaultNow().notNull(),
-  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  type: varchar('type', { length: 128 }).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  isManaged: boolean('isManaged').default(false).notNull(),
 })
 
 // PilotProS Schema - Business application data
@@ -146,4 +147,71 @@ export const userSessions = pilotprosSchema.table('user_sessions', {
   userAgent: text('user_agent'),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Additional tables for authentication and monitoring
+export const authConfig = pilotprosSchema.table('auth_config', {
+  id: integer('id').primaryKey().default(1),
+  authMethod: varchar('auth_method', { length: 20 }).default('local').notNull(),
+  ldapConfig: jsonb('ldap_config'),
+  mfaConfig: jsonb('mfa_config'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
+export const ldapConfig = pilotprosSchema.table('ldap_config', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  serverUrl: varchar('server_url', { length: 255 }).notNull(),
+  bindDn: varchar('bind_dn', { length: 255 }),
+  bindPassword: text('bind_password'),
+  userSearchBase: varchar('user_search_base', { length: 255 }).notNull(),
+  userFilter: varchar('user_filter', { length: 255 }).default('(&(objectClass=person)(mail={email}))'),
+  groupSearchBase: varchar('group_search_base', { length: 255 }),
+  groupFilter: varchar('group_filter', { length: 255 }).default('(objectClass=group)'),
+  enabled: boolean('enabled').default(true),
+  sslEnabled: boolean('ssl_enabled').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
+export const userAuthMethods = pilotprosSchema.table('user_auth_methods', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  authMethod: varchar('auth_method', { length: 20 }).notNull(),
+  authIdentifier: varchar('auth_identifier', { length: 255 }),
+  isEnabled: boolean('is_enabled').default(true).notNull(),
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const userMfa = pilotprosSchema.table('user_mfa', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  mfaType: varchar('mfa_type', { length: 20 }).notNull(),
+  secret: text('secret'),
+  backupCodes: jsonb('backup_codes'),
+  isEnabled: boolean('is_enabled').default(false).notNull(),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const activeSessions = pilotprosSchema.table('active_sessions', {
+  id: serial('id').primaryKey(),
+  sessionId: varchar('session_id', { length: 255 }).unique().notNull(),
+  userId: integer('user_id').notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const failedLoginAttempts = pilotprosSchema.table('failed_login_attempts', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 100 }).notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  attemptTime: timestamp('attempt_time').defaultNow().notNull(),
+  reason: varchar('reason', { length: 255 }),
 })
