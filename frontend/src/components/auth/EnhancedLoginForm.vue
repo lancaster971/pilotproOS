@@ -197,17 +197,18 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await fetch('http://localhost:3001/api/auth/enhanced/login', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify(credentials.value)
     })
 
     const data = await response.json()
 
-    if (!data.success) {
+    if (!response.ok) {
       throw new Error(data.message || 'Login failed')
     }
 
@@ -218,8 +219,8 @@ const handleLogin = async () => {
       currentStep.value = 'mfa'
       console.log('✅ Login successful, MFA required')
     } else {
-      // Complete authentication
-      await completeAuthentication(data.user, data.token)
+      // Complete authentication - Cookie already set by backend
+      await completeAuthentication(data.user, null)
     }
 
   } catch (error) {
@@ -267,11 +268,13 @@ const handleMFAVerification = async () => {
 const completeAuthentication = async (user, token) => {
   // Update auth store
   authStore.user = user
-  authStore.token = token
   authStore.isAuthenticated = true
-
-  // Store token
-  localStorage.setItem('pilotpro_token', token)
+  
+  // Token handled via HttpOnly cookie, not localStorage
+  if (token) {
+    authStore.token = token
+    localStorage.setItem('pilotpro_token', token)
+  }
 
   // Show success message
   uiStore.showToast('Success', `Welcome back, ${user.email}!`, 'success')

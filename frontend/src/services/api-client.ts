@@ -16,14 +16,14 @@ const baseFetch = ofetch.create({
 // Auth API - Clean OFETCH implementation
 export const authAPI = {
   login: (email: string, password: string) =>
-    baseFetch('/auth/login', { 
+    baseFetch('/api/auth/login', { 
       method: 'POST', 
       body: { email, password }
     }),
   
-  logout: () => baseFetch('/auth/logout', { method: 'POST' }),
+  logout: () => baseFetch('/api/auth/logout', { method: 'POST' }),
   
-  getProfile: () => baseFetch('/auth/profile'),
+  getProfile: () => baseFetch('/api/auth/profile'),
 }
 
 // Business API - OFETCH battle-tested implementation

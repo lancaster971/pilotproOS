@@ -5,7 +5,7 @@
       class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       @click.self="handleClickOutside"
     >
-      <div class="w-full max-w-6xl max-h-[90vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden premium-modal">
+      <div class="w-full max-w-4xl max-h-[70vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden premium-modal">
         
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-border">
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Tab Content -->
-          <div class="overflow-y-auto premium-scrollbar" style="max-height: calc(90vh - 200px);">
+          <div class="overflow-y-auto premium-scrollbar" style="max-height: calc(70vh - 140px);">
             <slot 
               :name="activeTab" 
               :activeTab="activeTab"

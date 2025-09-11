@@ -638,7 +638,7 @@
         :header-icon="'lucide:play'"
         :tabs="executionTabs"
         default-tab="executions"
-        :is-loading="isLoadingExecutions"
+        :is-loading="executionData?.loading || false"
         :error="executionsError"
         :data="executionData"
         @close="closeExecutionsModal"
@@ -646,46 +646,108 @@
         @retry="loadExecutionData"
       >
         <template #executions="{ data }">
-          <div class="p-6">
-            <div class="control-card p-6">
-              <h3 class="text-lg font-semibold text-text mb-4">Recent Executions</h3>
+          <div class="p-4">
+            <div class="space-y-3">
+              <h3 class="text-base font-semibold text-text">Recent Executions (Page {{ currentPage }}/{{ totalPages }})</h3>
               
-              <div v-if="data?.executions?.length > 0" class="space-y-3">
-                <div 
-                  v-for="(exec, index) in data.executions" 
-                  :key="exec.id || index"
-                  class="flex items-center justify-between p-4 bg-surface rounded-lg border border-border"
-                >
-                  <div class="flex items-center gap-3">
-                    <Icon v-if="exec.finished && !exec.error" icon="lucide:check-circle" class="h-5 w-5 text-green-400" />
-                    <Icon v-else-if="exec.error" icon="lucide:x-circle" class="h-5 w-5 text-red-400" />
-                    <Icon v-else icon="lucide:clock" class="h-5 w-5 text-yellow-400" />
-                    
-                    <div>
-                      <p class="text-text font-medium">Execution #{{ exec.id }}</p>
-                      <p class="text-sm text-text-muted">
-                        Started: {{ formatDate(exec.startedAt) }}
-                      </p>
-                    </div>
+              <!-- Recent Executions Info -->
+              <div v-if="data?.executions?.length > 0" class="mb-2 text-xs text-text-muted">
+                Showing the {{ data.executions.length }} most recent executions
+              </div>
+              
+              <!-- Compact Executions Table -->
+              <div v-if="paginatedExecutions.length > 0" class="border border-border rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-surface-hover border-b border-border">
+                    <tr>
+                      <th class="text-left px-3 py-2 text-text-muted font-medium">Status</th>
+                      <th class="text-left px-3 py-2 text-text-muted font-medium">ID</th>
+                      <th class="text-left px-3 py-2 text-text-muted font-medium">Started</th>
+                      <th class="text-left px-3 py-2 text-text-muted font-medium">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr 
+                      v-for="(exec, index) in paginatedExecutions" 
+                      :key="exec.id || index"
+                      class="border-b border-border/50 hover:bg-surface-hover/30"
+                    >
+                      <td class="px-3 py-2">
+                        <div class="flex items-center gap-2">
+                          <Icon v-if="exec.finished && !exec.error" icon="lucide:check-circle" class="h-4 w-4 text-green-400" />
+                          <Icon v-else-if="exec.error" icon="lucide:x-circle" class="h-4 w-4 text-red-400" />
+                          <Icon v-else icon="lucide:clock" class="h-4 w-4 text-yellow-400" />
+                          <span :class="[
+                            'text-xs font-medium',
+                            exec.finished && !exec.error ? 'text-green-400' : 
+                            exec.error ? 'text-red-400' : 'text-yellow-400'
+                          ]">
+                            {{ exec.finished && !exec.error ? 'Success' : 
+                                exec.error ? 'Failed' : 'Running' }}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="px-3 py-2 text-text-muted font-mono text-xs">
+                        #{{ exec.id }}
+                      </td>
+                      <td class="px-3 py-2 text-text-muted text-xs">
+                        {{ formatDate(exec.startedAt) }}
+                      </td>
+                      <td class="px-3 py-2 text-text-muted text-xs">
+                        {{ formatDuration(exec.execution_time || 0) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pagination Controls -->
+              <div v-if="data?.executions?.length > itemsPerPage" class="mt-4 flex items-center justify-between pt-4 border-t border-border">
+                <div class="text-sm text-text-muted">
+                  Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, data.executions.length) }} of {{ data.executions.length }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <button 
+                    @click="currentPage = Math.max(1, currentPage - 1)"
+                    :disabled="currentPage === 1"
+                    class="px-3 py-1 text-xs bg-surface border border-border rounded hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  <!-- Page Numbers -->
+                  <div class="flex items-center gap-1">
+                    <button
+                      v-for="page in Math.min(5, totalPages)"
+                      :key="page"
+                      @click="currentPage = page"
+                      class="w-8 h-8 text-xs rounded transition-colors"
+                      :class="currentPage === page ? 'bg-primary text-white' : 'bg-surface border border-border hover:bg-surface-hover'"
+                    >
+                      {{ page }}
+                    </button>
+                    <span v-if="totalPages > 5" class="text-text-muted px-2">...</span>
+                    <button
+                      v-if="totalPages > 5"
+                      @click="currentPage = totalPages"
+                      class="w-8 h-8 text-xs rounded transition-colors"
+                      :class="currentPage === totalPages ? 'bg-primary text-white' : 'bg-surface border border-border hover:bg-surface-hover'"
+                    >
+                      {{ totalPages }}
+                    </button>
                   </div>
                   
-                  <div class="text-right">
-                    <p class="text-text text-sm">
-                      Duration: {{ formatDuration(exec.execution_time || 0) }}
-                    </p>
-                    <p :class="[
-                      'text-sm font-medium',
-                      exec.finished && !exec.error ? 'text-green-400' : 
-                      exec.error ? 'text-red-400' : 'text-yellow-400'
-                    ]">
-                      {{ exec.finished && !exec.error ? 'Success' : 
-                          exec.error ? 'Failed' : 'Running' }}
-                    </p>
-                  </div>
+                  <button 
+                    @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                    :disabled="currentPage === totalPages"
+                    class="px-3 py-1 text-xs bg-surface border border-border rounded hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
               
-              <div v-else class="text-center py-8">
+              <div v-else-if="!data?.executions?.length" class="text-center py-8">
                 <Icon icon="lucide:play" class="w-12 h-12 text-text-muted mx-auto mb-4" />
                 <p class="text-text-muted">No executions found for this process</p>
               </div>
@@ -800,13 +862,26 @@ const showExecutionsModal = ref(false)
 const selectedWorkflowForModal = ref<any>(null)
 
 // Executions modal data - REAL API DATA
-const isLoadingExecutions = ref(false)
 const executionsError = ref<string | null>(null)
 const executionData = ref<any>(null)
 const executionTabs = [
   { id: 'executions', label: 'Executions', icon: 'lucide:play' },
   { id: 'stats', label: 'Statistics', icon: 'lucide:trending-up' }
 ]
+
+// Pagination for executions
+const currentPage = ref(1)
+const itemsPerPage = 20
+const totalPages = computed(() => {
+  if (!executionData.value?.executions) return 1
+  return Math.ceil(executionData.value.executions.length / itemsPerPage)
+})
+const paginatedExecutions = computed(() => {
+  if (!executionData.value?.executions) return []
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return executionData.value.executions.slice(start, end)
+})
 
 // Action buttons state
 
@@ -1273,8 +1348,21 @@ const closeTimelineModal = () => {
 const openExecutionsModal = async () => {
   if (selectedWorkflowData.value) {
     selectedWorkflowForModal.value = selectedWorkflowData.value
+    
+    // Carica i dati PRIMA di mostrare il modal per evitare ritardi
+    // Mostra subito uno stato di loading nel modal
+    executionData.value = {
+      executions: [],
+      totalExecutions: 0,
+      successRate: 0,
+      avgDuration: 0,
+      loading: true
+    }
+    
     showExecutionsModal.value = true
-    await loadExecutionData()
+    
+    // Carica i dati immediatamente senza await per non bloccare l'UI
+    loadExecutionData()
   }
 }
 
@@ -1455,23 +1543,38 @@ const toggleWorkflowStatus = async () => {
 const loadExecutionData = async () => {
   if (!selectedWorkflowForModal.value?.id) return
   
-  isLoadingExecutions.value = true
   executionsError.value = null
+  currentPage.value = 1 // Reset to first page
+  
+  const startTime = performance.now()
   
   try {
     console.log('🔄 Loading executions for workflow:', selectedWorkflowForModal.value.id)
     
-    // API call - OFETCH Migration
-    const data = await businessAPI.getProcessExecutionsForWorkflow(selectedWorkflowForModal.value.id)
-    console.log('✅ Executions loaded:', data.data)
+    // API call - VELOCE: solo 50 esecuzioni più recenti
+    const data = await businessAPI.getProcessExecutionsForWorkflow(
+      selectedWorkflowForModal.value.id
+    )
     
-    executionData.value = data.data
+    const loadTime = performance.now() - startTime
+    console.log(`✅ Executions loaded in ${loadTime.toFixed(0)}ms:`, data.data)
+    
+    // Store all data (pagination will handle display)
+    executionData.value = {
+      ...data.data,
+      loading: false
+    }
     
   } catch (err: any) {
     console.error('❌ Failed to load executions:', err)
     executionsError.value = err.message
-  } finally {
-    isLoadingExecutions.value = false
+    executionData.value = {
+      executions: [],
+      totalExecutions: 0,
+      successRate: 0,
+      avgDuration: 0,
+      loading: false
+    }
   }
 }
 
@@ -1812,6 +1915,7 @@ onMounted(async () => {
   background: transparent !important;
   border: none !important;
 }
+
 
 /* ===== AGENT NODES (n8n Style Rectangular) ===== */
 :deep(.premium-ai-node) {

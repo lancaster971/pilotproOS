@@ -545,6 +545,81 @@ app.get('/api/debug/execution/:id', async (req, res) => {
   }
 });
 
+// Fast Process Executions for specific workflow (LIMITED TO 50)
+app.get('/api/business/process-executions/:workflowId', async (req, res) => {
+  const { workflowId } = req.params;
+  const startTime = Date.now();
+  
+  try {
+    console.log(`⚡ FAST Loading executions for workflow: ${workflowId}`);
+    
+    // Query limited to 50 most recent executions for performance
+    const query = `
+      SELECT 
+        e.id,
+        e.finished,
+        e.mode,
+        e.status,
+        e."startedAt",
+        e."stoppedAt",
+        e."workflowId",
+        w.name as workflow_name,
+        e."waitTill",
+        CASE 
+          WHEN e."stoppedAt" IS NOT NULL AND e."startedAt" IS NOT NULL 
+          THEN EXTRACT(EPOCH FROM (e."stoppedAt" - e."startedAt")) * 1000
+          ELSE 0
+        END as execution_time,
+        CASE 
+          WHEN e.status = 'success' THEN false
+          WHEN e.status = 'error' THEN true
+          WHEN e.status = 'crashed' THEN true
+          ELSE false
+        END as error
+      FROM n8n.execution_entity e
+      LEFT JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+      WHERE e."workflowId" = $1
+        AND e."deletedAt" IS NULL
+      ORDER BY e."startedAt" DESC
+      LIMIT 50
+    `;
+    
+    const result = await dbPool.query(query, [workflowId]);
+    
+    // Calculate statistics
+    const executions = result.rows || [];
+    const totalExecutions = executions.length;
+    const successCount = executions.filter(e => e.status === 'success').length;
+    const successRate = totalExecutions > 0 ? (successCount / totalExecutions * 100) : 0;
+    const avgDuration = executions.reduce((sum, e) => sum + (e.execution_time || 0), 0) / (totalExecutions || 1);
+    
+    console.log(`✅ Loaded ${executions.length} executions in ${Date.now() - startTime}ms`);
+    
+    res.json({
+      success: true,
+      data: {
+        executions,
+        totalExecutions,
+        successRate,
+        avgDuration,
+        stats: {
+          total: totalExecutions,
+          success: successCount,
+          error: executions.filter(e => e.error).length,
+          running: executions.filter(e => !e.finished && !e.error).length
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error loading process executions:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Process Executions API (Drizzle ORM - Type Safe)
 app.get('/api/business/process-runs', async (req, res) => {
   try {

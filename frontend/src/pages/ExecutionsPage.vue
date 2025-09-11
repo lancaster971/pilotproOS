@@ -80,43 +80,137 @@
         </div>
       </div>
 
-      <!-- Filters -->
+      <!-- Modern Filters with Premium Design -->
       <div class="control-card p-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="relative">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <!-- Search Input -->
+          <div class="relative group">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted transition-colors group-focus-within:text-primary" />
             <input
               v-model="searchTerm"
               type="text"
               placeholder="Cerca executions..."
-              class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
+              class="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
+                     focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
+                     transition-all duration-200 placeholder:text-text-muted"
             />
           </div>
 
-          <select
-            v-model="statusFilter"
-            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
-          >
-            <option value="all">Any Status ({{ executionStats.total }})</option>
-            <option value="success">Success ({{ executionStats.success }})</option>
-            <option value="error">Error ({{ executionStats.error }})</option>
-            <option value="running">Running ({{ executionStats.running }})</option>
-            <option value="waiting">Waiting ({{ executionStats.waiting }})</option>
-          </select>
-
-          <select
-            v-model="workflowFilter"
-            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
-          >
-            <option value="all">All Workflows</option>
-            <option
-              v-for="workflow in workflowsStore.workflows"
-              :key="workflow.id"
-              :value="workflow.id"
+          <!-- Status Filter Dropdown -->
+          <div class="relative">
+            <button
+              @click="showStatusDropdown = !showStatusDropdown"
+              class="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
+                     hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
+                     transition-all duration-200 flex items-center justify-between group"
             >
-              {{ workflow.name }}
-            </option>
-          </select>
+              <span class="flex items-center gap-2">
+                <div v-if="statusFilter !== 'all'" 
+                     class="w-2 h-2 rounded-full"
+                     :class="statusFilter === 'success' ? 'bg-green-400' : 
+                             statusFilter === 'error' ? 'bg-red-400' :
+                             statusFilter === 'running' ? 'bg-blue-400' : 'bg-yellow-400'"
+                />
+                {{ statusFilter === 'all' ? `Any Status (${executionStats.total})` :
+                    statusFilter === 'success' ? `Success (${executionStats.success})` :
+                    statusFilter === 'error' ? `Error (${executionStats.error})` :
+                    statusFilter === 'running' ? `Running (${executionStats.running})` :
+                    `Waiting (${executionStats.waiting})` }}
+              </span>
+              <ChevronDown class="h-4 w-4 text-text-muted transition-transform duration-200" 
+                          :class="showStatusDropdown ? 'rotate-180' : ''" />
+            </button>
+            
+            <!-- Status Dropdown Menu -->
+            <transition
+              enter-active-class="transition ease-out duration-200"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-150"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <div v-if="showStatusDropdown" 
+                   class="absolute z-10 mt-2 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden">
+                <button
+                  v-for="status in ['all', 'success', 'error', 'running', 'waiting']"
+                  :key="status"
+                  @click="statusFilter = status; showStatusDropdown = false"
+                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors 
+                         flex items-center justify-between group"
+                  :class="statusFilter === status ? 'bg-primary/10 text-primary' : 'text-text'"
+                >
+                  <span class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full"
+                         :class="status === 'success' ? 'bg-green-400' : 
+                                 status === 'error' ? 'bg-red-400' :
+                                 status === 'running' ? 'bg-blue-400' : 
+                                 status === 'waiting' ? 'bg-yellow-400' : 'bg-transparent'"
+                    />
+                    {{ status === 'all' ? 'Any Status' :
+                        status === 'success' ? 'Success' :
+                        status === 'error' ? 'Error' :
+                        status === 'running' ? 'Running' : 'Waiting' }}
+                  </span>
+                  <span class="text-text-muted text-xs">
+                    {{ status === 'all' ? executionStats.total :
+                        status === 'success' ? executionStats.success :
+                        status === 'error' ? executionStats.error :
+                        status === 'running' ? executionStats.running : executionStats.waiting }}
+                  </span>
+                </button>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Workflow Filter Dropdown -->
+          <div class="relative">
+            <button
+              @click="showWorkflowDropdown = !showWorkflowDropdown"
+              class="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
+                     hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
+                     transition-all duration-200 flex items-center justify-between group"
+            >
+              <span class="truncate">
+                {{ workflowFilter === 'all' ? 'All Workflows' : 
+                    workflowsStore.workflows.find(w => w.id === workflowFilter)?.name || 'Select Workflow' }}
+              </span>
+              <ChevronDown class="h-4 w-4 text-text-muted transition-transform duration-200 flex-shrink-0" 
+                          :class="showWorkflowDropdown ? 'rotate-180' : ''" />
+            </button>
+            
+            <!-- Workflow Dropdown Menu -->
+            <transition
+              enter-active-class="transition ease-out duration-200"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-150"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <div v-if="showWorkflowDropdown" 
+                   class="absolute z-10 mt-2 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+                <button
+                  @click="workflowFilter = 'all'; showWorkflowDropdown = false"
+                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors"
+                  :class="workflowFilter === 'all' ? 'bg-primary/10 text-primary' : 'text-text'"
+                >
+                  All Workflows
+                </button>
+                <button
+                  v-for="workflow in workflowsStore.workflows"
+                  :key="workflow.id"
+                  @click="workflowFilter = workflow.id; showWorkflowDropdown = false"
+                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors flex items-center gap-2"
+                  :class="workflowFilter === workflow.id ? 'bg-primary/10 text-primary' : 'text-text'"
+                >
+                  <div class="w-2 h-2 rounded-full" 
+                       :class="workflow.active ? 'bg-green-400' : 'bg-gray-400'" />
+                  <span class="truncate">{{ workflow.name }}</span>
+                </button>
+              </div>
+            </transition>
+          </div>
         </div>
       </div>
 
@@ -229,7 +323,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   RefreshCw, Download, Search, Play, CheckCircle, XCircle,
-  Clock, Pause, MoreHorizontal
+  Clock, Pause, MoreHorizontal, ChevronDown
 } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
@@ -252,6 +346,10 @@ const searchTerm = ref('')
 const statusFilter = ref<'all' | 'success' | 'error' | 'running' | 'waiting'>('all')
 const workflowFilter = ref('all')
 const executions = ref<Execution[]>([])
+
+// Dropdown state
+const showStatusDropdown = ref(false)
+const showWorkflowDropdown = ref(false)
 
 // Modal state
 const showTimelineModal = ref(false)
