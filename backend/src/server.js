@@ -117,14 +117,18 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
+// Configure CORS with environment variables
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',')
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    ];
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5173',
-    process.env.FRONTEND_URL || 'http://localhost:3000'
-  ],
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -379,7 +383,8 @@ app.get('/health', async (req, res) => {
     // Check n8n availability (internal)
     let n8nStatus = 'unknown';
     try {
-      const response = await fetch('http://localhost:5678/rest/active-workflows');
+      const n8nUrl = process.env.N8N_URL || 'http://localhost:5678';
+      const response = await fetch(`${n8nUrl}/rest/active-workflows`);
       n8nStatus = response.ok ? 'healthy' : 'degraded';
     } catch (error) {
       n8nStatus = 'unavailable';
