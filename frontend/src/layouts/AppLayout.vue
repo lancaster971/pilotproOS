@@ -106,8 +106,13 @@ const router = useRouter()
 const authStore = useAuthStore()
 const sidebarOpen = ref(true)
 
-const doLogout = () => {
-  authStore.logout()
-  router.push('/login')
+const doLogout = async () => {
+  try {
+    await authStore.logout()
+    await router.push('/login')
+  } catch (error) {
+    console.error('Logout error:', error)
+    await router.push('/login')
+  }
 }
 </script>

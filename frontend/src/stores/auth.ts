@@ -69,20 +69,29 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
+    console.log('🚪 Logout initiated...')
+    
+    // Clear timer first to prevent race conditions
+    clearAutoLogoutTimer()
+    
     try {
+      // Call logout API to clear server-side session
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include' // Clear HttpOnly cookies
       })
+      console.log('✅ Server logout successful')
     } catch (error) {
-      console.error('❌ Logout API failed:', error)
+      console.error('❌ Logout API failed (continuing anyway):', error)
     }
 
-    // Clear client state
+    // Clear all client state immediately
     user.value = null
     token.value = null
+    error.value = null
     localStorage.removeItem('pilotpro_token') // Legacy cleanup
-    console.log('✅ Logout successful - HttpOnly cookies cleared')
+    
+    console.log('✅ Logout completed - all state cleared')
   }
 
   const initializeAuth = async () => {

@@ -152,11 +152,18 @@ const navigationItems = computed(() => {
 })
 
 // Methods
-const handleLogout = () => {
-  authStore.logout()
-  uiStore.showToast('Logout', 'Disconnesso con successo', 'success')
-  router.push('/login')
-  showUserMenu.value = false
+const handleLogout = async () => {
+  try {
+    await authStore.logout()
+    uiStore.showToast('Logout', 'Disconnesso con successo', 'success')
+    await router.push('/login')
+    showUserMenu.value = false
+  } catch (error) {
+    console.error('Logout error:', error)
+    // Force logout anyway
+    await router.push('/login') 
+    showUserMenu.value = false
+  }
 }
 
 // Close user menu when clicking outside
