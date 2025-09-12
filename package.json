@@ -5,7 +5,7 @@
   "main": "backend/src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev-auto-detect.js",
+    "dev": "bash scripts/ensure-volumes.sh && node scripts/dev-auto-detect.js",
     "setup": "npm run install:all",
     "reset": "npm run docker:clean && npm run install:all",
     "docker:stop": "docker-compose -f docker-compose.dev.yml down",

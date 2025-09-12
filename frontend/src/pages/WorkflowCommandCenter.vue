@@ -190,7 +190,7 @@
                 :disabled="!selectedWorkflowId"
                 class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
-                <GitBranch class="w-3 h-3" />
+                <Icon icon="lucide:git-branch" class="w-3 h-3" />
                 Executions
               </button>
             </div>
@@ -255,7 +255,7 @@
                   class="px-4 py-2 bg-red-700 border border-red-600 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-red-600"
                   title="Stop Workflow"
                 >
-                  <Square class="w-4 h-4" />
+                  <Icon icon="lucide:square" class="w-4 h-4" />
                   Stop
                 </button>
               </div>

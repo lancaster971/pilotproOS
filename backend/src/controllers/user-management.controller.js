@@ -6,7 +6,7 @@
  */
 
 import { dbPool } from '../db/connection.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PasswordValidator } from '../utils/password-validator.js';
 

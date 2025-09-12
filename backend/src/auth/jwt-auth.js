@@ -5,7 +5,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { dbPool } from '../db/connection.js';
 
