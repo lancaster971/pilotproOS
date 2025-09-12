@@ -13,6 +13,7 @@ import {
   generateBusinessInsights
 } from '../utils/business-terminology.js';
 import businessLogger from '../utils/logger.js';
+import { BusinessRepository } from '../repositories/business.repository.js';
 
 /**
  * Middleware di sanitizzazione response
@@ -288,9 +289,21 @@ export function businessOperationLogger() {
  */
 async function logBusinessOperation(operation) {
   try {
-    // In production, salveremmo nel database
+    // Save business analytics to database (DATA-001 FIXED)
+    if (operation.workflowId) {
+      const businessRepo = new BusinessRepository();
+      
+      // Calculate and save analytics for this workflow
+      await businessRepo.calculateAndSaveBusinessAnalytics(operation.workflowId, 30);
+      
+      businessLogger.api('Business analytics saved to database', {
+        workflowId: operation.workflowId,
+        endpoint: operation.endpoint
+      });
+    }
+    
+    // Log the operation
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Implementare salvataggio in business_analytics table
       businessLogger.api('Business operation logged', operation);
     } else {
       // In development, log semplice

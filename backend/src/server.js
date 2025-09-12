@@ -603,6 +603,16 @@ app.get('/api/business/process-executions/:workflowId', async (req, res) => {
     
     console.log(`✅ Loaded ${executions.length} executions in ${Date.now() - startTime}ms`);
     
+    // DATA-001: Save analytics after loading executions
+    try {
+      const businessRepo = new BusinessRepository();
+      await businessRepo.calculateAndSaveBusinessAnalytics(workflowId, 30);
+      console.log(`📊 Analytics saved for workflow ${workflowId}`);
+    } catch (analyticsError) {
+      console.error('Failed to save analytics:', analyticsError.message);
+      // Non-blocking error, continue with response
+    }
+    
     res.json({
       success: true,
       data: {

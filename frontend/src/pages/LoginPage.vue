@@ -1,25 +1,6 @@
 <template>
   <div class="min-h-screen">
-    <!-- Header -->
-    <div class="relative z-50">
-      <header class="bg-black/90 backdrop-blur-lg border-b border-gray-800/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex justify-between items-center py-4">
-            <div class="flex items-center">
-              <span class="text-xl font-bold text-white">PilotPro</span>
-            </div>
-            <nav class="hidden md:flex space-x-8">
-              <a href="#" class="text-gray-300 hover:text-white transition-colors">Prodotti AI</a>
-              <a href="#" class="text-gray-300 hover:text-white transition-colors">Azienda</a>
-              <a href="#" class="text-gray-300 hover:text-white transition-colors">Risorse</a>
-              <a href="#" class="text-green-400 hover:text-green-300 transition-colors">Accedi</a>
-            </nav>
-          </div>
-        </div>
-      </header>
-    </div>
-
-    <div class="flex min-h-screen pt-16">
+    <div class="flex min-h-screen">
       <!-- Left Side - Integrations Gradient with Brand Texts -->
       <div class="hidden lg:flex lg:w-1/2 relative bg-black overflow-hidden">
         <!-- Same gradient as integrations section -->

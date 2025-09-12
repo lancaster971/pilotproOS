@@ -154,43 +154,65 @@ class BusinessIntelligenceService {
    * Pattern-based summarization without AI
    */
   async patternBasedSummary(nodeData, nodeType, nodeName) {
-    const nodeNameLower = nodeName?.toLowerCase() || '';
-    
-    // PDF/Document processing
-    if (this.isPDFData(nodeData, nodeType, nodeName)) {
-      return this.summarizePDF(nodeData);
+    try {
+      const nodeNameLower = nodeName?.toLowerCase() || '';
+      
+      // PDF/Document processing
+      if (this.isPDFData(nodeData, nodeType, nodeName)) {
+        return this.summarizePDF(nodeData);
+      }
+      
+      // CSV/Table processing
+      if (this.isCSVData(nodeData, nodeType, nodeName)) {
+        return this.summarizeCSV(nodeData);
+      }
+      
+      // Email batch processing
+      if (this.isEmailData(nodeData, nodeType, nodeName)) {
+        return this.summarizeEmails(nodeData);
+      }
+      
+      // API response processing
+      if (this.isAPIData(nodeData, nodeType, nodeName)) {
+        return this.summarizeAPI(nodeData);
+      }
+      
+      // Database query results
+      if (this.isDatabaseData(nodeData, nodeType, nodeName)) {
+        return this.summarizeDatabase(nodeData);
+      }
+      
+      // Default generic summary
+      return this.genericSummary(nodeData);
+    } catch (error) {
+      console.error('❌ Pattern-based summary error:', {
+        error: error.message,
+        nodeType,
+        nodeName,
+        stack: error.stack
+      });
+      
+      // Return safe fallback
+      return {
+        type: 'error',
+        summaryType: 'fallback',
+        businessSummary: {
+          title: 'Processing Error',
+          description: 'Unable to process data due to an error'
+        },
+        error: error.message,
+        fullDataAvailable: false
+      };
     }
-    
-    // CSV/Table processing
-    if (this.isCSVData(nodeData, nodeType, nodeName)) {
-      return this.summarizeCSV(nodeData);
-    }
-    
-    // Email batch processing
-    if (this.isEmailData(nodeData, nodeType, nodeName)) {
-      return this.summarizeEmails(nodeData);
-    }
-    
-    // API response processing
-    if (this.isAPIData(nodeData, nodeType, nodeName)) {
-      return this.summarizeAPI(nodeData);
-    }
-    
-    // Database query results
-    if (this.isDatabaseData(nodeData, nodeType, nodeName)) {
-      return this.summarizeDatabase(nodeData);
-    }
-    
-    // Default generic summary
-    return this.genericSummary(nodeData);
   }
 
   /**
    * PDF Document Summarization
    */
   summarizePDF(data) {
-    const text = data.extractedText || data.text || data.content || '';
-    const pageCount = data.pageCount || this.estimatePages(text);
+    try {
+      const text = data.extractedText || data.text || data.content || '';
+      const pageCount = data.pageCount || this.estimatePages(text);
     
     // Extract key information using patterns
     const title = this.extractTitle(text);
@@ -227,15 +249,20 @@ class BusinessIntelligenceService {
       fullDataAvailable: true,
       actions: ['download_full', 'request_ai_analysis', 'extract_data']
     };
+    } catch (error) {
+      console.error('❌ PDF summarization error:', error.message);
+      return this.genericSummary(data);
+    }
   }
 
   /**
    * CSV/Table Data Summarization
    */
   summarizeCSV(data) {
-    const rows = Array.isArray(data) ? data : (data.rows || data.data || []);
-    const columns = this.extractColumns(rows);
-    const rowCount = rows.length;
+    try {
+      const rows = Array.isArray(data) ? data : (data.rows || data.data || []);
+      const columns = this.extractColumns(rows);
+      const rowCount = rows.length;
     
     // Calculate statistics
     const statistics = this.calculateTableStatistics(rows, columns);
@@ -272,14 +299,19 @@ class BusinessIntelligenceService {
       fullDataAvailable: true,
       actions: ['view_full_table', 'export_excel', 'generate_report', 'analyze_patterns']
     };
+    } catch (error) {
+      console.error('❌ CSV summarization error:', error.message);
+      return this.genericSummary(data);
+    }
   }
 
   /**
    * Email Batch Summarization
    */
   summarizeEmails(data) {
-    const emails = Array.isArray(data) ? data : [data];
-    const emailCount = emails.length;
+    try {
+      const emails = Array.isArray(data) ? data : [data];
+      const emailCount = emails.length;
     
     // Analyze email patterns
     const senders = this.extractEmailSenders(emails);
@@ -318,16 +350,21 @@ class BusinessIntelligenceService {
       fullDataAvailable: true,
       actions: ['view_all_emails', 'export_list', 'analyze_sentiment']
     };
+    } catch (error) {
+      console.error('❌ Email summarization error:', error.message);
+      return this.genericSummary(data);
+    }
   }
 
   /**
    * API Response Summarization
    */
   summarizeAPI(data) {
-    const isArray = Array.isArray(data);
-    const itemCount = isArray ? data.length : 1;
-    const dataStructure = this.analyzeDataStructure(data);
-    const keyFields = this.identifyKeyFields(data);
+    try {
+      const isArray = Array.isArray(data);
+      const itemCount = isArray ? data.length : 1;
+      const dataStructure = this.analyzeDataStructure(data);
+      const keyFields = this.identifyKeyFields(data);
     
     // Generate summary based on structure
     const businessSummary = this.generateAPIBusinessSummary(itemCount, dataStructure, keyFields);
@@ -356,6 +393,10 @@ class BusinessIntelligenceService {
       fullDataAvailable: true,
       actions: ['view_json', 'export_data', 'analyze_structure']
     };
+    } catch (error) {
+      console.error('❌ API summarization error:', error.message);
+      return this.genericSummary(data);
+    }
   }
 
   /**
