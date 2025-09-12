@@ -485,12 +485,15 @@ export class AnalyticsRepository extends BaseRepository<KpiSnapshotModel> {
     const errorTrend = detectTrend(trendData.map(d => d.failed_executions));
     const performanceTrend = detectTrend(trendData.map(d => d.avg_duration_ms || 0));
 
+    // Calcola system load basato su esecuzioni concorrenti
+    const systemLoad = await this.calculateSystemLoad();
+
     // Calcola health score
     const healthScore = calculateGlobalHealthScore({
       successRate,
       avgResponseTime: parseFloat(executionStats?.avg_response_time || '0'),
       errorRate,
-      systemLoad: 0 // TODO: Implementare calcolo carico sistema
+      systemLoad
     });
 
     return {
@@ -501,7 +504,7 @@ export class AnalyticsRepository extends BaseRepository<KpiSnapshotModel> {
       total_executions_month: parseInt(executionStats?.month || '0'),
       system_health_score: healthScore,
       avg_response_time_ms: parseFloat(executionStats?.avg_response_time || '0'),
-      system_load: 0, // TODO: Implementare
+      system_load: systemLoad,
       global_success_rate: successRate,
       global_error_rate: errorRate,
       critical_errors_24h: parseInt(errorStats?.critical_24h || '0'),
@@ -510,6 +513,50 @@ export class AnalyticsRepository extends BaseRepository<KpiSnapshotModel> {
       performance_trend: performanceTrend,
       last_updated: new Date()
     };
+  }
+
+  /**
+   * Calcola il carico del sistema basato su metriche di esecuzione
+   * 
+   * @returns Percentuale di carico del sistema (0-100)
+   */
+  private async calculateSystemLoad(): Promise<number> {
+    try {
+      // Conta esecuzioni attive nell'ultima ora
+      const activeQuery = `
+        SELECT COUNT(*) as active
+        FROM n8n.execution_entity
+        WHERE "stoppedAt" IS NULL
+        OR "startedAt" > NOW() - INTERVAL '1 hour'
+      `;
+      
+      // Conta esecuzioni totali nell'ultima ora per confronto
+      const totalQuery = `
+        SELECT COUNT(*) as total
+        FROM n8n.execution_entity
+        WHERE "startedAt" > NOW() - INTERVAL '1 hour'
+      `;
+      
+      const [activeResult, totalResult] = await Promise.all([
+        this.db.getOne<{ active: string }>(activeQuery),
+        this.db.getOne<{ total: string }>(totalQuery)
+      ]);
+      
+      const active = parseInt(activeResult?.active || '0');
+      const total = parseInt(totalResult?.total || '0');
+      
+      // Calcola load come percentuale
+      // Assumiamo che 100 esecuzioni/ora = 100% load
+      const loadPercentage = Math.min(100, (total / 100) * 100);
+      
+      // Aggiusta per esecuzioni attive (peso maggiore)
+      const adjustedLoad = Math.min(100, loadPercentage + (active * 5));
+      
+      return Math.round(adjustedLoad);
+    } catch (error) {
+      console.error('Error calculating system load:', error);
+      return 0;
+    }
   }
 
   /**

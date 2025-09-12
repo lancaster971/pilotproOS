@@ -33,51 +33,81 @@ class BusinessIntelligenceService {
    * @returns {Object} Processed summary for Timeline
    */
   async processNodeOutput(nodeData, nodeType, nodeName) {
-    // Check if already summarized (by Business Summarizer Node)
-    if (nodeData?.businessSummary) {
+    try {
+      // Check if already summarized (by Business Summarizer Node)
+      if (nodeData?.businessSummary) {
+        return {
+          type: 'pre-processed',
+          summary: nodeData.businessSummary,
+          metrics: nodeData.metrics,
+          preview: nodeData.preview,
+          fullDataAvailable: true
+        };
+      }
+
+      const dataSize = JSON.stringify(nodeData).length;
+      const cacheKey = this.generateCacheKey(nodeData, nodeType, nodeName);
+      
+      // Check cache
+      const cached = this.getCachedSummary(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      // Determine processing strategy
+      const strategy = this.determineStrategy(dataSize, nodeType, nodeName);
+      
+      let result;
+      switch(strategy) {
+        case 'DIRECT':
+          result = this.directPassthrough(nodeData);
+          break;
+        case 'PATTERN':
+          result = await this.patternBasedSummary(nodeData, nodeType, nodeName);
+          break;
+        case 'STATISTICAL':
+          result = this.statisticalSummary(nodeData, nodeType, nodeName);
+          break;
+        case 'AI_REQUIRED':
+          result = await this.aiAssistedSummary(nodeData, nodeType, nodeName);
+          break;
+        default:
+          result = this.genericSummary(nodeData);
+      }
+
+      // Cache the result
+      this.cacheSummary(cacheKey, result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ BI Service Error:', {
+        error: error.message,
+        nodeType,
+        nodeName,
+        dataSize: JSON.stringify(nodeData).length
+      });
+      
+      // Return graceful fallback on error
       return {
-        type: 'pre-processed',
-        summary: nodeData.businessSummary,
-        metrics: nodeData.metrics,
-        preview: nodeData.preview,
-        fullDataAvailable: true
+        type: 'error_fallback',
+        summaryType: 'error',
+        businessSummary: {
+          title: nodeName || 'Process Data',
+          description: 'Data processing encountered an error but data is preserved',
+          error: error.message
+        },
+        metrics: {
+          size: JSON.stringify(nodeData).length,
+          error: true
+        },
+        preview: {
+          errorMessage: error.message,
+          dataAvailable: true
+        },
+        fullDataAvailable: true,
+        actions: ['view_raw', 'retry_processing']
       };
     }
-
-    const dataSize = JSON.stringify(nodeData).length;
-    const cacheKey = this.generateCacheKey(nodeData, nodeType, nodeName);
-    
-    // Check cache
-    const cached = this.getCachedSummary(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // Determine processing strategy
-    const strategy = this.determineStrategy(dataSize, nodeType, nodeName);
-    
-    let result;
-    switch(strategy) {
-      case 'DIRECT':
-        result = this.directPassthrough(nodeData);
-        break;
-      case 'PATTERN':
-        result = await this.patternBasedSummary(nodeData, nodeType, nodeName);
-        break;
-      case 'STATISTICAL':
-        result = this.statisticalSummary(nodeData, nodeType, nodeName);
-        break;
-      case 'AI_REQUIRED':
-        result = await this.aiAssistedSummary(nodeData, nodeType, nodeName);
-        break;
-      default:
-        result = this.genericSummary(nodeData);
-    }
-
-    // Cache the result
-    this.cacheSummary(cacheKey, result);
-    
-    return result;
   }
 
   /**

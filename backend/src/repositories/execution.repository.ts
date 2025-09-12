@@ -442,8 +442,38 @@ export class ExecutionRepository extends BaseRepository<ExecutionModel> {
       successes: parseInt(r.successes),
       failures: parseInt(r.failures),
       avgDurationMs: parseFloat(r.avg_duration_ms || '0'),
-      peakConcurrent: 0 // TODO: Implementare calcolo concorrenti
+      peakConcurrent: await this.calculatePeakConcurrent(r.hour)
     }));
+  }
+
+  /**
+   * Calcola il picco di esecuzioni concorrenti per un'ora specifica
+   * 
+   * @param hour - Ora da analizzare
+   * @returns Numero massimo di esecuzioni concorrenti
+   */
+  private async calculatePeakConcurrent(hour: string): Promise<number> {
+    try {
+      const query = `
+        SELECT COUNT(*) as concurrent
+        FROM n8n.execution_entity e
+        WHERE 
+          DATE_TRUNC('hour', e."startedAt") = $1::timestamp
+          AND e."stoppedAt" IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM n8n.execution_entity e2
+            WHERE e2.id != e.id
+            AND e2."startedAt" <= e."stoppedAt"
+            AND e2."stoppedAt" >= e."startedAt"
+          )
+      `;
+      
+      const result = await this.db.getOne<{ concurrent: string }>(query, [hour]);
+      return parseInt(result?.concurrent || '0');
+    } catch (error) {
+      console.error('Error calculating peak concurrent:', error);
+      return 0;
+    }
   }
 
   /**
