@@ -58,49 +58,31 @@ message: 'Metodo MFA non valido'         // Line 238
 **Business Risk**: HIGH - Security audit failure  
 **Dependencies**: MFA provider integration (TOTP, SMS, Email)
 
-### **🛡️ SEC-001: Hardcoded Security Values**
+### **✅ ~~SEC-001: Hardcoded Security Values~~ [RISOLTO]**
 ```
-Files: Multiple (server.js, websocket.js, etc.)
-Severity: CRITICAL
-Priority: P0 - PRODUCTION BLOCKER
+Status: ✅ COMPLETATO - 2025-09-12
+Branch: Sec-001Debug
 ```
-**Issue**: Multiple hardcoded localhost/development values in production code
-```javascript
-// backend/src/server.js:72,118-122
-host: process.env.DB_HOST || 'localhost',
-'http://localhost:3000',
-'http://localhost:5173',
-
-// backend/src/websocket.js:8
-origin: ["http://localhost:3000", "http://localhost:5173"],
-
-// Business Intelligence Service
-fetch('http://localhost:11434/api/generate', {  // Ollama hardcoded
+**RISOLTO**: Tutti i valori hardcoded rimossi
+- ✅ WebSocket: CORS_ORIGINS configurabile
+- ✅ CORS: Environment variables
+- ✅ n8n: process.env.N8N_URL
+- ✅ Ollama: Rimosso completamente
 ```
-**Impact**: Production deployment will fail, CORS errors, service connectivity failures  
-**Effort**: 1 day  
-**Business Risk**: HIGH - System non-functional in production  
-**Dependencies**: Environment configuration management
 
 ---
 
 ## 🟡 **HIGH PRIORITY DEBT (Enterprise Readiness)**
 
-### **🧠 BI-001: Ollama Integration Not Configured**
+### **✅ ~~BI-001: Ollama Integration~~ [RIMOSSO]**
 ```
-File: backend/src/services/business-intelligence.service.js:985
-Severity: HIGH
-Priority: P1 - ENTERPRISE FEATURE
+Status: ✅ RIMOSSO - 2025-09-12
+Motivo: Progetto Ollama fallito
 ```
-**Issue**: Business Intelligence Service calls Ollama but service not set up in Docker stack
-```javascript
-const response = await fetch('http://localhost:11434/api/generate', {
-  // ❌ Ollama not configured in docker-compose
+**RISOLTO**: Ollama rimosso dal progetto
+- ✅ Pattern-based analysis
+- ✅ Zero dipendenze AI
 ```
-**Impact**: AI-assisted summaries fail silently, degraded Timeline experience  
-**Effort**: 1 day  
-**Business Risk**: MEDIUM - Killer feature incomplete  
-**Dependencies**: Ollama Docker service, model downloads
 
 ### **🧠 BI-002: Error Handling Incomplete**
 ```
@@ -178,7 +160,7 @@ Priority: P2 - FEATURE COMPLETION
 **Impact**: Feature appears available but doesn't work, user confusion  
 **Effort**: 0.5 days  
 **Business Risk**: LOW - Feature expectation not met  
-**Dependencies**: BI-001 (Ollama configuration)
+**Dependencies**: Nessuna
 
 ### **📑 UI-002: Excel Export Not Implemented**
 ```
