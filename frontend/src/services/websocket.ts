@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import { useUIStore } from '../stores/ui';
+import { API_BASE_URL } from '../utils/api-config';
 
 class WebSocketService {
   private socket: Socket | null = null;
@@ -10,8 +11,9 @@ class WebSocketService {
   }
 
   connect() {
-    // Connect to backend WebSocket server
-    this.socket = io('http://localhost:3001', {
+    // Connect to backend WebSocket server using dynamic configuration
+    const wsUrl = import.meta.env.VITE_API_URL || API_BASE_URL;
+    this.socket = io(wsUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });

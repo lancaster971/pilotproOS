@@ -176,6 +176,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
+import { API_BASE_URL } from '../../utils/api-config'
 
 const props = defineProps({
   visible: Boolean,
@@ -273,7 +274,8 @@ const testConfiguration = async () => {
   isTestingAuth.value = true
   
   try {
-    const response = await fetch('http://localhost:3001/api/auth/test-config', {
+    const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+    const response = await fetch(`${API_BASE}/api/auth/test-config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -305,7 +307,8 @@ const saveConfiguration = async () => {
   isSaving.value = true
   
   try {
-    const response = await fetch('http://localhost:3001/api/auth/config', {
+    const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+    const response = await fetch(`${API_BASE}/api/auth/config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

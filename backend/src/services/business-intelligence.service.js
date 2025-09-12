@@ -379,51 +379,10 @@ class BusinessIntelligenceService {
    * AI-Assisted Summarization (using local Ollama)
    */
   async aiAssistedSummary(data, nodeType, nodeName) {
-    const dataHash = this.generateHash(data);
-    
-    // Check AI cache
-    if (this.aiSummaryCache.has(dataHash)) {
-      const cached = this.aiSummaryCache.get(dataHash);
-      if (cached.timestamp + (24 * 3600000) > Date.now()) { // 24 hour cache
-        return cached.data;
-      }
-    }
-    
-    try {
-      // Prepare optimized prompt
-      const prompt = this.buildAIPrompt(data, nodeType, nodeName);
-      
-      // Call local Ollama (Gemma 2b)
-      const aiResponse = await this.callLocalOllama(prompt);
-      
-      const result = {
-        type: 'ai_generated',
-        summaryType: 'ai',
-        businessSummary: {
-          title: 'AI Analysis',
-          description: aiResponse.summary || 'AI-generated summary',
-          confidence: aiResponse.confidence || 'medium'
-        },
-        metrics: aiResponse.metrics || {},
-        preview: aiResponse.keyPoints || [],
-        businessInsight: aiResponse.insight || 'Complex data analyzed by AI',
-        recommendations: aiResponse.recommendations || [],
-        fullDataAvailable: true,
-        actions: ['download_full', 'regenerate_analysis']
-      };
-      
-      // Cache the result
-      this.aiSummaryCache.set(dataHash, {
-        data: result,
-        timestamp: Date.now()
-      });
-      
-      return result;
-      
-    } catch (error) {
-      console.warn('AI summarization failed, falling back to pattern-based:', error);
-      return this.patternBasedSummary(data, nodeType, nodeName);
-    }
+    // OLLAMA PROJECT FAILED - REMOVED COMPLETELY
+    // Fallback directly to pattern-based analysis
+    console.log('AI analysis disabled - using pattern-based analysis');
+    return this.patternBasedSummary(data, nodeType, nodeName);
   }
 
   /**
@@ -951,72 +910,25 @@ class BusinessIntelligenceService {
   }
 
   /**
-   * Ollama AI integration
+   * OLLAMA REMOVED - PROJECT FAILED
+   * Kept for compatibility but not used
    */
   buildAIPrompt(data, nodeType, nodeName) {
-    const dataPreview = JSON.stringify(data).substring(0, 2000);
-    
-    return `You are a business analyst. Summarize this data output from a business process.
-Node Type: ${nodeType}
-Node Name: ${nodeName}
-
-Data Preview:
-${dataPreview}
-
-Provide:
-1. A brief business summary (2-3 sentences)
-2. Key metrics or insights
-3. Business value or impact
-4. Any recommendations
-
-Response in JSON format:
-{
-  "summary": "...",
-  "metrics": {},
-  "keyPoints": [],
-  "insight": "...",
-  "recommendations": [],
-  "confidence": "high|medium|low"
-}`;
+    // This method is no longer used since Ollama was removed
+    return '';
   }
 
+  // OLLAMA REMOVED - PROJECT FAILED
+  // This method is no longer used but kept as stub for compatibility
   async callLocalOllama(prompt) {
-    try {
-      const response = await fetch('http://localhost:11434/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemma:2b',
-          prompt: prompt,
-          stream: false,
-          options: {
-            temperature: 0.3,
-            max_tokens: 500
-          }
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Ollama responded with ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      // Parse the response
-      try {
-        return JSON.parse(result.response);
-      } catch {
-        // If not valid JSON, return structured response
-        return {
-          summary: result.response,
-          confidence: 'low'
-        };
-      }
-      
-    } catch (error) {
-      console.error('Ollama call failed:', error);
-      throw error;
-    }
+    return {
+      summary: 'AI analysis temporarily unavailable',
+      metrics: {},
+      keyPoints: [],
+      insight: 'Manual analysis required',
+      recommendations: [],
+      confidence: 'low'
+    };
   }
 
   /**

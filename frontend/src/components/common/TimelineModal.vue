@@ -324,6 +324,7 @@ import DetailModal from './DetailModal.vue'
 import { useModal } from '../../composables/useModal'
 import { useBusinessParser } from '../../composables/useBusinessParser'
 import { businessAPI, $fetch } from '../../services/api-client'
+import { API_BASE_URL } from '../../utils/api-config'
 
 interface Props {
   workflowId: string
@@ -373,7 +374,8 @@ const loadTimeline = async () => {
   try {
     console.log('🔄 Loading raw data for modal:', props.workflowId, props.executionId ? `(execution: ${props.executionId})` : '(latest)')
     
-    let url = `http://localhost:3001/api/business/raw-data-for-modal/${props.workflowId}`
+    const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+    let url = `${API_BASE}/api/business/raw-data-for-modal/${props.workflowId}`
     if (props.executionId) {
       url += `?executionId=${props.executionId}`
     }

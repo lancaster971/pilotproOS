@@ -4,10 +4,12 @@
 
 import { ofetch } from 'ofetch'
 import type { DashboardData, Workflow, Execution } from '../types'
+import { API_BASE_URL } from '../utils/api-config'
 
 // OFETCH: Modern fetch wrapper with intelligent defaults
+// Use environment variable for API URL, fallback to config for development
 const baseFetch = ofetch.create({
-  baseURL: 'http://localhost:3001',
+  baseURL: import.meta.env.VITE_API_URL || API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }

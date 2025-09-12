@@ -171,8 +171,8 @@ services:
     container_name: pilotpros-frontend-dev
     restart: unless-stopped
     environment:
-      VITE_API_URL: https://localhost/api
-      VITE_N8N_URL: https://localhost/dev/n8n
+      VITE_API_URL: http://localhost:3001
+      VITE_N8N_URL: http://localhost:5678
       VITE_APP_NAME: PilotProOS Development
       VITE_NODE_ENV: development
       CHOKIDAR_USEPOLLING: true  # For file watching in containers
