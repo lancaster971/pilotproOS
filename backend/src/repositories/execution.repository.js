@@ -156,8 +156,20 @@ export class ExecutionRepository {
         maxDuration: sql`MAX(EXTRACT(EPOCH FROM (${executionEntity.stoppedAt} - ${executionEntity.startedAt})) * 1000)`.mapWith(Number),
         firstExecution: sql`MIN(${executionEntity.startedAt})`.mapWith(Date),
         lastExecution: sql`MAX(${executionEntity.startedAt})`.mapWith(Date),
-        // TODO: Implement concurrent processing calculation (PERF-001)
-        peakConcurrent: sql`0`.mapWith(Number) // Placeholder for PERF-001 implementation
+        // Calculate peak concurrent executions
+        peakConcurrent: sql`(
+          SELECT COUNT(*)
+          FROM ${executionEntity} e2
+          WHERE e2."workflowId" = ${executionEntity.workflowId}
+          AND e2."startedAt" >= ${cutoffDate}
+          AND EXISTS (
+            SELECT 1 FROM ${executionEntity} e3
+            WHERE e3.id != e2.id
+            AND e3."workflowId" = e2."workflowId"
+            AND e3."startedAt" <= e2."stoppedAt"
+            AND e3."stoppedAt" >= e2."startedAt"
+          )
+        )`.mapWith(Number)
       })
       .from(executionEntity)
       .where(

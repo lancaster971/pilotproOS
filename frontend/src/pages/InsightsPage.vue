@@ -6,8 +6,8 @@
             <h1 class="text-lg font-bold text-gradient">Insights</h1>
           </div>
           
-          <!-- Premium KPI Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Premium KPI Cards (ora con 6 metriche) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             <!-- Total Processes Card -->
             <Card class="premium-glass premium-hover-lift premium-float">
               <template #content>
@@ -74,6 +74,48 @@
                   </div>
                   <p class="text-xs text-text-muted mb-1">Tempo Risparmiato</p>
                   <p class="text-xs text-text-muted">ROI: {{ businessROI }}</p>
+                </div>
+              </template>
+            </Card>
+
+            <!-- Peak Concurrent Executions Card -->
+            <Card class="premium-glass premium-hover-lift premium-glow">
+              <template #content>
+                <div class="p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-baseline gap-2">
+                      <p class="text-xl font-bold text-text">{{ peakConcurrent }}</p>
+                      <Badge value="Peak" severity="warning" class="text-xs" />
+                    </div>
+                    <Knob v-model="peakConcurrent" :size="32" :strokeWidth="4" 
+                      valueColor="#f59e0b" rangeColor="#1f2937" 
+                      readonly :max="50" :showValue="false" />
+                  </div>
+                  <p class="text-xs text-text-muted mb-1">Simultanee</p>
+                  <ProgressBar :value="(peakConcurrent/20)*100" 
+                    :showValue="false" class="h-1" />
+                </div>
+              </template>
+            </Card>
+
+            <!-- System Load Card -->
+            <Card class="premium-glass premium-hover-lift premium-glow">
+              <template #content>
+                <div class="p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-baseline gap-2">
+                      <p class="text-xl font-bold text-text">{{ systemLoad }}%</p>
+                      <Badge :value="systemLoad > 80 ? 'Alto' : 'Medio'" 
+                        :severity="systemLoad > 80 ? 'danger' : 'warning'" 
+                        class="text-xs" />
+                    </div>
+                    <Knob v-model="systemLoad" :size="32" :strokeWidth="4" 
+                      :valueColor="systemLoad > 80 ? '#ef4444' : '#f59e0b'" 
+                      rangeColor="#1f2937" 
+                      readonly :showValue="false" />
+                  </div>
+                  <p class="text-xs text-text-muted mb-1">Carico Sistema</p>
+                  <p class="text-xs text-text-muted">{{ systemLoad > 80 ? 'Ottimizzare' : 'Normale' }}</p>
                 </div>
               </template>
             </Card>
@@ -585,6 +627,10 @@ const avgDurationSeconds = ref(0)
 const timeSavedHours = ref(0)
 const costSavings = ref('')
 const businessROI = ref('')
+
+// Performance Metrics (PERF-001 & PERF-002)
+const peakConcurrent = ref(0)
+const systemLoad = ref(0)
 
 // Additional insights data
 const topWorkflows = ref([])
@@ -1261,6 +1307,9 @@ onMounted(async () => {
     if (insightsData?.data) {
       successfulExecutions.value = insightsData.data.performance?.successfulExecutions || 0
       failedExecutions.value = insightsData.data.performance?.failedExecutions || 0
+      // NEW: Performance Metrics (PERF-001 & PERF-002)
+      peakConcurrent.value = insightsData.data.performance?.peakConcurrent || 0
+      systemLoad.value = insightsData.data.performance?.systemLoad || 0
       timeSavedHours.value = insightsData.data.businessImpact?.timeSavedHours || 0
       costSavings.value = insightsData.data.businessImpact?.costSavings || '€0'
       businessROI.value = insightsData.data.businessImpact?.roi || 'N/A'

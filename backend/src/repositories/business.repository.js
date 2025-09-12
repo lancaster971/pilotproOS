@@ -386,6 +386,7 @@ export class BusinessRepository {
    */
   async getPerformanceMetrics(days = 7) {
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const cutoffDateStr = cutoffDate.toISOString();
     
     const metrics = await db
       .select({
@@ -400,10 +401,25 @@ export class BusinessRepository {
             2
           )
         `.mapWith(Number),
-        // TODO: Implement actual concurrent processing calculation (PERF-001)
-        peakConcurrent: sql`0`.mapWith(Number), // Placeholder
-        // TODO: Implement system load monitoring (PERF-002)
-        systemLoad: sql`0`.mapWith(Number) // Placeholder
+        // Calculate peak concurrent executions
+        peakConcurrent: sql`(
+          SELECT COUNT(*) FROM ${executionEntity} e1
+          WHERE e1."startedAt" >= '${sql.raw(cutoffDateStr)}'::timestamp
+          AND EXISTS (
+            SELECT 1 FROM ${executionEntity} e2
+            WHERE e2.id != e1.id
+            AND e2."startedAt" <= e1."stoppedAt"
+            AND e2."stoppedAt" >= e1."startedAt"
+          )
+        )`.mapWith(Number),
+        // Calculate system load based on active executions
+        systemLoad: sql`(
+          LEAST(100, (
+            (SELECT COUNT(*) FROM ${executionEntity} 
+             WHERE "stoppedAt" IS NULL 
+             OR "startedAt" > NOW() - INTERVAL '1 hour') * 100.0 / 100
+          ))
+        )`.mapWith(Number)
       })
       .from(executionEntity)
       .where(gte(executionEntity.startedAt, cutoffDate));
@@ -414,8 +430,8 @@ export class BusinessRepository {
       minDuration: 0,
       maxDuration: 0,
       successRate: 0,
-      peakConcurrent: 0, // PERF-001: TO BE IMPLEMENTED
-      systemLoad: 0     // PERF-002: TO BE IMPLEMENTED
+      peakConcurrent: 0,
+      systemLoad: 0
     };
   }
 

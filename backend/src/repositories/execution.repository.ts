@@ -435,7 +435,7 @@ export class ExecutionRepository extends BaseRepository<ExecutionModel> {
     
     const results = await this.db.getMany<any>(query, params);
     
-    return results.map(r => ({
+    return Promise.all(results.map(async r => ({
       period: r.period.toISOString(),
       hour: r.hour,
       executions: parseInt(r.executions),
@@ -443,7 +443,7 @@ export class ExecutionRepository extends BaseRepository<ExecutionModel> {
       failures: parseInt(r.failures),
       avgDurationMs: parseFloat(r.avg_duration_ms || '0'),
       peakConcurrent: await this.calculatePeakConcurrent(r.hour)
-    }));
+    })));
   }
 
   /**

@@ -37,6 +37,9 @@ import { humanizeStepData, generateDetailedReport } from './utils/business-step-
 // Business Intelligence Service for big data handling
 import businessIntelligenceService from './services/business-intelligence.service.js';
 
+// Business Repository for performance metrics
+import { BusinessRepository } from './repositories/business.repository.js';
+
 import { 
   businessSanitizer,
   sanitizeBusinessParams,
@@ -962,6 +965,10 @@ app.get('/api/business/automation-insights', async (req, res) => {
       recommendations.push('Maintain current optimization practices for consistent performance');
     }
     
+    // Get advanced performance metrics from BusinessRepository
+    const businessRepo = new BusinessRepository();
+    const perfMetrics = await businessRepo.getPerformanceMetrics(7);
+    
     const insights = {
       recommendations,
       trends: {
@@ -971,7 +978,10 @@ app.get('/api/business/automation-insights', async (req, res) => {
       },
       performance: {
         successfulExecutions: parseInt(current.successful_executions) || 0,
-        failedExecutions: (parseInt(current.total_executions) || 0) - (parseInt(current.successful_executions) || 0)
+        failedExecutions: (parseInt(current.total_executions) || 0) - (parseInt(current.successful_executions) || 0),
+        peakConcurrent: perfMetrics.peakConcurrent || 0,
+        systemLoad: perfMetrics.systemLoad || 0,
+        avgDuration: Math.round(perfMetrics.avgDuration) || 0
       },
       businessImpact: {
         timeSavedHours: Math.round(((parseInt(current.successful_executions) || 0) * 5) / 60),
@@ -994,6 +1004,64 @@ app.get('/api/business/automation-insights', async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching insights:', error);
     res.status(500).json({ error: 'Failed to fetch insights' });
+  }
+});
+
+/**
+ * 📊 Performance Metrics Endpoint - PERF-001 & PERF-002
+ * Returns advanced performance metrics including concurrent executions and system load
+ */
+app.get('/api/business/performance-metrics', async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const businessRepo = new BusinessRepository();
+    
+    // Get comprehensive performance metrics
+    const perfMetrics = await businessRepo.getPerformanceMetrics(parseInt(days));
+    const dashboardOverview = await businessRepo.getDashboardOverview();
+    
+    const metrics = {
+      overview: {
+        totalExecutions: perfMetrics.totalExecutions,
+        successRate: Math.round(perfMetrics.successRate * 100) / 100,
+        systemHealth: dashboardOverview.systemHealth
+      },
+      performance: {
+        avgDuration: Math.round(perfMetrics.avgDuration) || 0,
+        minDuration: Math.round(perfMetrics.minDuration) || 0,
+        maxDuration: Math.round(perfMetrics.maxDuration) || 0,
+        peakConcurrent: perfMetrics.peakConcurrent || 0,
+        systemLoad: `${perfMetrics.systemLoad || 0}%`
+      },
+      workflows: {
+        total: dashboardOverview.workflows.total,
+        active: dashboardOverview.workflows.active,
+        inactive: dashboardOverview.workflows.inactive
+      },
+      recent: {
+        last24h: dashboardOverview.executions.recent,
+        avgDurationLast24h: dashboardOverview.executions.avgDuration
+      }
+    };
+    
+    businessLogger.info('Performance metrics retrieved', { days, metrics });
+    
+    res.json({
+      success: true,
+      data: metrics,
+      period: `${days} days`,
+      _metadata: {
+        system: 'Business Process Operating System',
+        timestamp: new Date().toISOString(),
+        endpoint: '/api/business/performance-metrics'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching performance metrics:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch performance metrics',
+      message: error.message 
+    });
   }
 });
 
