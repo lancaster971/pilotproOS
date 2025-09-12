@@ -1457,14 +1457,68 @@ const executeWorkflow = async () => {
       
       success(
         'Esecuzione Avviata',
-        `Il workflow "${workflowName}" è stato avviato con successo`
+        `Il workflow "${workflowName}" è stato avviato. Controllo stato...`
       )
       
-      // Keep executing state until manually stopped or timeout
-      // Refresh workflow data after execution
-      setTimeout(() => {
-        fetchRealWorkflows()
-      }, 2000)
+      // Start polling execution status
+      let pollCount = 0
+      const maxPolls = 30 // Max 30 secondi
+      
+      const pollInterval = setInterval(async () => {
+        pollCount++
+        
+        try {
+          const statusResult = await businessAPI.getExecutionStatus(result.data.executionId)
+          
+          if (statusResult.success && statusResult.data.isFinished) {
+            clearInterval(pollInterval)
+            isExecuting.value = false
+            currentExecutionId.value = null
+            
+            if (statusResult.data.status === 'success') {
+              success(
+                'Esecuzione Completata',
+                `Il workflow "${workflowName}" è stato eseguito con successo in ${Math.round(statusResult.data.duration / 1000)}s`
+              )
+            } else if (statusResult.data.status === 'error' && statusResult.data.errorInfo) {
+              // Mostra errori specifici di n8n
+              const errorDetails = statusResult.data.errorInfo.errors.map(e => 
+                `${e.nodeName}: ${e.error.message}`
+              ).join('\n')
+              
+              error(
+                'Esecuzione Fallita',
+                `Il workflow "${workflowName}" ha riscontrato errori:\n${errorDetails}`
+              )
+            } else {
+              error(
+                'Esecuzione Interrotta',
+                `Il workflow "${workflowName}" è stato interrotto`
+              )
+            }
+            
+            // Ricarica dati
+            fetchRealWorkflows()
+            if (selectedWorkflowId.value) {
+              loadWorkflowStatistics(selectedWorkflowId.value)
+            }
+          }
+          
+          // Stop polling after max time
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval)
+            isExecuting.value = false
+            currentExecutionId.value = null
+            
+            success(
+              'Esecuzione in Corso',
+              `Il workflow "${workflowName}" è ancora in esecuzione dopo 30s`
+            )
+          }
+        } catch (err) {
+          console.error('Error polling execution status:', err)
+        }
+      }, 1000) // Poll ogni secondo
     } else {
       // Execution failed
       isExecuting.value = false
@@ -1562,20 +1616,28 @@ const toggleWorkflowStatus = async () => {
       console.log('✅ Updated workflow in list')
     }
     
-    // API call to backend - OFETCH Migration
-    const result = await businessAPI.toggleWorkflow(selectedWorkflowId.value)
+    // API call to backend - OFETCH Migration - passa il nuovo stato
+    const result = await businessAPI.toggleWorkflow(selectedWorkflowId.value, newStatus)
     console.log('✅ Workflow status updated:', result)
     
     // Show appropriate success message
     if (result.success) {
-      success(
-        `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
-        `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} con successo`
-      )
+      // Se c'è un errore con n8n ma il database è stato aggiornato
+      if (result.data?.n8nApiResult?.error) {
+        success(
+          `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
+          `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} localmente`
+        )
+      } else {
+        success(
+          `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
+          `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} con successo`
+        )
+      }
     } else {
       error(
-        'Errore Parziale',
-        result.data?.n8nApiResult?.error || 'Aggiornamento database riuscito, ma errore sincronizzazione n8n'
+        'Errore Attivazione',
+        'Impossibile aggiornare lo stato del workflow'
       )
     }
     

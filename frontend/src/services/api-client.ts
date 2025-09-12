@@ -77,11 +77,16 @@ export const businessAPI = {
       method: 'POST'
     }),
   
-  toggleWorkflow: (workflowId: string) =>
+  toggleWorkflow: (workflowId: string, active: boolean) =>
     baseFetch(`/api/business/toggle-workflow/${workflowId}`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ active })
     }),
   
+  // Check execution status
+  getExecutionStatus: (executionId: string) =>
+    baseFetch(`/api/business/execution-status/${executionId}`),
+    
   // Get workflow details for modal
   getWorkflowDetails: (workflowId: string) =>
     baseFetch(`/api/business/raw-data-for-modal/${workflowId}`),
