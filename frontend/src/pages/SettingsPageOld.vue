@@ -201,8 +201,9 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedUser = ref(null)
 
-// API Base URL (direct backend call)
-const API_BASE = 'http://localhost:3001'
+// API Base URL - use dynamic configuration
+import { API_BASE_URL } from '../utils/api-config'
+const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
 
 // Get auth token
 const getAuthToken = () => localStorage.getItem('pilotpro_token')

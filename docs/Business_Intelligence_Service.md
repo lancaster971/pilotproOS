@@ -28,7 +28,7 @@ La Timeline feature di PilotProOS mostrava perfettamente dati piccoli ma **colla
 if (dataSize < 5000) return 'DIRECT';           // Piccolo: passa direttamente
 if (dataSize < 50000) return 'PATTERN';         // Medio: pattern matching
 if (dataSize < 500000) return 'STATISTICAL';    // Grande: analisi statistica  
-if (dataSize > 500000) return 'AI_REQUIRED';    // Massivo: AI locale (Ollama)
+if (dataSize > 500000) return 'ADVANCED_PATTERN'; // Massivo: pattern avanzato
 ```
 
 ### **Processing Pipeline**
@@ -172,7 +172,7 @@ statisticalSummary(data) {
 
 ### **3. AI-Assisted Summarization** (Solo quando necessario)
 ```javascript
-// Ollama locale per dati complessi > 500KB  
+// Pattern-based analysis per dati complessi > 500KB  
 async aiAssistedSummary(data, nodeType, nodeName) {
   // Cache AI responses (24h TTL)
   const cached = this.aiSummaryCache.get(dataHash);
@@ -186,8 +186,8 @@ Data: ${dataPreview}
 
 Provide business summary, key insights, recommendations in JSON format.`;
 
-  // Chiamata Ollama locale (Gemma 2b)
-  const aiResponse = await this.callLocalOllama(prompt);
+  // Analisi pattern-based avanzata
+  const analysisResponse = await this.advancedPatternAnalysis(data);
   
   // Cache risultato per 24 ore
   this.aiSummaryCache.set(dataHash, { data: result, timestamp: Date.now() });
@@ -443,7 +443,7 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
 }
 ```
 
-**Business Intelligence** → **Ollama Local AI**:
+**Business Intelligence** → **Advanced Pattern Analysis**:
 ```json
 {
   "type": "ai_generated",
@@ -481,7 +481,7 @@ app.get('/api/business/raw-data-for-modal/:workflowId', async (req, res) => {
 | CSV Dataset | 50KB | Statistical | 120ms | €0 | ✅ Analytics |
 | Large PDF | 2MB | AI + Cache | 2.3s | €0* | ✅ AI Insights |
 
-*Ollama locale = zero cloud costs
+*Pattern-based = zero AI dependency
 
 ### **Performance Benchmarks**
 ```javascript
@@ -572,27 +572,23 @@ this.CACHE_TTL = 3600000;          // 1 hour
 this.DIRECT_THRESHOLD = 5000;      // < 5KB: direct passthrough
 this.PATTERN_THRESHOLD = 50000;    // < 50KB: pattern matching
 this.STATISTICAL_THRESHOLD = 500000; // < 500KB: statistical analysis
-// > 500KB: AI-assisted con Ollama locale
+// > 500KB: Advanced pattern-based analysis
 ```
 
-### **Ollama Integration (Optional AI Enhancement)**
+### **Advanced Pattern Analysis**
 ```javascript
-// Configurazione Ollama per AI processing
-async callLocalOllama(prompt) {
-  const response = await fetch('http://localhost:11434/api/generate', {
-    method: 'POST',
-    body: JSON.stringify({
-      model: 'gemma:2b',      // Ultra-light model (1.4GB)
-      prompt: prompt,
-      stream: false,
-      options: {
-        temperature: 0.3,     // Consistent business summaries
-        max_tokens: 500      // Limit output size
-      }
-    })
-  });
+// Pattern-based processing per grandi volumi
+async advancedPatternAnalysis(data) {
+  // Estrazione avanzata basata su patterns
+  const patterns = {
+    business: this.extractBusinessPatterns(data),
+    financial: this.extractFinancialMetrics(data),
+    temporal: this.extractTimelineData(data),
+    entities: this.extractKeyEntities(data)
+  };
   
-  return await response.json();
+  // Generazione summary basata su pattern matching
+  return this.generatePatternBasedSummary(patterns);
 }
 ```
 
@@ -632,7 +628,7 @@ async callLocalOllama(prompt) {
 - ✅ **Cache Configurato**: Performance ottimizzata
 - ✅ **Error Handling**: Graceful degradation
 - ✅ **Backward Compatible**: Timeline esistenti continuano a funzionare
-- ⚠️ **Ollama Optional**: AI enhancement configurabile
+- ✅ **Pattern Analysis**: Nessuna dipendenza AI esterna
 
 ### **Monitoring Metrics**
 ```javascript
@@ -714,7 +710,7 @@ Business Intelligence genera:
 ## 🔮 **FUTURE ENHANCEMENTS**
 
 ### **Phase 2: Advanced AI Integration**
-- **Custom Models**: Fine-tuning Ollama su terminologia business specifica
+- **Pattern Library**: Espansione patterns per nuovi tipi di business data
 - **Multi-Language**: Support italiano/inglese business terminology
 - **Predictive Analytics**: Analisi predittiva su pattern business
 

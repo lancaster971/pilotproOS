@@ -362,8 +362,9 @@ const currentAuthMethod = ref({
   description: 'Autenticazione tramite database locale con username e password'
 })
 
-// API configuration
-const API_BASE = 'http://localhost:3001'
+// API configuration - use dynamic base URL
+import { API_BASE_URL } from '../utils/api-config'
+const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
 
 // Load users and roles
 const loadUsers = async () => {

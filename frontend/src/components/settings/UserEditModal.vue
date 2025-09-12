@@ -213,7 +213,8 @@ onMounted(() => {
 })
 
 // API Base URL
-const API_BASE = 'http://localhost:3001'
+import { API_BASE_URL } from '../../utils/api-config'
+const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
 
 // Update user
 const updateUser = async () => {
