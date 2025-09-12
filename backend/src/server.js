@@ -3194,6 +3194,89 @@ app.get('/api/auth/configuration', authService.authenticateToken(), authConfigCo
 app.post('/api/auth/save-configuration', authService.authenticateToken(), authConfigController.saveAuthConfig);
 app.post('/api/auth/test-configuration', authService.authenticateToken(), authConfigController.testAuthConfig);
 
+/**
+ * Get complete statistics for a single workflow
+ * Reads directly from n8n tables
+ */
+app.get('/api/business/workflow/:workflowId/full-stats', async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const { days = 30 } = req.query;
+    
+    // 1. Get workflow_statistics data (n8n's own tracking)
+    const statsResult = await db.execute(sql`
+      SELECT name, count, "latestEvent"
+      FROM n8n.workflow_statistics
+      WHERE "workflowId" = ${workflowId}
+    `);
+    
+    // Parse n8n statistics
+    const n8nStats = {};
+    statsResult.forEach(row => {
+      n8nStats[row.name] = {
+        count: parseInt(row.count) || 0,
+        lastEvent: row.latestEvent
+      };
+    });
+    
+    // 2. Get execution statistics (last N days)
+    const executionStats = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_executions,
+        COUNT(CASE WHEN status = 'success' THEN 1 END) as successful,
+        COUNT(CASE WHEN status = 'error' THEN 1 END) as failed,
+        AVG(CASE 
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL 
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000 
+          ELSE NULL 
+        END) as avg_duration_ms,
+        MAX("startedAt") as last_execution
+      FROM n8n.execution_entity
+      WHERE "workflowId" = ${workflowId}
+        AND "startedAt" >= NOW() - INTERVAL '${sql.raw(days)} days'
+    `);
+    
+    const stats = executionStats[0] || {};
+    const totalExecutions = parseInt(stats.total_executions) || 0;
+    const successful = parseInt(stats.successful) || 0;
+    const failed = parseInt(stats.failed) || 0;
+    const avgDurationMs = parseFloat(stats.avg_duration_ms) || 0;
+    
+    // Format response for Command Center KPIs
+    res.json({
+      workflowId,
+      kpis: {
+        totalExecutions,
+        failedExecutions: failed,
+        failureRate: totalExecutions > 0 ? Math.round((failed / totalExecutions) * 100 * 10) / 10 : 0,
+        timeSavedHours: Math.round((successful * 5) / 60),
+        avgRunTime: avgDurationMs > 0 ? avgDurationMs / 1000 : 0 // In secondi con decimali
+      },
+      statistics: {
+        n8n: n8nStats,
+        executions: {
+          total: totalExecutions,
+          successful,
+          failed,
+          lastExecution: stats.last_execution
+        }
+      },
+      period: `${days} days`,
+      _metadata: {
+        source: 'n8n database',
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching workflow stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch workflow statistics',
+      details: error.message 
+    });
+  }
+});
+
 // Business error handler
 app.use((error, req, res, next) => {
   console.error('❌ Business error:', error);

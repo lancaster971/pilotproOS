@@ -75,7 +75,7 @@
             <span class="text-text-muted">Last 7 days</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ avgRunTime }}m</div>
+            <div class="text-lg font-bold text-text">{{ avgRunTime }}</div>
             <div v-if="analyticsData?.trends" class="flex items-center">
               <span :class="getTrendClass(-analyticsData.trends.avgDurationTrend)" class="text-xs">
                 {{ getTrendIcon(-analyticsData.trends.avgDurationTrend) }}{{ formatTrendSeconds(analyticsData.trends.avgDurationTrend) }}
@@ -848,6 +848,7 @@ const executionLogs = ref([
 // Workflow data - ONLY REAL DATA
 const realWorkflows = ref<any[]>([])
 const analyticsData = ref<any>(null)
+const workflowStats = ref<any>(null) // Statistiche specifiche del workflow selezionato
 const selectedWorkflowId = ref('')
 const selectedWorkflowData = ref<any>(null)
 const workflowDetails = ref<any>(null)
@@ -904,24 +905,56 @@ const isHandleConnected = (nodeId: string, handleId: string) => {
 
 // KPI Stats (REAL DATA FROM ANALYTICS API)
 const totalExecutions = computed(() => {
+  // Se abbiamo statistiche specifiche del workflow, usiamole
+  if (workflowStats.value?.kpis?.totalExecutions !== undefined) {
+    return workflowStats.value.kpis.totalExecutions
+  }
+  // Altrimenti usa i dati globali
   return analyticsData.value?.overview?.totalExecutions || 0
 })
 const failedExecutions = computed(() => {
-  // REAL calculation from success rate
+  // Se abbiamo statistiche specifiche del workflow, usiamole
+  if (workflowStats.value?.kpis?.failedExecutions !== undefined) {
+    return workflowStats.value.kpis.failedExecutions
+  }
+  // Altrimenti calcola dai dati globali
   const total = totalExecutions.value
   const successRate = analyticsData.value?.overview?.successRate || 100
   return Math.round(total * (1 - successRate / 100))
 })
 const failureRate = computed(() => {
+  // Se abbiamo statistiche specifiche del workflow, usiamole
+  if (workflowStats.value?.kpis?.failureRate !== undefined) {
+    return workflowStats.value.kpis.failureRate
+  }
+  // Altrimenti calcola dai dati globali
   const successRate = analyticsData.value?.overview?.successRate || 100
   return (100 - successRate).toFixed(1)
 })
 const timeSaved = computed(() => {
-  // REAL calculation from business impact
+  // Se abbiamo statistiche specifiche del workflow, usiamole
+  if (workflowStats.value?.kpis?.timeSavedHours !== undefined) {
+    return workflowStats.value.kpis.timeSavedHours
+  }
+  // Altrimenti usa i dati globali
   return analyticsData.value?.businessImpact?.timeSavedHours || 0
 })
 const avgRunTime = computed(() => {
-  // REAL average from backend API
+  // Se abbiamo statistiche specifiche del workflow, usiamole
+  if (workflowStats.value?.kpis?.avgRunTime !== undefined) {
+    const seconds = workflowStats.value.kpis.avgRunTime
+    // Se meno di 1 secondo, mostra in secondi con 2 decimali
+    if (seconds < 1) {
+      return seconds.toFixed(2) + 's'
+    }
+    // Se meno di 60 secondi, mostra in secondi con 1 decimale
+    if (seconds < 60) {
+      return seconds.toFixed(1) + 's'
+    }
+    // Altrimenti mostra in minuti
+    return (seconds / 60).toFixed(1) + 'm'
+  }
+  // Altrimenti calcola dai dati globali
   const avgSeconds = analyticsData.value?.overview?.avgDurationSeconds || 0
   return avgSeconds > 0 ? (avgSeconds / 60).toFixed(1) : '0.0'
 })
@@ -1012,8 +1045,32 @@ const selectWorkflow = async (workflow: any) => {
   
   console.log('✅ Workflow selected:', workflow.name, 'ID:', workflow.id)
   
-  // Load detailed workflow structure from backend
-  await loadWorkflowStructure(workflow)
+  // Load workflow statistics and structure in parallel
+  await Promise.all([
+    loadWorkflowStatistics(workflow.id),
+    loadWorkflowStructure(workflow)
+  ])
+}
+
+// Carica le statistiche specifiche del workflow
+const loadWorkflowStatistics = async (workflowId: string) => {
+  try {
+    console.log('📊 Loading statistics for workflow:', workflowId)
+    const response = await $fetch(`/api/business/workflow/${workflowId}/full-stats`, {
+      params: { days: 30 }
+    })
+    
+    workflowStats.value = response
+    console.log('✅ Workflow stats loaded:', {
+      totalExecutions: response.kpis?.totalExecutions,
+      failureRate: response.kpis?.failureRate,
+      avgRunTime: response.kpis?.avgRunTime
+    })
+  } catch (error) {
+    console.error('❌ Error loading workflow statistics:', error)
+    // In caso di errore, reset stats per usare i dati globali
+    workflowStats.value = null
+  }
 }
 
 const loadWorkflowStructure = async (workflow: any) => {
