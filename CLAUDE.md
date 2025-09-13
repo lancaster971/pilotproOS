@@ -60,9 +60,17 @@ volumes:
 
 ### Battle-Tested Wins:
 - Toast: Custom 181 lines → Vue Toastification
-- Icons: 29 SVG → Iconify (200k+ icons)
+- Icons: 29 SVG → Iconify (200k+ icons) + Categorizzazione semantica
 - Database: Raw SQL → Drizzle ORM
 - Validation: Custom → tRPC + Zod
+
+### Icon System Enterprise:
+- **Location**: `frontend/src/components/N8nIcon.vue`
+- **Pattern**: Direct Iconify imports con 1:1 n8n node type mapping
+- **Categories**: 12 categorie semantiche con colori enterprise
+- **Shapes**: Diamond (triggers), Rectangle (actions), Circle (outputs)
+- **Brand icons**: Google, OpenAI, PostgreSQL, Slack, Telegram
+- **Coverage**: 40+ nodi con icone professionali vs placeholder
 
 ## Project Overview
 

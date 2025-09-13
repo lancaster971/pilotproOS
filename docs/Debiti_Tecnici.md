@@ -136,6 +136,27 @@ Priority: P1 - DATA PERSISTENCE
 
 ## 🟢 **MEDIUM PRIORITY DEBT (Features & UX)**
 
+### **🎨 UI-001: Forme Nodi Workflow da Ottimizzare**
+```
+File: frontend/src/components/N8nIcon.vue:229-270
+Severity: MEDIUM
+Priority: P2 - UX Enhancement
+```
+**Issue**: Sistema forme geometriche implementato ma da affinare per UX ottimale
+```css
+/* Forme attuali - funzionanti ma migliorabili */
+.shape-diamond { transform: rotate(45deg); }      // Trigger - OK
+.shape-rectangle { width: 56px; height: 40px; }   // Actions - OK
+.shape-circle { border-radius: 50%; }             // Outputs - OK
+.shape-diamond-flat { transform: rotate(45deg) scaleY(0.6); } // Logic - DA AFFINARE
+```
+**Impact**: Visualizer workflow meno intuitivo per utenti business
+**Effort**: 1 giorno
+**Business Risk**: BASSO - Puramente estetico
+**Soluzione**: Affinare CSS transforms per diamond-flat, aggiungere hover effects
+
+## 🟢 **MEDIUM PRIORITY DEBT (Features & UX)**
+
 ### **🎯 UI-001: Timeline AI Analysis Not Connected**
 ```
 File: frontend/src/components/common/TimelineModal.vue:881

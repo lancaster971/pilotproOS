@@ -170,6 +170,26 @@ export const UI_LABELS = {
 - **Security**: Helmet, CORS, Rate limiting
 - **Process Manager**: PM2 per production
 
+### Sistema Icone Workflow Enterprise
+**Location**: `frontend/src/components/N8nIcon.vue`
+**Pattern**: Direct Iconify mapping con categorizzazione semantica
+**Coverage**: 40+ nodi n8n con icone brand professionali
+
+#### Categorie Icone:
+- **🔴 Triggers**: diamond shape - webhook, schedule, email triggers
+- **🟢 Data Processing**: rectangle - set, filter, sort, split operations
+- **🟡 Communication**: circle - telegram, gmail, slack, email
+- **🟣 AI/ML**: rectangle - OpenAI, LangChain, embeddings, agents
+- **🟠 Databases**: rectangle - PostgreSQL, Supabase, Google Sheets
+- **🔵 Workflow Control**: diamond-flat - if, merge, switch, wait
+
+#### Brand Icons:
+- **simple-icons**: Google, OpenAI, Telegram, PostgreSQL, Supabase
+- **mdi**: Material Design per funzioni generiche
+- **Color system**: 12 categorie con palette enterprise
+
+**Business Value**: Workflow visualizer professionale per cliente enterprise
+
 ### Architettura Middleware
 ```
 backend/
