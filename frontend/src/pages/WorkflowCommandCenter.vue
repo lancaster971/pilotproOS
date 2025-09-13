@@ -167,31 +167,15 @@
               {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
             </div>
             
-            <!-- Action Buttons like n8n -->
-            <div class="flex items-center bg-surface border border-border rounded-lg p-1 gap-1">
-              <button 
-                @click="openDetailedModal"
+            <!-- Business Dashboard - Unified View -->
+            <div class="flex items-center gap-2">
+              <button
+                @click="openBusinessDashboard"
                 :disabled="!selectedWorkflowId"
-                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                class="px-4 py-2 text-sm font-medium rounded-lg bg-primary hover:bg-primary-hover text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-sm hover:shadow-md"
               >
-                <Icon icon="lucide:eye" class="w-3 h-3" />
-                Details
-              </button>
-              <button 
-                @click="openTimelineModal"
-                :disabled="!selectedWorkflowId"
-                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-              >
-                <Icon icon="lucide:clock" class="w-3 h-3" />
-                Timeline
-              </button>
-              <button 
-                @click="openExecutionsModal"
-                :disabled="!selectedWorkflowId"
-                class="px-3 py-1.5 text-xs font-medium rounded transition-colors text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-              >
-                <Icon icon="lucide:git-branch" class="w-3 h-3" />
-                Executions
+                <Icon icon="lucide:bar-chart-2" class="w-4 h-4" />
+                Business Dashboard
               </button>
             </div>
             
@@ -1387,6 +1371,12 @@ const openDetailedModal = () => {
     execution_count: parseInt(selectedWorkflowData.value.executions_today) || 0
   }
   showDetailModal.value = true
+}
+
+// Nuovo: Business Dashboard Unificato
+const openBusinessDashboard = () => {
+  // Apre direttamente il Timeline Modal che diventerà il Business Dashboard
+  showTimelineModal.value = true
 }
 
 const openTimelineModal = () => {
