@@ -166,7 +166,7 @@ export const UI_LABELS = {
 - **Framework**: Express.js 4.18+
 - **Language**: TypeScript per type safety
 - **Database**: PostgreSQL driver (pg 8+)
-- **Authentication**: JWT + bcrypt
+- **Authentication**: JWT + bcryptjs (enterprise cross-platform)
 - **Security**: Helmet, CORS, Rate limiting
 - **Process Manager**: PM2 per production
 
