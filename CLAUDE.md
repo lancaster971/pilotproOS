@@ -2,6 +2,42 @@
 
 This file provides guidance to Claude Code when working with this PilotProOS repository.
 
+## 🚨 **REGOLA FERREA - DOCKER ISOLATION POLICY**
+
+⚠️ **REGOLA ASSOLUTA**: TUTTO IN DOCKER tranne strumenti sviluppo
+
+### **macOS Host SOLO per**:
+- ✅ VS Code / Editor
+- ✅ Browser / Testing tools  
+- ✅ Git / Version control
+- ✅ Docker Desktop management
+
+### **Docker Container per**:
+- 🗄️ **Database**: PostgreSQL, Redis, etc - MAI host-mount
+- 🔧 **Backend**: Node.js, Python, API servers
+- 🎨 **Frontend**: Build tools, dev servers
+- 🤖 **Automation**: n8n, workflow engines
+- 📊 **Analytics**: Data processing, AI models
+
+### **VIETATO ASSOLUTAMENTE**:
+❌ Host-mounted volumes per database (`./data:/var/lib/postgresql/data`)  
+❌ Bind-mount di runtime data su macOS filesystem  
+❌ Mixed permissions tra Linux container e macOS host  
+❌ Direct filesystem access per dati persistenti  
+
+### **SOLO Named Volumes Docker**:
+```yaml
+# CORRETTO - ISOLAMENTO TOTALE:
+volumes:
+  postgres_data:/var/lib/postgresql/data  # Docker filesystem
+  
+# SBAGLIATO - CAUSA CORRUZIONE:
+volumes:
+  ./data:/var/lib/postgresql/data  # macOS filesystem
+```
+
+---
+
 ## 🎯 **ZERO CUSTOM CODE POLICY**
 
 ⚠️ **REGOLA FONDAMENTALE**: Battle-tested libraries FIRST, custom code LAST RESORT

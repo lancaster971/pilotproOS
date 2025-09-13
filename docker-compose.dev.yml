@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: pilotpros_secure_pass_2025
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./database/data-dev:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
       - ./database/init-dev:/docker-entrypoint-initdb.d
       - ./database/backups:/backups
       - ./BU_Hostinger:/imports  # Per importare backup esistenti
@@ -106,7 +106,7 @@ services:
       N8N_RUNNERS_ENABLED: true
       
     volumes:
-      - ./n8n/data-dev:/home/node/.n8n
+      - n8n_dev_data:/home/node/.n8n
       - ./logs/n8n-dev:/var/log/n8n
       - ./BU_Hostinger:/imports  # Per accesso diretto ai backup
     ports:
@@ -243,4 +243,10 @@ networks:
     driver: bridge
     name: pilotpros-development
 
-# Volumes now use host mounts for guaranteed persistence
+volumes:
+  postgres_dev_data:
+    name: pilotpros_postgres_dev_data
+  n8n_dev_data:
+    name: pilotpros_n8n_dev_data
+  pgadmin_dev_data:
+    name: pilotpros_pgadmin_dev_data
