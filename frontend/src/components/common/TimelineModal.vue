@@ -687,6 +687,10 @@ const loadTimeline = async () => {
       recentActivity.value = dashboardResponse.recentActivity
       console.log('✅ Recent activity loaded:', recentActivity.value.length, 'items')
     }
+  } catch (dashboardError) {
+    console.error('❌ Failed to load dashboard data:', dashboardError)
+    setError('Failed to load dashboard data. Please try again.')
+  }
 
     // Also load timeline data for timeline tab
     try {
