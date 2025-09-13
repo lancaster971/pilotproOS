@@ -602,6 +602,7 @@ import { useModal } from '../../composables/useModal'
 import { useBusinessParser } from '../../composables/useBusinessParser'
 import { businessAPI, $fetch } from '../../services/api-client'
 import { API_BASE_URL } from '../../utils/api-config'
+import { UnifiedBusinessProcessor, cleanHtmlContent, truncateText } from '../../shared/business-parsers'
 
 interface Props {
   workflowId: string
@@ -618,7 +619,26 @@ const emit = defineEmits<{
 
 // Composables
 const { isLoading, error, setLoading, setError, showToast } = useModal()
-const { parseBusinessData, formatBusinessData, formatTimelineStepData } = useBusinessParser()
+const { parseBusinessData: legacyParseBusinessData, formatBusinessData, formatTimelineStepData } = useBusinessParser()
+
+// Use new unified processor with compatibility wrapper
+const parseBusinessData = (data: any, dataType: string, nodeType?: string, nodeName?: string) => {
+  // Use new unified processor
+  const result = UnifiedBusinessProcessor.process(data, {
+    source: 'frontend',
+    nodeType,
+    workflowId: props.workflowId
+  })
+
+  // Convert to legacy format for compatibility
+  return {
+    summary: result.summary,
+    details: result.details,
+    type: result.type,
+    metadata: result.metadata,
+    businessValue: result.businessValue
+  }
+}
 
 // State
 const timelineData = ref<any>(null)

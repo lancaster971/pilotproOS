@@ -5,10 +5,11 @@
  */
 
 import { BusinessRepository } from '../repositories/business.repository.js';
-import { WorkflowRepository } from '../repositories/workflow.repository.js'; 
+import { WorkflowRepository } from '../repositories/workflow.repository.js';
 import { ExecutionRepository } from '../repositories/execution.repository.js';
 import businessIntelligenceService from './business-intelligence.service.js';
 import { humanizeStepData } from '../utils/business-step-parser.js';
+import { UnifiedBusinessProcessor } from '../../../frontend/src/shared/business-parsers/unified-processor.js';
 
 export class TimelineService {
   constructor(dbPool) {

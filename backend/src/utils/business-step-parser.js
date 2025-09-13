@@ -1,9 +1,12 @@
 /**
  * Business Step Parser
- * 
+ *
  * Port della logica humanizeStepData dal frontend_old
  * Trasforma dati tecnici n8n in descrizioni business-friendly
  */
+
+import { UnifiedBusinessProcessor } from '../../../frontend/src/shared/business-parsers/unified-processor.js';
+import { cleanHtmlContent, truncateText } from '../../../frontend/src/shared/business-parsers/utils.js';
 
 /**
  * Converte dati JSON complessi in descrizioni human-readable per business
@@ -16,19 +19,36 @@
 export function humanizeStepData(data, dataType, nodeType, nodeName) {
   // Sanitizza nodeType per rimuovere riferimenti a n8n
   const sanitizedType = nodeType?.replace(/n8n/gi, 'WFEngine').replace(/\.nodes\./g, '.engine.').replace(/\.base\./g, '.core.');
-  
+
   // LOGICA SPECIALE PER TRIGGER NODES
-  const isTriggerNode = sanitizedType?.includes('trigger') || 
+  const isTriggerNode = sanitizedType?.includes('trigger') ||
                        sanitizedType?.includes('Trigger') ||
                        nodeName?.toLowerCase().includes('ricezione') ||
                        nodeName?.toLowerCase().includes('trigger');
-  
+
   // Per nodi trigger, l'input è sempre "In attesa di dati"
   if (isTriggerNode && dataType === 'input') {
     return 'In attesa di nuove email dal server Microsoft Outlook';
   }
-  
+
   if (!data) return 'Nessun dato disponibile';
+
+  // Try to use the new unified processor first
+  try {
+    const result = UnifiedBusinessProcessor.process(data, {
+      source: 'backend',
+      nodeType: sanitizedType
+    });
+
+    // Format the result for legacy compatibility
+    if (result.details && result.details.length > 0) {
+      return result.details.join('\n');
+    }
+    return result.summary;
+  } catch (err) {
+    // Fallback to legacy parsing if unified processor fails
+    console.log('Unified processor fallback, using legacy parser');
+  }
 
   // Se è un array, prendi il primo elemento
   const processData = Array.isArray(data) ? data[0] : data;
