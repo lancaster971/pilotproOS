@@ -656,10 +656,10 @@ const loadTimeline = async () => {
   setLoading(true)
   setError(null)
 
+  const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+
   try {
     console.log('🔄 Loading dashboard data for workflow:', props.workflowId)
-
-    const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
 
     // Use new dashboard endpoint that aggregates all data
     const dashboardResponse = await $fetch(`${API_BASE}/api/business/dashboard/${props.workflowId}`)
