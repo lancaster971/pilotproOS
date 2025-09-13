@@ -49,7 +49,7 @@
                     step.status === 'error' || step.showTag === 'error'
                       ? 'text-red-400'
                       : 'text-green-400'
-                  ]">{{ step.showTag === 'error' ? '⚠️' : index + 1 }}</span>
+                  ]">{{ step.showTag === 'error' ? 'ERR' : index + 1 }}</span>
                 </div>
                 <div>
                   <h4 class="text-white font-medium">{{ step.businessName || step.name || `Process Step ${index + 1}` }}</h4>
@@ -812,25 +812,25 @@ const formatMetricValue = (value: any) => {
 
 const formatActionLabel = (action: string) => {
   const labels: Record<string, string> = {
-    'download_full': '⬇️ Download Full Data',
-    'request_ai_analysis': '✨ AI Analysis',
-    'extract_data': '📊 Extract Data',
-    'view_full_table': '📋 View Full Table',
-    'export_excel': '📑 Export Excel',
-    'generate_report': '📄 Generate Report',
-    'analyze_patterns': '🔍 Analyze Patterns',
-    'view_all_emails': '📧 View All Emails',
-    'export_list': '📝 Export List',
-    'analyze_sentiment': '💭 Analyze Sentiment',
-    'view_json': '{ } View JSON',
-    'export_data': '💾 Export Data',
-    'analyze_structure': '🏗️ Analyze Structure',
-    'view_chart': '📈 View Chart',
-    'export_stats': '📊 Export Statistics',
-    'analyze_trends': '📉 Analyze Trends',
-    'view_raw': '📄 View Raw',
-    'download': '⬇️ Download',
-    'regenerate_analysis': '🔄 Regenerate Analysis'
+    'download_full': 'Download Full Data',
+    'request_ai_analysis': 'AI Analysis',
+    'extract_data': 'Extract Data',
+    'view_full_table': 'View Full Table',
+    'export_excel': 'Export Excel',
+    'generate_report': 'Generate Report',
+    'analyze_patterns': 'Analyze Patterns',
+    'view_all_emails': 'View All Emails',
+    'export_list': 'Export List',
+    'analyze_sentiment': 'Analyze Sentiment',
+    'view_json': 'View JSON',
+    'export_data': 'Export Data',
+    'analyze_structure': 'Analyze Structure',
+    'view_chart': 'View Chart',
+    'export_stats': 'Export Statistics',
+    'analyze_trends': 'Analyze Trends',
+    'view_raw': 'View Raw',
+    'download': 'Download',
+    'regenerate_analysis': 'Regenerate Analysis'
   }
   return labels[action] || action
 }
