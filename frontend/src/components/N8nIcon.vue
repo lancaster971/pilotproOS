@@ -1,5 +1,5 @@
 <template>
-  <div class="node-icon" :class="className">
+  <div class="node-icon" :class="[className, shapeClasses]" :title="`Shape: ${nodeShape}, Type: ${nodeType}`">
     <Icon
       v-if="iconName"
       :icon="iconName"
@@ -29,21 +29,36 @@ const props = defineProps<Props>()
 interface NodeMapping {
   icon: string
   category: string
+  shape?: 'diamond' | 'rectangle' | 'diamond-flat' | 'circle'
 }
 
 const iconifyMap: Record<string, NodeMapping> = {
-  // TRIGGERS - Attivano i workflow (🔵 Blu)
-  'n8n-nodes-base.cron': { icon: 'mdi:timer-outline', category: 'triggers' },
-  'n8n-nodes-base.scheduleTrigger': { icon: 'mdi:calendar-clock', category: 'triggers' },
-  'n8n-nodes-base.webhook': { icon: 'mdi:webhook', category: 'triggers' },
-  'n8n-nodes-base.manualTrigger': { icon: 'mdi:play-circle', category: 'triggers' },
-  'n8n-nodes-base.formTrigger': { icon: 'mdi:form-select', category: 'triggers' },
-  'n8n-nodes-base.telegramTrigger': { icon: 'simple-icons:telegram', category: 'triggers' },
-  'n8n-nodes-base.whatsAppTrigger': { icon: 'simple-icons:whatsapp', category: 'triggers' },
-  'n8n-nodes-base.gmailTrigger': { icon: 'simple-icons:gmail', category: 'triggers' },
-  'n8n-nodes-base.microsoftOutlookTrigger': { icon: 'simple-icons:microsoftoutlook', category: 'triggers' },
-  'n8n-nodes-base.activeCampaignTrigger': { icon: 'mdi:email-newsletter', category: 'triggers' },
-  'n8n-nodes-base.executeWorkflowTrigger': { icon: 'mdi:play-circle', category: 'triggers' },
+  // SCHEDULE TRIGGERS - Trigger temporali (🔵 Blu elettrico)
+  'n8n-nodes-base.cron': { icon: 'mdi:timer-outline', category: 'schedule_triggers', shape: 'diamond' },
+  'n8n-nodes-base.scheduleTrigger': { icon: 'mdi:calendar-clock', category: 'schedule_triggers', shape: 'diamond' },
+
+  // WEBHOOK TRIGGERS - Trigger HTTP esterni (🔴 Rosso intenso)
+  'n8n-nodes-base.webhook': { icon: 'mdi:webhook', category: 'webhook_triggers', shape: 'diamond' },
+  'n8n-nodes-base.formTrigger': { icon: 'mdi:form-select', category: 'webhook_triggers', shape: 'diamond' },
+
+  // EMAIL TRIGGERS - Trigger email (🟡 Giallo ambra)
+  'n8n-nodes-base.gmailTrigger': { icon: 'simple-icons:gmail', category: 'email_triggers', shape: 'diamond' },
+  'n8n-nodes-base.microsoftOutlookTrigger': { icon: 'simple-icons:microsoftoutlook', category: 'email_triggers', shape: 'diamond' },
+  'n8n-nodes-base.emailReadImap': { icon: 'mdi:email-receive-outline', category: 'email_triggers', shape: 'diamond' },
+
+  // SOCIAL TRIGGERS - Trigger social/messaging (🟢 Verde vivace)
+  'n8n-nodes-base.telegramTrigger': { icon: 'simple-icons:telegram', category: 'social_triggers', shape: 'diamond' },
+  'n8n-nodes-base.whatsAppTrigger': { icon: 'simple-icons:whatsapp', category: 'social_triggers', shape: 'diamond' },
+
+  // WORKFLOW TRIGGERS - Trigger interni workflow (🟣 Viola)
+  'n8n-nodes-base.manualTrigger': { icon: 'mdi:play-circle', category: 'workflow_triggers', shape: 'diamond' },
+  'n8n-nodes-base.executeWorkflowTrigger': { icon: 'mdi:play-circle', category: 'workflow_triggers', shape: 'diamond' },
+
+  // AI TRIGGERS - Trigger AI/Chat (🟪 Rosa magenta)
+  '@n8n/n8n-nodes-langchain.chatTrigger': { icon: 'mdi:chat-outline', category: 'ai_triggers', shape: 'diamond' },
+
+  // MARKETING TRIGGERS - Trigger marketing (🟠 Arancione)
+  'n8n-nodes-base.activeCampaignTrigger': { icon: 'mdi:email-newsletter', category: 'marketing_triggers', shape: 'diamond' },
 
   // DATA_PROCESSING - Elaborano dati (🟢 Verde)
   'n8n-nodes-base.set': { icon: 'mdi:pencil-circle', category: 'data_processing' },
@@ -52,16 +67,14 @@ const iconifyMap: Record<string, NodeMapping> = {
   'n8n-nodes-base.limit': { icon: 'mdi:numeric', category: 'data_processing' },
   'n8n-nodes-base.splitInBatches': { icon: 'mdi:format-list-bulleted', category: 'data_processing' },
   'n8n-nodes-base.splitOut': { icon: 'mdi:call-split', category: 'data_processing' },
-  'n8n-nodes-base.extractFromFile': { icon: 'mdi:file-document-outline', category: 'file_operations' },
 
   // COMMUNICATION - Comunicazioni esterne (🟡 Giallo)
-  'n8n-nodes-base.telegram': { icon: 'simple-icons:telegram', category: 'communication' },
-  'n8n-nodes-base.whatsApp': { icon: 'simple-icons:whatsapp', category: 'communication' },
-  'n8n-nodes-base.slack': { icon: 'simple-icons:slack', category: 'communication' },
-  'n8n-nodes-base.gmail': { icon: 'simple-icons:gmail', category: 'communication' },
-  'n8n-nodes-base.microsoftOutlook': { icon: 'simple-icons:microsoftoutlook', category: 'communication' },
-  'n8n-nodes-base.emailSend': { icon: 'mdi:email-send-outline', category: 'communication' },
-  'n8n-nodes-base.emailReadImap': { icon: 'mdi:email-receive-outline', category: 'communication' },
+  'n8n-nodes-base.telegram': { icon: 'simple-icons:telegram', category: 'communication', shape: 'circle' },
+  'n8n-nodes-base.whatsApp': { icon: 'simple-icons:whatsapp', category: 'communication', shape: 'circle' },
+  'n8n-nodes-base.slack': { icon: 'simple-icons:slack', category: 'communication', shape: 'circle' },
+  'n8n-nodes-base.gmail': { icon: 'simple-icons:gmail', category: 'communication', shape: 'circle' },
+  'n8n-nodes-base.microsoftOutlook': { icon: 'simple-icons:microsoftoutlook', category: 'communication', shape: 'circle' },
+  'n8n-nodes-base.emailSend': { icon: 'mdi:email-send-outline', category: 'communication', shape: 'circle' },
 
   // DATABASES - Database e storage (🟠 Arancione)
   'n8n-nodes-base.postgres': { icon: 'simple-icons:postgresql', category: 'databases' },
@@ -70,6 +83,7 @@ const iconifyMap: Record<string, NodeMapping> = {
 
   // FILE_OPERATIONS - Operazioni file (🟣 Viola intenso)
   'n8n-nodes-base.googleDrive': { icon: 'simple-icons:googledrive', category: 'file_operations' },
+  'n8n-nodes-base.extractFromFile': { icon: 'mdi:file-document-outline', category: 'file_operations' },
 
   // HTTP_API - Richieste web/API (🔴 Rosso)
   'n8n-nodes-base.httpRequest': { icon: 'mdi:web', category: 'http_api' },
@@ -81,11 +95,11 @@ const iconifyMap: Record<string, NodeMapping> = {
   'n8n-nodes-base.function': { icon: 'mdi:function', category: 'code' },
 
   // WORKFLOW_CONTROL - Controllo flusso (🔵 Indaco)
-  'n8n-nodes-base.if': { icon: 'mdi:help-rhombus-outline', category: 'workflow_control' },
-  'n8n-nodes-base.switch': { icon: 'mdi:electric-switch', category: 'workflow_control' },
-  'n8n-nodes-base.merge': { icon: 'mdi:merge', category: 'workflow_control' },
-  'n8n-nodes-base.wait': { icon: 'mdi:timer-sand', category: 'workflow_control' },
-  'n8n-nodes-base.executeWorkflow': { icon: 'mdi:play-circle-outline', category: 'workflow_control' },
+  'n8n-nodes-base.if': { icon: 'mdi:help-rhombus-outline', category: 'workflow_control', shape: 'diamond-flat' },
+  'n8n-nodes-base.switch': { icon: 'mdi:electric-switch', category: 'workflow_control', shape: 'diamond-flat' },
+  'n8n-nodes-base.merge': { icon: 'mdi:merge', category: 'workflow_control', shape: 'diamond-flat' },
+  'n8n-nodes-base.wait': { icon: 'mdi:timer-sand', category: 'workflow_control', shape: 'circle' },
+  'n8n-nodes-base.executeWorkflow': { icon: 'mdi:play-circle-outline', category: 'workflow_control', shape: 'circle' },
 
   // LOGGING_MONITORING - Log e monitoraggio (⚪ Grigio neutro)
   'n8n-nodes-base.debug': { icon: 'mdi:bug-outline', category: 'logging_monitoring' },
@@ -103,35 +117,35 @@ const iconifyMap: Record<string, NodeMapping> = {
   'n8n-nodes-base.googleCalendar': { icon: 'simple-icons:googlecalendar', category: 'calendar_scheduling' },
 
   // AI_ML - Intelligenza artificiale (🟣 Viola)
-  'n8n-nodes-base.openAi': { icon: 'simple-icons:openai', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.agent': { icon: 'mdi:robot-outline', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.lmChatOpenAi': { icon: 'simple-icons:openai', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.embeddingsOpenAi': { icon: 'simple-icons:openai', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.openAi': { icon: 'simple-icons:openai', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.lmChatGoogleGemini': { icon: 'simple-icons:google', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.chainLlm': { icon: 'mdi:brain', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.chainSummarization': { icon: 'mdi:format-list-text', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.textClassifier': { icon: 'mdi:text-box-check-outline', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.textSplitterTokenSplitter': { icon: 'mdi:format-text-wrapping-clip', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.memoryBufferWindow': { icon: 'mdi:memory', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.memoryPostgresChat': { icon: 'simple-icons:postgresql', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.vectorStoreQdrant': { icon: 'mdi:database-search', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.vectorStorePinecone': { icon: 'mdi:pine-tree', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.vectorStoreSupabase': { icon: 'simple-icons:supabase', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.retrieverVectorStore': { icon: 'mdi:database-arrow-down', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.rerankerCohere': { icon: 'mdi:sort-ascending', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.outputParserStructured': { icon: 'mdi:code-braces', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.documentDefaultDataLoader': { icon: 'mdi:file-upload-outline', category: 'ai_ml' },
+  'n8n-nodes-base.openAi': { icon: 'simple-icons:openai', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.agent': { icon: 'mdi:robot-outline', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.lmChatOpenAi': { icon: 'simple-icons:openai', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.embeddingsOpenAi': { icon: 'simple-icons:openai', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.openAi': { icon: 'simple-icons:openai', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.lmChatGoogleGemini': { icon: 'simple-icons:google', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.chainLlm': { icon: 'mdi:brain', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.chainSummarization': { icon: 'mdi:format-list-text', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.textClassifier': { icon: 'mdi:text-box-check-outline', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.textSplitterTokenSplitter': { icon: 'mdi:format-text-wrapping-clip', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.memoryBufferWindow': { icon: 'mdi:memory', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.memoryPostgresChat': { icon: 'simple-icons:postgresql', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.vectorStoreQdrant': { icon: 'mdi:database-search', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.vectorStorePinecone': { icon: 'mdi:pine-tree', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.vectorStoreSupabase': { icon: 'simple-icons:supabase', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.retrieverVectorStore': { icon: 'mdi:database-arrow-down', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.rerankerCohere': { icon: 'mdi:sort-ascending', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.outputParserStructured': { icon: 'mdi:code-braces', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.documentDefaultDataLoader': { icon: 'mdi:file-upload-outline', category: 'ai_ml', shape: 'rectangle' },
   '@n8n/n8n-nodes-langchain.chatTrigger': { icon: 'mdi:chat-outline', category: 'triggers' }, // È un trigger
 
   // AI TOOLS - Strumenti AI (🟣 Viola)
-  '@n8n/n8n-nodes-langchain.toolSerpApi': { icon: 'mdi:google', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.toolCalculator': { icon: 'mdi:calculator', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.toolVectorStore': { icon: 'mdi:database-search-outline', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.toolWorkflow': { icon: 'mdi:workflow', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.toolHttpRequest': { icon: 'mdi:web', category: 'http_api' }, // È HTTP
-  '@n8n/n8n-nodes-langchain.toolConvertToFile': { icon: 'mdi:file-document-outline', category: 'ai_ml' },
-  '@n8n/n8n-nodes-langchain.mcpClientTool': { icon: 'mdi:connection', category: 'ai_ml' },
+  '@n8n/n8n-nodes-langchain.toolSerpApi': { icon: 'mdi:google', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.toolCalculator': { icon: 'mdi:calculator', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.toolVectorStore': { icon: 'mdi:database-search-outline', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.toolWorkflow': { icon: 'mdi:workflow', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.toolHttpRequest': { icon: 'mdi:web', category: 'http_api', shape: 'rectangle' }, // È HTTP
+  '@n8n/n8n-nodes-langchain.toolConvertToFile': { icon: 'mdi:file-document-outline', category: 'ai_ml', shape: 'rectangle' },
+  '@n8n/n8n-nodes-langchain.mcpClientTool': { icon: 'mdi:connection', category: 'ai_ml', shape: 'rectangle' },
 
   // PARSERS aggiuntivi - Parsing documenti (🟤 Marrone)
   'n8n-nodes-base.xml': { icon: 'mdi:code-tags', category: 'parsers' },
@@ -174,7 +188,16 @@ const categoryColors: Record<string, string> = {
   authentication: '#374151',     // Grigio scuro - Autenticazione
   workflow_control: '#6366F1',   // Indaco - Controllo flusso
   logging_monitoring: '#6B7280', // Grigio neutro - Log e monitoraggio
-  document_processing: '#92400E' // Marrone scuro - Elaborazione documenti
+  document_processing: '#92400E', // Marrone scuro - Elaborazione documenti
+
+  // N8N TRIGGER CATEGORIES - Classificazione nativa trigger
+  schedule_triggers: '#2563EB',   // Blu elettrico - Trigger temporali
+  webhook_triggers: '#DC2626',    // Rosso intenso - Trigger HTTP esterni
+  email_triggers: '#F59E0B',      // Giallo ambra - Trigger email
+  social_triggers: '#10B981',     // Verde vivace - Trigger social/messaging
+  workflow_triggers: '#8B5CF6',   // Viola - Trigger interni workflow
+  ai_triggers: '#EC4899',         // Rosa magenta - Trigger AI/Chat
+  marketing_triggers: '#F97316'   // Arancione - Trigger marketing
 }
 
 // Computed properties
@@ -191,6 +214,14 @@ const categoryColor = computed(() => {
   return categoryColors[category] || categoryColors.utilities
 })
 
+const nodeShape = computed(() => {
+  return nodeMapping.value?.shape || 'rectangle'
+})
+
+const shapeClasses = computed(() => {
+  return `shape-${nodeShape.value}`
+})
+
 const placeholderText = computed(() => {
   const parts = props.nodeType.split('.')
   return parts[parts.length - 1].substring(0, 3).toUpperCase()
@@ -202,9 +233,53 @@ const placeholderText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  /* Dimensioni base - sovrascritte dalle forme specifiche */
   width: 48px;
   height: 48px;
+}
+
+/* N8N GEOMETRIC SHAPES - Forme specifiche per categorie */
+
+/* Default: Rectangle (Actions) - Rettangolo più largo */
+.shape-rectangle {
+  width: 56px !important;
+  height: 40px !important;
   border-radius: 8px;
+}
+
+/* Diamond (Triggers) - Forma a diamante per trigger */
+.shape-diamond {
+  width: 48px !important;
+  height: 48px !important;
+  transform: rotate(45deg);
+  border-radius: 6px;
+}
+
+.shape-diamond .icon-styled,
+.shape-diamond .placeholder-icon {
+  transform: rotate(-45deg);
+}
+
+/* Diamond Flat (Logic/Control) - Rombo schiacciato per controlli */
+.shape-diamond-flat {
+  width: 48px !important;
+  height: 48px !important;
+  transform: rotate(45deg) scaleY(0.6);
+  border-radius: 4px;
+}
+
+.shape-diamond-flat .icon-styled,
+.shape-diamond-flat .placeholder-icon {
+  transform: rotate(-45deg) scaleY(1.67);
+}
+
+/* Circle (Outputs) - Cerchio per endpoint */
+.shape-circle {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50%;
 }
 
 /* PROFESSIONAL CATEGORY COLORING - Icone con palette sofisticata */
