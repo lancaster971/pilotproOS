@@ -1,7 +1,7 @@
 # PostgreSQL Runtime Files - DO NOT COMMIT
-pgdata/pg_wal/*
-pgdata/pg_xact/*
-pgdata/pg_subtrans/*
+pgdata/pg_wal/
+pgdata/pg_xact/
+pgdata/pg_subtrans/
 pgdata/global/pg_control
 pgdata/global/pg_internal.init
 pgdata/current_logfiles
@@ -11,3 +11,6 @@ pgdata/base/*/*.vm
 pgdata/base/*/1247
 pgdata/base/*/1249
 pgdata/base/*/1259
+pgdata/base/*/16417
+pgdata/base/*/24*
+pgdata/base/*/28*

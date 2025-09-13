@@ -10,21 +10,28 @@
 
 ## 📊 **EXECUTIVE SUMMARY**
 
-After comprehensive analysis of the current Docker infrastructure and research of 2025 best practices, **critical performance optimizations** are missing that prevent containers from operating at maximum efficiency.
+After comprehensive analysis of the current Docker infrastructure and research of 2025 best practices, **critical performance optimizations** are missing that prevent containers from operating efficiently on **VPS environments** (Hostinger, DigitalOcean, Vultr).
+
+### **VPS Environment Constraints**
+- **RAM**: Typically 2-4GB (vs current 930MB+ uncontrolled usage)
+- **CPU**: 2-4 vCPU shared (vs current uncontrolled peaks)  
+- **Storage**: 25-80GB SSD (vs current 6.6GB+ images)
+- **Network**: Limited bandwidth (vs current verbose logging)
+- **Cost Sensitivity**: Resources = €€€ (optimization = savings)
 
 ### **Current State Issues**
-- **Image Sizes**: 800MB+ per service (4x too large)
-- **Memory Usage**: Uncontrolled (930MB total, growing)  
-- **Startup Time**: 45-60 seconds (enterprise unacceptable)
-- **Resource Management**: No limits (system instability risk)
-- **PostgreSQL**: Default config (suboptimal performance)
+- **Image Sizes**: 800MB+ per service (**CRITICAL** on limited SSD)
+- **Memory Usage**: Uncontrolled 930MB+ (**DANGEROUS** on 2GB VPS)  
+- **Startup Time**: 45-60 seconds (**UNACCEPTABLE** on shared CPU)
+- **Resource Management**: No limits (**VPS KILLER** - can crash entire server)
+- **PostgreSQL**: Default config (**INEFFICIENT** on constrained RAM)
 
 ### **Expected Results Post-Optimization**
-- **75% Image Size Reduction**: 800MB → 200MB per service
-- **67% Faster Startup**: 45s → 15s container boot time
-- **35% Memory Reduction**: 930MB → 600MB total usage
-- **100% System Stability**: CPU/Memory limits prevent crashes
-- **3x Development Velocity**: Faster builds, deploys, tests
+- **80% Image Size Reduction**: 6.6GB → 1.3GB total (fits in 25GB VPS)
+- **70% Memory Reduction**: 930MB → 280MB total (safe on 2GB VPS)
+- **75% Faster Startup**: 45s → 12s (responsive on shared vCPU)
+- **100% VPS Stability**: Memory limits prevent OOM crashes
+- **50% Cost Reduction**: Can run on smaller/cheaper VPS tiers
 
 ---
 
@@ -110,65 +117,67 @@ services:
 
 #### **Optimized Solution**
 ```yaml
-# docker-compose.dev.yml - Resource-Controlled Services
+# docker-compose.dev.yml - VPS-Optimized Resource Limits
 services:
   postgres-dev:
     deploy:
       resources:
         limits:
-          cpus: '1.5'        # Max 1.5 CPU cores
-          memory: 2G         # Max 2GB RAM
+          cpus: '1.0'        # Conservative for shared vCPU
+          memory: 512M       # CRITICAL: 25% of 2GB VPS
         reservations:
-          cpus: '0.5'        # Guaranteed 0.5 cores
-          memory: 1G         # Guaranteed 1GB RAM
+          cpus: '0.3'        # Minimal guarantee
+          memory: 256M       # Essential minimum
     ulimits:
       memlock:
-        soft: -1
-        hard: -1
+        soft: 65536        # Limited, not unlimited
+        hard: 65536
 
   automation-engine-dev:
     deploy:
       resources:
         limits:
-          cpus: '2.0'        # n8n needs more CPU for workflows
-          memory: 1.5G       # Generous for workflow execution
+          cpus: '1.5'        # n8n primary service on VPS
+          memory: 768M       # 38% of 2GB VPS - biggest allocation
         reservations:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.5'
+          memory: 384M
     environment:
-      NODE_OPTIONS: "--max-old-space-size=1024"
+      NODE_OPTIONS: "--max-old-space-size=512 --optimize-for-size"  # VPS-tuned
 
   backend-dev:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.8'        # Reduced for VPS sharing
+          memory: 256M       # Aggressive limit for API
         reservations:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '0.3'
+          memory: 128M
     environment:
-      NODE_OPTIONS: "--max-old-space-size=384"
+      NODE_OPTIONS: "--max-old-space-size=192 --optimize-for-size"  # Tight memory
 
   frontend-dev:
     deploy:
       resources:
         limits:
-          cpus: '1.0'        # Vite dev server + HMR
-          memory: 512M
+          cpus: '0.5'        # Frontend builds can be slower on VPS
+          memory: 384M       # Vite dev server optimized
         reservations:
-          cpus: '0.3'
+          cpus: '0.2'
           memory: 128M
 
   nginx-dev:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 128M
+          cpus: '0.3'        # Nginx very efficient
+          memory: 64M        # Minimal proxy needs
         reservations:
           cpus: '0.1'
-          memory: 32M
+          memory: 16M
+
+# TOTAL LIMITS: 4.1 vCPU, 1.984GB RAM = fits in 2GB VPS with 16MB buffer
 ```
 
 #### **Results Expected**
@@ -186,105 +195,125 @@ services:
 
 #### **Current Problem**
 ```yaml
-# Default PostgreSQL configuration (optimized for 128MB systems)
+# Default PostgreSQL configuration (WRONG for VPS constraints)
 postgres-dev:
-  # shared_buffers: 128MB (default)
-  # effective_cache_size: 4GB (default guess)
-  # work_mem: 4MB (default)
-  # maintenance_work_mem: 64MB (default)
-  # max_connections: 100 (default)
-  # Result: Poor performance with 5.7GB available RAM
+  # shared_buffers: 128MB (default - too conservative for 512MB limit)
+  # effective_cache_size: 4GB (default - WRONG, only 512MB available!)
+  # work_mem: 4MB (default - OK for VPS but could be optimized)
+  # maintenance_work_mem: 64MB (default - too high for 512MB container)
+  # max_connections: 100 (default - too many for VPS, causes memory bloat)
+  # Result: Memory pressure, slow queries, potential OOM kills on VPS
 ```
 
 #### **Optimized Solution**
 ```yaml
-# docker-compose.dev.yml - PostgreSQL Performance Tuned
+# docker-compose.dev.yml - VPS-Optimized PostgreSQL (512MB Memory Limit)
 services:
   postgres-dev:
     command: >
       postgres 
-        -c shared_buffers=1GB
-        -c effective_cache_size=4GB
-        -c work_mem=16MB
-        -c maintenance_work_mem=512MB
-        -c max_connections=100
-        -c random_page_cost=1.1
+        -c shared_buffers=128MB           # 25% of 512MB container limit
+        -c effective_cache_size=256MB     # 50% of container (conservative)
+        -c work_mem=2MB                   # Reduced for max_connections
+        -c maintenance_work_mem=32MB      # Fits in 512MB limit
+        -c max_connections=25             # CRITICAL: Low for VPS memory
+        -c random_page_cost=1.1           # SSD optimization
         -c seq_page_cost=1
-        -c effective_io_concurrency=200
+        -c effective_io_concurrency=100   # Reduced for VPS I/O
         -c checkpoint_completion_target=0.9
-        -c wal_buffers=16MB
-        -c default_statistics_target=100
-        -c max_wal_size=2GB
-        -c min_wal_size=512MB
-        -c max_parallel_workers_per_gather=2
-        -c max_parallel_workers=8
-        -c max_parallel_maintenance_workers=2
+        -c wal_buffers=4MB                # Reduced from 16MB
+        -c default_statistics_target=50   # Reduced CPU usage
+        -c max_wal_size=512MB             # Smaller for limited storage
+        -c min_wal_size=128MB
+        -c max_parallel_workers_per_gather=1  # Single worker on VPS
+        -c max_parallel_workers=2         # Minimal parallel processing
+        -c max_parallel_maintenance_workers=1
+        -c log_min_duration_statement=2000     # Only log slow queries (2s+)
+        -c log_statement=none             # Disable verbose logging
+        -c autovacuum_max_workers=2       # Reduced vacuum workers
+        -c autovacuum_naptime=300s        # Less frequent autovacuum
     environment:
-      # Additional performance variables
-      POSTGRES_INITDB_ARGS: "--data-checksums --auth-host=scram-sha-256"
+      # VPS-optimized startup
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"  # No checksums to save I/O
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data:Z
+      - ./database/data-dev:/var/lib/postgresql/data
       - ./database/init-dev:/docker-entrypoint-initdb.d:ro
-      - ./database/postgresql-custom.conf:/etc/postgresql/postgresql.conf:ro
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2G
+          cpus: '1.0'       # Single vCPU on VPS
+          memory: 512M      # 25% of 2GB VPS
         reservations:
-          cpus: '1.0' 
-          memory: 1G
+          cpus: '0.3'
+          memory: 256M
 ```
 
-#### **PostgreSQL Custom Configuration File**
+#### **VPS-Optimized PostgreSQL Configuration**
 ```bash
-# database/postgresql-custom.conf
-# Performance Optimization for PilotProOS Development
+# database/postgresql-vps.conf
+# VPS-Optimized Configuration (512MB Memory Limit)
 
-# Memory Configuration
-shared_buffers = 1GB                    # 25% of available RAM
-effective_cache_size = 4GB              # 75% of available RAM
-work_mem = 16MB                         # Per-operation memory
-maintenance_work_mem = 512MB            # For VACUUM, CREATE INDEX
+# Memory Configuration - CRITICAL for VPS
+shared_buffers = 128MB                  # 25% of 512MB container
+effective_cache_size = 256MB            # 50% of container (OS cache available)
+work_mem = 2MB                          # Low per-connection (max_connections=25)
+maintenance_work_mem = 32MB             # Fits in memory limit
+temp_buffers = 8MB                      # Temporary table buffers
 
-# Connection Configuration  
-max_connections = 100                   # Reasonable for development
-superuser_reserved_connections = 3
+# Connection Configuration - VPS Optimized
+max_connections = 25                    # CRITICAL: Low for memory constraints
+superuser_reserved_connections = 2
+idle_in_transaction_session_timeout = 600000  # 10min cleanup
 
-# Checkpoint Configuration
-checkpoint_completion_target = 0.9      # Spread checkpoints
-max_wal_size = 2GB                      # Higher for better performance
-min_wal_size = 512MB
+# Checkpoint Configuration - SSD Optimized  
+checkpoint_completion_target = 0.9
+max_wal_size = 512MB                    # Smaller for limited storage
+min_wal_size = 128MB
+checkpoint_timeout = 900                # 15min (less frequent)
+wal_buffers = 4MB                       # Reduced from default
 
-# Query Planner Configuration
-random_page_cost = 1.1                  # SSD optimization
-seq_page_cost = 1.0                     # Sequential read cost
-effective_io_concurrency = 200          # Concurrent I/O operations
+# Query Planner - VPS Tuned
+random_page_cost = 1.1                  # SSD assumption
+seq_page_cost = 1.0
+effective_io_concurrency = 100          # Limited VPS I/O
+cpu_tuple_cost = 0.01                   # Shared vCPU consideration
 
-# Parallel Query Configuration
-max_parallel_workers_per_gather = 2     # Parallel workers per query
-max_parallel_workers = 8                # Total parallel workers
-max_parallel_maintenance_workers = 2    # For maintenance operations
+# Parallel Processing - Minimal on VPS
+max_parallel_workers_per_gather = 1     # Single worker
+max_parallel_workers = 2                # Minimal
+max_parallel_maintenance_workers = 1
 
-# Logging Configuration (Development)
+# Logging - Minimal for VPS Performance
 log_destination = 'stderr'
-log_statement = 'mod'                   # Log modifications only
-log_min_duration_statement = 1000       # Log slow queries (>1s)
-log_checkpoints = on
-log_connections = on
-log_disconnections = on
-log_lock_waits = on
+log_statement = 'none'                  # No verbose logging
+log_min_duration_statement = 5000       # Only very slow queries (5s+)
+log_checkpoints = off                   # Reduce I/O
+log_connections = off                   # Reduce verbosity
+log_lock_waits = on                     # Keep critical logs only
 
-# Performance Monitoring
-shared_preload_libraries = 'pg_stat_statements'
-track_activity_query_size = 2048
+# Autovacuum - Less Aggressive on VPS
+autovacuum = on
+autovacuum_max_workers = 2              # Reduced workers
+autovacuum_naptime = 300                # 5min intervals
+autovacuum_vacuum_threshold = 100       # Higher threshold
+autovacuum_analyze_threshold = 100
+
+# Background Writer - VPS Optimized
+bgwriter_delay = 200ms                  # Default
+bgwriter_lru_maxpages = 100            # Reduced
+bgwriter_lru_multiplier = 2.0
+
+# Statistics - Reduced for VPS CPU
+default_statistics_target = 50          # Reduced from 100
+track_activity_query_size = 1024        # Reduced from 2048
 ```
 
 #### **Results Expected**
-- **Query Performance**: 60-80% faster complex queries
-- **Concurrent Operations**: Better handling of multiple connections  
-- **Memory Efficiency**: Optimal buffer management
-- **I/O Optimization**: Reduced disk operations
+- **VPS Memory Safety**: Never exceeds 512MB limit (prevents OOM kills)
+- **Query Performance**: Optimized for 25 concurrent connections max
+- **Storage Efficiency**: 512MB WAL limit saves precious VPS disk space  
+- **CPU Efficiency**: Single-threaded optimization for shared vCPU
+- **I/O Optimization**: Minimal logging reduces SSD wear on VPS
 
 ---
 
