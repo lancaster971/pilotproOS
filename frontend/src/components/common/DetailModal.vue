@@ -5,7 +5,7 @@
       class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       @click.self="handleClickOutside"
     >
-      <div class="w-full max-w-4xl max-h-[70vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden premium-modal">
+      <div class="w-full max-w-5xl h-[80vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden premium-modal flex flex-col">
         
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-border">

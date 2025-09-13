@@ -38,7 +38,7 @@
               <Icon icon="lucide:trending-up" class="w-4 h-4 text-green-400" />
             </div>
             <div class="text-2xl font-bold text-white">
-              {{ data?.execution?.status === 'success' ? '100%' : '95%' }}
+              {{ workflowStats?.kpis?.successRate ? `${workflowStats.kpis.successRate}%` : (data?.execution?.status === 'success' ? '100%' : 'N/A') }}
             </div>
           </div>
 
@@ -48,7 +48,7 @@
               <Icon icon="lucide:clock" class="w-4 h-4 text-blue-400" />
             </div>
             <div class="text-2xl font-bold text-white">
-              {{ data?.execution?.duration ? formatDuration(data.execution.duration) : '4.2s' }}
+              {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : (data?.execution?.duration ? formatDuration(data.execution.duration) : 'N/A') }}
             </div>
           </div>
 
@@ -362,31 +362,35 @@
 
     <!-- Process History Tab -->
     <template #history="{ data }">
-      <div class="p-6">
+      <div class="p-6 overflow-y-auto">
         <h3 class="text-lg font-semibold text-white mb-4">Process Execution History</h3>
 
-        <!-- History Stats -->
+        <!-- History Stats (REAL DATA) -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Last 24 Hours</div>
-            <div class="text-xl font-bold text-white">12</div>
+            <div class="text-xs text-text-muted mb-1">Total Executions</div>
+            <div class="text-xl font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || executionsHistory.length || 0 }}</div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Last 7 Days</div>
-            <div class="text-xl font-bold text-white">84</div>
+            <div class="text-xs text-text-muted mb-1">Success</div>
+            <div class="text-xl font-bold text-green-400">{{ executionsHistory.filter(e => e.status === 'success').length || 0 }}</div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Last 30 Days</div>
-            <div class="text-xl font-bold text-white">360</div>
+            <div class="text-xs text-text-muted mb-1">Failed</div>
+            <div class="text-xl font-bold text-red-400">{{ executionsHistory.filter(e => e.status === 'error').length || 0 }}</div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
             <div class="text-xs text-text-muted mb-1">Success Rate</div>
-            <div class="text-xl font-bold text-green-400">98.5%</div>
+            <div class="text-xl font-bold text-green-400">
+              {{ executionsHistory.length > 0 ?
+                Math.round((executionsHistory.filter(e => e.status === 'success').length / executionsHistory.length) * 100) + '%' :
+                'N/A' }}
+            </div>
           </div>
         </div>
 
-        <!-- Recent History Table -->
-        <div class="bg-surface-hover rounded-lg border border-border overflow-hidden">
+        <!-- Recent History Table (REAL EXECUTIONS DATA) -->
+        <div v-if="executionsHistory.length > 0" class="bg-surface-hover rounded-lg border border-border overflow-hidden">
           <table class="w-full">
             <thead class="bg-black/20 border-b border-border">
               <tr>
@@ -397,85 +401,126 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border/50">
-              <tr class="hover:bg-surface-hover/50">
-                <td class="px-4 py-3 text-sm text-text-muted">Today, 14:23</td>
+              <tr v-for="exec in executionsHistory.slice(0, 10)" :key="exec.id" class="hover:bg-surface-hover/50">
+                <td class="px-4 py-3 text-sm text-text-muted">{{ formatTimestamp(exec.startedAt || exec.createdAt) }}</td>
                 <td class="px-4 py-3">
-                  <span class="px-2 py-1 text-xs bg-green-400/20 text-green-400 rounded">Success</span>
+                  <span :class="[
+                    'px-2 py-1 text-xs rounded',
+                    exec.status === 'success' ? 'bg-green-400/20 text-green-400' :
+                    exec.status === 'error' ? 'bg-red-400/20 text-red-400' :
+                    'bg-yellow-400/20 text-yellow-400'
+                  ]">
+                    {{ exec.status === 'success' ? 'Success' : exec.status === 'error' ? 'Failed' : 'Running' }}
+                  </span>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-muted">4.2s</td>
-                <td class="px-4 py-3 text-sm text-text-muted">Customer inquiry resolved</td>
-              </tr>
-              <tr class="hover:bg-surface-hover/50">
-                <td class="px-4 py-3 text-sm text-text-muted">Today, 11:15</td>
-                <td class="px-4 py-3">
-                  <span class="px-2 py-1 text-xs bg-green-400/20 text-green-400 rounded">Success</span>
+                <td class="px-4 py-3 text-sm text-text-muted">
+                  {{ exec.duration ? formatDuration(exec.duration) : 'N/A' }}
                 </td>
-                <td class="px-4 py-3 text-sm text-text-muted">3.8s</td>
-                <td class="px-4 py-3 text-sm text-text-muted">Order status provided</td>
+                <td class="px-4 py-3 text-sm text-text-muted">
+                  {{ exec.status === 'success' ? 'Process completed successfully' :
+                     exec.status === 'error' ? 'Process encountered an error' :
+                     'Process in progress' }}
+                </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- No Data State -->
+        <div v-else class="text-center py-8 text-gray-400">
+          <Icon icon="lucide:history" class="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No execution history available yet</p>
         </div>
       </div>
     </template>
 
     <!-- Analytics Tab -->
     <template #analytics="{ data }">
-      <div class="p-6 space-y-6">
+      <div class="p-6 space-y-6 overflow-y-auto">
         <h3 class="text-lg font-semibold text-white mb-4">Process Analytics</h3>
 
-        <!-- Performance Trends -->
+        <!-- Performance Trends (REAL DATA) -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
           <h4 class="text-md font-medium text-white mb-3">Performance Trends</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div class="text-sm text-text-muted mb-2">Average Response Time</div>
-              <div class="text-2xl font-bold text-white">4.2s</div>
-              <div class="text-xs text-green-400">↓ 15% from last week</div>
+              <div class="text-2xl font-bold text-white">
+                {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : 'N/A' }}
+              </div>
+              <div v-if="workflowStats?.trends?.avgDurationTrend" class="text-xs" :class="workflowStats.trends.avgDurationTrend > 0 ? 'text-red-400' : 'text-green-400'">
+                {{ workflowStats.trends.avgDurationTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.avgDurationTrend) }}% from last period
+              </div>
             </div>
             <div>
               <div class="text-sm text-text-muted mb-2">Process Efficiency</div>
-              <div class="text-2xl font-bold text-white">87%</div>
-              <div class="text-xs text-green-400">↑ 5% from last month</div>
+              <div class="text-2xl font-bold text-white">
+                {{ workflowStats?.kpis?.successRate ? `${workflowStats.kpis.successRate}%` : 'N/A' }}
+              </div>
+              <div v-if="workflowStats?.trends?.successRateTrend" class="text-xs" :class="workflowStats.trends.successRateTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                {{ workflowStats.trends.successRateTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.successRateTrend) }}% from last period
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Business Insights -->
+        <!-- Business Insights (REAL DATA DRIVEN) -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
           <h4 class="text-md font-medium text-white mb-3">Business Insights</h4>
           <ul class="space-y-3">
-            <li class="flex items-start gap-2">
+            <li v-if="workflowStats?.kpis?.totalExecutions" class="flex items-start gap-2">
+              <Icon icon="lucide:activity" class="w-5 h-5 text-green-400 mt-0.5" />
+              <div>
+                <div class="text-sm text-white">Process Activity</div>
+                <div class="text-xs text-text-muted">{{ workflowStats.kpis.totalExecutions }} total executions recorded</div>
+              </div>
+            </li>
+            <li v-if="workflowStats?.kpis?.successRate" class="flex items-start gap-2">
+              <Icon icon="lucide:check-circle" class="w-5 h-5 text-blue-400 mt-0.5" />
+              <div>
+                <div class="text-sm text-white">Reliability Score</div>
+                <div class="text-xs text-text-muted">{{ workflowStats.kpis.successRate }}% success rate maintained</div>
+              </div>
+            </li>
+            <li v-if="workflowStats?.kpis?.avgRunTime" class="flex items-start gap-2">
+              <Icon icon="lucide:clock" class="w-5 h-5 text-purple-400 mt-0.5" />
+              <div>
+                <div class="text-sm text-white">Performance Baseline</div>
+                <div class="text-xs text-text-muted">Average completion time: {{ formatDuration(workflowStats.kpis.avgRunTime) }}</div>
+              </div>
+            </li>
+            <li v-if="executionsHistory.length > 0" class="flex items-start gap-2">
               <Icon icon="lucide:trending-up" class="w-5 h-5 text-green-400 mt-0.5" />
               <div>
-                <div class="text-sm text-white">Peak Usage Time</div>
-                <div class="text-xs text-text-muted">Most activity between 9 AM - 11 AM</div>
-              </div>
-            </li>
-            <li class="flex items-start gap-2">
-              <Icon icon="lucide:zap" class="w-5 h-5 text-blue-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Optimization Opportunity</div>
-                <div class="text-xs text-text-muted">Database queries can be cached for 20% speed improvement</div>
-              </div>
-            </li>
-            <li class="flex items-start gap-2">
-              <Icon icon="lucide:award" class="w-5 h-5 text-purple-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Success Pattern</div>
-                <div class="text-xs text-text-muted">99% success rate for standard customer inquiries</div>
+                <div class="text-sm text-white">Recent Performance</div>
+                <div class="text-xs text-text-muted">
+                  Last {{ Math.min(executionsHistory.length, 10) }} executions:
+                  {{ Math.round((executionsHistory.slice(0, 10).filter(e => e.status === 'success').length / Math.min(executionsHistory.length, 10)) * 100) }}% success rate
+                </div>
               </div>
             </li>
           </ul>
         </div>
 
-        <!-- Recommendations -->
+        <!-- Recommendations (DATA-DRIVEN) -->
         <div class="bg-gradient-to-r from-blue-500/20 to-blue-500/10 rounded-lg p-5 border border-blue-500/30">
           <h4 class="text-md font-medium text-white mb-3">Recommendations</h4>
           <ul class="space-y-2 text-sm text-text-muted">
-            <li>• Consider implementing response caching for frequent queries</li>
-            <li>• Schedule resource-intensive processes during off-peak hours</li>
-            <li>• Enable parallel processing for independent workflow steps</li>
+            <li v-if="workflowStats?.kpis?.successRate && workflowStats.kpis.successRate < 95">
+              • Success rate is {{ workflowStats.kpis.successRate }}% - investigate failed executions for improvement opportunities
+            </li>
+            <li v-if="workflowStats?.kpis?.avgRunTime && workflowStats.kpis.avgRunTime > 10000">
+              • Average runtime exceeds 10 seconds - consider optimizing process steps or enabling parallel execution
+            </li>
+            <li v-if="executionsHistory.filter(e => e.status === 'error').length > 0">
+              • {{ executionsHistory.filter(e => e.status === 'error').length }} failed executions detected - review error patterns for resolution
+            </li>
+            <li v-if="!workflowStats?.kpis?.totalExecutions || workflowStats.kpis.totalExecutions === 0">
+              • No execution data available - run the process to collect performance metrics
+            </li>
+            <li v-else-if="workflowStats?.kpis?.successRate >= 95">
+              • Excellent performance maintained - consider expanding process capabilities
+            </li>
           </ul>
         </div>
       </div>
@@ -554,6 +599,10 @@ const timelineData = ref<any>(null)
 const expandedStep = ref<string | null>(null)
 const expandedSteps = ref(new Set<string>())
 
+// Additional data for Business Dashboard tabs
+const executionsHistory = ref<any[]>([])
+const workflowStats = ref<any>(null)
+
 // Modal configuration
 const modalTitle = computed(() => {
   return timelineData.value?.workflow?.name || `Business Process ${props.workflowId}`
@@ -578,19 +627,35 @@ const tabs = [
 const loadTimeline = async () => {
   setLoading(true)
   setError(null)
-  
+
   try {
     console.log('🔄 Loading raw data for modal:', props.workflowId, props.executionId ? `(execution: ${props.executionId})` : '(latest)')
-    
+
     const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
     let url = `${API_BASE}/api/business/raw-data-for-modal/${props.workflowId}`
     if (props.executionId) {
       url += `?executionId=${props.executionId}`
     }
-    
+
     // Use OFETCH API client instead of direct fetch
     const data = await businessAPI.getWorkflowDetails(props.workflowId)
     console.log('✅ Process timeline loaded:', data.data)
+
+    // Load additional data for Business Dashboard tabs (NO MOCK DATA!)
+    try {
+      // Load executions history
+      const executionsResponse = await businessAPI.getProcessExecutionsForWorkflow(props.workflowId)
+      executionsHistory.value = executionsResponse.data?.executions || []
+      console.log('✅ Executions history loaded:', executionsHistory.value.length, 'executions')
+
+      // Load workflow statistics
+      const statsResponse = await businessAPI.getProcessAnalytics(props.workflowId)
+      workflowStats.value = statsResponse.data || {}
+      console.log('✅ Workflow stats loaded:', workflowStats.value)
+    } catch (err) {
+      console.warn('⚠️ Could not load additional dashboard data:', err)
+      // Continue without additional data rather than failing completely
+    }
     
     // Check if no business nodes are configured
     if (!data.data?.businessNodes || data.data.businessNodes.length === 0) {
