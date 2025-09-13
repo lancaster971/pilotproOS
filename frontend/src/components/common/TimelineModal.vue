@@ -21,16 +21,16 @@
     <!-- Process Overview Tab -->
     <template #overview="{ data }">
       <div class="p-6 space-y-6">
-        <!-- Process Description -->
+        <!-- Process Description from Sticky Notes or Default -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
           <h3 class="text-lg font-semibold text-white mb-3">Process Description</h3>
           <p class="text-text-muted">
-            This business process automates customer interactions and data processing operations,
-            ensuring efficient workflow execution and reliable business outcomes.
+            {{ workflowInfo?.description || workflowInfo?.purpose ||
+               'This business process automates operations to ensure efficient workflow execution and reliable business outcomes.' }}
           </p>
         </div>
 
-        <!-- Key Metrics Grid -->
+        <!-- Key Metrics Grid - Universal for ALL workflows -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-surface-hover rounded-lg p-4 border border-border">
             <div class="flex items-center justify-between mb-2">
@@ -38,27 +38,27 @@
               <Icon icon="lucide:trending-up" class="w-4 h-4 text-green-400" />
             </div>
             <div class="text-2xl font-bold text-white">
-              {{ workflowStats?.kpis?.successRate ? `${workflowStats.kpis.successRate}%` : (data?.execution?.status === 'success' ? '100%' : 'N/A') }}
+              {{ calculateSuccessRate() }}%
             </div>
           </div>
 
           <div class="bg-surface-hover rounded-lg p-4 border border-border">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-text-muted">Avg Duration</span>
-              <Icon icon="lucide:clock" class="w-4 h-4 text-blue-400" />
+              <span class="text-sm text-text-muted">{{ getBusinessMetricLabel() }}</span>
+              <Icon icon="lucide:database" class="w-4 h-4 text-blue-400" />
             </div>
             <div class="text-2xl font-bold text-white">
-              {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : (data?.execution?.duration ? formatDuration(data.execution.duration) : 'N/A') }}
+              {{ formatBusinessMetric() }}
             </div>
           </div>
 
           <div class="bg-surface-hover rounded-lg p-4 border border-border">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-text-muted">Total Steps</span>
+              <span class="text-sm text-text-muted">Total Operations</span>
               <Icon icon="lucide:layers" class="w-4 h-4 text-purple-400" />
             </div>
             <div class="text-2xl font-bold text-white">
-              {{ data?.stats?.totalShowNodes || data?.businessNodes?.length || 0 }}
+              {{ workflowStats?.total_executions || executionsHistory.length || 0 }}
             </div>
           </div>
         </div>
@@ -103,11 +103,37 @@
       </div>
     </template>
 
-    <!-- Executions Details Tab -->
+    <!-- Latest Activity Tab - Shows recent operations -->
     <template #executions="{ data }">
       <div class="p-6">
+        <!-- Recent Activity from Dashboard API -->
+        <div v-if="recentActivity?.length > 0" class="space-y-4 mb-6">
+          <h3 class="text-lg font-semibold text-white mb-4">Recent Business Activity</h3>
+          <div v-for="(activity, index) in recentActivity.slice(0, 10)" :key="index"
+               class="bg-surface-hover rounded-lg p-4 border border-border">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span :class="[
+                    'px-2 py-1 text-xs rounded',
+                    activity.type === 'AI Response' ? 'bg-purple-500/20 text-purple-300' :
+                    activity.type === 'Email' ? 'bg-blue-500/20 text-blue-300' :
+                    activity.type === 'Order' ? 'bg-green-500/20 text-green-300' :
+                    'bg-gray-500/20 text-gray-300'
+                  ]">{{ activity.type }}</span>
+                  <span class="text-xs text-text-muted">{{ formatRelativeTime(activity.timestamp) }}</span>
+                </div>
+                <p class="text-sm text-white">{{ activity.summary }}</p>
+                <p v-if="activity.classification" class="text-xs text-text-muted mt-1">
+                  Classification: {{ activity.classification }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div v-if="data?.businessNodes?.length > 0" class="space-y-6">
+        <!-- Fallback to business nodes if no recent activity -->
+        <div v-else-if="data?.businessNodes?.length > 0" class="space-y-6">
           <div
             v-for="(step, index) in data.businessNodes"
             :key="step._nodeId || index"
@@ -602,6 +628,8 @@ const expandedSteps = ref(new Set<string>())
 // Additional data for Business Dashboard tabs
 const executionsHistory = ref<any[]>([])
 const workflowStats = ref<any>(null)
+const recentActivity = ref<any[]>([])
+const workflowInfo = ref<any>(null)
 
 // Modal configuration
 const modalTitle = computed(() => {
@@ -629,33 +657,45 @@ const loadTimeline = async () => {
   setError(null)
 
   try {
-    console.log('🔄 Loading raw data for modal:', props.workflowId, props.executionId ? `(execution: ${props.executionId})` : '(latest)')
+    console.log('🔄 Loading dashboard data for workflow:', props.workflowId)
 
     const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
-    let url = `${API_BASE}/api/business/raw-data-for-modal/${props.workflowId}`
-    if (props.executionId) {
-      url += `?executionId=${props.executionId}`
+
+    // Use new dashboard endpoint that aggregates all data
+    const dashboardResponse = await $fetch(`${API_BASE}/api/business/dashboard/${props.workflowId}`)
+    console.log('✅ Dashboard data loaded:', dashboardResponse)
+
+    // Process workflow info
+    if (dashboardResponse.workflow) {
+      workflowInfo.value = dashboardResponse.workflow
     }
 
-    // Use OFETCH API client instead of direct fetch
-    const data = await businessAPI.getWorkflowDetails(props.workflowId)
-    console.log('✅ Process timeline loaded:', data.data)
+    // Process executions with business data
+    if (dashboardResponse.executions) {
+      executionsHistory.value = dashboardResponse.executions
+      console.log('✅ Executions with business data:', executionsHistory.value.length)
+    }
 
-    // Load additional data for Business Dashboard tabs (NO MOCK DATA!)
+    // Process statistics
+    if (dashboardResponse.statistics) {
+      workflowStats.value = dashboardResponse.statistics
+      console.log('✅ Statistics loaded:', workflowStats.value)
+    }
+
+    // Process recent activity (AI responses, emails)
+    if (dashboardResponse.recentActivity) {
+      recentActivity.value = dashboardResponse.recentActivity
+      console.log('✅ Recent activity loaded:', recentActivity.value.length, 'items')
+    }
+
+    // Also load timeline data for timeline tab
     try {
-      // Load executions history
-      const executionsResponse = await businessAPI.getProcessExecutionsForWorkflow(props.workflowId)
-      executionsHistory.value = executionsResponse.data?.executions || []
-      console.log('✅ Executions history loaded:', executionsHistory.value.length, 'executions')
-
-      // Load workflow statistics
-      const statsResponse = await businessAPI.getProcessAnalytics(props.workflowId)
-      workflowStats.value = statsResponse.data || {}
-      console.log('✅ Workflow stats loaded:', workflowStats.value)
-    } catch (err) {
-      console.warn('⚠️ Could not load additional dashboard data:', err)
-      // Continue without additional data rather than failing completely
-    }
+      let url = `${API_BASE}/api/business/raw-data-for-modal/${props.workflowId}`
+      if (props.executionId) {
+        url += `?executionId=${props.executionId}`
+      }
+      const data = await businessAPI.getWorkflowDetails(props.workflowId)
+      console.log('✅ Process timeline loaded:', data.data)
     
     // Check if no business nodes are configured
     if (!data.data?.businessNodes || data.data.businessNodes.length === 0) {
@@ -856,6 +896,48 @@ const getBusinessData = (step: any, dataType: 'input' | 'output'): string => {
 
 const toggleExpanded = (stepId: string | number) => {
   expandedStep.value = expandedStep.value === stepId ? null : String(stepId)
+}
+
+// Business Data Helper Functions - Universal for ALL workflows
+const calculateSuccessRate = () => {
+  const successCount = workflowStats.value?.successCount || 0
+  const errorCount = workflowStats.value?.errorCount || 0
+  const total = successCount + errorCount
+  if (total === 0) return 100
+  return Math.round((successCount / total) * 100)
+}
+
+const getBusinessMetricLabel = () => {
+  // Intelligently determine what metric to show based on available data
+  if (workflowStats.value?.total_orders > 0) return 'Orders Processed'
+  if (workflowStats.value?.ai_responses > 0) return 'AI Responses'
+  if (workflowStats.value?.emails_processed > 0) return 'Emails Handled'
+  if (workflowStats.value?.unique_senders > 0) return 'Unique Customers'
+  return 'Data Points'
+}
+
+const formatBusinessMetric = () => {
+  // Show the most relevant business metric
+  if (workflowStats.value?.total_orders > 0) return workflowStats.value.total_orders
+  if (workflowStats.value?.ai_responses > 0) return workflowStats.value.ai_responses
+  if (workflowStats.value?.emails_processed > 0) return workflowStats.value.emails_processed
+  if (workflowStats.value?.unique_senders > 0) return workflowStats.value.unique_senders
+  return workflowStats.value?.total_executions || 0
+}
+
+const formatRelativeTime = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+  return `${days} day${days > 1 ? 's' : ''} ago`
 }
 
 // Utility functions

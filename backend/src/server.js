@@ -2564,6 +2564,280 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
 });
 
 // ============================================================================
+// BUSINESS DASHBOARD API - Universal system for ALL workflows
+// ============================================================================
+app.get('/api/business/dashboard/:workflowId', async (req, res) => {
+  const { workflowId } = req.params;
+  console.log(`📊 Dashboard data requested for workflow: ${workflowId}`);
+
+  try {
+    // 1. Get workflow with nodes (including sticky notes)
+    const workflowResult = await dbPool.query(
+      `SELECT id, name, active, "createdAt", "updatedAt", nodes
+       FROM n8n.workflow_entity
+       WHERE id = $1`,
+      [workflowId]
+    );
+
+    if (workflowResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Process not found' });
+    }
+
+    const workflow = workflowResult.rows[0];
+
+    // 2. Extract business description from sticky notes
+    let businessDescription = null;
+    let workflowPurpose = 'Business Process Automation';
+
+    try {
+      const nodes = workflow.nodes || [];
+      for (const node of nodes) {
+        if (node.type === 'n8n-nodes-base.stickyNote') {
+          const content = node.parameters?.content || '';
+          // Look for Description sticky note
+          if (content.toLowerCase().includes('description')) {
+            businessDescription = content.replace(/^#*\s*description\s*:?\s*/i, '').trim();
+          }
+          // Also capture any sticky note that looks like documentation
+          if (!businessDescription && content.length > 50) {
+            workflowPurpose = content.substring(0, 200).trim();
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Could not parse sticky notes:', e);
+    }
+
+    // 3. Get latest executions with ALL available business data
+    const executionsResult = await dbPool.query(
+      `SELECT
+        ee.id,
+        ee.status,
+        ee."startedAt",
+        ee."stoppedAt",
+        ee.mode,
+        EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt")) * 1000 as duration_ms,
+        bed.ai_response,
+        bed.email_subject,
+        bed.email_sender,
+        bed.email_content,
+        bed.ai_classification,
+        bed.order_id,
+        bed.order_customer,
+        bed.business_category,
+        bed.business_summary,
+        bed.raw_output_data,
+        bed.available_fields
+       FROM n8n.execution_entity ee
+       LEFT JOIN pilotpros.business_execution_data bed
+         ON ee.id::text = bed.execution_id
+         AND bed.workflow_id = $1
+       WHERE ee."workflowId" = $1
+         AND ee.finished = true
+       ORDER BY ee."startedAt" DESC
+       LIMIT 30`,
+      [workflowId]
+    );
+
+    // 3. Get workflow statistics
+    const statsResult = await dbPool.query(
+      `SELECT
+        name as stat_type,
+        count,
+        "latestEvent"
+       FROM n8n.workflow_statistics
+       WHERE "workflowId" = $1
+       AND name IN ('production_success', 'production_error')`,
+      [workflowId]
+    );
+
+    // 4. Get aggregated business data
+    const businessDataResult = await dbPool.query(
+      `SELECT
+        COUNT(DISTINCT execution_id) as total_executions,
+        COUNT(DISTINCT order_id) as total_orders,
+        COUNT(DISTINCT email_sender) as unique_senders,
+        COUNT(CASE WHEN ai_response IS NOT NULL THEN 1 END) as ai_responses,
+        COUNT(CASE WHEN email_content IS NOT NULL THEN 1 END) as emails_processed,
+        AVG(data_size) as avg_data_size
+       FROM pilotpros.business_execution_data
+       WHERE workflow_id = $1`,
+      [workflowId]
+    );
+
+    // 5. Get recent AI responses and emails for overview
+    const recentActivityResult = await dbPool.query(
+      `SELECT
+        show_tag,
+        business_category,
+        ai_classification,
+        LEFT(ai_response, 500) as ai_response_preview,
+        email_subject,
+        LEFT(email_content, 300) as email_preview,
+        order_id,
+        extracted_at
+       FROM pilotpros.business_execution_data
+       WHERE workflow_id = $1
+         AND (ai_response IS NOT NULL OR email_content IS NOT NULL)
+       ORDER BY extracted_at DESC
+       LIMIT 10`,
+      [workflowId]
+    );
+
+    // Universal Business Data Interpreter - works for ANY workflow
+    const interpretBusinessData = (row) => {
+      let mainBusinessInfo = null;
+      let businessType = 'generic';
+      let displayData = {};
+
+      // 1. Check for AI responses (Milena, AI assistants)
+      if (row.ai_response) {
+        businessType = 'ai_assistant';
+        mainBusinessInfo = row.ai_response.substring(0, 150).replace(/<[^>]*>/g, '') + '...';
+        displayData.type = 'AI Response';
+        displayData.classification = row.ai_classification || 'General inquiry';
+      }
+      // 2. Check for email data
+      else if (row.email_subject || row.email_content) {
+        businessType = 'email_processing';
+        mainBusinessInfo = `Email: ${row.email_subject || 'No subject'}`;
+        displayData.type = 'Email Processing';
+        displayData.sender = row.email_sender;
+      }
+      // 3. Check for order data
+      else if (row.order_id) {
+        businessType = 'order_management';
+        mainBusinessInfo = `Order #${row.order_id}`;
+        displayData.type = 'Order Processing';
+        displayData.customer = row.order_customer;
+      }
+      // 4. Try to extract from raw_output_data if available
+      else if (row.raw_output_data) {
+        try {
+          const data = typeof row.raw_output_data === 'string' ?
+            JSON.parse(row.raw_output_data) : row.raw_output_data;
+
+          // Look for common business fields
+          if (data.main?.json) {
+            const json = data.main.json;
+            if (json['Numero Ordine']) {
+              mainBusinessInfo = `Order: ${json['Numero Ordine']}`;
+              displayData.type = 'Order Processing';
+            } else if (json.Prodotto) {
+              mainBusinessInfo = `Product: ${json.Prodotto}`;
+              displayData.type = 'Product Management';
+            } else if (json.Fornitore) {
+              mainBusinessInfo = `Supplier: ${json.Fornitore}`;
+              displayData.type = 'Supplier Data';
+            } else {
+              // Extract first meaningful field
+              const firstKey = Object.keys(json).find(k =>
+                json[k] && typeof json[k] === 'string' && json[k].length > 0
+              );
+              if (firstKey) {
+                mainBusinessInfo = `${firstKey}: ${json[firstKey]}`;
+              }
+            }
+          }
+        } catch (e) {
+          // If parsing fails, use business summary
+        }
+      }
+
+      // 5. Fallback to business summary or generic message
+      if (!mainBusinessInfo) {
+        mainBusinessInfo = row.business_summary ||
+                          row.business_category ||
+                          'Process completed successfully';
+        displayData.type = 'Business Process';
+      }
+
+      return {
+        mainInfo: mainBusinessInfo,
+        businessType,
+        displayData
+      };
+    };
+
+    // Build response with interpreted data
+    const response = {
+      success: true,
+      workflow: {
+        id: workflow.id,
+        name: workflow.name,
+        active: workflow.active,
+        description: businessDescription,
+        purpose: workflowPurpose,
+        createdAt: workflow.createdAt,
+        updatedAt: workflow.updatedAt
+      },
+      executions: executionsResult.rows.map(row => {
+        const interpreted = interpretBusinessData(row);
+        return {
+          id: row.id,
+          status: row.status,
+          startedAt: row.startedAt,
+          stoppedAt: row.stoppedAt,
+          duration: row.duration_ms,
+          mode: row.mode,
+          businessInfo: interpreted.mainInfo,
+          businessType: interpreted.businessType,
+          displayData: interpreted.displayData
+        };
+      }),
+      statistics: {
+        successCount: statsResult.rows.find(r => r.stat_type === 'production_success')?.count || 0,
+        errorCount: statsResult.rows.find(r => r.stat_type === 'production_error')?.count || 0,
+        lastSuccess: statsResult.rows.find(r => r.stat_type === 'production_success')?.latestEvent,
+        lastError: statsResult.rows.find(r => r.stat_type === 'production_error')?.latestEvent,
+        ...businessDataResult.rows[0]
+      },
+      recentActivity: recentActivityResult.rows.map(activity => {
+        // Intelligently format recent activity for display
+        let activitySummary = '';
+        let activityType = '';
+
+        if (activity.ai_response_preview) {
+          activitySummary = activity.ai_response_preview.replace(/<[^>]*>/g, '').substring(0, 100) + '...';
+          activityType = 'AI Response';
+        } else if (activity.email_subject) {
+          activitySummary = `Email: ${activity.email_subject}`;
+          activityType = 'Email';
+        } else if (activity.order_id) {
+          activitySummary = `Order #${activity.order_id} processed`;
+          activityType = 'Order';
+        } else {
+          activitySummary = activity.business_category || 'Operation completed';
+          activityType = 'Process';
+        }
+
+        return {
+          timestamp: activity.extracted_at,
+          summary: activitySummary,
+          type: activityType,
+          category: activity.business_category,
+          classification: activity.ai_classification
+        };
+      }),
+      _metadata: {
+        timestamp: new Date().toISOString(),
+        source: 'dashboard_api'
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('❌ Dashboard API error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load dashboard data',
+      message: error.message
+    });
+  }
+});
+
+// ============================================================================
 // CHECK EXECUTION STATUS ENDPOINT - GET EXECUTION DETAILS WITH ERRORS
 // ============================================================================
 app.get('/api/business/execution-status/:executionId', async (req, res) => {
