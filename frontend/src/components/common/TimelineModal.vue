@@ -52,7 +52,7 @@
                   ]">{{ step.showTag === 'error' ? '⚠️' : index + 1 }}</span>
                 </div>
                 <div>
-                  <h4 class="text-white font-medium">{{ step.name || `Process Step ${index + 1}` }}</h4>
+                  <h4 class="text-white font-medium">{{ step.businessName || step.name || `Process Step ${index + 1}` }}</h4>
                   <p class="text-sm text-gray-400">{{ formatBusinessStepType(step) }}</p>
                 </div>
               </div>

@@ -151,20 +151,22 @@ export class TimelineService {
     console.log(`🔍 Found ${showNodes.length} show nodes to process`);
 
     // Process each show node (preserve existing logic)
-    for (const node of showNodes) {
+    for (let index = 0; index < showNodes.length; index++) {
+      const node = showNodes[index];
       const nodeRunData = runData[node.name];
-      
+
       if (nodeRunData && nodeRunData.length > 0) {
         const nodeData = nodeRunData[0];
-        
+
         // Extract input/output data (preserve existing logic)
         const inputData = nodeData.data?.main?.[0]?.json || null;
         const outputData = nodeData.data?.main?.[0]?.json || null;
-        
+
         // Create timeline entry (preserve existing structure)
         const timelineEntry = {
           showTag: node.name,
           name: node.parameters?.nodeName || node.name,
+          businessName: this.generateBusinessStepName(node, index), // ADD business-friendly name
           type: node.type,
           nodeType: this.categorizeNodeType(node.type),
           executed: true,
@@ -230,6 +232,56 @@ export class TimelineService {
   }
 
   /**
+   * Generate Business Step Name for Client Display
+   * Converts technical node names to business-friendly descriptions
+   * Hides technical implementation details from client view
+   */
+  generateBusinessStepName(node, stepIndex) {
+    const nodeName = (node.parameters?.nodeName || node.name || '').toLowerCase();
+
+    // Email/Communication nodes
+    if (nodeName.includes('mail') || nodeName.includes('ricezione') || nodeName.includes('email')) {
+      return 'Customer Request Processing';
+    }
+
+    // AI Assistant nodes
+    if (nodeName.includes('milena') || nodeName.includes('assistant') || nodeName.includes('ai') || nodeName.includes('gpt')) {
+      return 'Intelligent Response Generation';
+    }
+
+    // Database/Search nodes
+    if (nodeName.includes('ordini') || nodeName.includes('order') || nodeName.includes('database') ||
+        nodeName.includes('search') || nodeName.includes('query') || nodeName.includes('qdrant')) {
+      return 'Information Retrieval';
+    }
+
+    // Sending/Communication output
+    if (nodeName.includes('send') || nodeName.includes('invio') || nodeName.includes('reply') ||
+        nodeName.includes('response')) {
+      return 'Customer Communication';
+    }
+
+    // Document processing
+    if (nodeName.includes('pdf') || nodeName.includes('document') || nodeName.includes('file')) {
+      return 'Document Processing';
+    }
+
+    // Data processing
+    if (nodeName.includes('csv') || nodeName.includes('excel') || nodeName.includes('spreadsheet') ||
+        nodeName.includes('data')) {
+      return 'Data Processing';
+    }
+
+    // Webhook/Integration
+    if (nodeName.includes('webhook') || nodeName.includes('http') || nodeName.includes('api')) {
+      return 'System Integration';
+    }
+
+    // Generic business step with meaningful name
+    return `Business Task ${stepIndex + 1}`;
+  }
+
+  /**
    * Helper Methods (preserve existing business logic)
    */
   categorizeNodeType(nodeType) {
@@ -258,7 +310,7 @@ export class TimelineService {
    * Load Business Data from Database (preserve existing logic)
    * Uses raw SQL temporarily during transition to preserve functionality
    */
-  async loadBusinessDataFromDatabase(workflowId, executionId = null) {
+  async loadBusinessDataFromDatabase(workflowId) {
     try {
       // Use existing BusinessRepository method
       return await this.businessRepo.searchBusinessData({
