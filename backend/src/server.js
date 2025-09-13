@@ -2630,7 +2630,7 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         bed.available_fields
        FROM n8n.execution_entity ee
        LEFT JOIN pilotpros.business_execution_data bed
-         ON ee.id::text = bed.execution_id
+         ON ee.id::text = bed.execution_id::text
          AND bed.workflow_id = $1
        WHERE ee."workflowId" = $1
          AND ee.finished = true
