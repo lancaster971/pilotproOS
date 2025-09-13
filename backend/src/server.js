@@ -94,27 +94,8 @@ dbPool.connect(async (err, client, release) => {
   } else {
     businessLogger.info('PostgreSQL connected successfully', { database: 'pilotpros_db' });
     
-    // ENTERPRISE GRADE: Auto-seed default users on every startup
-    try {
-      const adminHash = '$2a$12$XzE.fb1kwuJqvCR/JGsW5./FCn3EM2b6pLMmubh48jChfMnscKyUC'; // admin123 ENTERPRISE BCRYPTJS
-      
-      await client.query(`
-        INSERT INTO pilotpros.users (email, password_hash, full_name, role, is_active) 
-        VALUES 
-            ('admin@pilotpros.dev', $1, 'PilotPro Admin', 'admin', true),
-            ('tiziano@gmail.com', $1, 'Tiziano', 'admin', true),
-            ('admin@test.com', $1, 'Test Admin', 'admin', true),
-            ('test@example.com', $1, 'Test User', 'viewer', true)
-        ON CONFLICT (email) 
-        DO UPDATE SET 
-            password_hash = EXCLUDED.password_hash,
-            updated_at = CURRENT_TIMESTAMP
-      `, [adminHash]);
-      
-      console.log('✅ ENTERPRISE: Default users ensured (password: admin123)');
-    } catch (seedError) {
-      console.log('⚠️ User seeding error (probably table does not exist yet):', seedError.message);
-    }
+    // Database connected - users managed via UI only
+    console.log('✅ Database ready - users managed via application UI');
     
     release();
   }

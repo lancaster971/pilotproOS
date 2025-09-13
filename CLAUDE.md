@@ -36,6 +36,16 @@ volumes:
   ./data:/var/lib/postgresql/data  # macOS filesystem
 ```
 
+### **USER MANAGEMENT POLICY**:
+⚠️ **REGOLA ENTERPRISE**: User management SOLO via UI/database diretta
+
+- ✅ **Modifiche utenti**: Via interfaccia web o SQL dirette
+- ✅ **Password changes**: Via UI o bcrypt manual update  
+- ❌ **ZERO backend seeding**: Nessun override automatico
+- ❌ **ZERO init script** per utenti production: Solo schema/struttura
+
+**Docker volumes mantengono TUTTE le modifiche utente per sempre**
+
 ---
 
 ## 🎯 **ZERO CUSTOM CODE POLICY**
