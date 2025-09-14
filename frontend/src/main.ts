@@ -58,14 +58,14 @@ const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
 // Router configuration - same as n8n approach
 const routes = [
   { path: '/login', component: LoginPage, name: 'login' },
-  { path: '/', redirect: '/login' },
-  { path: '/insights', component: InsightsPage, name: 'insights', meta: { requiresAuth: true } },
+  { path: '/', redirect: '/insights' },
+  { path: '/insights', component: InsightsPage, name: 'insights' },
   { path: '/dashboard', redirect: '/insights' }, // Redirect for backward compatibility
   // Removed unused workflow routes - redirect to command-center
   { path: '/workflows', redirect: '/command-center' },
   { path: '/workflows/visual', redirect: '/command-center' },
-  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
-  { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
+  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center' },
+  { path: '/executions', component: ExecutionsPagePrime, name: 'executions' },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
@@ -79,7 +79,7 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard DISABLED for testing - WORKFLOW CARDS PRIORITY
+// Auth guard DISABLED - sistema non funziona
 // router.beforeEach(async (to, from, next) => {
 //   next() // BYPASS ALL AUTH
 // })
