@@ -2777,7 +2777,7 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
           status: row.status,
           startedAt: row.startedAt,
           stoppedAt: row.stoppedAt,
-          duration: row.duration_ms,
+          duration_ms: row.duration_ms,
           mode: row.mode,
           businessInfo: interpreted.mainInfo,
           businessType: interpreted.businessType,
