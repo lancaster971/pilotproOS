@@ -107,15 +107,15 @@ npm run dev
 ### Accesso Sistema
 - **Business Interface**: http://localhost:3000
 - **Backend API**: http://localhost:3001
-- **AI Agent**: http://localhost:3002
+- **AI Agent** (opzionale/sperimentale): http://localhost:3002
 - **n8n Workflows** (dev only): http://localhost:5678
 
 ### 🛠️ Development Commands
 ```bash
 # Individual services
-npm run dev:frontend    # React + Vite (port 3000)
+npm run dev:frontend    # Vue 3 + Vite (port 3000)
 npm run dev:backend     # Express API (port 3001)  
-npm run dev:ai-agent    # MCP Agent (port 3002)
+npm run dev:ai-agent    # AI Agent (sperimentale) (port 3002)
 npm run dev:n8n         # Workflow Engine (port 5678)
 
 # n8n Management
@@ -156,7 +156,7 @@ DB_POSTGRESDB_DATABASE=pilotpros_db
 DB_POSTGRESDB_USER=pilotpros_user
 DB_POSTGRESDB_SCHEMA=n8n
 
-# n8n Configuration (v1.106.3)
+# n8n Configuration (v1.110.1)
 N8N_PORT=5678
 N8N_HOST=127.0.0.1
 N8N_BASIC_AUTH_ACTIVE=true
@@ -167,7 +167,7 @@ WEBHOOK_URL=http://localhost:5678
 PORT=3001
 JWT_SECRET=auto-generated-secure-key
 
-# AI Agent
+# AI Agent (facoltativo/sperimentale)
 AI_AGENT_PORT=3002
 
 # Security
@@ -278,7 +278,7 @@ journalctl -f -u workflow-system
 ```bash
 # Clone e setup development environment
 git clone <oneserver-repo>
-cd ONESERVER
+cd pilotproOS
 npm run dev:setup
 
 # Start development stack
@@ -337,5 +337,9 @@ npm run dev:stack
 
 ---
 
-**🎯 Ready to deploy your first ONESERVER instance?**  
+**🎯 Ready to deploy your first PilotProOS instance?**  
 **👉 Start with: `./deploy-client.sh your-domain.com`**
+
+---
+
+Nota AI Agent: il modulo AI (cartella `ai-agent/`) è attualmente disattivato per i deployment di produzione. Il codice rimane come base sperimentale; lasciare il servizio spento per i clienti.

@@ -236,7 +236,7 @@ services:
       # VPS-optimized startup
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"  # No checksums to save I/O
     volumes:
-      - ./database/data-dev:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
       - ./database/init-dev:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
@@ -797,6 +797,8 @@ services:
 
 volumes:
   postgres_optimized_data:
+    driver: local
+  postgres_dev_data:
     driver: local
     driver_opts:
       type: none

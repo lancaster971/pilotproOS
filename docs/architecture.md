@@ -11,11 +11,11 @@
 
 ### Principio Fondamentale: Clean Architecture
 
-L'architettura ONESERVER implementa una **Clean Architecture** a 3 layer con separazione netta delle responsabilità e zero accoppiamento tra livelli.
+L'architettura di PilotProOS implementa una **Clean Architecture** a 3 layer con separazione netta delle responsabilità e zero accoppiamento tra livelli.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              ONESERVER STACK                                │
+│                              PILOTPROOS STACK                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
@@ -23,7 +23,7 @@ L'architettura ONESERVER implementa una **Clean Architecture** a 3 layer con sep
 │  │   FRONTEND      │◄──►│   BACKEND       │◄──►│   DATA LAYER            │ │
 │  │                 │    │   MIDDLEWARE    │    │                         │ │
 │  │  ┌───────────┐  │    │  ┌───────────┐  │    │  ┌─────────┬─────────┐  │ │
-│  │  │   React   │  │    │  │ Express   │  │    │  │PostgreSQL│ n8n     │  │ │
+│  │  │   Vue 3  │  │    │  │ Express   │  │    │  │PostgreSQL│ n8n     │  │ │
 │  │  │   Vite    │  │    │  │ API       │  │    │  │Database  │Server   │  │ │
 │  │  │   SPA     │  │    │  │ Gateway   │  │    │  │Port 5432 │Port 5678│  │ │
 │  │  └───────────┘  │    │  └───────────┘  │    │  └─────────┴─────────┘  │ │
@@ -45,83 +45,51 @@ L'architettura ONESERVER implementa una **Clean Architecture** a 3 layer con sep
 ## 🎯 Layer 1: Frontend Presentation
 
 ### Tecnologie Core
-- **Framework**: React 18.2+ con TypeScript
-- **Build Tool**: Vite 4+ per performance ottimali
-- **Styling**: TailwindCSS + Control Room theme
-- **State Management**: Zustand (semplificato mono-tenant)
+- **Framework**: Vue 3 + TypeScript
+- **Build Tool**: Vite 4+
+- **Styling**: TailwindCSS + temi premium/emerald del design system
+- **State Management**: Pinia
+- **Router**: Vue Router
 - **HTTP Client**: Axios con interceptors
-- **Icons**: Lucide React (consistency design)
+- **Workflow Viz**: VueFlow
+- **Icone**: Iconify/Lucide via `N8nIcon.vue`
 
-### Struttura Componenti
+### Struttura Componenti (estratto reale)
 ```
 frontend/
 ├── src/
+│   ├── layouts/
+│   │   └── AppLayout.vue               # Layout principale
+│   ├── pages/                          # Pagine business
+│   │   ├── DashboardPagePremium.vue
+│   │   ├── ExecutionsPage.vue
+│   │   ├── AnalyticsPage.vue
+│   │   └── SettingsPage.vue
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Layout.tsx              # Layout principale con sidebar
-│   │   │   ├── Sidebar.tsx             # Navigazione business-oriented
-│   │   │   └── Header.tsx              # Header con user context
-│   │   ├── dashboard/
-│   │   │   ├── Dashboard.tsx           # Dashboard overview business
-│   │   │   ├── ProcessMetrics.tsx      # Metriche processi (ex workflows)
-│   │   │   └── RecentActivity.tsx      # Attività recenti
-│   │   ├── processes/                  # Ex-workflows (anonimizzato)
-│   │   │   ├── ProcessList.tsx         # Lista processi business
-│   │   │   ├── ProcessDetail.tsx       # Dettaglio processo
-│   │   │   └── ProcessExecutions.tsx   # Esecuzioni processo
-│   │   ├── analytics/
-│   │   │   ├── PerformanceMetrics.tsx  # Analytics performance
-│   │   │   ├── BusinessInsights.tsx    # Insights business
-│   │   │   └── ReportingDashboard.tsx  # Dashboard reportistica
-│   │   └── ui/                         # Componenti UI base
-│   │       ├── Button.tsx              # Button system
-│   │       ├── Card.tsx                # Card containers
-│   │       ├── Table.tsx               # Data tables
-│   │       └── Modal.tsx               # Modal system
-│   ├── services/
-│   │   ├── api.service.ts              # API layer con middleware backend
-│   │   ├── auth.service.ts             # Authentication service
-│   │   └── websocket.service.ts        # Real-time updates (future)
-│   ├── store/
-│   │   ├── app.store.ts                # Main Zustand store
-│   │   ├── auth.store.ts               # Authentication state
-│   │   └── processes.store.ts          # Processes state (ex-workflows)
+│   │   ├── layout/Sidebar.vue          # Navigazione business
+│   │   ├── common/TimelineModal.vue    # Timeline con BI
+│   │   └── N8nIcon.vue                 # Sistema icone workflow
+│   ├── stores/
+│   │   ├── auth.ts                     # Stato autenticazione
+│   │   ├── workflows.ts                # Stato processi/esecuzioni
+│   │   └── ui.ts                       # Stato UI
 │   └── utils/
-│       ├── constants.ts                # Terminologia business anonimizzata
-│       ├── formatters.ts               # Data formatting utilities
-│       └── validation.ts               # Input validation
+│       ├── api-config.ts               # Config API
+│       └── validation.ts               # Validazione input
 ```
 
 ### API Integration Layer
 ```typescript
-// services/api.service.ts - Interfaccia con Backend Middleware
-class ApiService {
-  private baseURL = 'http://localhost:3001/api';
-  
-  // Business Processes (anonimizzato da "workflows")
-  async getBusinessProcesses() {
-    return this.get('/business/processes');
-  }
-  
-  async getProcessExecutions(processId: string) {
-    return this.get(`/business/processes/${processId}/executions`);
-  }
-  
-  async triggerProcess(processId: string, data: any) {
-    return this.post(`/business/processes/${processId}/trigger`, data);
-  }
-  
-  // Analytics Business
-  async getBusinessAnalytics() {
-    return this.get('/analytics/business-overview');
-  }
-  
-  // ZERO reference a n8n, PostgreSQL, o altre tecnologie
-  private async get(endpoint: string) {
-    // Standard HTTP calls al middleware - NEVER direct DB
-    return axios.get(`${this.baseURL}${endpoint}`);
-  }
-}
+// Esempio semplificato di client API (Vue + Axios)
+import axios from 'axios';
+
+const api = axios.create({ baseURL: '/api' });
+
+export const BusinessApi = {
+  getProcesses: () => api.get('/business/processes'),
+  getExecutions: (id: string) => api.get(`/business/processes/${id}/executions`),
+  analyticsOverview: () => api.get('/analytics/business-overview'),
+};
 ```
 
 ### Anonimizzazione Terminologia
@@ -231,10 +199,10 @@ class DatabaseService {
   
   constructor() {
     this.pool = new Pool({
-      host: 'localhost',
+      host: 'postgres',
       port: 5432,
-      database: 'oneserver_db',
-      user: 'oneserver_user',
+      database: 'pilotpros_db',
+      user: 'pilotpros_user',
       password: process.env.DB_PASSWORD,
       // Connection pool optimization
       max: 20,
@@ -253,11 +221,11 @@ class DatabaseService {
         w.created_at,
         w.updated_at,
         -- Analytics from our schema
-        a.success_rate,
-        a.avg_duration_ms,
-        a.last_execution
+        pa.success_rate,
+        pa.avg_duration_ms,
+        pa.last_execution
       FROM n8n.workflow_entity w
-      LEFT JOIN app.process_analytics a ON w.id = a.n8n_workflow_id
+      LEFT JOIN pilotpros.process_analytics pa ON w.id = pa.n8n_workflow_id
       WHERE w.active = true
       ORDER BY w.updated_at DESC
     `;
@@ -332,7 +300,7 @@ export const securityStack = [
 
 #### Schema Separation Strategy
 ```sql
--- Database: oneserver_db
+-- Database: pilotpros_db
 -- Due schema separati per isolamento completo
 
 -- SCHEMA 1: n8n (n8n ownership completo)
@@ -343,11 +311,11 @@ CREATE SCHEMA n8n;
 -- - credentials_entity (credentials)
 -- - settings (n8n settings)
 
--- SCHEMA 2: app (nostro controllo completo)
-CREATE SCHEMA app;
+-- SCHEMA 2: pilotpros (nostro controllo completo)
+CREATE SCHEMA pilotpros;
 
 -- Business Analytics (nostri dati aggregati)
-CREATE TABLE app.process_analytics (
+CREATE TABLE pilotpros.process_analytics (
     id SERIAL PRIMARY KEY,
     n8n_workflow_id VARCHAR(255) UNIQUE, -- Reference a n8n.workflow_entity.id
     process_name VARCHAR(255),
@@ -360,7 +328,7 @@ CREATE TABLE app.process_analytics (
 );
 
 -- Business Users (authentication nostro)
-CREATE TABLE app.users (
+CREATE TABLE pilotpros.users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
@@ -372,7 +340,7 @@ CREATE TABLE app.users (
 );
 
 -- Business Process Templates (workflow templates)
-CREATE TABLE app.process_templates (
+CREATE TABLE pilotpros.process_templates (
     id SERIAL PRIMARY KEY,
     template_name VARCHAR(255) NOT NULL,
     category VARCHAR(100),
@@ -383,9 +351,9 @@ CREATE TABLE app.process_templates (
 );
 
 -- System Audit Logs
-CREATE TABLE app.audit_logs (
+CREATE TABLE pilotpros.audit_logs (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES app.users(id),
+    user_id UUID REFERENCES pilotpros.users(id),
     action VARCHAR(255) NOT NULL,
     resource_type VARCHAR(100),
     resource_id VARCHAR(255),
@@ -399,7 +367,7 @@ CREATE TABLE app.audit_logs (
 #### Database Views per Sicurezza
 ```sql
 -- Views sicure che aggregano dati cross-schema
-CREATE VIEW app.business_process_summary AS
+CREATE VIEW pilotpros.business_process_summary AS
 SELECT 
     w.id as process_id,
     w.name as process_name,
@@ -407,10 +375,10 @@ SELECT
     w.created_at,
     w.updated_at,
     -- Metriche calcolate
-    COALESCE(a.success_rate, 0) as success_rate,
-    COALESCE(a.avg_duration_ms, 0) as avg_duration_ms,
-    COALESCE(a.total_executions, 0) as total_executions,
-    a.last_execution,
+    COALESCE(pa.success_rate, 0) as success_rate,
+    COALESCE(pa.avg_duration_ms, 0) as avg_duration_ms,
+    COALESCE(pa.total_executions, 0) as total_executions,
+    pa.last_execution,
     -- Process health score (business logic)
     CASE 
         WHEN a.success_rate >= 95 THEN 'Excellent'
@@ -419,11 +387,11 @@ SELECT
         ELSE 'Critical'
     END as health_status
 FROM n8n.workflow_entity w
-LEFT JOIN app.process_analytics a ON w.id = a.n8n_workflow_id
+LEFT JOIN pilotpros.process_analytics pa ON w.id = pa.n8n_workflow_id
 WHERE w.active = true;
 
 -- View per execution analytics
-CREATE VIEW app.process_execution_summary AS
+CREATE VIEW pilotpros.process_execution_summary AS
 SELECT 
     DATE_TRUNC('day', e.started_at) as execution_date,
     COUNT(*) as total_executions,
@@ -447,9 +415,9 @@ module.exports = {
     type: 'postgresdb',
     host: 'localhost',
     port: 5432,
-    database: 'oneserver_db',
+    database: 'pilotpros_db',
     schema: 'n8n', // Isolated schema
-    username: 'oneserver_user',
+    username: 'pilotpros_user',
     password: process.env.DB_PASSWORD,
   },
   
@@ -478,7 +446,7 @@ module.exports = {
   logs: {
     level: 'info',
     output: 'file',
-    file: '/opt/oneserver/logs/n8n.log',
+    file: '/opt/pilotpros/logs/n8n.log',
   },
   
   // Performance tuning
@@ -492,7 +460,7 @@ module.exports = {
 
 #### Data Sync Service
 ```typescript
-// services/sync.service.ts - Sync n8n → app analytics
+// services/sync.service.ts - Sync n8n → pilotpros analytics
 class DataSyncService {
   private dbService: DatabaseService;
   private syncInterval: NodeJS.Timer;
@@ -510,9 +478,9 @@ class DataSyncService {
   }
   
   private async syncProcessAnalytics() {
-    // Calcola metriche dai dati n8n e aggiorna app schema
+    // Calcola metriche dai dati n8n e aggiorna schema pilotpros
     const query = `
-      INSERT INTO app.process_analytics (
+      INSERT INTO pilotpros.process_analytics (
         n8n_workflow_id, process_name, success_rate, 
         avg_duration_ms, total_executions, last_execution, updated_at
       )
@@ -593,8 +561,8 @@ class DataSyncService {
 -- Indexes per performance ottimali
 CREATE INDEX idx_workflow_active ON n8n.workflow_entity(active) WHERE active = true;
 CREATE INDEX idx_execution_workflow_date ON n8n.execution_entity(workflow_id, started_at);
-CREATE INDEX idx_process_analytics_workflow ON app.process_analytics(n8n_workflow_id);
-CREATE INDEX idx_audit_logs_timestamp ON app.audit_logs(timestamp);
+CREATE INDEX idx_process_analytics_workflow ON pilotpros.process_analytics(n8n_workflow_id);
+CREATE INDEX idx_audit_logs_timestamp ON pilotpros.audit_logs(timestamp);
 
 -- Partitioning per execution_entity (high volume table)
 CREATE TABLE n8n.execution_entity_y2025 PARTITION OF n8n.execution_entity
@@ -657,8 +625,8 @@ PORT=3001
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=oneserver_db
-DB_USER=oneserver_user
+DB_NAME=pilotpros_db
+DB_USER=pilotpros_user
 DB_PASSWORD=secure_random_password
 DB_POOL_MAX=20
 DB_POOL_MIN=5
@@ -681,7 +649,7 @@ SSL_KEY_PATH=/etc/ssl/private/client-domain.key
 
 # Logging Configuration
 LOG_LEVEL=info
-LOG_FILE=/opt/oneserver/logs/backend.log
+LOG_FILE=/opt/pilotpros/logs/backend.log
 LOG_MAX_SIZE=10MB
 LOG_ROTATE=7d
 

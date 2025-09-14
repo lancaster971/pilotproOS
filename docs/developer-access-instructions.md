@@ -3,7 +3,7 @@
 ## 🔧 Workflow Configuration Access
 
 ### Production Access
-- **URL**: https://client-domain.com/dev/workflows/
+- **URL**: https://client-domain.com/dev-panel
 - **Auth**: Developer credentials (htpasswd)
 - **Network**: VPN or office network required
 
