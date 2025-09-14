@@ -24,10 +24,10 @@
         <!-- Process Description from Sticky Notes or Default -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
           <h3 class="text-lg font-semibold text-white mb-3">Process Description</h3>
-          <p class="text-text-muted">
+          <div class="text-text-muted whitespace-pre-wrap">
             {{ workflowInfo?.description || workflowInfo?.purpose ||
                'This business process automates operations to ensure efficient workflow execution and reliable business outcomes.' }}
-          </p>
+          </div>
         </div>
 
         <!-- Key Metrics Grid - Universal for ALL workflows -->
@@ -63,40 +63,62 @@
           </div>
         </div>
 
-        <!-- Business Capabilities -->
+        <!-- Business Capabilities - Dynamic from workflow nodes -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
           <h3 class="text-lg font-semibold text-white mb-3">Process Capabilities</h3>
-          <ul class="space-y-2">
+          <ul v-if="workflowInfo?.capabilities?.length > 0" class="space-y-2">
+            <li v-for="(capability, index) in workflowInfo.capabilities" :key="index" class="flex items-start gap-2">
+              <Icon icon="lucide:check-circle" class="w-5 h-5 text-green-400 mt-0.5" />
+              <span class="text-text-muted">{{ capability }}</span>
+            </li>
+          </ul>
+          <!-- Fallback if no capabilities detected -->
+          <ul v-else class="space-y-2">
             <li class="flex items-start gap-2">
               <Icon icon="lucide:check-circle" class="w-5 h-5 text-green-400 mt-0.5" />
-              <span class="text-text-muted">Automated customer request processing</span>
+              <span class="text-text-muted">Automated workflow processing</span>
             </li>
             <li class="flex items-start gap-2">
               <Icon icon="lucide:check-circle" class="w-5 h-5 text-green-400 mt-0.5" />
-              <span class="text-text-muted">Intelligent response generation</span>
+              <span class="text-text-muted">Data transformation and routing</span>
             </li>
             <li class="flex items-start gap-2">
               <Icon icon="lucide:check-circle" class="w-5 h-5 text-green-400 mt-0.5" />
-              <span class="text-text-muted">Real-time data retrieval and processing</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <Icon icon="lucide:check-circle" class="w-5 h-5 text-green-400 mt-0.5" />
-              <span class="text-text-muted">Comprehensive audit trail and reporting</span>
+              <span class="text-text-muted">Business process optimization</span>
             </li>
           </ul>
         </div>
 
-        <!-- Business Value Statement -->
+        <!-- Business Value Statement - Dynamic from execution metrics -->
         <div class="bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg p-5 border border-primary/30">
           <div class="flex items-start gap-3">
             <Icon icon="lucide:target" class="w-6 h-6 text-primary mt-0.5" />
             <div>
               <h3 class="text-lg font-semibold text-white mb-2">Business Value</h3>
               <p class="text-text-muted">
-                This process reduces manual workload by 87%, improves response times to under 5 seconds,
-                and maintains customer satisfaction through consistent, accurate service delivery.
-                All operations are tracked and optimized for continuous improvement.
+                {{ workflowInfo?.businessValue?.summary ||
+                   'This automated process optimizes business operations, reduces manual workload, and ensures consistent service delivery. All operations are tracked for continuous improvement.' }}
               </p>
+
+              <!-- Dynamic metrics grid if available -->
+              <div v-if="workflowInfo?.businessValue" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                <div v-if="workflowInfo.businessValue.automationRate" class="text-center">
+                  <div class="text-xl font-bold text-primary">{{ workflowInfo.businessValue.automationRate }}</div>
+                  <div class="text-xs text-text-muted">Automation</div>
+                </div>
+                <div v-if="workflowInfo.businessValue.timeSaved" class="text-center">
+                  <div class="text-xl font-bold text-green-400">{{ workflowInfo.businessValue.timeSaved }}</div>
+                  <div class="text-xs text-text-muted">Time Saved</div>
+                </div>
+                <div v-if="workflowInfo.businessValue.avgResponseTime" class="text-center">
+                  <div class="text-xl font-bold text-blue-400">{{ workflowInfo.businessValue.avgResponseTime }}</div>
+                  <div class="text-xs text-text-muted">Avg Response</div>
+                </div>
+                <div v-if="workflowInfo.businessValue.dataProcessed" class="text-center">
+                  <div class="text-xl font-bold text-purple-400">{{ workflowInfo.businessValue.dataProcessed }}</div>
+                  <div class="text-xs text-text-muted">Items Processed</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -391,26 +413,27 @@
       <div class="p-6 overflow-y-auto">
         <h3 class="text-lg font-semibold text-white mb-4">Process Execution History</h3>
 
-        <!-- History Stats (REAL DATA) -->
+        <!-- History Stats (REAL DATA - Including Canceled) -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
             <div class="text-xs text-text-muted mb-1">Total Executions</div>
-            <div class="text-xl font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || executionsHistory.length || 0 }}</div>
+            <div class="text-xl font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
             <div class="text-xs text-text-muted mb-1">Success</div>
-            <div class="text-xl font-bold text-green-400">{{ executionsHistory.filter(e => e.status === 'success').length || 0 }}</div>
+            <div class="text-xl font-bold text-green-400">{{ workflowStats?.kpis?.successfulExecutions || 0 }}</div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
             <div class="text-xs text-text-muted mb-1">Failed</div>
-            <div class="text-xl font-bold text-red-400">{{ executionsHistory.filter(e => e.status === 'error').length || 0 }}</div>
+            <div class="text-xl font-bold text-red-400">{{ workflowStats?.kpis?.failedExecutions || 0 }}</div>
+            <div v-if="workflowStats?.kpis?.canceledExecutions > 0" class="text-xs text-orange-400 mt-1">
+              +{{ workflowStats.kpis.canceledExecutions }} canceled
+            </div>
           </div>
           <div class="bg-surface-hover rounded-lg p-3 border border-border">
             <div class="text-xs text-text-muted mb-1">Success Rate</div>
-            <div class="text-xl font-bold text-green-400">
-              {{ executionsHistory.length > 0 ?
-                Math.round((executionsHistory.filter(e => e.status === 'success').length / executionsHistory.length) * 100) + '%' :
-                'N/A' }}
+            <div class="text-xl font-bold" :class="workflowStats?.kpis?.successRate >= 50 ? 'text-green-400' : 'text-orange-400'">
+              {{ workflowStats?.kpis?.successRate || 0 }}%
             </div>
           </div>
         </div>
@@ -465,27 +488,116 @@
       <div class="p-6 space-y-6 overflow-y-auto">
         <h3 class="text-lg font-semibold text-white mb-4">Process Analytics</h3>
 
-        <!-- Performance Trends (REAL DATA) -->
+        <!-- Performance Metrics Grid - UNIVERSAL DATA -->
         <div class="bg-surface-hover rounded-lg p-5 border border-border">
-          <h4 class="text-md font-medium text-white mb-3">Performance Trends</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div class="text-sm text-text-muted mb-2">Average Response Time</div>
-              <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : 'N/A' }}
+          <h4 class="text-md font-medium text-white mb-4">Performance Metrics</h4>
+
+          <!-- Primary Metrics -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div class="text-center p-3 bg-surface rounded-lg">
+              <div class="text-3xl font-bold text-primary">
+                {{ workflowStats?.kpis?.successRate || 0 }}%
               </div>
-              <div v-if="workflowStats?.trends?.avgDurationTrend" class="text-xs" :class="workflowStats.trends.avgDurationTrend > 0 ? 'text-red-400' : 'text-green-400'">
-                {{ workflowStats.trends.avgDurationTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.avgDurationTrend) }}% from last period
+              <div class="text-xs text-text-muted mt-1">Success Rate</div>
+              <div v-if="workflowStats?.trends?.successRateTrend" class="text-xs mt-1"
+                   :class="workflowStats.trends.successRateTrend > 0 ? 'text-green-400' : 'text-red-400'">
+                {{ workflowStats.trends.successRateTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.successRateTrend) }}%
               </div>
             </div>
-            <div>
-              <div class="text-sm text-text-muted mb-2">Process Efficiency</div>
+
+            <div class="text-center p-3 bg-surface rounded-lg">
+              <div class="text-3xl font-bold text-blue-400">
+                {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : '0ms' }}
+              </div>
+              <div class="text-xs text-text-muted mt-1">Avg Response</div>
+              <div v-if="workflowStats?.kpis?.minRunTime" class="text-xs text-gray-500 mt-1">
+                {{ formatDuration(workflowStats.kpis.minRunTime) }} - {{ formatDuration(workflowStats.kpis.maxRunTime) }}
+              </div>
+            </div>
+
+            <div class="text-center p-3 bg-surface rounded-lg">
+              <div class="text-3xl font-bold text-green-400">
+                {{ workflowStats?.kpis?.efficiencyScore || 0 }}
+              </div>
+              <div class="text-xs text-text-muted mt-1">Efficiency Score</div>
+              <div class="text-xs text-gray-500 mt-1">out of 100</div>
+            </div>
+
+            <div class="text-center p-3 bg-surface rounded-lg">
+              <div class="text-3xl font-bold text-purple-400">
+                {{ workflowStats?.kpis?.reliabilityScore || 0 }}%
+              </div>
+              <div class="text-xs text-text-muted mt-1">Reliability</div>
+              <div class="text-xs text-gray-500 mt-1">last 10 runs</div>
+            </div>
+          </div>
+
+          <!-- Operational Metrics -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-3 bg-surface/50 rounded">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-text-muted">Total Runs</span>
+                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</span>
+              </div>
+            </div>
+            <div class="p-3 bg-surface/50 rounded">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-text-muted">Data Processed</span>
+                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.totalDataProcessed || 0 }}</span>
+              </div>
+            </div>
+            <div class="p-3 bg-surface/50 rounded">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-text-muted">Automation Impact</span>
+                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.automationImpact || 0 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Patterns - UNIVERSAL DATA -->
+        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+          <h4 class="text-md font-medium text-white mb-4">Activity Patterns</h4>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center">
               <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.successRate ? `${workflowStats.kpis.successRate}%` : 'N/A' }}
+                {{ workflowStats?.kpis?.last24hExecutions || 0 }}
               </div>
-              <div v-if="workflowStats?.trends?.successRateTrend" class="text-xs" :class="workflowStats.trends.successRateTrend > 0 ? 'text-green-400' : 'text-red-400'">
-                {{ workflowStats.trends.successRateTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.successRateTrend) }}% from last period
+              <div class="text-xs text-text-muted">Last 24h</div>
+            </div>
+
+            <div class="text-center">
+              <div class="text-2xl font-bold text-white">
+                {{ workflowStats?.kpis?.last7dExecutions || 0 }}
               </div>
+              <div class="text-xs text-text-muted">Last 7 days</div>
+            </div>
+
+            <div class="text-center">
+              <div class="text-2xl font-bold text-white">
+                {{ workflowStats?.kpis?.avgExecutionsPerDay || 0 }}
+              </div>
+              <div class="text-xs text-text-muted">Daily Average</div>
+            </div>
+
+            <div class="text-center">
+              <div class="text-2xl font-bold text-white">
+                {{ workflowStats?.kpis?.peakHour !== null ? `${workflowStats.kpis.peakHour}:00` : 'N/A' }}
+              </div>
+              <div class="text-xs text-text-muted">Peak Hour</div>
+            </div>
+          </div>
+
+          <!-- Volume Trend Indicator -->
+          <div v-if="workflowStats?.trends?.volumeTrend !== undefined" class="mt-4 p-3 bg-surface/50 rounded">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-text-muted">Volume Trend</span>
+              <span class="text-sm font-bold"
+                    :class="workflowStats.trends.volumeTrend > 0 ? 'text-green-400' : 'text-orange-400'">
+                {{ workflowStats.trends.volumeTrend > 0 ? '↑' : workflowStats.trends.volumeTrend < 0 ? '↓' : '→' }}
+                {{ Math.abs(workflowStats.trends.volumeTrend) }}% vs previous period
+              </span>
             </div>
           </div>
         </div>

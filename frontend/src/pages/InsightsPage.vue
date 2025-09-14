@@ -121,6 +121,48 @@
             </Card>
           </div>
 
+          <!-- WORKFLOW CARDS SECTION - Prima cosa visibile dopo i KPI -->
+          <div class="workflow-cards-section mt-6 mb-6">
+            <!-- Header sezione con contatori live -->
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-primary to-green-400 bg-clip-text text-transparent">
+                Active Workflows
+              </h2>
+              <div class="flex items-center gap-3">
+                <Badge :value="`${activeWorkflowsCount} Active`" severity="success" class="animate-pulse" />
+                <Badge :value="`${criticalWorkflowsCount} Critical`" severity="danger" v-if="criticalWorkflowsCount > 0" />
+                <div class="flex items-center gap-2 text-text-muted">
+                  <Icon icon="lucide:activity" class="text-primary animate-pulse" />
+                  <span class="text-xs">Live</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading Skeleton -->
+            <div v-if="loadingWorkflows" class="workflow-cards-grid gap-4">
+              <Skeleton v-for="i in 8" :key="i" height="280px" class="rounded-lg" />
+            </div>
+
+            <!-- Workflow Cards Grid -->
+            <div v-if="!loadingWorkflows" class="workflow-cards-grid gap-4">
+              <WorkflowCard
+                v-for="(workflow, index) in workflowCards"
+                :key="workflow.id"
+                :workflow="workflow"
+                :style="{ animationDelay: `${index * 50}ms` }"
+                class="animate-fadeIn"
+              />
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!loadingWorkflows && workflowCards.length === 0"
+                 class="text-center py-12 bg-surface/30 rounded-lg border border-border/50">
+              <Icon icon="lucide:workflow" class="text-6xl text-text-muted mb-4" />
+              <h3 class="text-lg font-bold text-text mb-2">No Workflows Found</h3>
+              <p class="text-text-muted">Start creating workflows to see them here</p>
+            </div>
+          </div>
+
           <!-- Executive Charts Section -->
           <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Premium Performance Chart -->
@@ -592,6 +634,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 // Removed Lucide icons - using PrimeVue icons only
 import MainLayout from '../components/layout/MainLayout.vue'
+import { Icon } from '@iconify/vue'
+import WorkflowCard from '../components/insights/WorkflowCard.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -619,6 +663,12 @@ import webSocketService from '../services/websocket'
 const loading = ref(false)
 const workflowCount = ref(0)
 const activeWorkflows = ref(0)
+
+// Workflow Cards Data
+const workflowCards = ref([])
+const loadingWorkflows = ref(false)
+const activeWorkflowsCount = ref(0)
+const criticalWorkflowsCount = ref(0)
 const totalExecutions = ref(0)
 const successRate = ref(0)
 const successfulExecutions = ref(0)
@@ -990,6 +1040,26 @@ const cleanInsight = (insight: string) => {
   return insight.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()
 }
 
+// Load Workflow Cards
+const loadWorkflowCards = async () => {
+  loadingWorkflows.value = true
+  try {
+    const response = await fetch('http://localhost:3001/api/business/workflow-cards')
+    const data = await response.json()
+
+    if (data.success) {
+      workflowCards.value = data.data
+      activeWorkflowsCount.value = data.summary.active
+      criticalWorkflowsCount.value = data.summary.critical
+      console.log(`📊 Loaded ${data.data.length} workflow cards`)
+    }
+  } catch (error) {
+    console.error('❌ Error loading workflow cards:', error)
+    workflowCards.value = []
+  } finally {
+    loadingWorkflows.value = false
+  }
+}
 
 const loadData = async () => {
   loading.value = true
@@ -1279,7 +1349,10 @@ const loadData = async () => {
 // Lifecycle - CLEAN VERSION
 onMounted(async () => {
   console.log('🚀 InsightsPage mounted - loading ALL REAL data...')
-  
+
+  // Load workflow cards immediately (most important)
+  loadWorkflowCards()
+
   try {
     // Load all APIs with REAL PostgreSQL data
     const [analyticsData, insightsData, healthData, topPerformersData, hourlyData, trendData, eventsData] = await Promise.all([
@@ -1400,3 +1473,80 @@ onUnmounted(() => {
   window.removeEventListener('workflow:updated', loadData)
 })
 </script>
+
+<style scoped>
+/* Workflow Cards Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Transition Group Animations */
+.workflow-card-enter-active,
+.workflow-card-leave-active {
+  transition: all 0.3s ease;
+}
+
+.workflow-card-enter-from {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+.workflow-card-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.workflow-card-move {
+  transition: transform 0.3s ease;
+}
+
+/* Premium Glass Effects */
+.premium-glass {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Gradient Text */
+.text-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Workflow Cards Grid */
+.workflow-cards-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .workflow-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .workflow-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .workflow-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+</style>

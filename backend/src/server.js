@@ -2564,6 +2564,161 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
 });
 
 // ============================================================================
+// SHARED WORKFLOW ANALYSIS FUNCTIONS
+// ============================================================================
+
+// Global function to analyze workflow capabilities from nodes
+const analyzeWorkflowCapabilities = (nodes) => {
+  const capabilities = [];
+  const nodeTypes = new Set();
+
+  // Collect all node types
+  nodes.forEach(node => {
+    if (node.type && !node.type.includes('stickyNote')) {
+      nodeTypes.add(node.type);
+    }
+  });
+
+  // Map node types to business capabilities
+  const capabilityMapping = {
+    // AI & Intelligence
+    'n8n-nodes-base.openAi': 'AI-powered processing',
+    '@n8n/n8n-nodes-langchain.lmChatOpenAi': 'Advanced AI chat',
+    '@n8n/n8n-nodes-langchain.agent': 'AI agent automation',
+
+    // Communication
+    'n8n-nodes-base.gmail': 'Email automation',
+    'n8n-nodes-base.emailSend': 'Email delivery',
+    'n8n-nodes-base.telegram': 'Telegram messaging',
+    'n8n-nodes-base.telegramTrigger': 'Message triggers',
+    'n8n-nodes-base.slack': 'Team collaboration',
+
+    // Data & Integration
+    'n8n-nodes-base.httpRequest': 'API integration',
+    'n8n-nodes-base.webhook': 'Webhook triggers',
+    'n8n-nodes-base.postgres': 'Database operations',
+    'n8n-nodes-base.supabase': 'Cloud database',
+    'n8n-nodes-base.googleSheets': 'Spreadsheet automation',
+    'n8n-nodes-base.googleDrive': 'File management',
+
+    // Process Control
+    'n8n-nodes-base.if': 'Conditional logic',
+    'n8n-nodes-base.switch': 'Multi-path routing',
+    'n8n-nodes-base.merge': 'Data consolidation',
+    'n8n-nodes-base.code': 'Custom logic',
+    'n8n-nodes-base.function': 'Data processing',
+    'n8n-nodes-base.set': 'Data transformation',
+
+    // Scheduling & Triggers
+    'n8n-nodes-base.cron': 'Scheduled execution',
+    'n8n-nodes-base.scheduleTrigger': 'Time-based triggers',
+    'n8n-nodes-base.manualTrigger': 'Manual execution'
+  };
+
+  // Generate capabilities based on detected nodes
+  nodeTypes.forEach(nodeType => {
+    if (capabilityMapping[nodeType]) {
+      capabilities.push(capabilityMapping[nodeType]);
+    }
+  });
+
+  return capabilities.slice(0, 6);
+};
+
+// ============================================================================
+// WORKFLOW CARDS API - For Insights page workflow cards
+// ============================================================================
+app.get('/api/business/workflow-cards', async (req, res) => {
+  console.log('📊 Workflow cards requested for insights page');
+
+  try {
+    // Get all workflows first
+    const workflowsResult = await dbPool.query(
+      `SELECT id, name, active, nodes
+       FROM n8n.workflow_entity
+       ORDER BY active DESC, name
+       LIMIT 12`
+    );
+
+    // Get execution stats for each workflow
+    const workflowCards = [];
+    for (const workflow of workflowsResult.rows) {
+      const statsResult = await dbPool.query(
+        `SELECT
+          COUNT(*) as total_executions,
+          COUNT(CASE WHEN status = 'success' THEN 1 END) as success_count,
+          COUNT(CASE WHEN status = 'error' THEN 1 END) as error_count,
+          COUNT(CASE
+            WHEN "startedAt" > NOW() - INTERVAL '24 hours' THEN 1
+          END) as last_24h_executions,
+          AVG(CASE
+            WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+            THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          END) as avg_runtime,
+          MAX("startedAt") as last_execution
+         FROM n8n.execution_entity
+         WHERE "workflowId" = $1`,
+        [workflow.id]
+      );
+
+      const stats = statsResult.rows[0];
+      const nodes = workflow.nodes || [];
+      const capabilities = analyzeWorkflowCapabilities(nodes).slice(0, 3);
+
+      const total = parseInt(stats.total_executions) || 0;
+      const success = parseInt(stats.success_count) || 0;
+      const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+
+      // Calculate efficiency score
+      const avgRuntime = parseFloat(stats.avg_runtime) || 0;
+      const speedScore = avgRuntime > 0 ? Math.min(100, Math.round(1000 / avgRuntime * 100)) : 50;
+      const efficiencyScore = Math.round((successRate * 0.7) + (speedScore * 0.3));
+
+      // Determine if critical
+      const isCritical = successRate < 50 || stats.error_count > 10;
+
+      workflowCards.push({
+        id: workflow.id,
+        name: workflow.name,
+        active: workflow.active,
+        critical: isCritical,
+        successRate,
+        last24hExecutions: parseInt(stats.last_24h_executions) || 0,
+        avgRunTime: Math.round(avgRuntime),
+        efficiencyScore,
+        capabilities,
+        lastExecution: stats.last_execution,
+        totalExecutions: total
+      });
+    }
+
+    // Sort by priority: critical first, then active, then by 24h executions
+    workflowCards.sort((a, b) => {
+      if (a.critical !== b.critical) return a.critical ? -1 : 1;
+      if (a.active !== b.active) return a.active ? -1 : 1;
+      return b.last24hExecutions - a.last24hExecutions;
+    });
+
+    res.json({
+      success: true,
+      data: workflowCards,
+      summary: {
+        total: workflowCards.length,
+        active: workflowCards.filter(w => w.active).length,
+        critical: workflowCards.filter(w => w.critical).length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching workflow cards:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch workflow cards'
+    });
+  }
+});
+
+// ============================================================================
 // BUSINESS DASHBOARD API - Universal system for ALL workflows
 // ============================================================================
 app.get('/api/business/dashboard/:workflowId', async (req, res) => {
@@ -2585,9 +2740,194 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
 
     const workflow = workflowResult.rows[0];
 
+    // Helper function to analyze workflow capabilities from nodes
+    const analyzeWorkflowCapabilities = (nodes) => {
+      const capabilities = [];
+      const nodeTypes = new Set();
+
+      // Collect all node types
+      nodes.forEach(node => {
+        if (node.type && !node.type.includes('stickyNote')) {
+          nodeTypes.add(node.type);
+        }
+      });
+
+      // Map node types to business capabilities
+      const capabilityMapping = {
+        // AI & Intelligence
+        'n8n-nodes-base.openAi': 'AI-powered intelligent processing and response generation',
+        '@n8n/n8n-nodes-langchain.lmChatOpenAi': 'Advanced conversational AI with context awareness',
+        '@n8n/n8n-nodes-langchain.agent': 'Autonomous AI agent for complex decision making',
+
+        // Communication
+        'n8n-nodes-base.gmail': 'Automated email processing and intelligent responses',
+        'n8n-nodes-base.emailSend': 'Automated email delivery and notification system',
+        'n8n-nodes-base.telegram': 'Real-time messaging and alert notifications',
+        'n8n-nodes-base.telegramTrigger': 'Instant message-triggered automation',
+        'n8n-nodes-base.slack': 'Team collaboration and communication automation',
+
+        // Data & Integration
+        'n8n-nodes-base.httpRequest': 'Real-time API integration and data synchronization',
+        'n8n-nodes-base.webhook': 'Event-driven process triggers and webhooks',
+        'n8n-nodes-base.postgres': 'Enterprise database operations and data persistence',
+        'n8n-nodes-base.supabase': 'Cloud database integration with real-time sync',
+        'n8n-nodes-base.googleSheets': 'Spreadsheet automation and data analysis',
+        'n8n-nodes-base.googleDrive': 'Document management and file processing',
+
+        // Process Control
+        'n8n-nodes-base.if': 'Intelligent conditional routing and decision logic',
+        'n8n-nodes-base.switch': 'Multi-path process branching and routing',
+        'n8n-nodes-base.merge': 'Data consolidation and parallel process synchronization',
+        'n8n-nodes-base.code': 'Custom business logic and data transformation',
+        'n8n-nodes-base.function': 'Advanced data processing and calculations',
+        'n8n-nodes-base.set': 'Data enrichment and transformation',
+
+        // Scheduling & Triggers
+        'n8n-nodes-base.cron': 'Scheduled automation and periodic task execution',
+        'n8n-nodes-base.scheduleTrigger': 'Time-based process automation',
+        'n8n-nodes-base.manualTrigger': 'On-demand process execution',
+
+        // Specialized
+        'n8n-nodes-base.htmlExtract': 'Web content extraction and analysis',
+        'n8n-nodes-base.rss': 'Content aggregation and feed monitoring',
+        'n8n-nodes-base.crypto': 'Secure data encryption and hashing'
+      };
+
+      // Generate capabilities based on detected nodes
+      nodeTypes.forEach(nodeType => {
+        if (capabilityMapping[nodeType]) {
+          capabilities.push(capabilityMapping[nodeType]);
+        }
+      });
+
+      // Add generic capabilities based on node combinations
+      if (nodeTypes.has('n8n-nodes-base.httpRequest') && nodeTypes.has('n8n-nodes-base.postgres')) {
+        capabilities.push('API-to-database synchronization and data pipeline');
+      }
+
+      if (Array.from(nodeTypes).some(t => t.includes('openAi') || t.includes('langchain'))) {
+        capabilities.push('Natural language understanding and processing');
+      }
+
+      if (nodeTypes.has('n8n-nodes-base.if') || nodeTypes.has('n8n-nodes-base.switch')) {
+        capabilities.push('Complex business rule evaluation and routing');
+      }
+
+      // If no specific capabilities found, add default based on node count
+      if (capabilities.length === 0 && nodes.length > 0) {
+        capabilities.push('Automated workflow processing');
+        capabilities.push('Data transformation and routing');
+        capabilities.push('Business process optimization');
+      }
+
+      return capabilities.slice(0, 6); // Return top 6 capabilities
+    };
+
+    // Helper function to calculate business metrics from executions
+    const calculateBusinessMetrics = (executions, nodes) => {
+      const metrics = {
+        totalOperations: executions.length,
+        successCount: 0,
+        totalDurationMs: 0,
+        avgResponseTime: 0,
+        automationRate: 0,
+        timeSaved: 0,
+        dataProcessed: 0
+      };
+
+      // Calculate from execution data
+      executions.forEach(exec => {
+        if (exec.status === 'success') metrics.successCount++;
+        if (exec.duration_ms) metrics.totalDurationMs += parseFloat(exec.duration_ms);
+
+        // Count data items processed
+        if (exec.data_items_count) {
+          metrics.dataProcessed += parseInt(exec.data_items_count);
+        }
+      });
+
+      // Calculate averages and rates
+      if (executions.length > 0) {
+        metrics.avgResponseTime = Math.round(metrics.totalDurationMs / executions.length);
+        metrics.automationRate = Math.round((metrics.successCount / executions.length) * 100);
+
+        // Estimate time saved (assume 5 minutes manual work per automated execution)
+        metrics.timeSaved = Math.round((executions.length * 5) / 60); // Convert to hours
+      }
+
+      // Calculate automation complexity based on nodes
+      const automatedNodes = nodes.filter(n =>
+        !n.type?.includes('manual') &&
+        !n.type?.includes('stickyNote')
+      ).length;
+
+      const complexityScore = automatedNodes > 10 ? 'High' :
+                            automatedNodes > 5 ? 'Medium' : 'Low';
+
+      return {
+        summary: `This process has executed ${metrics.totalOperations} operations with ${metrics.automationRate}% success rate, ` +
+                `processing ${metrics.dataProcessed} data items and saving approximately ${metrics.timeSaved} hours of manual work. ` +
+                `Average response time is ${metrics.avgResponseTime}ms with ${complexityScore} automation complexity.`,
+
+        automationRate: `${metrics.automationRate}%`,
+        timeSaved: `${metrics.timeSaved}h`,
+        operationsCount: metrics.totalOperations,
+        avgResponseTime: `${metrics.avgResponseTime}ms`,
+        dataProcessed: metrics.dataProcessed,
+        successRate: metrics.automationRate
+      };
+    };
+
     // 2. Extract business description from sticky notes
     let businessDescription = null;
     let workflowPurpose = 'Business Process Automation';
+
+    // Helper function to clean and format sticky note content
+    const formatStickyNoteContent = (content) => {
+      if (!content) return '';
+
+      // Remove markdown-style asterisks and format properly
+      let formatted = content
+        // Replace **text** with just text (bold markers)
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        // Replace --- with line breaks
+        .replace(/---+/g, '\n')
+        // Replace # headers with proper spacing
+        .replace(/#+\s*/g, '\n')
+        // Clean up multiple spaces
+        .replace(/\s{2,}/g, ' ')
+        // Clean up multiple newlines
+        .replace(/\n{3,}/g, '\n\n')
+        // Remove leading/trailing whitespace
+        .trim();
+
+      // Split into sections if there are clear delimiters
+      const sections = formatted.split(/\n{2,}/);
+
+      // Process each section to create a structured description
+      const processedSections = sections.map(section => {
+        // Clean each section
+        section = section.trim();
+
+        // If section contains key-value pairs (detected by : or →)
+        if (section.includes(':') || section.includes('→')) {
+          // Format as bullet points
+          const lines = section.split(/[–-]\s*/);
+          return lines
+            .filter(line => line.trim())
+            .map(line => {
+              // Clean up special characters
+              line = line.replace(/[⚡🔴🟠🟡🟢]/g, '').trim();
+              return `• ${line}`;
+            })
+            .join('\n');
+        }
+
+        return section;
+      });
+
+      return processedSections.join('\n\n');
+    };
 
     try {
       const nodes = workflow.nodes || [];
@@ -2595,12 +2935,17 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         if (node.type === 'n8n-nodes-base.stickyNote') {
           const content = node.parameters?.content || '';
           // Look for Description sticky note
-          if (content.toLowerCase().includes('description')) {
-            businessDescription = content.replace(/^#*\s*description\s*:?\s*/i, '').trim();
+          if (content.toLowerCase().includes('description') ||
+              content.toLowerCase().includes('cosa fa') ||
+              content.toLowerCase().includes('processo')) {
+            // Format the content properly
+            businessDescription = formatStickyNoteContent(
+              content.replace(/^#*\s*(description|cosa fa|processo)\s*:?\s*/i, '')
+            );
           }
           // Also capture any sticky note that looks like documentation
           if (!businessDescription && content.length > 50) {
-            workflowPurpose = content.substring(0, 200).trim();
+            workflowPurpose = formatStickyNoteContent(content.substring(0, 500));
           }
         }
       }
@@ -2608,7 +2953,7 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
       console.log('Could not parse sticky notes:', e);
     }
 
-    // 3. Get latest executions with ALL available business data
+    // 3. Get latest executions with ALL available business data including data items count
     const executionsResult = await dbPool.query(
       `SELECT
         ee.id,
@@ -2617,6 +2962,12 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         ee."stoppedAt",
         ee.mode,
         EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt")) * 1000 as duration_ms,
+        CASE
+          WHEN bed.raw_output_data IS NOT NULL
+            AND jsonb_typeof(bed.raw_output_data::jsonb) = 'array'
+          THEN jsonb_array_length(bed.raw_output_data::jsonb)
+          ELSE 1
+        END as data_items_count,
         bed.ai_response,
         bed.email_subject,
         bed.email_sender,
@@ -2634,11 +2985,44 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
          AND bed.workflow_id = $1
        WHERE ee."workflowId" = $1
        ORDER BY ee."startedAt" DESC
-       LIMIT 30`,
+       LIMIT 500`,
       [workflowId]
     );
 
-    // 3. Get workflow statistics
+    // 3a. Get COMPLETE statistics for accurate metrics (no limit)
+    const fullStatsResult = await dbPool.query(
+      `SELECT
+        COUNT(*) as total_count,
+        COUNT(CASE WHEN status = 'success' THEN 1 END) as success_count,
+        COUNT(CASE WHEN status = 'error' THEN 1 END) as error_count,
+        COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled_count,
+        AVG(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
+        END) as avg_duration_ms,
+        MIN(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
+        END) as min_duration_ms,
+        MAX(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
+        END) as max_duration_ms,
+        COUNT(DISTINCT DATE("startedAt")) as active_days,
+        MIN("startedAt") as first_execution,
+        MAX("startedAt") as last_execution
+       FROM n8n.execution_entity
+       WHERE "workflowId" = $1
+         AND "startedAt" IS NOT NULL`,
+      [workflowId]
+    );
+
+    const fullStats = fullStatsResult.rows[0];
+
+    // 3b. Get workflow statistics
     const statsResult = await dbPool.query(
       `SELECT
         name as stat_type,
@@ -2758,6 +3142,11 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
       };
     };
 
+    // Analyze workflow nodes and calculate metrics
+    const workflowNodes = workflow.nodes || [];
+    const capabilities = analyzeWorkflowCapabilities(workflowNodes);
+    const businessValue = calculateBusinessMetrics(executionsResult.rows, workflowNodes);
+
     // Build response with interpreted data
     const response = {
       success: true,
@@ -2767,6 +3156,9 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         active: workflow.active,
         description: businessDescription,
         purpose: workflowPurpose,
+        capabilities: capabilities,
+        businessValue: businessValue,
+        nodeCount: workflowNodes.filter(n => !n.type?.includes('stickyNote')).length,
         createdAt: workflow.createdAt,
         updatedAt: workflow.updatedAt
       },
@@ -2789,29 +3181,173 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         errorCount: statsResult.rows.find(r => r.stat_type === 'production_error')?.count || 0,
         lastSuccess: statsResult.rows.find(r => r.stat_type === 'production_success')?.latestEvent,
         lastError: statsResult.rows.find(r => r.stat_type === 'production_error')?.latestEvent,
-        ...businessDataResult.rows[0],
-        // Add KPIs for Analytics tab
+        // Include business data BUT exclude conflicting total_executions
+        total_orders: businessDataResult.rows[0]?.total_orders || 0,
+        unique_senders: businessDataResult.rows[0]?.unique_senders || 0,
+        ai_responses: businessDataResult.rows[0]?.ai_responses || 0,
+        emails_processed: businessDataResult.rows[0]?.emails_processed || 0,
+        avg_data_size: businessDataResult.rows[0]?.avg_data_size || 0,
+        // Add COMPREHENSIVE KPIs for Analytics tab - USING COMPLETE DATABASE STATS
         kpis: {
-          avgRunTime: (() => {
-            // Try duration_ms first, then fall back to parsing duration string
-            const validDurations = executionsResult.rows.filter(r => {
-              return r.duration_ms !== null && r.duration_ms !== undefined;
-            });
-            if (validDurations.length === 0) return 0;
+          // TIMING METRICS - From FULL database stats
+          avgRunTime: Math.round(parseFloat(fullStats.avg_duration_ms) || 0),
+          minRunTime: Math.round(parseFloat(fullStats.min_duration_ms) || 0),
+          maxRunTime: Math.round(parseFloat(fullStats.max_duration_ms) || 0),
 
-            const totalMs = validDurations.reduce((sum, r) => {
-              return sum + (r.duration_ms || 0);
-            }, 0);
-
-            return totalMs / validDurations.length; // Return in milliseconds for formatDuration
-          })(),
+          // SUCCESS METRICS - From FULL database stats
           successRate: (() => {
-            const total = statsResult.rows.find(r => r.stat_type === 'production_success')?.count || 0;
-            const errors = statsResult.rows.find(r => r.stat_type === 'production_error')?.count || 0;
-            const totalCount = total + errors;
-            return totalCount > 0 ? Math.round((total / totalCount) * 100) : 0;
+            const total = parseInt(fullStats.total_count) || 0;
+            const success = parseInt(fullStats.success_count) || 0;
+            return total > 0 ? Math.round((success / total) * 100) : 0;
+          })(),
+
+          totalExecutions: parseInt(fullStats.total_count) || 0,
+          successfulExecutions: parseInt(fullStats.success_count) || 0,
+          failedExecutions: parseInt(fullStats.error_count) || 0,
+          canceledExecutions: parseInt(fullStats.canceled_count) || 0,
+
+          // DATA PROCESSING METRICS
+          totalDataProcessed: executionsResult.rows.reduce((sum, r) => sum + (r.data_items_count || 0), 0),
+          avgDataItemsPerRun: (() => {
+            const total = executionsResult.rows.reduce((sum, r) => sum + (r.data_items_count || 0), 0);
+            return executionsResult.rows.length > 0 ? Math.round(total / executionsResult.rows.length) : 0;
+          })(),
+
+          // UNIVERSAL BUSINESS METRICS - Work for ALL workflows
+          dataPointsProcessed: (() => {
+            // Count any data point: emails, AI responses, orders, or generic items
+            return executionsResult.rows.filter(r =>
+              r.email_subject || r.ai_response || r.order_id || r.business_category || r.data_items_count > 0
+            ).length;
+          })(),
+
+          uniqueOperations: (() => {
+            // Count unique business operations/categories
+            const operations = new Set(executionsResult.rows
+              .filter(r => r.business_category || r.mode)
+              .map(r => r.business_category || r.mode));
+            return operations.size;
+          })(),
+
+          automationImpact: (() => {
+            // Universal metric: successful automations that saved time
+            const successfulWithData = executionsResult.rows.filter(r =>
+              r.status === 'success' && (r.data_items_count > 0 || r.duration_ms > 0)
+            ).length;
+            return successfulWithData;
+          })(),
+
+          // Optional specific metrics (only show if present)
+          emailsProcessed: executionsResult.rows.filter(r => r.email_subject).length,
+          aiResponsesGenerated: executionsResult.rows.filter(r => r.ai_response).length,
+          ordersProcessed: executionsResult.rows.filter(r => r.order_id).length,
+
+          // TIME DISTRIBUTION
+          executionsByHour: (() => {
+            const hourCounts = {};
+            executionsResult.rows.forEach(r => {
+              if (r.startedAt) {
+                const hour = new Date(r.startedAt).getHours();
+                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+              }
+            });
+            return hourCounts;
+          })(),
+
+          // PERFORMANCE TRENDS
+          last24hExecutions: executionsResult.rows.filter(r => {
+            const execTime = new Date(r.startedAt);
+            const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            return execTime > dayAgo;
+          }).length,
+
+          last7dExecutions: executionsResult.rows.filter(r => {
+            const execTime = new Date(r.startedAt);
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            return execTime > weekAgo;
+          }).length,
+
+          // UNIVERSAL PERFORMANCE SCORES (0-100) - Using FULL stats
+          efficiencyScore: (() => {
+            // Use FULL database stats for accuracy
+            const total = parseInt(fullStats.total_count) || 0;
+            const success = parseInt(fullStats.success_count) || 0;
+            const successRate = total > 0 ? success / total : 0;
+
+            // Speed score: faster is better (normalize to 0-1)
+            const avgDuration = parseFloat(fullStats.avg_duration_ms) || 10000;
+            const speedScore = avgDuration > 0 ? Math.min(1, 1000 / avgDuration) : 0;
+
+            // Volume score: more data processed is better (normalize)
+            const dataVolume = executionsResult.rows.reduce((sum, r) => sum + (r.data_items_count || 0), 0);
+            const volumeScore = Math.min(1, dataVolume / 1000);
+
+            // Combined score with weights
+            return Math.min(100, Math.round(
+              (successRate * 50) +      // 50% weight on success
+              (speedScore * 100 * 0.30) + // 30% weight on speed
+              (volumeScore * 100 * 0.20)  // 20% weight on volume
+            ));
+          })(),
+
+          reliabilityScore: (() => {
+            // Universal reliability based on success consistency
+            const recentExecs = executionsResult.rows.slice(0, 10);
+            const recentSuccess = recentExecs.filter(r => r.status === 'success').length / (recentExecs.length || 1);
+            return Math.round(recentSuccess * 100);
+          })(),
+
+          utilizationRate: (() => {
+            // How frequently the workflow is used (executions per day average) - FROM FULL STATS
+            const total = parseInt(fullStats.total_count) || 0;
+            const activeDays = parseInt(fullStats.active_days) || 1;
+            return Math.round(total / activeDays);
+          })(),
+
+          // UNIVERSAL OPERATIONAL METRICS
+          peakHour: (() => {
+            // Find the hour with most executions
+            const hourCounts = {};
+            executionsResult.rows.forEach(r => {
+              if (r.startedAt) {
+                const hour = new Date(r.startedAt).getHours();
+                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+              }
+            });
+            const sortedHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]);
+            return sortedHours.length > 0 ? parseInt(sortedHours[0][0]) : null;
+          })(),
+
+          avgExecutionsPerDay: (() => {
+            // Universal metric for workflow activity level
+            const last7d = executionsResult.rows.filter(r => {
+              const execTime = new Date(r.startedAt);
+              const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+              return execTime > weekAgo;
+            }).length;
+            return Math.round(last7d / 7);
           })()
-        }
+        },
+
+        // TREND ANALYSIS (compare recent vs older)
+        trends: (() => {
+          const midpoint = Math.floor(executionsResult.rows.length / 2);
+          const recentExecs = executionsResult.rows.slice(0, midpoint);
+          const olderExecs = executionsResult.rows.slice(midpoint);
+
+          // Calculate trends
+          const recentSuccessRate = recentExecs.filter(r => r.status === 'success').length / (recentExecs.length || 1);
+          const olderSuccessRate = olderExecs.filter(r => r.status === 'success').length / (olderExecs.length || 1);
+
+          const recentAvgDuration = recentExecs.filter(r => r.duration_ms).reduce((sum, r) => sum + parseFloat(r.duration_ms || 0), 0) / (recentExecs.filter(r => r.duration_ms).length || 1);
+          const olderAvgDuration = olderExecs.filter(r => r.duration_ms).reduce((sum, r) => sum + parseFloat(r.duration_ms || 0), 0) / (olderExecs.filter(r => r.duration_ms).length || 1);
+
+          return {
+            successRateTrend: olderSuccessRate > 0 ? Math.round(((recentSuccessRate - olderSuccessRate) / olderSuccessRate) * 100) : 0,
+            avgDurationTrend: olderAvgDuration > 0 ? Math.round(((recentAvgDuration - olderAvgDuration) / olderAvgDuration) * 100) : 0,
+            volumeTrend: olderExecs.length > 0 ? Math.round(((recentExecs.length - olderExecs.length) / olderExecs.length) * 100) : 0
+          };
+        })()
       },
       recentActivity: recentActivityResult.rows.map(activity => {
         // Intelligently format recent activity for display
