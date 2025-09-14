@@ -2633,7 +2633,6 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
          ON ee.id::text = bed.execution_id::text
          AND bed.workflow_id = $1
        WHERE ee."workflowId" = $1
-         AND ee.finished = true
        ORDER BY ee."startedAt" DESC
        LIMIT 30`,
       [workflowId]
@@ -2790,7 +2789,29 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         errorCount: statsResult.rows.find(r => r.stat_type === 'production_error')?.count || 0,
         lastSuccess: statsResult.rows.find(r => r.stat_type === 'production_success')?.latestEvent,
         lastError: statsResult.rows.find(r => r.stat_type === 'production_error')?.latestEvent,
-        ...businessDataResult.rows[0]
+        ...businessDataResult.rows[0],
+        // Add KPIs for Analytics tab
+        kpis: {
+          avgRunTime: (() => {
+            // Try duration_ms first, then fall back to parsing duration string
+            const validDurations = executionsResult.rows.filter(r => {
+              return r.duration_ms !== null && r.duration_ms !== undefined;
+            });
+            if (validDurations.length === 0) return 0;
+
+            const totalMs = validDurations.reduce((sum, r) => {
+              return sum + (r.duration_ms || 0);
+            }, 0);
+
+            return totalMs / validDurations.length; // Return in milliseconds for formatDuration
+          })(),
+          successRate: (() => {
+            const total = statsResult.rows.find(r => r.stat_type === 'production_success')?.count || 0;
+            const errors = statsResult.rows.find(r => r.stat_type === 'production_error')?.count || 0;
+            const totalCount = total + errors;
+            return totalCount > 0 ? Math.round((total / totalCount) * 100) : 0;
+          })()
+        }
       },
       recentActivity: recentActivityResult.rows.map(activity => {
         // Intelligently format recent activity for display

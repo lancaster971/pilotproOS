@@ -5,8 +5,9 @@
  * Trasforma dati tecnici n8n in descrizioni business-friendly
  */
 
-import { UnifiedBusinessProcessor } from '../../../frontend/src/shared/business-parsers/unified-processor.js';
-import { cleanHtmlContent, truncateText } from '../../../frontend/src/shared/business-parsers/utils.js';
+// Temporarily disabled - path issue in Docker container
+// import { UnifiedBusinessProcessor } from '../../../frontend/src/shared/business-parsers/unified-processor.js';
+// import { cleanHtmlContent, truncateText } from '../../../frontend/src/shared/business-parsers/utils.js';
 
 /**
  * Converte dati JSON complessi in descrizioni human-readable per business
@@ -33,22 +34,22 @@ export function humanizeStepData(data, dataType, nodeType, nodeName) {
 
   if (!data) return 'Nessun dato disponibile';
 
-  // Try to use the new unified processor first
-  try {
-    const result = UnifiedBusinessProcessor.process(data, {
-      source: 'backend',
-      nodeType: sanitizedType
-    });
+  // Temporarily disabled - path issue in Docker container
+  // try {
+  //   const result = UnifiedBusinessProcessor.process(data, {
+  //     source: 'backend',
+  //     nodeType: sanitizedType
+  //   });
 
-    // Format the result for legacy compatibility
-    if (result.details && result.details.length > 0) {
-      return result.details.join('\n');
-    }
-    return result.summary;
-  } catch (err) {
-    // Fallback to legacy parsing if unified processor fails
-    console.log('Unified processor fallback, using legacy parser');
-  }
+  //   // Format the result for legacy compatibility
+  //   if (result.details && result.details.length > 0) {
+  //     return result.details.join('\n');
+  //   }
+  //   return result.summary;
+  // } catch (err) {
+  //   // Fallback to legacy parsing if unified processor fails
+  //   console.log('Unified processor fallback, using legacy parser');
+  // }
 
   // Se è un array, prendi il primo elemento
   const processData = Array.isArray(data) ? data[0] : data;
