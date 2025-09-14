@@ -2,91 +2,89 @@
   <MainLayout>
     <div class="h-[calc(100vh-4rem)] overflow-auto">
 
-      <!-- KPI Stats Row (Compact) -->
-      <div class="grid grid-cols-5 gap-3 mb-3">
-        <!-- Prod. executions -->
-        <div class="premium-glass rounded-lg p-3">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-text">Prod. executions</span>
-            <span class="text-text-muted">Last 7 days</span>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ totalExecutions.toLocaleString() }}</div>
-            <div v-if="analyticsData?.trends" class="flex items-center">
-              <span :class="getTrendClass(analyticsData.trends.executionsTrend)" class="text-xs">
-                {{ getTrendIcon(analyticsData.trends.executionsTrend) }}{{ Math.abs(analyticsData.trends.executionsTrend) }}%
-              </span>
+      <!-- KPI Stats Row - SOTTILE per massimizzare canvas -->
+      <div class="grid grid-cols-6 gap-3 mb-3">
+        <!-- Total Executions Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-text">{{ totalExecutions.toLocaleString() }}</p>
+                <Badge value="Totali" severity="info" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Prod. executions • Last 7 days</p>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
 
-        <!-- Failed prod. executions -->
-        <div class="premium-glass rounded-lg p-3">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-text">Failed prod. executions</span>
-            <span class="text-text-muted">Last 7 days</span>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ failedExecutions }}</div>
-            <div v-if="analyticsData?.trends" class="flex items-center">
-              <span :class="getTrendClass(-analyticsData.trends.failedExecutionsTrend)" class="text-xs">
-                {{ getTrendIcon(-analyticsData.trends.failedExecutionsTrend) }}{{ Math.abs(analyticsData.trends.failedExecutionsTrend) }}%
-              </span>
+        <!-- Failed Executions Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-text">{{ failedExecutions }}</p>
+                <Badge value="Fallite" severity="danger" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Failed prod. executions • Last 7 days</p>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
 
-        <!-- Failure rate -->
-        <div class="premium-glass rounded-lg p-3">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-text">Failure rate</span>
-            <span class="text-text-muted">Last 7 days</span>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ failureRate }}%</div>
-            <div v-if="analyticsData?.trends" class="flex items-center">
-              <span :class="getTrendClass(-analyticsData.trends.failureRateTrend)" class="text-xs">
-                {{ getTrendIcon(-analyticsData.trends.failureRateTrend) }}{{ formatTrendValue(analyticsData.trends.failureRateTrend) }}pp
-              </span>
+        <!-- Success Rate Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-primary">{{ Math.round(100 - failureRate) }}%</p>
+                <Badge value="SUCCESS" severity="success" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Tasso Successo • Last 7 days</p>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
 
-        <!-- Time saved -->
-        <div class="premium-glass rounded-lg p-3">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-text">Time saved</span>
-            <span class="text-text-muted">Last 7 days</span>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ timeSaved }}h</div>
-            <div v-if="analyticsData?.trends" class="flex items-center">
-              <span :class="getTrendClass(analyticsData.trends.timeSavedTrend)" class="text-xs">
-                {{ getTrendIcon(analyticsData.trends.timeSavedTrend) }}{{ formatTrendDuration(analyticsData.trends.timeSavedTrend) }}
-              </span>
+        <!-- Time Saved Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-warning">{{ timeSaved }}h</p>
+                <Badge value="SAVED" severity="warning" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Time saved • Last 7 days</p>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
 
-        <!-- Run time (avg.) -->
-        <div class="premium-glass rounded-lg p-3">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-text">Run time (avg.)</span>
-            <span class="text-text-muted">Last 7 days</span>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-lg font-bold text-text">{{ avgRunTime }}</div>
-            <div v-if="analyticsData?.trends" class="flex items-center">
-              <span :class="getTrendClass(-analyticsData.trends.avgDurationTrend)" class="text-xs">
-                {{ getTrendIcon(-analyticsData.trends.avgDurationTrend) }}{{ formatTrendSeconds(analyticsData.trends.avgDurationTrend) }}
-              </span>
+        <!-- Run Time Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-text">{{ avgRunTime }}</p>
+                <Badge value="AVG" severity="info" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Run time (avg.) • Last 7 days</p>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
+
+        <!-- System Health Card - COMPATTO -->
+        <Card class="premium-glass premium-hover-lift">
+          <template #content>
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-lg font-bold text-primary">{{ activeWorkflows }}/{{ totalWorkflows }}</p>
+                <Badge value="HEALTH" severity="success" class="text-xs badge-white-text" />
+              </div>
+              <p class="text-xs text-text-muted">Active workflows • System status</p>
+            </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
-      <div class="flex gap-4 h-[calc(100%-6rem)]">
+      <div class="flex gap-4 h-[calc(100%-4rem)]">
         
         <!-- Collapsible Left Sidebar: Workflow List -->
         <div 
@@ -161,45 +159,82 @@
 
         <!-- Center: VueFlow Visualization -->
         <div class="flex-1 premium-glass rounded-lg overflow-hidden">
-          <!-- n8n-style Header with Tabs -->
-          <div class="bg-surface/30 border-b border-border px-4 py-2 flex items-center justify-between">
-            <div class="text-sm font-medium text-text truncate">
-              {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
+          <!-- Enhanced Header con indicatori business -->
+          <div class="bg-surface/30 border-b border-border px-4 py-3 flex items-center justify-between">
+            <!-- Left: Nome + Info -->
+            <div class="flex items-center gap-3">
+              <div>
+                <div class="text-sm font-bold text-white">
+                  {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
+                </div>
+                <div v-if="workflowStats" class="flex items-center gap-3 text-xs text-text-muted mt-1">
+                  <span>{{ workflowStats.kpis?.totalExecutions || 0 }} executions</span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">
+                    <div :style="{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: (workflowStats.kpis?.successRate || 0) >= 80 ? '#10b981' : '#ef4444'
+                    }"></div>
+                    {{ workflowStats.kpis?.successRate || 0 }}% success
+                  </span>
+                  <span>•</span>
+                  <span>{{ workflowStats.kpis?.avgRunTime ? Math.round(workflowStats.kpis.avgRunTime) + 'ms' : 'N/A' }} avg</span>
+                </div>
+              </div>
             </div>
-            
-            <!-- Business Dashboard - Unified View -->
+
+            <!-- Center: Analytics button -->
             <div class="flex items-center gap-2">
               <button
                 @click="openBusinessDashboard"
                 :disabled="!selectedWorkflowId"
-                class="px-4 py-2 text-sm font-medium rounded-lg bg-primary hover:bg-primary-hover text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-sm hover:shadow-md"
+                class="px-4 py-2 text-sm font-medium rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all backdrop-blur-sm"
               >
-                <Icon icon="lucide:bar-chart-2" class="w-4 h-4" />
-                Business Dashboard
+                <Icon icon="lucide:bar-chart-3" class="w-4 h-4" />
+                Business Analytics
               </button>
             </div>
-            
-            <!-- Workflow Toggle Switch -->
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-text-muted">
-                {{ selectedWorkflowData?.is_active ? 'Active' : 'Inactive' }}
-              </span>
-              <button
-                v-if="canExecute"
-                @click="() => { console.log('🔘 Toggle button clicked!', { selectedWorkflowId: selectedWorkflowId.value, disabled: !selectedWorkflowId.value }); toggleWorkflowStatus() }"
-                :disabled="!selectedWorkflowId"
-                :class="[
-                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
-                  selectedWorkflowData?.is_active ? 'bg-primary' : 'bg-gray-600'
-                ]"
-              >
-                <span
+
+            <!-- Right: Status + Performance indicators -->
+            <div class="flex items-center gap-4">
+              <!-- Last execution indicator -->
+              <div v-if="workflowStats?.kpis?.last24hExecutions" class="flex items-center gap-2 text-xs">
+                <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span class="text-text-muted">{{ workflowStats.kpis.last24hExecutions }} runs today</span>
+              </div>
+
+              <!-- Efficiency badge -->
+              <Badge
+                v-if="workflowStats?.kpis?.efficiencyScore"
+                :value="`${workflowStats.kpis.efficiencyScore}% efficiency`"
+                :severity="workflowStats.kpis.efficiencyScore >= 80 ? 'success' : workflowStats.kpis.efficiencyScore >= 60 ? 'warning' : 'danger'"
+                class="text-xs"
+              />
+
+              <!-- Active/Inactive toggle -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-text-muted">
+                  {{ selectedWorkflowData?.is_active ? 'Active' : 'Inactive' }}
+                </span>
+                <button
+                  v-if="canExecute"
+                  @click="toggleWorkflowStatus"
+                  :disabled="!selectedWorkflowId"
                   :class="[
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    selectedWorkflowData?.is_active ? 'translate-x-6' : 'translate-x-1'
+                    'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
+                    selectedWorkflowData?.is_active ? 'bg-primary' : 'bg-gray-600'
                   ]"
-                />
-              </button>
+                >
+                  <span
+                    :class="[
+                      'inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                      selectedWorkflowData?.is_active ? 'translate-x-5' : 'translate-x-1'
+                    ]"
+                  />
+                </button>
+              </div>
             </div>
           </div>
           
@@ -779,11 +814,21 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
+
+const route = useRoute()
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
+
+// PrimeVue Components
+import Card from 'primevue/card'
+import Badge from 'primevue/badge'
+import Knob from 'primevue/knob'
+import Chart from 'primevue/chart'
+import ProgressBar from 'primevue/progressbar'
 import WorkflowDetailModal from '../components/workflows/WorkflowDetailModal.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
 import DetailModal from '../components/common/DetailModal.vue'
@@ -877,6 +922,7 @@ const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, ge
 // Computed
 const totalWorkflows = computed(() => realWorkflows.value.length)
 const activeWorkflows = computed(() => realWorkflows.value.filter(w => w.is_active).length)
+const successRateValue = computed(() => Math.round(100 - failureRate.value))
 const flowNodes = computed(() => flowElements.value.filter(el => !el.source))
 const flowEdges = computed(() => {
   return flowElements.value.filter(el => el.source)
@@ -961,8 +1007,17 @@ const refreshAllData = async () => {
     console.log('✅ REAL workflows loaded:', workflowsData.data?.length || 0)
     console.log('📋 Raw data preview:', workflowsData.data?.slice(0, 3))
     
-    realWorkflows.value = workflowsData.data || []
-    console.log('🔄 Set realWorkflows to:', realWorkflows.value.length, 'items')
+    // ORDINA per status: Active prima, poi il resto
+    const sortedWorkflows = (workflowsData.data || []).sort((a, b) => {
+      // Active workflows first
+      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
+      // Poi per nome alfabetico
+      return a.process_name.localeCompare(b.process_name)
+    })
+
+    realWorkflows.value = sortedWorkflows
+    console.log('🔄 Set realWorkflows to:', realWorkflows.value.length, 'items (sorted: active first)')
+    console.log('📊 Active workflows:', realWorkflows.value.filter(w => w.is_active).map(w => w.process_name))
     
     // Get analytics data for KPI calculations - OFETCH handles response automatically
     analyticsData.value = analyticsResponse
@@ -1072,8 +1127,11 @@ const loadWorkflowStructure = async (workflow: any) => {
     
     console.log('📡 Fetching details with OFETCH for workflow:', workflow.id)
     
-    // Use OFETCH API client instead of direct fetch
-    const data = await businessAPI.getProcessDetails(workflow.id)
+    // Use OFETCH API client con force refresh per avere sempre dati aggiornati da n8n
+    const data = await businessAPI.getProcessDetails(workflow.id, {
+      _t: Date.now(),
+      forceRefresh: true
+    })
     workflowDetails.value = data.data
     
     console.log('✅ REAL workflow structure loaded for', workflow.process_name, ':', data.data.nodeCount, 'nodes')
@@ -1378,6 +1436,7 @@ const openBusinessDashboard = () => {
   // Apre direttamente il Timeline Modal che diventerà il Business Dashboard
   showTimelineModal.value = true
 }
+
 
 const openTimelineModal = () => {
   showTimelineModal.value = true
@@ -1986,7 +2045,21 @@ onMounted(async () => {
       activeWorkflows: activeWorkflows.value 
     })
     
-    // Seleziona automaticamente il primo workflow se presente
+    // Controlla se c'è un workflowId nei parametri URL (da Insights)
+    const urlWorkflowId = route.query.workflowId
+    if (urlWorkflowId && realWorkflows.value.length > 0) {
+      console.log('🎯 URL workflowId detected:', urlWorkflowId)
+      const targetWorkflow = realWorkflows.value.find(w => w.id === urlWorkflowId)
+      if (targetWorkflow) {
+        console.log('✅ Found workflow from URL, selecting:', targetWorkflow.process_name)
+        await selectWorkflow(targetWorkflow)
+        return
+      } else {
+        console.log('❌ Workflow from URL not found, falling back to first')
+      }
+    }
+
+    // Seleziona automaticamente il primo workflow se presente e nessuno dall'URL
     if (realWorkflows.value.length > 0 && !selectedWorkflowId.value) {
       console.log('🎯 Auto-selecting first workflow:', realWorkflows.value[0].process_name)
       await selectWorkflow(realWorkflows.value[0])
@@ -1999,8 +2072,13 @@ onMounted(async () => {
       console.log('🔄 Trying alternative data load...')
       const workflowsData = await businessAPI.getProcesses({ _t: Date.now() })
       console.log('🔧 Alternative data:', workflowsData)
-      realWorkflows.value = workflowsData.data || []
-      console.log('🔧 Alternative workflows set:', realWorkflows.value.length)
+      // ORDINA anche nel fallback
+      const sortedFallback = (workflowsData.data || []).sort((a, b) => {
+        if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
+        return a.process_name.localeCompare(b.process_name)
+      })
+      realWorkflows.value = sortedFallback
+      console.log('🔧 Alternative workflows set:', realWorkflows.value.length, '(sorted)')
       
       // Seleziona automaticamente il primo workflow anche nel fallback
       if (realWorkflows.value.length > 0 && !selectedWorkflowId.value) {
@@ -2041,6 +2119,11 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-style: preserve-3d;
+}
+
+/* Badge con testo bianco per massima visibilità */
+.badge-white-text {
+  color: white !important;
 }
 
 :deep(.premium-ai-node:hover) {

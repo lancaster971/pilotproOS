@@ -138,20 +138,79 @@
               </div>
             </div>
 
-            <!-- Loading Skeleton -->
-            <div v-if="loadingWorkflows" class="workflow-cards-grid gap-4">
-              <Skeleton v-for="i in 8" :key="i" height="280px" class="rounded-lg" />
-            </div>
-
-            <!-- Workflow Cards Grid -->
-            <div v-if="!loadingWorkflows" class="workflow-cards-grid gap-4">
-              <WorkflowCard
+            <!-- WORKFLOW CARDS - Design professionale distintivo -->
+            <div :class="workflowGridClass">
+              <Card
                 v-for="(workflow, index) in workflowCards"
                 :key="workflow.id"
-                :workflow="workflow"
+                class="workflow-business-card premium-glass premium-hover-lift"
                 :style="{ animationDelay: `${index * 50}ms` }"
-                class="animate-fadeIn"
-              />
+                @click="openWorkflowDashboard(workflow.id)"
+              >
+                <template #content>
+                  <div class="p-4">
+                    <!-- Header con Icona e Status -->
+                    <div class="flex items-start justify-between mb-3">
+                      <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                          <Icon :icon="getWorkflowIcon(workflow)" class="text-primary text-lg" />
+                        </div>
+                        <div>
+                          <h3 class="font-bold text-white text-sm leading-tight">{{ workflow.name }}</h3>
+                          <p class="text-xs text-text-muted">Business Process</p>
+                        </div>
+                      </div>
+                      <Badge
+                        :value="workflow.critical ? 'CRITICAL' : workflow.active ? 'ACTIVE' : 'INACTIVE'"
+                        :severity="workflow.critical ? 'danger' : workflow.active ? 'success' : 'warning'"
+                        class="text-xs"
+                      />
+                    </div>
+
+                    <!-- Metriche Business -->
+                    <div class="space-y-2 mb-3">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-text-muted">Success Rate</span>
+                        <span class="text-sm font-bold" :style="{ color: workflow.successRate >= 80 ? '#10b981' : '#ef4444' }">
+                          {{ workflow.successRate }}%
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-text-muted">Executions</span>
+                        <span class="text-sm font-bold text-white">
+                          {{ workflow.last24hExecutions > 0 ? workflow.last24hExecutions + ' (24h)' : workflow.totalExecutions + ' (total)' }}
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-text-muted">Avg Time</span>
+                        <span class="text-sm font-bold text-white">
+                          {{ workflow.avgRunTime > 60000 ? Math.round(workflow.avgRunTime/60000) + 'm' :
+                             workflow.avgRunTime > 1000 ? Math.round(workflow.avgRunTime/1000) + 's' :
+                             workflow.avgRunTime + 'ms' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Primary Capability -->
+                    <div class="mb-3">
+                      <span class="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 rounded">
+                        {{ workflow.capabilities?.[0] || 'Automation Process' }}
+                      </span>
+                    </div>
+
+                    <!-- Quick Action -->
+                    <Button
+                      icon="pi pi-external-link"
+                      label="View Details"
+                      size="small"
+                      class="w-full"
+                      severity="secondary"
+                      outlined
+                      @click="openWorkflowDashboard(workflow.id)"
+                    />
+                  </div>
+                </template>
+              </Card>
             </div>
 
             <!-- Empty State -->
@@ -632,10 +691,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 // Removed Lucide icons - using PrimeVue icons only
 import MainLayout from '../components/layout/MainLayout.vue'
 import { Icon } from '@iconify/vue'
-import WorkflowCard from '../components/insights/WorkflowCard.vue'
+
+const router = useRouter()
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -669,6 +730,40 @@ const workflowCards = ref([])
 const loadingWorkflows = ref(false)
 const activeWorkflowsCount = ref(0)
 const criticalWorkflowsCount = ref(0)
+
+// Grid dinamico per riempire spazio
+const workflowGridClass = computed(() => {
+  const count = workflowCards.value.length
+  if (count <= 2) return 'grid grid-cols-2 gap-6'
+  if (count <= 3) return 'grid grid-cols-3 gap-6'
+  if (count <= 4) return 'grid grid-cols-4 gap-6'
+  if (count <= 5) return 'grid grid-cols-5 gap-6'
+  return 'grid grid-cols-6 gap-6'
+})
+
+// Helper functions
+const getWorkflowIcon = (workflow) => {
+  if (workflow.capabilities?.some(c => c.toLowerCase().includes('ai'))) return 'lucide:brain'
+  if (workflow.capabilities?.some(c => c.toLowerCase().includes('email'))) return 'lucide:mail'
+  if (workflow.capabilities?.some(c => c.toLowerCase().includes('spreadsheet'))) return 'lucide:table'
+  if (workflow.capabilities?.some(c => c.toLowerCase().includes('database'))) return 'lucide:database'
+  if (workflow.capabilities?.some(c => c.toLowerCase().includes('api'))) return 'lucide:link'
+  return 'lucide:workflow'
+}
+
+const openWorkflowDashboard = async (workflowId) => {
+  // Navigazione IMMEDIATA - nessun delay
+  try {
+    await router.push({
+      path: '/command-center',
+      query: { workflowId, autoSelect: 'true' }
+    })
+  } catch (error) {
+    console.log('Router navigation:', error)
+    // Fallback se router fallisce
+    window.location.href = `/command-center?workflowId=${workflowId}&autoSelect=true`
+  }
+}
 const totalExecutions = ref(0)
 const successRate = ref(0)
 const successfulExecutions = ref(0)
@@ -1042,22 +1137,74 @@ const cleanInsight = (insight: string) => {
 
 // Load Workflow Cards
 const loadWorkflowCards = async () => {
+  console.log('🚀 STARTING loadWorkflowCards...')
   loadingWorkflows.value = true
-  try {
-    const response = await fetch('http://localhost:3001/api/business/workflow-cards')
-    const data = await response.json()
 
-    if (data.success) {
-      workflowCards.value = data.data
+  try {
+    console.log('🔄 Loading workflow cards...')
+    console.log('📍 Current workflowCards.value BEFORE:', workflowCards.value.length)
+
+    // Direct API call as fallback
+    const response = await fetch('http://localhost:3001/api/business/workflow-cards')
+    console.log('📡 Fetch response status:', response.status, response.ok)
+
+    const data = await response.json()
+    console.log('✅ Workflow cards response:', data)
+    console.log('🔍 Data success:', data.success)
+    console.log('🔍 Data length:', data.data?.length)
+
+    if (data.success && data.data) {
+      console.log('💾 RAW data received:', data.data.length, 'workflows')
+
+      // FILTRO INTELLIGENTE - Solo workflow rilevanti per il business
+      const relevantWorkflows = data.data.filter(workflow => {
+        // SKIP Connection Tests automatici
+        if (workflow.name.includes('Connection Test')) return false
+
+        // PRIORITÀ 1: Critical con executions (bisogna sistemare)
+        if (workflow.critical && workflow.totalExecutions > 0) return true
+
+        // PRIORITÀ 2: Active con attività recente
+        if (workflow.active && workflow.last24hExecutions > 0) return true
+
+        // PRIORITÀ 3: Workflow business importanti (>100 executions)
+        if (workflow.totalExecutions > 100) return true
+
+        // PRIORITÀ 4: Active workflow anche se senza executions recenti
+        if (workflow.active) return true
+
+        return false
+      })
+
+      // Ordina per importanza business
+      relevantWorkflows.sort((a, b) => {
+        // Critical first
+        if (a.critical !== b.critical) return a.critical ? -1 : 1
+        // Poi active
+        if (a.active !== b.active) return a.active ? -1 : 1
+        // Poi per volume executions
+        return b.totalExecutions - a.totalExecutions
+      })
+
+      // Limita a max 6 workflow per non sovraccaricare
+      const displayWorkflows = relevantWorkflows.slice(0, 6)
+
+      console.log('🎯 FILTERED to', displayWorkflows.length, 'relevant workflows:', displayWorkflows.map(w => w.name))
+      workflowCards.value = displayWorkflows
       activeWorkflowsCount.value = data.summary.active
-      criticalWorkflowsCount.value = data.summary.critical
-      console.log(`📊 Loaded ${data.data.length} workflow cards`)
+      criticalWorkflowsCount.value = displayWorkflows.filter(w => w.critical).length
+      console.log(`📊 DISPLAYING: ${displayWorkflows.length}/12 workflows (filtered out ${12 - displayWorkflows.length} irrelevant)`)
+    } else {
+      console.error('❌ API returned error or no data:', data)
+      workflowCards.value = []
     }
   } catch (error) {
     console.error('❌ Error loading workflow cards:', error)
     workflowCards.value = []
   } finally {
     loadingWorkflows.value = false
+    console.log('🏁 loadWorkflowCards FINAL - cards count:', workflowCards.value.length)
+    console.log('🏁 loadingWorkflows.value:', loadingWorkflows.value)
   }
 }
 
@@ -1351,7 +1498,7 @@ onMounted(async () => {
   console.log('🚀 InsightsPage mounted - loading ALL REAL data...')
 
   // Load workflow cards immediately (most important)
-  loadWorkflowCards()
+  await loadWorkflowCards()
 
   try {
     // Load all APIs with REAL PostgreSQL data
@@ -1488,7 +1635,7 @@ onUnmounted(() => {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: fadeIn 0.3s ease-out both;
 }
 
 /* Transition Group Animations */
@@ -1525,28 +1672,36 @@ onUnmounted(() => {
   background-clip: text;
 }
 
-/* Workflow Cards Grid */
-.workflow-cards-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr;
+/* Workflow Business Cards - VELOCI e Responsive */
+.workflow-business-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  min-height: 200px;
+  transition: all 0.15s ease-out;
+  cursor: pointer;
 }
 
-@media (min-width: 768px) {
-  .workflow-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.workflow-business-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  transform: translateY(-4px) scale(1.02);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
 }
 
-@media (min-width: 1024px) {
-  .workflow-cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.workflow-business-card:active {
+  transform: translateY(-2px) scale(1.01);
 }
 
-@media (min-width: 1280px) {
-  .workflow-cards-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+.workflow-business-card .p-card-content {
+  padding: 0 !important;
+}
+
+/* Smooth button transitions - VELOCI */
+.workflow-business-card button {
+  transition: all 0.1s ease;
+}
+
+.workflow-business-card button:hover {
+  transform: scale(1.02);
 }
 </style>

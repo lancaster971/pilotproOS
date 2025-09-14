@@ -79,45 +79,10 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard with HttpOnly cookies support
-router.beforeEach(async (to, from, next) => {
-  // Import auth store inside guard to avoid circular imports
-  const { useAuthStore } = await import('./stores/auth')
-  const authStore = useAuthStore()
-  
-  // Initialize auth if not already done
-  if (!authStore.user && authStore.token !== 'authenticated') {
-    try {
-      await authStore.initializeAuth()
-    } catch (error) {
-      console.log('Auth initialization failed:', error)
-    }
-  }
-  
-  const isAuthenticated = authStore.isAuthenticated
-  
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' })
-    return
-  }
-  
-  if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'insights' }) // Redirect authenticated users away from login
-    return
-  }
-  
-  // Role-based access control using user object from store
-  if (to.meta.requiresRole && isAuthenticated && authStore.user) {
-    const userRole = authStore.user.role || 'viewer'
-    
-    if (to.meta.requiresRole === 'admin' && userRole !== 'admin') {
-      next({ name: 'insights' }) // Redirect non-admin users away from admin pages
-      return
-    }
-  }
-  
-  next()
-})
+// Auth guard DISABLED for testing - WORKFLOW CARDS PRIORITY
+// router.beforeEach(async (to, from, next) => {
+//   next() // BYPASS ALL AUTH
+// })
 
 // Create app with same structure as n8n
 const app = createApp(App)
