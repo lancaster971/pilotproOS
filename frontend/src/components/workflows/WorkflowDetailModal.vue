@@ -2,16 +2,16 @@
   <Teleport to="body">
     <div
       v-if="show"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       @click.self="$emit('close')"
     >
-      <div class="w-full max-w-6xl max-h-[90vh] bg-gray-900 border border-green-500/30 rounded-xl shadow-2xl overflow-hidden">
+      <div class="w-full max-w-6xl max-h-[90vh] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden">
         
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-border">
           <div class="flex items-center gap-4">
-            <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <Icon icon="lucide:git-branch" class="h-6 w-6 text-green-400" />
+            <div class="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+              <Icon icon="lucide:git-branch" class="h-6 w-6 text-primary" />
             </div>
             <div>
               <h2 class="text-xl font-semibold text-text">{{ workflow.name }}</h2>
@@ -19,8 +19,8 @@
                 <span class="text-sm text-text-muted">ID: {{ workflow.id }}</span>
                 <span :class="[
                   'px-2 py-1 rounded text-xs font-medium',
-                  workflow.active 
-                    ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                  workflow.active
+                    ? 'bg-primary/10 border border-primary/30 text-primary'
                     : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400'
                 ]">
                   {{ workflow.active ? 'Active' : 'Inactive' }}
@@ -35,14 +35,14 @@
           <div class="flex items-center gap-2">
             <button
               @click="copyToClipboard(workflow.id)"
-              class="p-2 text-text-muted hover:text-green-400 transition-colors"
+              class="p-2 text-text-muted hover:text-primary transition-colors"
               title="Copy ID"
             >
               <Icon icon="lucide:copy" class="h-4 w-4" />
             </button>
             <button
               @click="handleExport"
-              class="p-2 text-text-muted hover:text-green-400 transition-colors"
+              class="p-2 text-text-muted hover:text-primary transition-colors"
               title="Export JSON"
             >
               <Icon icon="lucide:download" class="h-4 w-4" />
@@ -50,7 +50,7 @@
             <button
               @click="handleForceRefresh"
               :disabled="isLoading"
-              class="p-2 text-text-muted hover:text-green-400 disabled:text-gray-600 transition-colors"
+              class="p-2 text-text-muted hover:text-primary disabled:text-gray-600 transition-colors"
               :title="isLoading ? 'Refreshing...' : 'Force Refresh from n8n'"
             >
               <Icon icon="lucide:refresh-cw" :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
@@ -67,7 +67,7 @@
         <!-- Loading State -->
         <div v-if="isLoading" class="flex items-center justify-center p-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             <p class="mt-4 text-text-muted">Caricamento dettagli workflow...</p>
           </div>
         </div>
@@ -96,7 +96,7 @@
               :class="[
                 'flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-all',
                 activeTab === tab.id
-                  ? 'bg-green-500 text-text'
+                  ? 'bg-primary text-white'
                   : 'text-text-secondary hover:bg-surface hover:text-text'
               ]"
             >
@@ -149,7 +149,7 @@
                     <span class="text-sm text-text-muted">Success Rate</span>
                     <Icon icon="lucide:check-circle" class="h-4 w-4 text-gray-600" />
                   </div>
-                  <p class="text-base font-bold text-green-400">
+                  <p class="text-base font-bold text-primary">
                     {{ executionStats.total > 0 
                       ? `${((executionStats.successful / executionStats.total) * 100).toFixed(1)}%`
                       : 'N/A' }}
@@ -171,7 +171,7 @@
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="control-card p-6">
                   <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
-                    <Info class="h-5 w-5 text-green-400" />
+                    <Info class="h-5 w-5 text-primary" />
                     Workflow Information
                   </h3>
                   <div class="space-y-3">
@@ -191,7 +191,7 @@
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Icon icon="lucide:webhook"</span>
-                      <span :class="workflow.has_webhook ? 'text-green-400' : 'text-text-secondary'">
+                      <span :class="workflow.has_webhook ? 'text-primary' : 'text-text-secondary'">
                         {{ workflow.has_webhook ? 'Enabled' : 'Disabled' }}
                       </span>
                     </div>
@@ -212,7 +212,7 @@
                   <div class="space-y-3">
                     <div class="flex justify-between">
                       <span class="text-text-muted">Successful Runs</span>
-                      <span class="text-green-400 font-bold">{{ executionStats.successful }}</span>
+                      <span class="text-primary font-bold">{{ executionStats.successful }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-text-muted">Failed Runs</span>
@@ -251,7 +251,7 @@
                        :key="exec.id || index" 
                        class="flex items-center justify-between p-3 bg-surface rounded-lg">
                     <div class="flex items-center gap-3">
-                      <Icon v-if="exec.status === 'success'" icon="lucide:check-circle" class="h-4 w-4 text-green-400" />
+                      <Icon v-if="exec.status === 'success'" icon="lucide:check-circle" class="h-4 w-4 text-primary" />
                       <Icon v-else-if="exec.status === 'error'" icon="lucide:x-circle" class="h-4 w-4 text-red-400" />
                       <Icon v-else icon="lucide:alert-triangle" class="h-4 w-4 text-yellow-400" />
                       <div>
@@ -263,7 +263,7 @@
                       <p class="text-text text-sm">{{ formatDuration(exec.duration_ms || 0) }}</p>
                       <p :class="[
                         'text-xs',
-                        exec.status === 'success' ? 'text-green-400' : 
+                        exec.status === 'success' ? 'text-primary' : 
                         exec.status === 'error' ? 'text-red-400' : 'text-yellow-400'
                       ]">
                         {{ exec.status }}
@@ -359,14 +359,14 @@
                 <!-- Outputs -->
                 <div class="control-card p-6">
                   <h3 class="text-lg font-semibold text-text mb-4 flex items-center gap-2">
-                    <Icon icon="lucide:external-link" class="h-5 w-5 text-green-400" />
+                    <Icon icon="lucide:external-link" class="h-5 w-5 text-primary" />
                     Outputs
                   </h3>
                   <div v-if="nodeAnalysis.outputs?.length > 0" class="space-y-3">
                     <div v-for="(output, index) in nodeAnalysis.outputs" 
                          :key="index" 
-                         class="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                      <Icon icon="lucide:send" class="h-5 w-5 text-green-400" />
+                         class="flex items-center gap-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                      <Icon icon="lucide:send" class="h-5 w-5 text-primary" />
                       <div class="flex-1">
                         <p class="text-text font-medium">{{ output.name }}</p>
                         <p class="text-xs text-text-muted">{{ output.type }}</p>
@@ -384,7 +384,7 @@
                 <div class="control-card p-6">
                   <div class="flex items-center justify-between mb-4">
                     <span class="text-sm text-text-muted">Min Execution Time</span>
-                    <Icon icon="lucide:trending-up" class="h-4 w-4 text-green-400" />
+                    <Icon icon="lucide:trending-up" class="h-4 w-4 text-primary" />
                   </div>
                   <p class="text-base font-bold text-text">
                     {{ formatDuration(performance.minExecutionTime || 0) }}
@@ -447,8 +447,8 @@
                        class="flex items-start gap-4">
                     <div class="flex-shrink-0 mt-1">
                       <div v-if="exec.status === 'success'" 
-                           class="w-8 h-8 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center">
-                        <CheckCircle class="h-4 w-4 text-green-400" />
+                           class="w-8 h-8 bg-primary/10 border border-primary/30 rounded-full flex items-center justify-center">
+                        <CheckCircle class="h-4 w-4 text-primary" />
                       </div>
                       <div v-else-if="exec.status === 'error'" 
                            class="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center">

@@ -5,13 +5,13 @@
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       @click.self="handleClickOutside"
     >
-      <div class="w-full max-w-5xl h-[80vh] bg-background border border-border rounded-xl shadow-2xl overflow-hidden premium-glass flex flex-col">
+      <div class="w-full max-w-5xl h-[80vh] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col">
         
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-border">
           <div class="flex items-center gap-4">
-            <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <Icon :icon="headerIcon" class="h-6 w-6 text-green-400" />
+            <div class="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+              <Icon :icon="headerIcon" class="h-6 w-6 text-primary" />
             </div>
             <div>
               <h2 class="text-xl font-semibold text-text">{{ title }}</h2>
@@ -30,7 +30,7 @@
               v-if="showRefresh"
               @click="handleRefresh"
               :disabled="isLoading"
-              class="p-2 text-text-muted hover:text-green-400 disabled:text-gray-600 transition-colors"
+              class="p-2 text-text-muted hover:text-primary disabled:text-gray-600 transition-colors"
               :title="isLoading ? 'Aggiornamento...' : 'Aggiorna dati'"
             >
               <Icon icon="lucide:refresh-cw" :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
@@ -48,7 +48,7 @@
         <!-- Loading State -->
         <div v-if="isLoading && !hasContent" class="flex items-center justify-center p-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             <p class="mt-4 text-text-muted">{{ loadingText }}</p>
           </div>
         </div>
@@ -76,8 +76,8 @@
               :class="[
                 'flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-all',
                 activeTab === tab.id
-                  ? 'bg-green-500 text-text'
-                  : 'text-text-secondary hover:bg-surface hover:text-text'
+                  ? 'bg-primary text-white'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text'
               ]"
             >
               <component :is="tab.icon" class="h-4 w-4" />
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Tab Content -->
-          <div class="overflow-y-auto premium-scrollbar" style="max-height: calc(70vh - 140px);">
+          <div class="overflow-y-auto" style="max-height: calc(70vh - 140px);">
             <slot 
               :name="activeTab" 
               :activeTab="activeTab"
@@ -171,39 +171,5 @@ const changeTab = (tabId: string) => {
 </script>
 
 <style scoped>
-.premium-modal {
-  animation: modalAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.premium-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.premium-scrollbar::-webkit-scrollbar-track {
-  background: rgba(31, 41, 55, 0.3);
-  border-radius: 3px;
-}
-
-.premium-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #10b981, #00d26a);
-  border-radius: 3px;
-  box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
-}
-
-.premium-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #00d26a, #10b981);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-}
+/* Minimal styles - no animations per performance requirements */
 </style>
