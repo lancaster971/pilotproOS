@@ -81,8 +81,14 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard - protegge route che richiedono autenticazione
+// Auth guard - TEMPORANEAMENTE DISABILITATO per sviluppo
 router.beforeEach(async (to, from, next) => {
+  // DEVELOPMENT MODE - Skip auth
+  if (import.meta.env.DEV) {
+    next()
+    return
+  }
+
   const { useAuthStore } = await import('./stores/auth')
   const authStore = useAuthStore()
 
