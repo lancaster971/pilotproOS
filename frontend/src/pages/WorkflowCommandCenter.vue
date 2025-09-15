@@ -823,7 +823,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
-import EnterpriseNode from '../components/workflow/EnterpriseNode.vue'
+import PremiumEnterpriseNode from '../components/workflow/PremiumEnterpriseNode.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -922,10 +922,10 @@ const paginatedExecutions = computed(() => {
 const flowElements = ref([])
 const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
 
-// Node Types for VueFlow - Enterprise rebrand
+// Node Types for VueFlow - Premium Enterprise rebrand
 const nodeTypes = {
-  enterprise: EnterpriseNode,
-  custom: EnterpriseNode // Fallback for any remaining custom nodes
+  enterprise: PremiumEnterpriseNode,
+  custom: PremiumEnterpriseNode // Fallback for any remaining custom nodes
 }
 
 // Computed
