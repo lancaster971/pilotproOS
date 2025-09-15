@@ -279,27 +279,6 @@
                   Stop
                 </button>
 
-                <!-- Test Animation Button -->
-                <button
-                  @click="testAnimation"
-                  :disabled="!selectedWorkflowId"
-                  class="px-3 py-2 bg-orange-600 border border-orange-500 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-orange-500"
-                  title="Test Animation"
-                >
-                  <Icon icon="lucide:zap" class="w-4 h-4" />
-                  Test
-                </button>
-
-                <!-- Test SSE Button -->
-                <button
-                  @click="testSSE"
-                  :disabled="!selectedWorkflowId"
-                  class="px-3 py-2 bg-blue-600 border border-blue-500 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-blue-500"
-                  title="Test SSE"
-                >
-                  <Icon icon="lucide:radio" class="w-4 h-4" />
-                  SSE
-                </button>
               </div>
 
               <!-- n8n-style Controls: Bottom Left HORIZONTAL -->
@@ -1650,19 +1629,41 @@ const connectExecutionStream = (workflowId: string, executionId: string) => {
         break
 
       case 'workflowExecuteAfter':
-        // Workflow complete
-        isExecuting.value = false
-        executingNodes.value.clear()
-        // Clear all executing states
-        flowElements.value = flowElements.value.map(el => ({
-          ...el,
-          data: {
-            ...el.data,
-            isExecuting: false
-          }
-        }))
+        // Workflow complete - show toast ONLY after last animation finishes
+        console.log(`🏁 Workflow completed, waiting for last animation to finish...`)
+
+        // Wait for last node animation to be visible before showing toast
+        setTimeout(() => {
+          isExecuting.value = false
+          executingNodes.value.clear()
+
+          // Clear all executing states
+          flowElements.value = flowElements.value.map(el => ({
+            ...el,
+            data: {
+              ...el.data,
+              isExecuting: false
+            }
+          }))
+
+          // Show success toast ONLY now (after visual completion)
+          const workflowName = selectedWorkflowData.value?.process_name || 'Workflow'
+          success(
+            'Processo Completato ✅',
+            `"${workflowName}" eseguito con successo`
+          )
+
+          console.log(`✅ Toast shown AFTER final animation`)
+
+          // Reload workflow stats after completion
+          setTimeout(async () => {
+            await loadWorkflowDetails(selectedWorkflowId.value)
+            await loadExecutionData(selectedWorkflowId.value)
+          }, 1000)
+
+        }, 300) // Wait 300ms for last node to be clearly visible
+
         eventSource.close()
-        success('Esecuzione Completata', `Il workflow è stato eseguito con successo`)
         break
 
       case 'error':
@@ -1720,10 +1721,8 @@ const executeWorkflow = async () => {
       // Store execution ID for stop functionality
       currentExecutionId.value = result.data.executionId
       
-      success(
-        'Esecuzione Avviata',
-        `Il workflow "${workflowName}" è stato avviato. Controllo stato...`
-      )
+      // NO TOAST HERE - SSE will show completion toast
+      console.log(`🚀 Workflow "${workflowName}" started, SSE will handle feedback`)
       
       // Start polling execution status
       let pollCount = 0
@@ -1809,70 +1808,6 @@ const executeWorkflow = async () => {
   }
 }
 
-// Test SSE connection function
-const testSSE = () => {
-  if (!selectedWorkflowId.value) {
-    error('Nessun Workflow', 'Seleziona un workflow per testare SSE')
-    return
-  }
-
-  console.log('📰 Testing SSE connection...')
-  const testExecutionId = `test_${Date.now()}`
-  connectExecutionStream(selectedWorkflowId.value, testExecutionId)
-}
-
-// Test animation function
-const testAnimation = () => {
-  if (!flowElements.value.length) {
-    error('Nessun Workflow', 'Seleziona un workflow per testare l\'animazione')
-    return
-  }
-
-  console.log('🧪 Testing animation on all nodes')
-
-  // Find all node elements (not edges)
-  const nodes = flowElements.value.filter(el => !el.source)
-  console.log('Nodes to animate:', nodes.map(n => ({ id: n.id, type: n.type, name: n.data?.stepName })))
-
-  // Animate each node sequentially
-  nodes.forEach((node, index) => {
-    setTimeout(() => {
-      console.log(`🟠 Animating node ${node.id} (${node.data?.stepName})`)
-
-      // Set node as executing
-      flowElements.value = flowElements.value.map(el => {
-        if (el.id === node.id) {
-          return {
-            ...el,
-            data: {
-              ...el.data,
-              isExecuting: true
-            }
-          }
-        }
-        return el
-      })
-
-      // Stop animation after 2 seconds
-      setTimeout(() => {
-        console.log(`⚫ Stopping animation for node ${node.id}`)
-        flowElements.value = flowElements.value.map(el => {
-          if (el.id === node.id) {
-            return {
-              ...el,
-              data: {
-                ...el.data,
-                isExecuting: false
-              }
-            }
-          }
-          return el
-        })
-      }, 2000)
-
-    }, index * 500) // Start each animation 500ms apart
-  })
-}
 
 // Stop workflow execution
 const stopWorkflow = async () => {

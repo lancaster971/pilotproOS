@@ -1011,50 +1011,56 @@ const techBadge = computed(() => {
   animation: running-pulse 2s infinite;
 }
 
-/* Node currently executing - orange/amber animated glow */
+/* Node currently executing - site green animated glow */
 .card-executing {
-  animation: executing-glow 0.8s ease-in-out infinite !important;
-  border: 4px solid #ff6600 !important;
+  animation: executing-glow 1.0s ease-in-out infinite !important;
+  border: 3px solid #10b981 !important;
   position: relative;
-  transform: scale(1.08) !important;
+  transform: scale(1.05) !important;
   transition: all 0.3s ease;
   z-index: 1000 !important;
 }
 
 .card-executing .card-ribbon {
-  background: linear-gradient(135deg, #ff6600, #ff9900) !important;
-  animation: ribbon-pulse 0.8s ease-in-out infinite;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  animation: ribbon-pulse 1.0s ease-in-out infinite;
 }
 
 .card-executing .icon-container {
-  animation: icon-rotate 2s linear infinite;
+  animation: icon-pulse 2s ease-in-out infinite;
 }
 
 .card-executing .main-icon {
-  color: #ff6600 !important;
-  filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.8));
+  color: #10b981 !important;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
 }
 
 @keyframes executing-glow {
   0%, 100% {
     box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.4),
-      0 0 40px rgba(255, 102, 0, 0.9),
-      0 0 80px rgba(255, 102, 0, 0.6),
-      inset 0 0 20px rgba(255, 102, 0, 0.2);
+      0 0 30px rgba(16, 185, 129, 0.7),
+      0 0 60px rgba(16, 185, 129, 0.4),
+      inset 0 0 15px rgba(16, 185, 129, 0.15);
   }
   50% {
     box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.5),
-      0 0 60px rgba(255, 102, 0, 1),
-      0 0 100px rgba(255, 102, 0, 0.8),
-      inset 0 0 30px rgba(255, 102, 0, 0.3);
+      0 0 45px rgba(16, 185, 129, 0.9),
+      0 0 80px rgba(16, 185, 129, 0.6),
+      inset 0 0 25px rgba(16, 185, 129, 0.25);
   }
 }
 
-@keyframes icon-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 @keyframes ribbon-pulse {

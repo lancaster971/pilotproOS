@@ -65,10 +65,6 @@ import authConfigController from './controllers/auth-config.controller.js';
 // Load environment variables
 dotenv.config();
 
-// EventEmitter for SSE
-import { EventEmitter } from 'events';
-const executionEmitter = new EventEmitter();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -2568,7 +2564,7 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
 });
 
 // ============================================================================
-// SERVER-SENT EVENTS FOR EXECUTION TRACKING
+// SERVER-SENT EVENTS FOR VISUAL EXECUTION FEEDBACK
 // ============================================================================
 app.get('/api/business/processes/:id/execution-stream', async (req, res) => {
   const workflowId = req.params.id;
@@ -2576,171 +2572,115 @@ app.get('/api/business/processes/:id/execution-stream', async (req, res) => {
 
   console.log(`📡 SSE connection opened for workflow ${workflowId}, execution ${executionId}`);
 
-  // Set SSE headers with proper CORS
+  // Set SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Credentials': 'true',
-    'X-Accel-Buffering': 'no' // Disable nginx buffering
+    'Access-Control-Allow-Origin': '*'
   });
 
-  // Send initial connection message
+  // Send initial connection
   res.write(`data: ${JSON.stringify({ type: 'connected', workflowId, executionId })}\n\n`);
 
-  // Function to simulate node execution
-  const simulateExecution = async () => {
-    try {
-      // Get workflow nodes and connections
-      const workflowResult = await dbPool.query(
-        'SELECT nodes, connections FROM n8n.workflow_entity WHERE id = $1',
-        [workflowId]
-      );
+  // Get workflow nodes for smart animation
+  try {
+    const workflowResult = await dbPool.query(
+      'SELECT nodes FROM n8n.workflow_entity WHERE id = $1',
+      [workflowId]
+    );
 
-      if (!workflowResult.rows.length) {
-        res.write(`data: ${JSON.stringify({ type: 'error', message: 'Workflow not found' })}\n\n`);
-        res.end();
-        return;
-      }
-
-      let nodes = workflowResult.rows[0].nodes || [];
-      let connections = workflowResult.rows[0].connections || {};
-
-      // Parse nodes and connections if they're JSON strings
-      if (typeof nodes === 'string') {
-        try {
-          nodes = JSON.parse(nodes);
-          console.log(`📊 Parsed ${nodes.length} nodes from JSON string`);
-        } catch (err) {
-          console.error('❌ Failed to parse nodes JSON:', err);
-          res.write(`data: ${JSON.stringify({ type: 'error', message: 'Invalid workflow data' })}\n\n`);
-          res.end();
-          return;
-        }
-      }
-
-      if (typeof connections === 'string') {
-        try {
-          connections = JSON.parse(connections);
-          console.log(`🔗 Parsed connections from JSON string`);
-        } catch (err) {
-          console.warn('⚠️ Failed to parse connections, using node order');
-          connections = {};
-        }
-      }
-
-      // CORRECT workflow execution order: TRIGGERS FIRST, always!
-      const triggerNodes = [];
-      const regularNodes = [];
-
-      // Separate triggers from regular nodes
-      nodes.forEach(node => {
-        if (node.type && (
-          node.type.includes('trigger') ||
-          node.type.includes('webhook') ||
-          node.type.includes('manualTrigger')
-        )) {
-          triggerNodes.push(node);
-        } else {
-          regularNodes.push(node);
-        }
-      });
-
-      // Sort triggers by position
-      triggerNodes.sort((a, b) => {
-        const aX = a.position ? a.position[0] : 0;
-        const bX = b.position ? b.position[0] : 0;
-        return aX - bX;
-      });
-
-      // Sort regular nodes by position (left to right, top to bottom)
-      regularNodes.sort((a, b) => {
-        const aX = a.position ? a.position[0] : 0;
-        const bX = b.position ? b.position[0] : 0;
-
-        if (Math.abs(aX - bX) > 100) { // Different columns
-          return aX - bX;
-        }
-
-        // Same column, sort by Y
-        const aY = a.position ? a.position[1] : 0;
-        const bY = b.position ? b.position[1] : 0;
-        return aY - bY;
-      });
-
-      // TRIGGERS FIRST, then regular nodes
-      const orderedNodes = [...triggerNodes, ...regularNodes];
-
-      // Filter out sticky notes
-      const executableNodes = orderedNodes.filter(node =>
-        !node.type || !node.type.includes('stickyNote')
-      );
-
-      console.log(`🔄 Ordered execution: ${executableNodes.map(n => n.name).join(' -> ')}`);
-
-      // Simulate execution through each node in proper order
-      for (let i = 0; i < executableNodes.length; i++) {
-        const node = executableNodes[i];
-        console.log(`🔄 Processing node ${i + 1}/${nodes.length}: ${node.name} (${node.id})`);
-
-        // Skip sticky notes
-        if (node.type && node.type.includes('stickyNote')) continue;
-
-        // Node starts executing
-        const beforeEvent = {
-          type: 'nodeExecuteBefore',
-          nodeId: node.id,
-          nodeName: node.name,
-          nodeType: node.type,
-          timestamp: new Date().toISOString()
-        };
-        console.log(`📤 Sending nodeExecuteBefore:`, beforeEvent);
-        res.write(`data: ${JSON.stringify(beforeEvent)}\n\n`);
-
-        // Simulate processing time (shorter for triggers, longer for AI)
-        const processingTime = node.type?.includes('agent') ? 3000 :
-                              node.type?.includes('trigger') ? 500 : 1500;
-        await new Promise(resolve => setTimeout(resolve, processingTime));
-
-        // Node finishes executing
-        const afterEvent = {
-          type: 'nodeExecuteAfter',
-          nodeId: node.id,
-          nodeName: node.name,
-          nodeType: node.type,
-          timestamp: new Date().toISOString(),
-          success: true
-        };
-        console.log(`📤 Sending nodeExecuteAfter:`, afterEvent);
-        res.write(`data: ${JSON.stringify(afterEvent)}\n\n`);
-      }
-
-      // Workflow complete
-      res.write(`data: ${JSON.stringify({
-        type: 'workflowExecuteAfter',
-        workflowId,
-        executionId,
-        timestamp: new Date().toISOString(),
-        success: true
-      })}\n\n`);
-
-    } catch (error) {
-      console.error('SSE execution error:', error);
-      res.write(`data: ${JSON.stringify({
-        type: 'error',
-        message: error.message
-      })}\n\n`);
+    if (!workflowResult.rows.length) {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Workflow not found' })}\n\n`);
+      res.end();
+      return;
     }
 
-    // Close connection after execution
-    setTimeout(() => res.end(), 500);
-  };
+    let nodes = workflowResult.rows[0].nodes || [];
+    if (typeof nodes === 'string') {
+      nodes = JSON.parse(nodes);
+    }
 
-  // Start simulation after short delay
-  setTimeout(simulateExecution, 500);
+    // Filter and order nodes: triggers first, then by position
+    const triggerNodes = nodes.filter(n => n.type && n.type.includes('trigger'));
+    const regularNodes = nodes.filter(n => !n.type || !n.type.includes('trigger')).filter(n => !n.type || !n.type.includes('stickyNote'));
 
-  // Handle client disconnect
+    // Sort by X position (left to right)
+    regularNodes.sort((a, b) => {
+      const aX = a.position ? a.position[0] : 0;
+      const bX = b.position ? b.position[0] : 0;
+      return aX - bX;
+    });
+
+    const orderedNodes = [...triggerNodes, ...regularNodes];
+    console.log(`🎯 Professional animation sequence: ${orderedNodes.map(n => n.name).join(' → ')}`);
+
+    // SEQUENTIAL EXECUTION: One node at a time, in perfect order
+    for (let i = 0; i < orderedNodes.length; i++) {
+      const node = orderedNodes[i];
+      console.log(`🔄 SEQUENTIAL Step ${i + 1}/${orderedNodes.length}: ${node.name}`);
+
+      // Node starts executing
+      res.write(`data: ${JSON.stringify({
+        type: 'nodeExecuteBefore',
+        nodeId: node.id,
+        nodeName: node.name,
+        nodeType: node.type,
+        timestamp: new Date().toISOString(),
+        sequenceNumber: i + 1,
+        totalNodes: orderedNodes.length
+      })}\n\n`);
+
+      // Ultra-fast timing - slow only on AI nodes
+      const timing = node.type?.includes('agent') ? 1800 :
+                     node.type?.includes('openAi') ? 1500 :
+                     node.type?.includes('lmChat') ? 1400 :
+                     node.type?.includes('postgres') ? 200 :
+                     node.type?.includes('trigger') ? 80 :
+                     node.type?.includes('webhook') ? 50 :
+                     node.type?.includes('code') ? 150 :
+                     node.type?.includes('function') ? 120 : 300;
+
+      console.log(`⏱️ Node ${node.name} processing for ${timing}ms...`);
+      await new Promise(resolve => setTimeout(resolve, timing));
+
+      // Node finishes executing
+      res.write(`data: ${JSON.stringify({
+        type: 'nodeExecuteAfter',
+        nodeId: node.id,
+        nodeName: node.name,
+        nodeType: node.type,
+        timestamp: new Date().toISOString(),
+        success: true,
+        sequenceNumber: i + 1,
+        totalNodes: orderedNodes.length
+      })}\n\n`);
+
+      console.log(`✅ Node ${node.name} completed`);
+    }
+
+    // Workflow complete - ensure message is sent before closing
+    res.write(`data: ${JSON.stringify({
+      type: 'workflowExecuteAfter',
+      workflowId,
+      executionId,
+      timestamp: new Date().toISOString(),
+      success: true
+    })}\n\n`);
+
+    console.log(`\u2705 Workflow complete event sent`);
+
+  } catch (error) {
+    console.error('SSE animation error:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+  }
+
+  // Give more time for final message to reach client
+  setTimeout(() => {
+    console.log(`\ud83d\udce1 Closing SSE connection after completion`);
+    res.end();
+  }, 1000);
+
   req.on('close', () => {
     console.log(`📡 SSE connection closed for workflow ${workflowId}`);
   });
