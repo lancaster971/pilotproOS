@@ -74,6 +74,19 @@
             </router-link>
           </nav>
 
+          <!-- Footer in sidebar -->
+          <div class="mt-8 pt-4 border-t border-border">
+            <div v-if="!sidebarCollapsed" class="flex items-center justify-between px-3 py-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span class="text-xs text-text-muted">Stack Healthy</span>
+              </div>
+            </div>
+            <div v-else class="flex justify-center">
+              <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+            </div>
+          </div>
+
         </div>
       </aside>
 
@@ -105,9 +118,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
+import {
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Bot, AlertTriangle, ChevronLeft, Settings
+  Database, Bot, AlertTriangle, ChevronLeft, Settings, Zap, Terminal, Cpu
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
@@ -120,7 +133,7 @@ const router = useRouter()
 
 // Local state
 const showUserMenu = ref(false)
-const sidebarCollapsed = ref(true) // Start collapsed by default
+const sidebarCollapsed = ref(false) // Show sidebar by default
 const isMobile = ref(false)
 
 // Check if mobile
@@ -140,7 +153,7 @@ onUnmounted(() => {
 // Navigation items with role-based filtering (simplified to 2 roles)
 const allNavigationItems = [
   { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard, roles: ['admin', 'viewer'] },
-  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Menu, roles: ['admin', 'viewer'] },
+  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Zap, roles: ['admin', 'viewer'] },
   { name: 'executions', path: '/executions', label: 'Executions', icon: Play, roles: ['admin', 'viewer'] },
   { name: 'settings', path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
 ]
