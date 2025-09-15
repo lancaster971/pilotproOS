@@ -26,24 +26,94 @@
       <div class="node-badge">{{ categoryBadge }}</div>
     </div>
 
-    <!-- Handles attached to shape -->
-    <Handle
-      v-for="(handle, idx) in inputs"
-      :key="`in-${idx}`"
-      type="target"
-      :position="Position.Left"
-      :id="`input-${idx}`"
-      class="minimal-handle handle-input"
-    />
+    <!-- Handles with proper positioning based on node type -->
+    <template v-if="nodeCategory === 'ai'">
+      <!-- AI nodes: multiple handles for tool connections -->
+      <Handle
+        type="target"
+        :position="Position.Left"
+        id="input-0"
+        class="minimal-handle handle-left"
+      />
+      <Handle
+        v-for="idx in 3"
+        :key="`tool-in-${idx}`"
+        type="target"
+        :position="Position.Bottom"
+        :id="`tool-${idx - 1}`"
+        class="minimal-handle handle-bottom"
+        :style="{ left: `${25 + (idx - 1) * 25}%` }"
+      />
+      <Handle
+        type="source"
+        :position="Position.Right"
+        id="output-0"
+        class="minimal-handle handle-right"
+      />
+      <Handle
+        v-for="idx in 3"
+        :key="`tool-out-${idx}`"
+        type="source"
+        :position="Position.Bottom"
+        :id="`tool-${idx - 1}`"
+        class="minimal-handle handle-bottom"
+        :style="{ left: `${25 + (idx - 1) * 25}%` }"
+      />
+    </template>
 
-    <Handle
-      v-for="(handle, idx) in outputs"
-      :key="`out-${idx}`"
-      type="source"
-      :position="Position.Right"
-      :id="`output-${idx}`"
-      class="minimal-handle handle-output"
-    />
+    <template v-else-if="nodeCategory === 'storage'">
+      <!-- Storage nodes: top and bottom connections -->
+      <Handle
+        type="target"
+        :position="Position.Top"
+        id="input-0"
+        class="minimal-handle handle-top"
+      />
+      <Handle
+        type="target"
+        :position="Position.Bottom"
+        id="tool-0"
+        class="minimal-handle handle-bottom"
+      />
+      <Handle
+        type="source"
+        :position="Position.Bottom"
+        id="output-0"
+        class="minimal-handle handle-bottom"
+      />
+    </template>
+
+    <template v-else-if="nodeCategory === 'tool'">
+      <!-- Tool nodes: top input, bottom output -->
+      <Handle
+        type="target"
+        :position="Position.Top"
+        id="input-0"
+        class="minimal-handle handle-top"
+      />
+      <Handle
+        type="source"
+        :position="Position.Bottom"
+        id="output-0"
+        class="minimal-handle handle-bottom"
+      />
+    </template>
+
+    <template v-else>
+      <!-- Default: left input, right output -->
+      <Handle
+        type="target"
+        :position="Position.Left"
+        id="input-0"
+        class="minimal-handle handle-left"
+      />
+      <Handle
+        type="source"
+        :position="Position.Right"
+        id="output-0"
+        class="minimal-handle handle-right"
+      />
+    </template>
   </div>
 </template>
 
@@ -338,7 +408,7 @@ const status = computed(() => props.data.status || 'idle')
   letter-spacing: 0.5px;
 }
 
-/* Handles */
+/* Handles - Positioned based on type */
 .minimal-handle {
   position: absolute;
   width: 8px !important;
@@ -346,21 +416,45 @@ const status = computed(() => props.data.status || 'idle')
   background: #475569 !important;
   border: 1px solid #1e293b !important;
   border-radius: 50%;
+}
+
+.handle-left {
+  left: -4px;
   top: 50%;
   transform: translateY(-50%);
 }
 
-.handle-input {
-  left: -4px;
+.handle-right {
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.handle-output {
-  right: -4px;
+.handle-top {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.handle-bottom {
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .minimal-handle:hover {
   background: #3b82f6 !important;
+  transform: scale(1.3);
+}
+
+.handle-left:hover,
+.handle-right:hover {
   transform: translateY(-50%) scale(1.3);
+}
+
+.handle-top:hover,
+.handle-bottom:hover {
+  transform: translateX(-50%) scale(1.3);
 }
 
 /* Category-specific colors with shapes */
