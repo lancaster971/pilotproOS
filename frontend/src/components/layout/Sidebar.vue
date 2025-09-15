@@ -126,6 +126,11 @@ const navigationItems = computed<NavigationItem[]>(() => [
     description: 'Gestione dati',
     icon: 'lucide:database'
   },
-  // Removed security and scheduler routes - functionality not needed for business system
+  {
+    path: '/settings',
+    label: 'Impostazioni',
+    description: 'Configurazione sistema',
+    icon: 'lucide:settings'
+  }
 ])
 </script>

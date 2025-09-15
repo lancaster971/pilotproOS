@@ -59,13 +59,13 @@ const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
 const routes = [
   { path: '/login', component: LoginPage, name: 'login' },
   { path: '/', redirect: '/insights' },
-  { path: '/insights', component: InsightsPage, name: 'insights' },
+  { path: '/insights', component: InsightsPage, name: 'insights', meta: { requiresAuth: true } },
   { path: '/dashboard', redirect: '/insights' }, // Redirect for backward compatibility
   // Removed unused workflow routes - redirect to command-center
   { path: '/workflows', redirect: '/command-center' },
   { path: '/workflows/visual', redirect: '/command-center' },
-  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center' },
-  { path: '/executions', component: ExecutionsPagePrime, name: 'executions' },
+  { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
+  { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
   { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
@@ -79,10 +79,23 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard DISABLED - sistema non funziona
-// router.beforeEach(async (to, from, next) => {
-//   next() // BYPASS ALL AUTH
-// })
+// Auth guard - protegge route che richiedono autenticazione
+router.beforeEach(async (to, from, next) => {
+  const { useAuthStore } = await import('./stores/auth')
+  const authStore = useAuthStore()
+
+  // Check if route requires authentication
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    // Redirect to login if not authenticated
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else if (to.name === 'login' && authStore.isAuthenticated) {
+    // Redirect to insights if already authenticated
+    next({ name: 'insights' })
+  } else {
+    // Proceed normally
+    next()
+  }
+})
 
 // Create app with same structure as n8n
 const app = createApp(App)

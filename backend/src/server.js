@@ -4247,9 +4247,19 @@ app.get('/api/business/workflow/:workflowId/full-stats', async (req, res) => {
   }
 });
 
-// Business error handler
+// Business error handler (exclude auth routes)
 app.use((error, req, res, next) => {
-  console.error('❌ Business error:', error);
+  console.error('❌ Error:', error);
+
+  // Don't sanitize auth routes - return real errors
+  if (req.path.startsWith('/api/auth')) {
+    return res.status(error.status || 500).json({
+      error: error.message || 'Authentication failed',
+      message: error.message
+    });
+  }
+
+  // Sanitize business routes
   res.status(500).json({
     error: 'Business operation failed',
     message: sanitizeErrorMessage(error.message)
