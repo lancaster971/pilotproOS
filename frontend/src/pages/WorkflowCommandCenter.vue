@@ -823,7 +823,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
-import PremiumEnterpriseNode from '../components/workflow/PremiumEnterpriseNode.vue'
+import MinimalEnterpriseNode from '../components/workflow/MinimalEnterpriseNode.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -922,10 +922,10 @@ const paginatedExecutions = computed(() => {
 const flowElements = ref([])
 const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
 
-// Node Types for VueFlow - Premium Enterprise rebrand
+// Node Types for VueFlow - Minimal clean design
 const nodeTypes = {
-  enterprise: PremiumEnterpriseNode,
-  custom: PremiumEnterpriseNode // Fallback for any remaining custom nodes
+  enterprise: MinimalEnterpriseNode,
+  custom: MinimalEnterpriseNode // Fallback for any remaining custom nodes
 }
 
 // Computed
@@ -1199,9 +1199,9 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
     return {
       id: step.stepName,
       type: 'enterprise',
-      position: { 
-        x: step.position[0] || 0, 
-        y: step.position[1] || 0
+      position: {
+        x: (step.position[0] || 0) * 1.3, // Add 30% more horizontal spacing
+        y: (step.position[1] || 0) * 1.3  // Add 30% more vertical spacing
       },
       data: {
         label: step.stepName,
