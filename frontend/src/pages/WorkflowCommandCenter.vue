@@ -1350,17 +1350,26 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       id: `edge-${index}`,
       source: flow.from,
       target: flow.to,
-      type: 'default', // Bezier curves like n8n
+      type: 'smoothstep', // Changed from bezier to smoothstep for a different look
       animated: workflowMetadata.is_active && isMainConnection,
-      style: { 
-        stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6', 
-        strokeWidth: 1,
-        strokeDasharray: isMainConnection ? 'none' : '8 4',
-        opacity: isMainConnection ? 1 : 0.8
+      style: {
+        stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6',
+        strokeWidth: isMainConnection ? 3 : 2, // Thicker lines
+        strokeDasharray: isMainConnection ? 'none' : '5 5', // Different dash pattern
+        opacity: isMainConnection ? 1 : 0.7,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        filter: isMainConnection ? 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.5))' : 'none' // Glow effect for main
       },
       sourceHandle,
       targetHandle,
-      className: isMainConnection ? 'main-edge' : 'secondary-edge'
+      className: isMainConnection ? 'main-edge' : 'secondary-edge',
+      markerEnd: isMainConnection ? {
+        type: 'arrowclosed',
+        width: 20,
+        height: 20,
+        color: '#10b981'
+      } : undefined
     }
   })
   

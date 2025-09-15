@@ -256,10 +256,16 @@ const nodeIcon = computed(() => {
   if (type.includes('discord') || name.includes('discord')) return 'simple-icons:discord'
   if (type.includes('whatsapp') || name.includes('whatsapp')) return 'simple-icons:whatsapp'
 
-  // AI Services
+  // AI Services - Check AI Agents first with better icons
+  if (type.includes('langchain.agent') ||
+      (type === 'ai' && nodeType.includes('agent')) ||
+      name.includes('agent') || name.includes('assistente') ||
+      name.includes('milena')) {
+    return 'fluent:brain-circuit-20-regular' // Modern AI brain circuit icon
+  }
   if (type.includes('openai') || name.includes('openai') || name.includes('gpt')) return 'simple-icons:openai'
   if (type.includes('anthropic') || name.includes('claude')) return 'simple-icons:anthropic'
-  if (type.includes('langchain') || name.includes('langchain')) return 'simple-icons:chainlink'
+  if (type.includes('langchain')) return 'carbon:flow-data' // Better for LangChain
 
   // Cloud & APIs
   if (type.includes('google') || name.includes('google')) return 'simple-icons:google'
@@ -518,7 +524,7 @@ const techBadge = computed(() => {
 
   // AI specific badges
   if (nodeType.includes('langchain.agent')) {
-    return '🤖'
+    return 'AI'
   }
   if (nodeType.includes('openai') || nodeType.includes('gpt')) {
     return 'GPT'
