@@ -1,0 +1,137 @@
+/* 🎨 ENTERPRISE THEME - Professional Rebrand */
+/* NO GREEN - Complete departure from n8n visual identity */
+
+:root {
+  /* Primary Palette - Enterprise Blue/Purple */
+  --color-primary: #3b82f6;        /* Bright Blue - Main actions */
+  --color-primary-dark: #2563eb;   /* Deep Blue - Hover states */
+  --color-primary-light: #60a5fa;  /* Light Blue - Highlights */
+
+  /* Secondary Palette - Royal Purple */
+  --color-secondary: #8b5cf6;      /* Purple - AI/Logic nodes */
+  --color-secondary-dark: #7c3aed; /* Deep Purple */
+  --color-secondary-light: #a78bfa;/* Light Purple */
+
+  /* Accent Colors - Professional */
+  --color-accent-cyan: #06b6d4;    /* Cyan - Success (NOT green) */
+  --color-accent-amber: #f59e0b;   /* Amber - Warnings */
+  --color-accent-rose: #f43f5e;    /* Rose - Errors */
+  --color-accent-slate: #64748b;   /* Slate - Neutral */
+
+  /* Node Type Colors - Enterprise Palette */
+  --node-trigger: #3b82f6;         /* Blue - Process Initiators */
+  --node-processor: #8b5cf6;        /* Purple - Processing/Logic */
+  --node-transformer: #06b6d4;     /* Cyan - Data Transform */
+  --node-output: #f59e0b;           /* Amber - Output/Actions */
+  --node-storage: #64748b;          /* Slate - Database/Storage */
+  --node-ai: #ec4899;               /* Pink - AI/ML Operations */
+
+  /* Backgrounds - Dark Professional */
+  --bg-primary: #0f172a;            /* Deep Slate */
+  --bg-secondary: #1e293b;          /* Slate 800 */
+  --bg-surface: #334155;            /* Slate 700 */
+  --bg-elevated: #475569;           /* Slate 600 */
+
+  /* Glass Morphism Effects */
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.2);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  /* Connection Lines - Professional */
+  --edge-default: #475569;          /* Muted slate */
+  --edge-active: #3b82f6;           /* Blue when active */
+  --edge-data-flow: #06b6d4;        /* Cyan for data */
+  --edge-error: #f43f5e;            /* Rose for errors */
+
+  /* Text Colors */
+  --text-primary: #f1f5f9;          /* Slate 100 */
+  --text-secondary: #cbd5e1;        /* Slate 300 */
+  --text-muted: #94a3b8;            /* Slate 400 */
+
+  /* Status Colors - Business Friendly */
+  --status-active: #06b6d4;         /* Cyan (not green!) */
+  --status-pending: #f59e0b;        /* Amber */
+  --status-error: #f43f5e;          /* Rose */
+  --status-disabled: #64748b;       /* Slate */
+}
+
+/* Node Shape Classes - Professional Forms */
+.node-hexagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+  background: linear-gradient(135deg, var(--node-processor), var(--node-processor-dark));
+}
+
+.node-rounded-rect {
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--node-trigger), var(--node-trigger-dark));
+}
+
+.node-pill {
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--node-transformer), var(--node-transformer-dark));
+}
+
+.node-octagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: linear-gradient(135deg, var(--node-ai), var(--node-ai-dark));
+}
+
+.node-chevron {
+  clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%);
+  background: linear-gradient(135deg, var(--node-output), var(--node-output-dark));
+}
+
+.node-cylinder {
+  border-radius: 50px/25px;
+  background: linear-gradient(180deg, var(--node-storage), var(--node-storage-dark));
+}
+
+/* Enterprise Glass Effect */
+.enterprise-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Premium Hover Effects */
+.enterprise-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enterprise-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+  border-color: var(--color-primary);
+}
+
+/* Professional Edge Styles */
+.edge-manhattan {
+  stroke: var(--edge-default);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.edge-data-flow {
+  stroke: var(--edge-data-flow);
+  stroke-width: 3;
+  stroke-dasharray: 5, 5;
+  animation: data-flow 2s linear infinite;
+}
+
+@keyframes data-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -10; }
+}
+
+/* Remove ALL n8n Green References */
+.text-green-400,
+.text-green-500,
+.bg-green-400,
+.bg-green-500,
+.border-green-400,
+.border-green-500 {
+  display: none !important;
+}

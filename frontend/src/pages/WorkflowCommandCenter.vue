@@ -35,8 +35,8 @@
           <template #content>
             <div class="p-2">
               <div class="flex items-center justify-between mb-1">
-                <p class="text-lg font-bold text-primary">{{ Math.round(100 - failureRate) }}%</p>
-                <Badge value="SUCCESS" severity="success" class="text-xs badge-white-text" />
+                <p class="text-lg font-bold text-cyan-500">{{ Math.round(100 - failureRate) }}%</p>
+                <Badge value="SUCCESS" severity="info" class="text-xs badge-white-text" />
               </div>
               <p class="text-xs text-text-muted">Tasso Successo • Last 7 days</p>
             </div>
@@ -74,8 +74,8 @@
           <template #content>
             <div class="p-2">
               <div class="flex items-center justify-between mb-1">
-                <p class="text-lg font-bold text-primary">{{ activeWorkflows }}/{{ totalWorkflows }}</p>
-                <Badge value="HEALTH" severity="success" class="text-xs badge-white-text" />
+                <p class="text-lg font-bold text-blue-500">{{ activeWorkflows }}/{{ totalWorkflows }}</p>
+                <Badge value="SYSTEM" severity="info" class="text-xs badge-white-text" />
               </div>
               <p class="text-xs text-text-muted">Active workflows • System status</p>
             </div>
@@ -93,7 +93,7 @@
         >
           <!-- Sidebar Header -->
           <div class="p-3 border-b border-border flex items-center justify-between">
-            <h3 v-if="!sidebarCollapsed" class="text-xs font-bold text-text">PROCESSES</h3>
+            <h3 v-if="!sidebarCollapsed" class="text-xs font-bold text-text">BUSINESS PROCESSES</h3>
             <button 
               @click="sidebarCollapsed = !sidebarCollapsed"
               class="p-1 text-text-muted hover:text-text transition-colors"
@@ -201,7 +201,7 @@
             <div class="flex items-center gap-4">
               <!-- Last execution indicator -->
               <div v-if="workflowStats?.kpis?.last24hExecutions" class="flex items-center gap-2 text-xs">
-                <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
                 <span class="text-text-muted">{{ workflowStats.kpis.last24hExecutions }} runs today</span>
               </div>
 
@@ -319,7 +319,7 @@
                   class="bg-gray-800 border border-gray-600 text-white px-4 py-2 rounded-t-lg shadow-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
                   <span class="text-sm font-medium">Logs</span>
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                   <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': showLogs }" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                   </svg>
@@ -693,12 +693,12 @@
                     >
                       <td class="px-3 py-2">
                         <div class="flex items-center gap-2">
-                          <Icon v-if="exec.finished && !exec.error" icon="lucide:check-circle" class="h-4 w-4 text-green-400" />
+                          <Icon v-if="exec.finished && !exec.error" icon="lucide:check-circle" class="h-4 w-4 text-cyan-500" />
                           <Icon v-else-if="exec.error" icon="lucide:x-circle" class="h-4 w-4 text-red-400" />
                           <Icon v-else icon="lucide:clock" class="h-4 w-4 text-yellow-400" />
                           <span :class="[
                             'text-xs font-medium',
-                            exec.finished && !exec.error ? 'text-green-400' : 
+                            exec.finished && !exec.error ? 'text-cyan-500' : 
                             exec.error ? 'text-red-400' : 'text-yellow-400'
                           ]">
                             {{ exec.finished && !exec.error ? 'Success' : 
@@ -790,7 +790,7 @@
                   <span class="text-sm text-text-muted">Success Rate</span>
                   <Icon icon="lucide:check-circle" class="h-4 w-4 text-gray-600" />
                 </div>
-                <p class="text-lg font-bold text-green-400">
+                <p class="text-lg font-bold text-cyan-500">
                   {{ data?.successRate ? `${data.successRate.toFixed(1)}%` : 'N/A' }}
                 </p>
               </div>
@@ -840,7 +840,8 @@ import { businessAPI, $fetch } from '../services/api-client'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'
-import '@vue-flow/core/dist/theme-default.css'
+// Removed default theme - using enterprise theme
+import '../design-system/enterprise-theme.css'
 
 // Stores
 const uiStore = useUIStore()
@@ -1751,7 +1752,7 @@ const loadExecutionData = async () => {
 // Trend formatting and styling helpers
 const getTrendClass = (trendValue: number) => {
   if (trendValue === null || trendValue === undefined) return 'text-gray-400 text-xs font-medium'
-  if (trendValue > 0) return 'text-green-500 text-xs font-medium'
+  if (trendValue > 0) return 'text-cyan-500 text-xs font-medium'
   if (trendValue < 0) return 'text-red-500 text-xs font-medium'
   return 'text-gray-400 text-xs font-medium'
 }
@@ -2014,7 +2015,7 @@ const getHandleType = (connectionType: string) => {
 
 const getLogLevelClass = (level: string) => {
   switch (level) {
-    case 'SUCCESS': return 'text-green-400 font-semibold'
+    case 'SUCCESS': return 'text-cyan-500 font-semibold'
     case 'INFO': return 'text-blue-400 font-semibold'
     case 'DEBUG': return 'text-gray-400 font-semibold'
     case 'WARN': return 'text-yellow-400 font-semibold'

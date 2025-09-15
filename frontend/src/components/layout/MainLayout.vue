@@ -78,7 +78,7 @@
           <div class="mt-8 pt-4 border-t border-border">
             <div v-if="!sidebarCollapsed" class="flex items-center justify-between px-3 py-2">
               <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                <div class="w-2 h-2 bg-cyan-500 rounded-full"></div>
                 <span class="text-xs text-text-muted">Stack Healthy</span>
               </div>
             </div>

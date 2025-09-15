@@ -7,6 +7,7 @@ import App from './App.vue'
 import './style.css'
 import './design-system/utilities.css'
 import './design-system/premium-no-animations.css'
+import './design-system/enterprise-theme.css' // Enterprise rebrand - NO GREEN!
 import './disable-animations.css'
 
 // Vue Toastification - Battle-tested toast system  
