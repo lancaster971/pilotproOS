@@ -243,6 +243,7 @@
             <VueFlow
               v-if="selectedWorkflowId"
               v-model="flowElements"
+              :node-types="nodeTypes"
               :default-viewport="{ zoom: 1, x: 0, y: 0 }"
               :min-zoom="0.2"
               :max-zoom="3"
@@ -822,6 +823,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
+import EnterpriseNode from '../components/workflow/EnterpriseNode.vue'
 
 // PrimeVue Components
 import Card from 'primevue/card'
@@ -919,6 +921,12 @@ const paginatedExecutions = computed(() => {
 // VueFlow
 const flowElements = ref([])
 const { fitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, setViewport, getViewport } = useVueFlow()
+
+// Node Types for VueFlow - Enterprise rebrand
+const nodeTypes = {
+  enterprise: EnterpriseNode,
+  custom: EnterpriseNode // Fallback for any remaining custom nodes
+}
 
 // Computed
 const totalWorkflows = computed(() => realWorkflows.value.length)
@@ -1190,7 +1198,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
     
     return {
       id: step.stepName,
-      type: 'custom',
+      type: 'enterprise',
       position: { 
         x: step.position[0] || 0, 
         y: step.position[1] || 0
@@ -1347,7 +1355,7 @@ const createEnhancedFlow = (workflow: any) => {
   
   const nodes = steps.map((step, index) => ({
     id: step,
-    type: 'custom',
+    type: 'enterprise',
     position: { x: index * 180, y: 50 },
     data: {
       label: step,
@@ -2099,7 +2107,8 @@ onMounted(async () => {
 }
 
 /* Clear default VueFlow styles */
-:deep(.vue-flow__node-custom) {
+:deep(.vue-flow__node-custom),
+:deep(.vue-flow__node-enterprise) {
   background: transparent !important;
   border: none !important;
 }
