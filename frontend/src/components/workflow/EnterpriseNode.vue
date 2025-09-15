@@ -67,6 +67,7 @@ interface Props {
   data: {
     label: string
     type: string
+    nodeType?: string  // The actual n8n node type
     status?: 'active' | 'pending' | 'error' | 'success'
     category?: string
     hasError?: boolean
@@ -113,43 +114,58 @@ const businessTitle = computed(() => {
 
 // Node subtitle based on category
 const nodeSubtitle = computed(() => {
-  const category = props.data.category || detectCategory(props.data.type)
+  const category = props.data.category || detectCategory(props.data.type, props.data.nodeType)
   return businessTerms[category] || category
 })
 
-// Detect category from node type
-const detectCategory = (type: string): string => {
-  if (type.includes('trigger') || type.includes('webhook') || type.includes('schedule')) {
+// Detect category from node type - MATCHING WorkflowCommandCenter logic
+const detectCategory = (type: string, nodeType?: string): string => {
+  // Use the type that's already categorized from getNodeTypeFromN8nType
+  if (type === 'ai') return 'ai'
+  if (type === 'storage') return 'storage'
+  if (type === 'tool') return 'tool'
+  if (type === 'trigger') return 'trigger'
+
+  // Fallback to nodeType analysis if needed
+  const checkType = nodeType || type
+
+  if (checkType.includes('trigger') || checkType.includes('webhook') || checkType.includes('schedule')) {
     return 'trigger'
   }
-  if (type.includes('database') || type.includes('postgres') || type.includes('mongodb')) {
+  if (checkType.includes('vectorStore') || checkType.includes('database') || checkType.includes('postgres')) {
     return 'storage'
   }
-  if (type.includes('if') || type.includes('switch') || type.includes('merge')) {
+  if (checkType.includes('agent') || checkType.includes('openai') || checkType.includes('langchain')) {
+    return 'ai'
+  }
+  if (checkType.includes('if') || checkType.includes('switch') || checkType.includes('merge')) {
     return 'logic'
   }
-  if (type.includes('email') || type.includes('slack') || type.includes('http')) {
+  if (checkType.includes('email') || checkType.includes('slack') || checkType.includes('http')) {
     return 'output'
   }
-  return 'action'
+  return 'tool' // Default to tool instead of action
 }
 
-// Node type for styling
-const nodeType = computed(() => detectCategory(props.data.type))
+// Node type for styling - use the categorized type from WorkflowCommandCenter
+const nodeType = computed(() => {
+  // First try to use the already categorized 'type' field
+  if (['ai', 'storage', 'tool', 'trigger'].includes(props.data.type)) {
+    return props.data.type
+  }
+  // Fallback to detection
+  return detectCategory(props.data.type, props.data.nodeType)
+})
 
-// Shape class based on node type
+// Shape class based on node type - DIFFERENT SHAPES FOR CLARITY
 const nodeShapeClass = computed(() => {
   const shapeMap: Record<string, string> = {
-    'trigger': 'shape-rounded-rect',
-    'storage': 'shape-cylinder',
-    'logic': 'shape-hexagon',
-    'output': 'shape-chevron',
-    'action': 'shape-pill',
-    'ai': 'shape-octagon'
-  }
-
-  if (props.data.type.includes('openai') || props.data.type.includes('gpt')) {
-    return shapeMap['ai']
+    'trigger': 'shape-diamond',      // Diamond for triggers (start points)
+    'storage': 'shape-cylinder',     // Cylinder for databases
+    'logic': 'shape-hexagon',        // Hexagon for logic/decisions
+    'output': 'shape-chevron',       // Chevron for outputs
+    'tool': 'shape-rounded-rect',    // Rectangle for tools/actions
+    'ai': 'shape-octagon'            // Octagon for AI
   }
 
   return shapeMap[nodeType.value] || 'shape-rounded-rect'
@@ -241,13 +257,15 @@ const status = computed(() => props.data.status)
   pointer-events: none;
 }
 
-/* Professional Shapes */
+/* Professional Shapes - DISTINCT FOR EACH TYPE */
 .shape-rounded-rect {
   border-radius: 12px;
 }
 
-.shape-pill {
-  border-radius: 50px;
+.shape-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  min-width: 150px !important;
+  aspect-ratio: 1.5;
 }
 
 .shape-hexagon {
