@@ -27,7 +27,6 @@
           :to="item.path"
           class="sidebar-nav-item group"
           :class="{ 'active': $route.path === item.path }"
-          :style="{ animationDelay: `${index * 0.1}s` }"
         >
           <!-- Active indicator -->
           <div v-if="$route.path === item.path" class="sidebar-active-indicator"></div>
@@ -60,7 +59,7 @@
       <div class="sidebar-footer mt-auto">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
-            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-primary rounded-full"></div>
             <span class="text-xs text-text-muted">Sistema Online</span>
           </div>
           <button class="sidebar-toggle-btn">
