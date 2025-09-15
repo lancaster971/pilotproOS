@@ -1,39 +1,39 @@
 <template>
-  <div
-    :class="[
-      'minimal-node',
-      `shape-${nodeShape}`,
-      `category-${nodeCategory}`,
-      {
-        'node-active': isActive,
-        'node-error': hasError,
-        'node-selected': selected
-      }
-    ]"
-  >
-    <!-- Compact Status Dot -->
-    <div class="status-dot" :class="`status-${status}`"></div>
+  <div class="node-wrapper">
+    <!-- Shape with icon only -->
+    <div
+      :class="[
+        'minimal-node',
+        `shape-${nodeShape}`,
+        `category-${nodeCategory}`,
+        {
+          'node-active': isActive,
+          'node-error': hasError,
+          'node-selected': selected
+        }
+      ]"
+    >
+      <!-- Status Dot -->
+      <div class="status-dot" :class="`status-${status}`"></div>
 
-    <!-- Icon Badge -->
-    <div class="icon-badge" :style="{ background: categoryColor }">
+      <!-- Icon only inside shape -->
       <Icon :icon="nodeIcon" class="node-icon" />
     </div>
 
-    <!-- Minimal Content -->
-    <div class="node-content">
+    <!-- Text label OUTSIDE below shape -->
+    <div class="node-label">
       <div class="node-title">{{ shortName }}</div>
       <div class="node-badge">{{ categoryBadge }}</div>
     </div>
 
-    <!-- Handles - Simplified -->
+    <!-- Handles attached to shape -->
     <Handle
       v-for="(handle, idx) in inputs"
       :key="`in-${idx}`"
       type="target"
       :position="Position.Left"
       :id="`input-${idx}`"
-      class="minimal-handle"
-      :style="{ top: `${50}%` }"
+      class="minimal-handle handle-input"
     />
 
     <Handle
@@ -42,8 +42,7 @@
       type="source"
       :position="Position.Right"
       :id="`output-${idx}`"
-      class="minimal-handle"
-      :style="{ top: `${50}%` }"
+      class="minimal-handle handle-output"
     />
   </div>
 </template>
@@ -216,40 +215,50 @@ const status = computed(() => props.data.status || 'idle')
 </script>
 
 <style scoped>
+.node-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .minimal-node {
   position: relative;
-  width: 160px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(100, 116, 139, 0.5);
+  border: 2px solid rgba(100, 116, 139, 0.5);
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  gap: 10px;
+  justify-content: center;
   transition: all 0.2s ease;
   backdrop-filter: blur(8px);
 }
 
-/* SHAPE DEFINITIONS - Different from n8n! */
+/* SHAPE DEFINITIONS - Clean geometric shapes */
 .shape-diamond {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  width: 140px;
-  padding: 0 20px;
+  transform: rotate(45deg);
+  border-radius: 8px;
+}
+
+.shape-diamond .node-icon {
+  transform: rotate(-45deg);
 }
 
 .shape-cylinder {
-  border-radius: 50px/25px;
+  border-radius: 50%;
   border-top-width: 3px;
   border-bottom-width: 3px;
 }
 
 .shape-hexagon {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  width: 180px;
 }
 
 .shape-pill {
-  border-radius: 28px;
+  border-radius: 30px;
+  width: 80px;
 }
 
 .shape-rectangle {
@@ -296,63 +305,62 @@ const status = computed(() => props.data.status || 'idle')
   50% { opacity: 0.5; }
 }
 
-/* Icon Badge */
-.icon-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-
+/* Icon centered in shape */
 .node-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   color: white;
 }
 
-/* Content */
-.node-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Label outside shape */
+.node-label {
+  text-align: center;
+  max-width: 100px;
+  pointer-events: none;
 }
 
 .node-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+  margin-bottom: 2px;
 }
 
 .node-badge {
   font-size: 9px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* Handles */
 .minimal-handle {
+  position: absolute;
   width: 8px !important;
   height: 8px !important;
   background: #475569 !important;
   border: 1px solid #1e293b !important;
   border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.handle-input {
+  left: -4px;
+}
+
+.handle-output {
+  right: -4px;
 }
 
 .minimal-handle:hover {
   background: #3b82f6 !important;
-  transform: scale(1.3);
+  transform: translateY(-50%) scale(1.3);
 }
 
 /* Category-specific colors with shapes */
