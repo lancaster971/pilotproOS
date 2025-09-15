@@ -2,9 +2,9 @@
   <aside v-show="sidebarOpen" class="sidebar-container w-64 min-h-screen relative">
     <!-- Background with glass effect -->
     <div class="sidebar-background absolute inset-0"></div>
-    
+
     <!-- Content -->
-    <div class="sidebar-content relative z-10">
+    <div class="sidebar-content relative z-10 flex flex-col h-full">
       <!-- Header -->
       <div class="sidebar-header">
         <div class="sidebar-logo flex items-center">
@@ -27,7 +27,6 @@
           :to="item.path"
           class="sidebar-nav-item group"
           :class="{ 'active': $route.path === item.path }"
-          :style="{ animationDelay: `${index * 0.1}s` }"
         >
           <!-- Active indicator -->
           <div v-if="$route.path === item.path" class="sidebar-active-indicator"></div>
@@ -57,14 +56,14 @@
       </nav>
 
       <!-- Footer -->
-      <div class="sidebar-footer mt-auto">
+      <div class="sidebar-footer mt-auto" style="margin-top: auto; padding: 1rem; border-top: 1px solid #374151; background: rgba(0,0,0,0.1);">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
-            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            <span class="text-xs text-text-muted">Sistema Online</span>
+            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span class="text-xs text-gray-300">Sistema Online</span>
           </div>
           <button class="sidebar-toggle-btn">
-            <Icon icon="lucide:chevron-left" class="w-4 h-4" />
+            <Icon icon="lucide:chevron-left" class="w-4 h-4 text-gray-300" />
           </button>
         </div>
       </div>

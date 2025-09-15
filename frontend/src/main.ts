@@ -6,7 +6,8 @@ import App from './App.vue'
 // Import clean CSS - Design System initialized in App.vue
 import './style.css'
 import './design-system/utilities.css'
-import './design-system/premium.css'
+import './design-system/premium-no-animations.css'
+import './disable-animations.css'
 
 // Vue Toastification - Battle-tested toast system  
 import Toast, { POSITION } from 'vue-toastification'
@@ -121,20 +122,27 @@ app.use(PrimeVue, {
 app.use(pinia)
 app.use(router)
 
-// Vue Toastification configuration - Battle-tested accessibility & mobile support
+// Vue Toastification configuration - Performance optimized, no animations
 app.use(Toast, {
   position: POSITION.TOP_RIGHT,
-  timeout: 5000,
+  timeout: 3000,
   closeOnClick: true,
-  pauseOnFocusLoss: true,
-  pauseOnHover: true,
-  draggable: true,
-  draggablePercent: 0.6,
-  showCloseButtonOnHover: false,
-  hideProgressBar: false,
+  pauseOnFocusLoss: false,
+  pauseOnHover: false,
+  draggable: false,
+  showCloseButtonOnHover: true,
+  hideProgressBar: true,
   closeButton: "button",
-  icon: true,
-  rtl: false
+  icon: false,
+  rtl: false,
+  transition: "Vue-Toastification__fade", // Fastest transition
+  toastDefaults: {
+    // Remove all transitions for instant display
+    transition: {
+      enter: "Vue-Toastification__fade-enter-active",
+      leave: "Vue-Toastification__fade-leave-active"
+    }
+  }
 })
 
 // Import and register missing PrimeVue components

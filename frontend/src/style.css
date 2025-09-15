@@ -34,22 +34,14 @@ p, span:not(.font-semibold):not(.font-bold), div:not(.font-semibold):not(.font-b
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 1px 0 rgba(255, 255, 255, 0.05) inset,
     0 0 20px rgba(16, 185, 129, 0.1) !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* transition removed for performance */
   position: relative;
   overflow: hidden;
 }
 
 /* Removed scan lines for cleaner look */
 
-.control-card:hover {
-  backdrop-filter: blur(25px) saturate(200%) !important;
-  border-color: rgba(16, 185, 129, 0.4) !important;
-  box-shadow: 
-    0 30px 60px rgba(0, 0, 0, 0.2),
-    0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 0 30px rgba(16, 185, 129, 0.3) !important;
-  /* REMOVED SCALE - NO MORE EXPANDING ON HOVER */
-}
+/* Hover effects removed for performance */
 
 .btn-control {
   padding: 0.5rem 1rem;

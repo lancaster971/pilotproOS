@@ -1,0 +1,33 @@
+/* PERFORMANCE: Disable all animations and transitions globally */
+*, *::before, *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+/* Remove specific animation classes */
+.animate-pulse,
+.animate-spin,
+.animate-bounce,
+.animate-ping,
+.animate-fade-in,
+.animate-slide-in,
+.animate-scale {
+  animation: none !important;
+}
+
+/* Remove transform effects */
+.transform,
+.scale-105,
+.scale-110,
+.hover\\:scale-105:hover,
+.hover\\:scale-110:hover {
+  transform: none !important;
+}
+
+/* Remove backdrop blur effects for performance */
+.backdrop-blur,
+.backdrop-filter {
+  backdrop-filter: none !important;
+}

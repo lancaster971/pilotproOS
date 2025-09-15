@@ -1,0 +1,82 @@
+/**
+ * PREMIUM EFFECTS WITHOUT ANIMATIONS - PERFORMANCE OPTIMIZED
+ * Ultra-clean visual effects for enterprise software without performance cost
+ */
+
+/* === CLEAN PREMIUM GLASSMORPHISM === */
+.premium-glass {
+  background: rgba(17, 24, 39, 0.8) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset !important;
+  /* transitions removed for performance */
+}
+
+/* Hover effects removed for performance */
+
+/* === PREMIUM MODAL STYLES === */
+.premium-modal {
+  --p-dialog-border-radius: 12px;
+  --p-dialog-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.premium-modal .p-dialog {
+  background: rgba(17, 24, 39, 0.95) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  /* animations removed for performance */
+}
+
+.premium-modal .p-dialog-mask {
+  background: rgba(0, 0, 0, 0.6) !important;
+  /* animations removed for performance */
+}
+
+/* All keyframes animations removed for performance */
+
+/* === PREMIUM BUTTONS === */
+.premium-btn {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow:
+    0 4px 12px rgba(16, 185, 129, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
+  color: white !important;
+  font-weight: 500 !important;
+  /* transitions removed for performance */
+}
+
+/* Hover effects removed for performance */
+
+/* === PREMIUM CARDS === */
+.premium-card {
+  background: rgba(17, 24, 39, 0.9) !important;
+  border: 1px solid rgba(16, 185, 129, 0.1) !important;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.02) inset !important;
+  border-radius: 8px !important;
+  /* transitions removed for performance */
+}
+
+/* === PREMIUM INPUTS === */
+.premium-input {
+  background: rgba(17, 24, 39, 0.6) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.02) inset !important;
+  /* transitions removed for performance */
+}
+
+/* Focus effects without animations */
+.premium-input:focus {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  outline: none !important;
+  box-shadow:
+    0 0 0 3px rgba(16, 185, 129, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* === SCAN LINES REMOVED === */
+/* All scan line animations removed for better performance */
