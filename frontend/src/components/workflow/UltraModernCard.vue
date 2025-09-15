@@ -9,6 +9,7 @@
           'card-ai-wide': isAIAgent,
           'card-tool-narrow': isLangchainTool,
           'card-running': isActive,
+          'card-executing': data.isExecuting || data.status === 'executing',
           'card-error': hasError,
           'card-selected': selected
         }
@@ -143,12 +144,13 @@ interface Props {
     label: string
     type: string
     nodeType?: string
-    status?: 'active' | 'pending' | 'error' | 'success' | 'idle'
+    status?: 'active' | 'pending' | 'error' | 'success' | 'idle' | 'executing'
     executionCount?: number
     successRate?: number
     avgTime?: string
     inputs?: string[]
     outputs?: string[]
+    isExecuting?: boolean  // New: track if node is currently executing
   }
   selected?: boolean
 }
@@ -1007,6 +1009,61 @@ const techBadge = computed(() => {
 /* States */
 .card-running {
   animation: running-pulse 2s infinite;
+}
+
+/* Node currently executing - orange/amber animated glow */
+.card-executing {
+  animation: executing-glow 0.8s ease-in-out infinite !important;
+  border: 4px solid #ff6600 !important;
+  position: relative;
+  transform: scale(1.08) !important;
+  transition: all 0.3s ease;
+  z-index: 1000 !important;
+}
+
+.card-executing .card-ribbon {
+  background: linear-gradient(135deg, #ff6600, #ff9900) !important;
+  animation: ribbon-pulse 0.8s ease-in-out infinite;
+}
+
+.card-executing .icon-container {
+  animation: icon-rotate 2s linear infinite;
+}
+
+.card-executing .main-icon {
+  color: #ff6600 !important;
+  filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.8));
+}
+
+@keyframes executing-glow {
+  0%, 100% {
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 40px rgba(255, 102, 0, 0.9),
+      0 0 80px rgba(255, 102, 0, 0.6),
+      inset 0 0 20px rgba(255, 102, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.5),
+      0 0 60px rgba(255, 102, 0, 1),
+      0 0 100px rgba(255, 102, 0, 0.8),
+      inset 0 0 30px rgba(255, 102, 0, 0.3);
+  }
+}
+
+@keyframes icon-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ribbon-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 @keyframes running-pulse {

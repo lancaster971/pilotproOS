@@ -253,8 +253,8 @@
               <Background pattern-color="#10b981" :size="1" variant="dots" />
               
               <!-- Execute/Stop Button: Central bottom position like n8n (Only for admin/editor) -->
-              <div v-if="canExecute" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
-                <button 
+              <div v-if="canExecute" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
+                <button
                   v-if="!isExecuting"
                   @click="executeWorkflow"
                   :disabled="!selectedWorkflowId"
@@ -268,8 +268,8 @@
                   <Icon icon="lucide:play" class="w-4 h-4" />
                   Execute Now
                 </button>
-                
-                <button 
+
+                <button
                   v-else
                   @click="stopWorkflow"
                   class="px-4 py-2 bg-red-700 border border-red-600 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-red-600"
@@ -277,6 +277,28 @@
                 >
                   <Icon icon="lucide:square" class="w-4 h-4" />
                   Stop
+                </button>
+
+                <!-- Test Animation Button -->
+                <button
+                  @click="testAnimation"
+                  :disabled="!selectedWorkflowId"
+                  class="px-3 py-2 bg-orange-600 border border-orange-500 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-orange-500"
+                  title="Test Animation"
+                >
+                  <Icon icon="lucide:zap" class="w-4 h-4" />
+                  Test
+                </button>
+
+                <!-- Test SSE Button -->
+                <button
+                  @click="testSSE"
+                  :disabled="!selectedWorkflowId"
+                  class="px-3 py-2 bg-blue-600 border border-blue-500 text-white rounded transition-colors shadow-lg flex items-center gap-2 hover:bg-blue-500"
+                  title="Test SSE"
+                >
+                  <Icon icon="lucide:radio" class="w-4 h-4" />
+                  SSE
                 </button>
               </div>
 
@@ -1193,7 +1215,7 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
   })
   
   // Create nodes with dynamic handles (exclude sticky notes)
-  const nodes = processSteps.filter((step: any) => !step.nodeType.includes('stickyNote')).map((step: any) => {
+  const nodes = processSteps.filter((step: any) => !step.nodeType.includes('stickyNote')).map((step: any, index: number) => {
     const connections = nodeConnections.get(step.stepName) || { inputs: ['main'], outputs: ['main'] }
     
     return {
@@ -1212,6 +1234,8 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
           return nodeType
         })(),
         nodeType: step.nodeType || 'unknown-node',
+        // Esecuzione reale - da collegare con WebSocket/SSE
+        isExecuting: false, // Disabilitato per ora - da attivare con pulsante Execute
         inputs: connections.inputs.length > 0 ? connections.inputs : ['main'],
         outputs: connections.outputs.length > 0 ? connections.outputs : ['main'],
         // Add REAL execution stats for this workflow
@@ -1550,21 +1574,145 @@ const closeExecutionsModal = () => {
 // Execute workflow manually
 const isExecuting = ref(false)
 const currentExecutionId = ref<string | null>(null)
+const executingNodes = ref<Set<string>>(new Set())
+
+// Function to connect to SSE for execution tracking
+const connectExecutionStream = (workflowId: string, executionId: string) => {
+  const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/business/processes/${workflowId}/execution-stream?executionId=${executionId}`
+  console.log('🔗 Connecting to SSE:', url)
+
+  const eventSource = new EventSource(url)
+
+  eventSource.onopen = () => {
+    console.log('✅ SSE Connection opened')
+  }
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    console.log('🔄 SSE Event received:', data)
+
+    // Debug: show current flowElements for comparison
+    if (data.type === 'nodeExecuteBefore') {
+      const currentNodeIds = flowElements.value.filter(el => !el.source).map(el => ({
+        id: el.id,
+        name: el.data?.stepName,
+        type: el.type
+      }))
+      console.log('📋 Current flowElements nodes:', currentNodeIds)
+      console.log('🎯 Looking for nodeId:', data.nodeId)
+    }
+
+    switch (data.type) {
+      case 'nodeExecuteBefore':
+        // Node starts executing - add to executing set
+        console.log(`🟠 Node ${data.nodeName} (${data.nodeId}) starting execution`)
+
+        // Find node by NAME instead of ID
+        let nodeFound = false
+        flowElements.value = flowElements.value.map(el => {
+          if (el.id === data.nodeName) {
+            console.log(`✅ Found matching node by name: ${el.id}, setting isExecuting=true`)
+            nodeFound = true
+            return {
+              ...el,
+              data: {
+                ...el.data,
+                isExecuting: true
+              }
+            }
+          }
+          return el
+        })
+
+        if (!nodeFound) {
+          console.warn(`⚠️ Node ${data.nodeName} not found in flowElements! Available nodes:`, flowElements.value.filter(el => !el.source).map(el => el.id))
+        }
+        break
+
+      case 'nodeExecuteAfter':
+        // Node finishes executing - remove from executing set
+        console.log(`⚫ Node ${data.nodeName} (${data.nodeId}) finished execution`)
+
+        // Find node by NAME instead of ID
+        flowElements.value = flowElements.value.map(el => {
+          if (el.id === data.nodeName) {
+            console.log(`✅ Found matching node by name: ${el.id}, setting isExecuting=false`)
+            return {
+              ...el,
+              data: {
+                ...el.data,
+                isExecuting: false
+              }
+            }
+          }
+          return el
+        })
+        break
+
+      case 'workflowExecuteAfter':
+        // Workflow complete
+        isExecuting.value = false
+        executingNodes.value.clear()
+        // Clear all executing states
+        flowElements.value = flowElements.value.map(el => ({
+          ...el,
+          data: {
+            ...el.data,
+            isExecuting: false
+          }
+        }))
+        eventSource.close()
+        success('Esecuzione Completata', `Il workflow è stato eseguito con successo`)
+        break
+
+      case 'error':
+        isExecuting.value = false
+        executingNodes.value.clear()
+        eventSource.close()
+        error('Errore Esecuzione', data.message)
+        break
+    }
+  }
+
+  eventSource.onerror = (error) => {
+    console.error('❌ SSE connection error:', error)
+    eventSource.close()
+    isExecuting.value = false
+    executingNodes.value.clear()
+    // Reset all nodes
+    flowElements.value = flowElements.value.map(el => ({
+      ...el,
+      data: {
+        ...el.data,
+        isExecuting: false
+      }
+    }))
+  }
+
+  return eventSource
+}
+
 const executeWorkflow = async () => {
   if (!selectedWorkflowData.value || !selectedWorkflowId.value) {
     error('Nessun Workflow', 'Seleziona un workflow da eseguire')
     return
   }
-  
+
   if (isExecuting.value) return // Prevent double clicks
-  
+
   const workflowName = selectedWorkflowData.value.process_name || 'Unknown'
   isExecuting.value = true
-  
+
   try {
     console.log(`🚀 Executing workflow ${selectedWorkflowId.value}...`)
-    
+
+    // Connect to SSE for real-time tracking FIRST
+    const executionId = `exec_${Date.now()}`
+    console.log(`🔗 About to connect SSE with executionId: ${executionId}`)
+    const eventSource = connectExecutionStream(selectedWorkflowId.value, executionId)
+
     // API call to execute workflow - OFETCH Migration
+    console.log(`📞 Calling businessAPI.executeWorkflow...`)
     const result = await businessAPI.executeWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow execution result:', result)
     
@@ -1659,6 +1807,71 @@ const executeWorkflow = async () => {
       `Impossibile eseguire il workflow "${workflowName}". ${error.message}`
     )
   }
+}
+
+// Test SSE connection function
+const testSSE = () => {
+  if (!selectedWorkflowId.value) {
+    error('Nessun Workflow', 'Seleziona un workflow per testare SSE')
+    return
+  }
+
+  console.log('📰 Testing SSE connection...')
+  const testExecutionId = `test_${Date.now()}`
+  connectExecutionStream(selectedWorkflowId.value, testExecutionId)
+}
+
+// Test animation function
+const testAnimation = () => {
+  if (!flowElements.value.length) {
+    error('Nessun Workflow', 'Seleziona un workflow per testare l\'animazione')
+    return
+  }
+
+  console.log('🧪 Testing animation on all nodes')
+
+  // Find all node elements (not edges)
+  const nodes = flowElements.value.filter(el => !el.source)
+  console.log('Nodes to animate:', nodes.map(n => ({ id: n.id, type: n.type, name: n.data?.stepName })))
+
+  // Animate each node sequentially
+  nodes.forEach((node, index) => {
+    setTimeout(() => {
+      console.log(`🟠 Animating node ${node.id} (${node.data?.stepName})`)
+
+      // Set node as executing
+      flowElements.value = flowElements.value.map(el => {
+        if (el.id === node.id) {
+          return {
+            ...el,
+            data: {
+              ...el.data,
+              isExecuting: true
+            }
+          }
+        }
+        return el
+      })
+
+      // Stop animation after 2 seconds
+      setTimeout(() => {
+        console.log(`⚫ Stopping animation for node ${node.id}`)
+        flowElements.value = flowElements.value.map(el => {
+          if (el.id === node.id) {
+            return {
+              ...el,
+              data: {
+                ...el.data,
+                isExecuting: false
+              }
+            }
+          }
+          return el
+        })
+      }, 2000)
+
+    }, index * 500) // Start each animation 500ms apart
+  })
 }
 
 // Stop workflow execution
