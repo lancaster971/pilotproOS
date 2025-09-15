@@ -2,7 +2,8 @@
   <div
     :class="[
       'minimal-node',
-      `node-${nodeCategory}`,
+      `shape-${nodeShape}`,
+      `category-${nodeCategory}`,
       {
         'node-active': isActive,
         'node-error': hasError,
@@ -66,33 +67,85 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Simplified category detection
-const nodeCategory = computed(() => {
+// Detection based on original n8n logic
+const isToolNode = (nodeName: string, nodeType: string): boolean => {
+  const name = nodeName.toLowerCase()
+  const type = nodeType.toLowerCase()
+
+  // External tools/services (were circles in n8n)
+  const toolPatterns = [
+    'openai', 'chat model', 'embeddings', 'http request', 'webhook',
+    'gmail', 'slack', 'telegram', 'google', 'microsoft', 'api',
+    'buffer memory', 'retriever', 'reranker', 'parcelapp'
+  ]
+
+  return toolPatterns.some(pattern => name.includes(pattern) || type.includes(pattern))
+}
+
+const isTriggerNode = (nodeName: string, nodeType: string): boolean => {
+  const name = nodeName.toLowerCase()
+  const type = nodeType.toLowerCase()
+
+  return type.includes('trigger') || name.includes('trigger') ||
+         type.includes('webhook') || name.includes('schedule')
+}
+
+const isStorageNode = (nodeName: string, nodeType: string): boolean => {
+  const name = nodeName.toLowerCase()
+  const type = nodeType.toLowerCase()
+
+  return type === 'storage' || type.includes('database') ||
+         type.includes('vectorstore') || type.includes('postgres') ||
+         name.includes('vector store') || name.includes('qdrant')
+}
+
+const isAINode = (nodeName: string, nodeType: string): boolean => {
+  const name = nodeName.toLowerCase()
+  const type = nodeType.toLowerCase()
+
+  return type === 'ai' || type.includes('agent') ||
+         type.includes('langchain') || name.includes('ai -') ||
+         name.includes('analizza') || name.includes('interpreta')
+}
+
+// Get node shape based on classification
+const nodeShape = computed(() => {
+  const name = props.data.label
   const type = props.data.type
   const nodeType = props.data.nodeType || ''
 
-  if (type === 'ai' || nodeType.includes('agent') || nodeType.includes('openai')) return 'ai'
-  if (type === 'storage' || nodeType.includes('database') || nodeType.includes('vectorStore')) return 'storage'
-  if (type === 'trigger' || nodeType.includes('trigger') || nodeType.includes('webhook')) return 'trigger'
-  if (nodeType.includes('if') || nodeType.includes('switch')) return 'logic'
-  if (nodeType.includes('http') || nodeType.includes('email')) return 'output'
-  if (nodeType.includes('code') || nodeType.includes('function')) return 'transform'
+  // Priority order matters!
+  if (isTriggerNode(name, nodeType)) return 'diamond'      // Was special in n8n
+  if (isStorageNode(name, nodeType)) return 'cylinder'     // Database shape
+  if (isAINode(name, nodeType)) return 'hexagon'          // AI gets hexagon
+  if (isToolNode(name, nodeType)) return 'pill'           // Was circle -> now pill
+
+  // Default processes/actions
+  return 'rectangle' // Was square -> keep rectangle
+})
+
+// Simplified category for coloring
+const nodeCategory = computed(() => {
+  const shape = nodeShape.value
+
+  if (shape === 'diamond') return 'trigger'
+  if (shape === 'cylinder') return 'storage'
+  if (shape === 'hexagon') return 'ai'
+  if (shape === 'pill') return 'tool'
 
   return 'process'
 })
 
-// Minimal icons
+// Icons based on shape/category
 const nodeIcon = computed(() => {
   const iconMap: Record<string, string> = {
-    'trigger': 'ph:play-fill',
-    'ai': 'ph:robot-fill',
-    'storage': 'ph:database-fill',
-    'logic': 'ph:git-branch-fill',
-    'output': 'ph:arrow-square-out-fill',
-    'transform': 'ph:code-simple-fill',
-    'process': 'ph:circle-fill'
+    'trigger': 'ph:lightning-fill',      // Diamond - trigger/start
+    'ai': 'ph:brain-fill',               // Hexagon - AI/agents
+    'storage': 'ph:database-fill',       // Cylinder - database
+    'tool': 'ph:plug-fill',              // Pill - external tools
+    'process': 'ph:gear-fill'            // Rectangle - processes
   }
-  return iconMap[nodeCategory.value] || 'ph:circle-fill'
+  return iconMap[nodeCategory.value] || 'ph:square-fill'
 })
 
 // Short names for compact display
@@ -169,13 +222,38 @@ const status = computed(() => props.data.status || 'idle')
   height: 56px;
   background: rgba(30, 41, 59, 0.95);
   border: 1px solid rgba(100, 116, 139, 0.5);
-  border-radius: 8px;
   display: flex;
   align-items: center;
   padding: 0 10px;
   gap: 10px;
   transition: all 0.2s ease;
   backdrop-filter: blur(8px);
+}
+
+/* SHAPE DEFINITIONS - Different from n8n! */
+.shape-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  width: 140px;
+  padding: 0 20px;
+}
+
+.shape-cylinder {
+  border-radius: 50px/25px;
+  border-top-width: 3px;
+  border-bottom-width: 3px;
+}
+
+.shape-hexagon {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  width: 180px;
+}
+
+.shape-pill {
+  border-radius: 28px;
+}
+
+.shape-rectangle {
+  border-radius: 8px;
 }
 
 .minimal-node:hover {
@@ -277,38 +355,33 @@ const status = computed(() => props.data.status || 'idle')
   transform: scale(1.3);
 }
 
-/* Category-specific accent colors */
-.node-trigger {
+/* Category-specific colors with shapes */
+.category-trigger {
   --node-color: #8b5cf6;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(30, 41, 59, 0.95));
 }
 
-.node-ai {
+.category-ai {
   --node-color: #ec4899;
-  border-left: 2px solid #ec4899;
+  border: 2px solid #ec4899;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(30, 41, 59, 0.95));
 }
 
-.node-storage {
+.category-storage {
   --node-color: #06b6d4;
-  border-left: 2px solid #06b6d4;
+  border-color: #06b6d4;
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.1), rgba(30, 41, 59, 0.95));
 }
 
-.node-logic {
-  --node-color: #10b981;
-  border-left: 2px solid #10b981;
-}
-
-.node-output {
+.category-tool {
   --node-color: #f59e0b;
-  border-left: 2px solid #f59e0b;
+  border: 1px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(30, 41, 59, 0.95));
 }
 
-.node-transform {
-  --node-color: #3b82f6;
-  border-left: 2px solid #3b82f6;
-}
-
-.node-process {
+.category-process {
   --node-color: #6b7280;
+  border-left: 3px solid #6b7280;
 }
 
 /* States */
