@@ -100,24 +100,67 @@
         </div>
       </div>
 
-      <!-- SECONDARY INSIGHTS: 3 Equal Columns -->
-      <div class="secondary-insights">
-        <!-- Workflow Status -->
-        <div class="insight-card">
-          <h4 class="insight-title">Workflow Status</h4>
-          <div class="workflow-grid">
-            <div v-for="workflow in workflowCards.slice(0,6)" :key="workflow.id"
-                 class="workflow-mini"
-                 @click="openWorkflowDashboard(workflow.id)">
-              <div class="workflow-indicator" :class="{ active: workflow.active, critical: workflow.critical }"></div>
-              <div class="workflow-info">
-                <div class="workflow-name">{{ workflow.name }}</div>
-                <div class="workflow-stats">{{ workflow.successRate }}% • {{ workflow.totalExecutions }} runs</div>
-              </div>
-            </div>
+      <!-- WORKFLOW CARDS WITH QUICK ACTIONS -->
+      <div class="workflow-cards-section">
+        <div class="section-header">
+          <h3 class="section-title">Active Workflows</h3>
+          <div class="section-badges">
+            <span class="badge-active">{{ activeWorkflowsCount }} Active</span>
+            <span class="badge-live">LIVE</span>
           </div>
         </div>
 
+        <div class="workflow-cards-grid">
+          <div v-for="workflow in workflowCards.slice(0,8)" :key="workflow.id"
+               class="workflow-card">
+            <!-- Header con Status -->
+            <div class="wf-header">
+              <div class="wf-title-group">
+                <Icon :icon="getWorkflowIcon(workflow)" class="wf-icon" />
+                <div>
+                  <h4 class="wf-name">{{ workflow.name }}</h4>
+                  <span class="wf-type">Business Process</span>
+                </div>
+              </div>
+              <span class="wf-status" :class="workflow.critical ? 'critical' : workflow.active ? 'active' : 'inactive'">
+                {{ workflow.critical ? 'CRITICAL' : workflow.active ? 'ACTIVE' : 'IDLE' }}
+              </span>
+            </div>
+
+            <!-- Metriche -->
+            <div class="wf-metrics">
+              <div class="wf-metric">
+                <span class="wf-metric-label">Success</span>
+                <span class="wf-metric-value">{{ workflow.successRate }}%</span>
+              </div>
+              <div class="wf-metric">
+                <span class="wf-metric-label">Runs</span>
+                <span class="wf-metric-value">{{ workflow.totalExecutions }}</span>
+              </div>
+              <div class="wf-metric">
+                <span class="wf-metric-label">Avg</span>
+                <span class="wf-metric-value">{{ formatDuration(workflow.avgRunTime) }}</span>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="wf-actions">
+              <button @click.stop="executeWorkflow(workflow.id)" class="wf-btn execute" title="Execute">
+                <Icon icon="mdi:play" />
+              </button>
+              <button @click.stop="openWorkflowDashboard(workflow.id)" class="wf-btn dashboard" title="Dashboard">
+                <Icon icon="mdi:chart-line" />
+              </button>
+              <button @click.stop="configureWorkflow(workflow.id)" class="wf-btn config" title="Configure">
+                <Icon icon="mdi:cog" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECONDARY INSIGHTS: 3 Equal Columns -->
+      <div class="secondary-insights">
         <!-- Integration Health -->
         <div class="insight-card">
           <h4 class="insight-title">Integration Health</h4>
@@ -1026,4 +1069,114 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 }
+/* WORKFLOW CARDS STYLES */
+.workflow-cards-section {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.workflow-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.workflow-card {
+  background: #0a0a0a;
+  border: 1px solid rgba(31, 41, 55, 0.5);
+  border-radius: 6px;
+  padding: 10px;
+  transition: all 0.2s ease;
+}
+
+.workflow-card:hover {
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+
+.wf-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.wf-title-group {
+  display: flex;
+  gap: 6px;
+}
+
+.wf-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.wf-status {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.wf-status.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.wf-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.wf-metric-label {
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.wf-metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.wf-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.wf-btn {
+  flex: 1;
+  padding: 4px;
+  border: 1px solid rgba(31, 41, 55, 0.5);
+  background: rgba(10, 10, 10, 0.5);
+  border-radius: 3px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.wf-btn.execute:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.wf-btn.dashboard:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
 </style>
