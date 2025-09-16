@@ -289,6 +289,13 @@ const qualityTrend = ref(0)
 // Business Insights
 const businessInsights = ref([])
 
+// Missing variables for calculations
+const reliabilityScore = ref(0)
+const bestPerformingCount = ref(0)
+const problematicCount = ref(0)
+const dataCertified = ref(false)
+const dataCoherenceScore = ref(100)
+
 // Helper functions
 const getWorkflowIcon = (workflow) => {
   if (workflow.name?.toLowerCase().includes('telegram')) return 'mdi:telegram'
