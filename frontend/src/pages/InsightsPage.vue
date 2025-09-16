@@ -289,6 +289,22 @@ const qualityTrend = ref(0)
 // Business Insights
 const businessInsights = ref([])
 
+// Helper functions
+const getWorkflowIcon = (workflow) => {
+  if (workflow.name?.toLowerCase().includes('telegram')) return 'mdi:telegram'
+  if (workflow.name?.toLowerCase().includes('chat')) return 'mdi:chat'
+  if (workflow.name?.toLowerCase().includes('email')) return 'mdi:email'
+  if (workflow.name?.toLowerCase().includes('api')) return 'mdi:api'
+  return 'mdi:workflow'
+}
+
+const formatDuration = (ms) => {
+  if (!ms) return '0s'
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${Math.round(ms/1000)}s`
+  return `${Math.round(ms/60000)}m`
+}
+
 // Chart Data
 const executionTrendData = ref({
   labels: [],
@@ -462,7 +478,8 @@ const loadData = async () => {
     problematicCount.value = topPerformersData?.data?.filter(w => w.success_rate < 80).length || 0
 
     // Calculate overall score
-    overallScore.value = Math.round((successRate.value + (activeWorkflows.value / Math.max(workflowCount.value, 1) * 100)) / 2)
+    const workflowScore = (activeWorkflows.value / Math.max(workflowCount.value, 1)) * 100
+    overallScore.value = Math.round((successRate.value + workflowScore) / 2) || 50
 
     // Update workflow cards
     if (workflowCardsData?.success && workflowCardsData.data) {
@@ -473,7 +490,7 @@ const loadData = async () => {
           if (a.active !== b.active) return a.active ? -1 : 1
           return b.totalExecutions - a.totalExecutions
         })
-      workflowCards.value = relevantWorkflows.slice(0, 6)
+      workflowCards.value = relevantWorkflows.slice(0, 12) // Mostra fino a 12 workflow cards
     }
 
     // Update top performers
