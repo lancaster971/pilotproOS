@@ -422,8 +422,8 @@ const loadData = async () => {
 
     // Update core metrics
     if (processesData) {
-      workflowCount.value = processesData.summary?.available || 0
-      activeWorkflows.value = processesData.summary?.active || 0
+      workflowCount.value = processesData.total || processesData.data?.length || 0
+      activeWorkflows.value = processesData.data?.filter(w => w.is_active).length || 0
     }
 
     if (analyticsData?.overview) {
@@ -508,8 +508,15 @@ const loadData = async () => {
   }
 }
 
-onMounted(() => {
-  loadData()
+onMounted(async () => {
+  console.log('🚀 InsightsPage mounting, loading data...')
+  await loadData()
+  console.log('✅ Data loaded:', {
+    totalExecutions: totalExecutions.value,
+    successRate: successRate.value,
+    workflowCount: workflowCount.value,
+    activeWorkflows: activeWorkflows.value
+  })
 })
 
 onUnmounted(() => {
