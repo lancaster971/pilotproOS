@@ -111,6 +111,10 @@
         </div>
 
         <div class="workflow-cards-grid">
+          <!-- Debug: mostra numero cards -->
+          <div v-if="workflowCards.length === 0" class="text-center text-gray-500 py-8 col-span-full">
+            No workflow cards available
+          </div>
           <div v-for="workflow in workflowCards.slice(0,8)" :key="workflow.id"
                class="workflow-card">
             <!-- Header con Status -->
@@ -1155,6 +1159,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
+  min-height: 200px; /* Garantisce spazio minimo */
 }
 
 .workflow-card {
