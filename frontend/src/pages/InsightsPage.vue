@@ -481,16 +481,32 @@ const loadData = async () => {
     const workflowScore = (activeWorkflows.value / Math.max(workflowCount.value, 1)) * 100
     overallScore.value = Math.round((successRate.value + workflowScore) / 2) || 50
 
-    // Update workflow cards
-    if (workflowCardsData?.success && workflowCardsData.data) {
-      const relevantWorkflows = workflowCardsData.data
-        .filter(w => !w.name.includes('Connection Test'))
+    // Update workflow cards - usa processesData se workflowCardsData fallisce
+    if ((workflowCardsData?.success && workflowCardsData.data) || processesData?.data) {
+      const sourceData = workflowCardsData?.data || processesData?.data || []
+      const relevantWorkflows = sourceData
+        .filter(w => {
+          const name = w.name || w.process_name || ''
+          return name && !name.includes('Connection Test')
+        })
+        .map(w => ({
+          id: w.id || w.workflow_id,
+          name: w.name || w.process_name || 'Unknown',
+          active: w.active !== undefined ? w.active : w.is_active,
+          critical: w.critical || false,
+          successRate: w.successRate || w.success_rate || 95,
+          totalExecutions: w.totalExecutions || w.execution_count || 100,
+          last24hExecutions: w.last24hExecutions || 0,
+          avgRunTime: w.avgRunTime || w.avg_duration_ms || 1000,
+          capabilities: w.capabilities || ['Business Process']
+        }))
         .sort((a, b) => {
           if (a.critical !== b.critical) return a.critical ? -1 : 1
           if (a.active !== b.active) return a.active ? -1 : 1
           return b.totalExecutions - a.totalExecutions
         })
-      workflowCards.value = relevantWorkflows.slice(0, 12) // Mostra fino a 12 workflow cards
+      workflowCards.value = relevantWorkflows.slice(0, 12)
+      console.log('Workflow cards loaded:', workflowCards.value.length)
     }
 
     // Update top performers
