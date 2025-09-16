@@ -152,3 +152,4 @@ BU_Hostinger/database.sqlite.gz
 ai-agent/ollama-models-embedded/
 ai-agent/ollama-models/
 Docker_BU/
+test-sse.html
