@@ -477,9 +477,10 @@ onUnmounted(() => {
 <style scoped>
 /* Core Container */
 .insights-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
+  max-width: 100vw;
+  padding: 12px;
+  margin: 0;
 }
 
 /* Hero Section */
@@ -524,9 +525,10 @@ onUnmounted(() => {
 /* Critical Metrics Bar */
 .critical-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+  width: 100%;
 }
 
 .metric-card {
@@ -608,9 +610,10 @@ onUnmounted(() => {
 /* Main Dashboard */
 .main-dashboard {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 16px;
-  margin-bottom: 32px;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .dashboard-left {
