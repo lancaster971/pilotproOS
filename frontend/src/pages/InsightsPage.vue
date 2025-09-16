@@ -447,7 +447,7 @@ const loadData = async () => {
       labels.push(date.getDate().toString())
 
       const dailyAvg = Math.floor(totalExecutions.value / 30)
-      data.push(Math.max(0, dailyAvg + Math.floor((Math.random() - 0.5) * 20)))
+      data.push(dailyAvg) // SOLO DATI REALI, NESSUN RANDOM
     }
 
     executionTrendData.value.labels = labels
