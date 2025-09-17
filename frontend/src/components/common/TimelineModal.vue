@@ -20,9 +20,9 @@
 
     <!-- Process Overview Tab -->
     <template #overview="{ data }">
-      <div class="p-6 space-y-6">
+      <div class="p-4 space-y-4">
         <!-- Process Description from Sticky Notes or Default -->
-        <div class="card-glassmorphism rounded-lg p-5">
+        <div class="card-glassmorphism rounded-lg p-4">
           <h3 class="text-lg font-semibold text-white mb-3">Process Description</h3>
           <div class="text-text-muted whitespace-pre-wrap">
             {{ workflowInfo?.description || workflowInfo?.purpose ||
@@ -64,7 +64,7 @@
         </div>
 
         <!-- Business Capabilities - Dynamic from workflow nodes -->
-        <div class="card-glassmorphism rounded-lg p-5">
+        <div class="card-glassmorphism rounded-lg p-4">
           <h3 class="text-lg font-semibold text-white mb-3">Process Capabilities</h3>
           <ul v-if="workflowInfo?.capabilities?.length > 0" class="space-y-2">
             <li v-for="(capability, index) in workflowInfo.capabilities" :key="index" class="flex items-start gap-2">
@@ -90,7 +90,7 @@
         </div>
 
         <!-- Business Value Statement - Dynamic from execution metrics -->
-        <div class="value-card-glassmorphism rounded-lg p-5">
+        <div class="value-card-glassmorphism rounded-lg p-4">
           <div class="flex items-start gap-3">
             <Icon icon="lucide:target" class="w-6 h-6 text-primary mt-0.5" />
             <div>
@@ -127,7 +127,7 @@
 
     <!-- Latest Activity Tab - Shows recent operations -->
     <template #executions="{ data }">
-      <div class="p-6">
+      <div class="p-4">
         <!-- Recent Activity from Dashboard API -->
         <div v-if="recentActivity?.length > 0" class="space-y-4 mb-6">
           <h3 class="text-lg font-semibold text-white mb-4">Recent Business Activity</h3>
@@ -256,10 +256,10 @@
                     : 'text-green-400'
                 ]">{{ step.status === 'error' || step.showTag === 'error' ? 'ERROR RESULT' : 'RESULT' }}</div>
                 <div class="text-sm text-gray-300">
-                  {{ 
-                    step.status === 'error' || step.showTag === 'error' 
+                  {{
+                    step.status === 'error' || step.showTag === 'error'
                       ? getBusinessErrorDetails(step)
-                      : (step.enrichedData?.outputSummary || 'Process completed successfully')
+                      : (step.enrichedData?.outputSummary || '')
                   }}
                 </div>
               </div>
@@ -410,36 +410,67 @@
 
     <!-- Process History Tab -->
     <template #history="{ data }">
-      <div class="p-6 overflow-y-auto">
-        <h3 class="text-lg font-semibold text-white mb-4">Process Execution History</h3>
+      <div class="p-4 overflow-y-auto">
+        <h3 class="text-lg font-semibold text-white mb-3">Process Execution History</h3>
 
         <!-- History Stats (REAL DATA - Including Canceled) -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div class="metric-card-glassmorphism rounded-lg p-3">
-            <div class="text-xs text-gray-400 mb-1">Total Executions</div>
-            <div class="text-xl font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="metric-card-glassmorphism rounded-lg p-2">
+            <div class="flex items-center justify-between">
+              <Icon icon="lucide:play-circle" class="w-4 h-4 text-blue-400" />
+              <span class="text-xs text-gray-400">Total</span>
+            </div>
+            <div class="text-lg font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</div>
+            <div class="text-xs text-gray-500">{{ workflowStats?.kpis?.last24hExecutions || 0 }} oggi</div>
           </div>
-          <div class="metric-card-glassmorphism rounded-lg p-3">
-            <div class="text-xs text-gray-400 mb-1">Success</div>
-            <div class="text-xl font-bold text-green-400">{{ workflowStats?.kpis?.successfulExecutions || 0 }}</div>
+          <div class="metric-card-glassmorphism rounded-lg p-2">
+            <div class="flex items-center justify-between">
+              <Icon icon="lucide:check-circle" class="w-4 h-4 text-green-400" />
+              <span class="text-xs text-gray-400">Success</span>
+            </div>
+            <div class="text-lg font-bold text-green-400">{{ workflowStats?.kpis?.successfulExecutions || 0 }}</div>
+            <div class="text-xs text-gray-500">{{ workflowStats?.kpis?.successRate || 0 }}% rate</div>
           </div>
-          <div class="metric-card-glassmorphism rounded-lg p-3">
-            <div class="text-xs text-gray-400 mb-1">Failed</div>
-            <div class="text-xl font-bold text-red-400">{{ workflowStats?.kpis?.failedExecutions || 0 }}</div>
-            <div v-if="workflowStats?.kpis?.canceledExecutions > 0" class="text-xs text-orange-400 mt-1">
+          <div class="metric-card-glassmorphism rounded-lg p-2">
+            <div class="flex items-center justify-between">
+              <Icon icon="lucide:x-circle" class="w-4 h-4 text-red-400" />
+              <span class="text-xs text-gray-400">Failed</span>
+            </div>
+            <div class="text-lg font-bold text-red-400">{{ workflowStats?.kpis?.failedExecutions || 0 }}</div>
+            <div v-if="workflowStats?.kpis?.canceledExecutions > 0" class="text-xs text-orange-400">
               +{{ workflowStats.kpis.canceledExecutions }} canceled
             </div>
           </div>
-          <div class="metric-card-glassmorphism rounded-lg p-3">
-            <div class="text-xs text-gray-400 mb-1">Success Rate</div>
-            <div class="text-xl font-bold" :class="workflowStats?.kpis?.successRate >= 50 ? 'text-green-400' : 'text-orange-400'">
-              {{ workflowStats?.kpis?.successRate || 0 }}%
+          <div class="metric-card-glassmorphism rounded-lg p-2">
+            <div class="flex items-center justify-between">
+              <Icon icon="lucide:clock" class="w-4 h-4 text-purple-400" />
+              <span class="text-xs text-gray-400">Avg Time</span>
+            </div>
+            <div class="text-lg font-bold text-purple-400">
+              {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : '0ms' }}
+            </div>
+            <div class="text-xs text-gray-500">per run</div>
+          </div>
+        </div>
+
+        <!-- Timeline Trend Chart -->
+        <div v-if="workflowStats?.trend?.length > 0" class="card-glassmorphism rounded-lg p-3 mb-4">
+          <h4 class="text-sm font-medium text-white mb-2">Trend ultimi 7 giorni</h4>
+          <div class="flex items-end justify-between h-20 gap-1">
+            <div v-for="(day, idx) in workflowStats.trend.slice(0, 7)" :key="idx" class="flex-1 flex flex-col justify-end">
+              <div
+                class="bg-emerald-500/30 rounded-t hover:bg-emerald-500/40 transition-all"
+                :style="{ height: `${Math.max(10, (day.executions / Math.max(...workflowStats.trend.map(d => d.executions))) * 100)}%` }"
+                :title="`${day.date}: ${day.executions} esecuzioni`"
+              ></div>
+              <span class="text-xs text-gray-500 mt-1">{{ new Date(day.date).getDate() }}</span>
             </div>
           </div>
         </div>
 
         <!-- Recent History Table (REAL EXECUTIONS DATA) -->
         <div v-if="executionsHistory.length > 0" class="bg-surface-hover rounded-lg border border-border overflow-hidden">
+          <div class="max-h-[400px] overflow-y-auto">
           <table class="w-full">
             <thead class="bg-black/20 border-b border-border">
               <tr>
@@ -450,9 +481,9 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border/50">
-              <tr v-for="exec in executionsHistory.slice(0, 10)" :key="exec.id" class="hover:bg-surface-hover/50">
-                <td class="px-4 py-3 text-sm text-text-muted">{{ formatTimestamp(exec.startedAt || exec.createdAt) }}</td>
-                <td class="px-4 py-3">
+              <tr v-for="exec in executionsHistory.slice(0, 25)" :key="exec.id" class="hover:bg-surface-hover/50 text-xs">
+                <td class="px-3 py-2 text-text-muted">{{ formatTimestamp(exec.startedAt || exec.createdAt) }}</td>
+                <td class="px-3 py-2">
                   <span :class="[
                     'px-2 py-1 text-xs rounded',
                     exec.status === 'success' ? 'bg-green-400/20 text-green-400' :
@@ -462,21 +493,24 @@
                     {{ exec.status === 'success' ? 'Success' : exec.status === 'error' ? 'Failed' : 'Running' }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-muted">
-                  {{ exec.duration ? formatDuration(exec.duration) : 'N/A' }}
+                <td class="px-3 py-2 text-text-muted">
+                  <span v-if="exec.duration">{{ formatDuration(exec.duration) }}</span>
+                  <span v-else class="text-gray-600">-</span>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-muted">
-                  {{ exec.status === 'success' ? 'Process completed successfully' :
-                     exec.status === 'error' ? 'Process encountered an error' :
-                     'Process in progress' }}
+                <td class="px-3 py-2 text-text-muted">
+                  <span v-if="exec.data?.businessOutcome" class="text-xs">
+                    {{ exec.data.businessOutcome }}
+                  </span>
+                  <span v-else class="text-xs text-gray-600">-</span>
                 </td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         <!-- No Data State -->
-        <div v-else class="text-center py-8 text-gray-400">
+        <div v-else class="text-center py-6 text-gray-400">
           <Icon icon="lucide:history" class="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No execution history available yet</p>
         </div>
@@ -485,181 +519,379 @@
 
     <!-- Analytics Tab -->
     <template #analytics="{ data }">
-      <div class="p-6 space-y-6 overflow-y-auto">
-        <h3 class="text-lg font-semibold text-white mb-4">Process Analytics</h3>
+      <div class="p-3 overflow-y-auto">
+        <!-- Grid 2 colonne per ottimizzare spazio -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
-        <!-- Performance Metrics Grid - UNIVERSAL DATA -->
-        <div class="card-glassmorphism rounded-lg p-5">
-          <h4 class="text-md font-medium text-white mb-4">Performance Metrics</h4>
+          <!-- Colonna Sinistra -->
+          <div class="space-y-3">
+            <!-- Performance Scorecard Compatto -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:gauge" class="w-4 h-4 text-emerald-400" />
+                Performance Scores
+              </h4>
 
-          <!-- Primary Metrics -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div class="text-center p-3 bg-surface rounded-lg">
-              <div class="text-3xl font-bold text-primary">
-                {{ workflowStats?.kpis?.successRate || 0 }}%
-              </div>
-              <div class="text-xs text-text-muted mt-1">Success Rate</div>
-              <div v-if="workflowStats?.trends?.successRateTrend" class="text-xs mt-1"
-                   :class="workflowStats.trends.successRateTrend > 0 ? 'text-green-400' : 'text-red-400'">
-                {{ workflowStats.trends.successRateTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.successRateTrend) }}%
-              </div>
-            </div>
+              <!-- 2x2 Grid Scores - Simplified Colors -->
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="p-2 bg-surface/50 rounded border border-emerald-500/20">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:check-circle" class="w-3 h-3 text-emerald-400" />
+                    <span class="text-xl font-bold text-white">{{ workflowStats?.kpis?.successRate || 0 }}%</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Success Rate</div>
+                  <div v-if="workflowStats?.trends?.successRateTrend" class="text-xs mt-0.5"
+                       :class="workflowStats.trends.successRateTrend > 0 ? 'text-emerald-400' : 'text-gray-500'">
+                    {{ workflowStats.trends.successRateTrend > 0 ? '↑' : '↓' }} {{ Math.abs(workflowStats.trends.successRateTrend) }}%
+                  </div>
+                </div>
 
-            <div class="text-center p-3 bg-surface rounded-lg">
-              <div class="text-3xl font-bold text-blue-400">
-                {{ workflowStats?.kpis?.avgRunTime ? formatDuration(workflowStats.kpis.avgRunTime) : '0ms' }}
-              </div>
-              <div class="text-xs text-text-muted mt-1">Avg Response</div>
-              <div v-if="workflowStats?.kpis?.minRunTime" class="text-xs text-gray-500 mt-1">
-                {{ formatDuration(workflowStats.kpis.minRunTime) }} - {{ formatDuration(workflowStats.kpis.maxRunTime) }}
-              </div>
-            </div>
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:timer" class="w-3 h-3 text-gray-400" />
+                    <span class="text-xl font-bold text-white">{{ formatDuration(workflowStats?.kpis?.avgRunTime || 0) }}</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Avg Time</div>
+                  <div v-if="workflowStats?.kpis?.minRunTime" class="text-xs text-gray-500 mt-0.5">
+                    {{ formatDuration(workflowStats.kpis.minRunTime) }}-{{ formatDuration(workflowStats.kpis.maxRunTime) }}
+                  </div>
+                </div>
 
-            <div class="text-center p-3 bg-surface rounded-lg">
-              <div class="text-3xl font-bold text-green-400">
-                {{ workflowStats?.kpis?.efficiencyScore || 0 }}
-              </div>
-              <div class="text-xs text-text-muted mt-1">Efficiency Score</div>
-              <div class="text-xs text-gray-500 mt-1">out of 100</div>
-            </div>
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:zap" class="w-3 h-3 text-gray-400" />
+                    <span class="text-xl font-bold text-white">{{ workflowStats?.kpis?.efficiencyScore || 0 }}</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Efficiency</div>
+                  <div class="text-xs text-gray-500">/100 points</div>
+                </div>
 
-            <div class="text-center p-3 bg-surface rounded-lg">
-              <div class="text-3xl font-bold text-purple-400">
-                {{ workflowStats?.kpis?.reliabilityScore || 0 }}%
-              </div>
-              <div class="text-xs text-text-muted mt-1">Reliability</div>
-              <div class="text-xs text-gray-500 mt-1">last 10 runs</div>
-            </div>
-          </div>
-
-          <!-- Operational Metrics -->
-          <div class="grid grid-cols-3 gap-3">
-            <div class="p-3 bg-surface/50 rounded">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-text-muted">Total Runs</span>
-                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</span>
-              </div>
-            </div>
-            <div class="p-3 bg-surface/50 rounded">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-text-muted">Data Processed</span>
-                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.totalDataProcessed || 0 }}</span>
-              </div>
-            </div>
-            <div class="p-3 bg-surface/50 rounded">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-text-muted">Automation Impact</span>
-                <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.automationImpact || 0 }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Activity Patterns - UNIVERSAL DATA -->
-        <div class="card-glassmorphism rounded-lg p-5">
-          <h4 class="text-md font-medium text-white mb-4">Activity Patterns</h4>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.last24hExecutions || 0 }}
-              </div>
-              <div class="text-xs text-text-muted">Last 24h</div>
-            </div>
-
-            <div class="text-center">
-              <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.last7dExecutions || 0 }}
-              </div>
-              <div class="text-xs text-text-muted">Last 7 days</div>
-            </div>
-
-            <div class="text-center">
-              <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.avgExecutionsPerDay || 0 }}
-              </div>
-              <div class="text-xs text-text-muted">Daily Average</div>
-            </div>
-
-            <div class="text-center">
-              <div class="text-2xl font-bold text-white">
-                {{ workflowStats?.kpis?.peakHour !== null ? `${workflowStats.kpis.peakHour}:00` : 'N/A' }}
-              </div>
-              <div class="text-xs text-text-muted">Peak Hour</div>
-            </div>
-          </div>
-
-          <!-- Volume Trend Indicator -->
-          <div v-if="workflowStats?.trends?.volumeTrend !== undefined" class="mt-4 p-3 bg-surface/50 rounded">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-text-muted">Volume Trend</span>
-              <span class="text-sm font-bold"
-                    :class="workflowStats.trends.volumeTrend > 0 ? 'text-green-400' : 'text-orange-400'">
-                {{ workflowStats.trends.volumeTrend > 0 ? '↑' : workflowStats.trends.volumeTrend < 0 ? '↓' : '→' }}
-                {{ Math.abs(workflowStats.trends.volumeTrend) }}% vs previous period
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Business Insights (REAL DATA DRIVEN) -->
-        <div class="card-glassmorphism rounded-lg p-5">
-          <h4 class="text-md font-medium text-white mb-3">Business Insights</h4>
-          <ul class="space-y-3">
-            <li v-if="workflowStats?.kpis?.totalExecutions" class="flex items-start gap-2">
-              <Icon icon="lucide:activity" class="w-5 h-5 text-green-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Process Activity</div>
-                <div class="text-xs text-text-muted">{{ workflowStats.kpis.totalExecutions }} total executions recorded</div>
-              </div>
-            </li>
-            <li v-if="workflowStats?.kpis?.successRate" class="flex items-start gap-2">
-              <Icon icon="lucide:check-circle" class="w-5 h-5 text-blue-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Reliability Score</div>
-                <div class="text-xs text-text-muted">{{ workflowStats.kpis.successRate }}% success rate maintained</div>
-              </div>
-            </li>
-            <li v-if="workflowStats?.kpis?.avgRunTime" class="flex items-start gap-2">
-              <Icon icon="lucide:clock" class="w-5 h-5 text-purple-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Performance Baseline</div>
-                <div class="text-xs text-text-muted">Average completion time: {{ formatDuration(workflowStats.kpis.avgRunTime) }}</div>
-              </div>
-            </li>
-            <li v-if="executionsHistory.length > 0" class="flex items-start gap-2">
-              <Icon icon="lucide:trending-up" class="w-5 h-5 text-green-400 mt-0.5" />
-              <div>
-                <div class="text-sm text-white">Recent Performance</div>
-                <div class="text-xs text-text-muted">
-                  Last {{ Math.min(executionsHistory.length, 10) }} executions:
-                  {{ Math.round((executionsHistory.slice(0, 10).filter(e => e.status === 'success').length / Math.min(executionsHistory.length, 10)) * 100) }}% success rate
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:shield-check" class="w-3 h-3 text-gray-400" />
+                    <span class="text-xl font-bold text-white">{{ workflowStats?.kpis?.reliabilityScore || 0 }}%</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Reliability</div>
+                  <div class="text-xs text-gray-500">10 runs</div>
                 </div>
               </div>
-            </li>
-          </ul>
+
+              <!-- Mini Stats Bar -->
+              <div class="grid grid-cols-3 gap-1.5">
+                <div class="p-1.5 bg-surface/30 rounded text-center">
+                  <div class="text-xs text-gray-500">Runs</div>
+                  <div class="text-sm font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</div>
+                </div>
+                <div class="p-1.5 bg-surface/30 rounded text-center">
+                  <div class="text-xs text-gray-500">Data</div>
+                  <div class="text-sm font-bold text-white">{{ workflowStats?.kpis?.totalDataProcessed || 0 }}</div>
+                </div>
+                <div class="p-1.5 bg-surface/30 rounded text-center">
+                  <div class="text-xs text-gray-500">Saved</div>
+                  <div class="text-sm font-bold text-white">{{ workflowStats?.kpis?.automationImpact || 0 }}m</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Execution Distribution Chart -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:pie-chart" class="w-4 h-4 text-yellow-400" />
+                Execution Breakdown
+              </h4>
+
+              <!-- Visual Bar Chart -->
+              <div class="h-20 flex items-end gap-1 mb-2">
+                <div class="flex-1 bg-green-500/30 rounded-t border-t border-green-500/50 hover:bg-green-500/40 transition-all"
+                     :style="{ height: `${Math.max(10, (workflowStats?.kpis?.successfulExecutions / (workflowStats?.kpis?.totalExecutions || 1)) * 100)}%` }"
+                     :title="`Success: ${workflowStats?.kpis?.successfulExecutions || 0}`">
+                  <div v-if="workflowStats?.kpis?.successfulExecutions > 0" class="text-xs text-center text-green-400 pt-1">
+                    {{ workflowStats?.kpis?.successfulExecutions }}
+                  </div>
+                </div>
+                <div class="flex-1 bg-red-500/30 rounded-t border-t border-red-500/50 hover:bg-red-500/40 transition-all"
+                     :style="{ height: `${Math.max(10, (workflowStats?.kpis?.failedExecutions / (workflowStats?.kpis?.totalExecutions || 1)) * 100)}%` }"
+                     :title="`Failed: ${workflowStats?.kpis?.failedExecutions || 0}`">
+                  <div v-if="workflowStats?.kpis?.failedExecutions > 0" class="text-xs text-center text-red-400 pt-1">
+                    {{ workflowStats?.kpis?.failedExecutions }}
+                  </div>
+                </div>
+                <div v-if="workflowStats?.kpis?.canceledExecutions > 0" class="flex-1 bg-orange-500/30 rounded-t border-t border-orange-500/50 hover:bg-orange-500/40 transition-all"
+                     :style="{ height: `${Math.max(10, (workflowStats?.kpis?.canceledExecutions / (workflowStats?.kpis?.totalExecutions || 1)) * 100)}%` }"
+                     :title="`Canceled: ${workflowStats?.kpis?.canceledExecutions || 0}`">
+                  <div class="text-xs text-center text-orange-400 pt-1">
+                    {{ workflowStats?.kpis?.canceledExecutions }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Legend -->
+              <div class="flex justify-around text-xs">
+                <span class="flex items-center gap-1">
+                  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                  Success {{ workflowStats?.kpis?.successRate || 0 }}%
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                  Failed {{ workflowStats?.kpis?.failureRate || 0 }}%
+                </span>
+                <span v-if="workflowStats?.kpis?.canceledExecutions > 0" class="flex items-center gap-1">
+                  <span class="w-2 h-2 bg-orange-400 rounded-full"></span>
+                  Cancel {{ ((workflowStats?.kpis?.canceledExecutions / (workflowStats?.kpis?.totalExecutions || 1)) * 100).toFixed(1) }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- 7-Day Trend Mini Chart -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:trending-up" class="w-4 h-4 text-emerald-400" />
+                Weekly Trend
+              </h4>
+              <div v-if="workflowStats?.trend?.length > 0" class="h-24">
+                <div class="flex items-end justify-between h-20 gap-0.5">
+                  <div v-for="(day, idx) in workflowStats.trend.slice(0, 7).reverse()" :key="idx"
+                       class="flex-1 flex flex-col justify-end">
+                    <div class="bg-gradient-to-t from-emerald-500/40 to-emerald-500/20 rounded-t hover:from-emerald-500/50 hover:to-emerald-500/30 transition-all border-t border-emerald-500/50"
+                         :style="{ height: `${Math.max(5, (day.executions / Math.max(...workflowStats.trend.map(d => d.executions))) * 100)}%` }"
+                         :title="`${day.date}: ${day.executions} runs`">
+                      <span v-if="day.executions > 0" class="text-xs text-emerald-400 text-center block pt-0.5">{{ day.executions }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex justify-between mt-0.5">
+                  <span v-for="(day, idx) in workflowStats.trend.slice(0, 7).reverse()" :key="idx" class="flex-1 text-center text-xs text-gray-500">
+                    {{ new Date(day.date).getDate() }}
+                  </span>
+                </div>
+              </div>
+              <div v-else class="h-20 flex items-center justify-center text-xs text-gray-500">
+                No trend data
+              </div>
+            </div>
+          </div>
+
+          <!-- Colonna Destra -->
+          <div class="space-y-3">
+
+            <!-- Activity Heatmap -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:activity" class="w-4 h-4 text-blue-400" />
+                Activity Metrics
+              </h4>
+
+              <!-- 2x2 Grid - Minimal Colors -->
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:clock-3" class="w-3 h-3 text-gray-400" />
+                    <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.last24hExecutions || 0 }}</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Last 24h</div>
+                </div>
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:calendar-days" class="w-3 h-3 text-gray-400" />
+                    <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.last7dExecutions || 0 }}</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Last 7d</div>
+                </div>
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:bar-chart-2" class="w-3 h-3 text-gray-400" />
+                    <span class="text-lg font-bold text-white">{{ workflowStats?.kpis?.avgExecutionsPerDay || 0 }}</span>
+                  </div>
+                  <div class="text-xs text-gray-400">Daily Avg</div>
+                </div>
+                <div class="p-2 bg-surface/50 rounded border border-border/50">
+                  <div class="flex items-center justify-between">
+                    <Icon icon="lucide:zap" class="w-3 h-3 text-gray-400" />
+                    <span class="text-lg font-bold text-white">
+                      <span v-if="workflowStats?.kpis?.peakHour !== null">{{ workflowStats.kpis.peakHour }}:00</span>
+                      <span v-else class="text-gray-600">-</span>
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-400">Peak Hour</div>
+                </div>
+              </div>
+
+              <!-- Volume Trend Indicator -->
+              <div v-if="workflowStats?.trends?.volumeTrend !== undefined" class="p-2 bg-surface/30 rounded">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-400">Volume Trend</span>
+                  <span class="text-xs font-bold flex items-center gap-1"
+                        :class="workflowStats.trends.volumeTrend > 0 ? 'text-green-400' : 'text-orange-400'">
+                    <Icon :icon="workflowStats.trends.volumeTrend > 0 ? 'lucide:trending-up' : 'lucide:trending-down'" class="w-3 h-3" />
+                    {{ Math.abs(workflowStats.trends.volumeTrend) }}% vs prev
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Performance Details -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:gauge" class="w-4 h-4 text-gray-400" />
+                Timing Analysis
+              </h4>
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center p-1.5 bg-surface/50 rounded">
+                  <span class="text-xs text-gray-400 flex items-center gap-1">
+                    <Icon icon="lucide:timer" class="w-3 h-3" />
+                    Average
+                  </span>
+                  <span class="text-sm font-bold text-yellow-400">{{ formatDuration(workflowStats?.kpis?.avgRunTime || 0) }}</span>
+                </div>
+                <div class="flex justify-between items-center p-1.5 bg-surface/50 rounded">
+                  <span class="text-xs text-gray-400 flex items-center gap-1">
+                    <Icon icon="lucide:fast-forward" class="w-3 h-3" />
+                    Fastest
+                  </span>
+                  <span class="text-sm font-bold text-green-400">{{ formatDuration(workflowStats?.kpis?.minRunTime || 0) }}</span>
+                </div>
+                <div class="flex justify-between items-center p-1.5 bg-surface/50 rounded">
+                  <span class="text-xs text-gray-400 flex items-center gap-1">
+                    <Icon icon="lucide:pause" class="w-3 h-3" />
+                    Slowest
+                  </span>
+                  <span class="text-sm font-bold text-red-400">{{ formatDuration(workflowStats?.kpis?.maxRunTime || 0) }}</span>
+                </div>
+                <div class="flex justify-between items-center p-1.5 bg-surface/30 rounded border border-emerald-500/20">
+                  <span class="text-xs text-gray-400 flex items-center gap-1">
+                    <Icon icon="lucide:hourglass" class="w-3 h-3" />
+                    Total Time
+                  </span>
+                  <span class="text-sm font-bold text-emerald-400">
+                    {{ Math.round((workflowStats?.kpis?.totalExecutions || 0) * (workflowStats?.kpis?.avgRunTime || 0) / 60000) }}m
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Insights & Intelligence - Monochrome -->
+            <div class="card-glassmorphism rounded-lg p-3">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:brain" class="w-4 h-4 text-emerald-400" />
+                AI Insights
+              </h4>
+              <ul class="space-y-1.5">
+                <li v-if="workflowStats?.kpis?.totalExecutions" class="flex items-start gap-1.5">
+                  <Icon icon="lucide:activity" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <div class="text-xs text-white">Activity Level</div>
+                    <div class="text-xs text-gray-400">{{ workflowStats.kpis.totalExecutions }} executions tracked</div>
+                    <div class="mt-1 h-1 bg-surface/50 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-400/50" :style="{ width: `${Math.min(100, workflowStats.kpis.totalExecutions / 10)}%` }"></div>
+                    </div>
+                  </div>
+                </li>
+                <li v-if="workflowStats?.kpis?.successRate" class="flex items-start gap-1.5">
+                  <Icon icon="lucide:shield-check" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <div class="text-xs text-white">Reliability</div>
+                    <div class="text-xs text-gray-400">{{ workflowStats.kpis.successRate }}% success maintained</div>
+                    <div class="mt-1 h-1 bg-surface/50 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-400/50" :style="{ width: `${workflowStats.kpis.successRate}%` }"></div>
+                    </div>
+                  </div>
+                </li>
+                <li v-if="workflowStats?.kpis?.avgRunTime" class="flex items-start gap-1.5">
+                  <Icon icon="lucide:clock" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <div class="text-xs text-white">Speed</div>
+                    <div class="text-xs text-gray-400">{{ formatDuration(workflowStats.kpis.avgRunTime) }} avg</div>
+                    <div class="mt-1 h-1 bg-surface/50 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-400/50" :style="{ width: `${Math.max(10, Math.min(100, 100 - (workflowStats.kpis.avgRunTime / 10000) * 100))}%` }"></div>
+                    </div>
+                  </div>
+                </li>
+                <li v-if="executionsHistory.length > 0" class="flex items-start gap-1.5">
+                  <Icon icon="lucide:trending-up" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <div class="text-xs text-white">Recent Trend</div>
+                    <div class="text-xs text-gray-400">
+                      {{ Math.round((executionsHistory.slice(0, 10).filter(e => e.status === 'success').length / Math.min(executionsHistory.length, 10)) * 100) }}% last 10
+                    </div>
+                    <div class="mt-1 h-1 bg-surface/50 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-400/50" :style="{ width: `${Math.round((executionsHistory.slice(0, 10).filter(e => e.status === 'success').length / Math.min(executionsHistory.length, 10)) * 100)}%` }"></div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Smart Recommendations -->
+            <div class="bg-gradient-to-r from-blue-500/20 to-blue-500/10 rounded-lg p-3 border border-blue-500/30">
+              <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                <Icon icon="lucide:sparkles" class="w-4 h-4 text-blue-400" />
+                Optimization Tips
+              </h4>
+              <div class="space-y-1.5 text-xs">
+                <div v-if="workflowStats?.kpis?.successRate && workflowStats.kpis.successRate < 95" class="flex items-start gap-1.5 p-1.5 bg-surface/30 rounded border border-border/50">
+                  <Icon icon="lucide:alert-triangle" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <span class="text-white font-medium">Improve Success Rate</span>
+                    <p class="text-gray-400 text-xs mt-0.5">Current: {{ workflowStats.kpis.successRate }}% - Review failed executions</p>
+                  </div>
+                </div>
+                <div v-if="workflowStats?.kpis?.avgRunTime && workflowStats.kpis.avgRunTime > 10000" class="flex items-start gap-1.5 p-1.5 bg-surface/30 rounded border border-border/50">
+                  <Icon icon="lucide:clock-alert" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <span class="text-white font-medium">Optimize Performance</span>
+                    <p class="text-gray-400 text-xs mt-0.5">Runtime >10s - Enable parallel processing</p>
+                  </div>
+                </div>
+                <div v-if="executionsHistory.filter(e => e.status === 'error').length > 0" class="flex items-start gap-1.5 p-1.5 bg-surface/30 rounded border border-border/50">
+                  <Icon icon="lucide:bug" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <span class="text-white font-medium">Error Pattern Detected</span>
+                    <p class="text-gray-400 text-xs mt-0.5">{{ executionsHistory.filter(e => e.status === 'error').length }} failures need attention</p>
+                  </div>
+                </div>
+                <div v-if="!workflowStats?.kpis?.totalExecutions || workflowStats.kpis.totalExecutions === 0" class="flex items-start gap-1.5 p-1.5 bg-surface/30 rounded border border-border/50">
+                  <Icon icon="lucide:info" class="w-3 h-3 text-gray-400 mt-0.5" />
+                  <div class="flex-1">
+                    <span class="text-white font-medium">No Data Available</span>
+                    <p class="text-gray-400 text-xs mt-0.5">Run process to start collecting metrics</p>
+                  </div>
+                </div>
+                <div v-else-if="workflowStats?.kpis?.successRate >= 95" class="flex items-start gap-1.5 p-1.5 bg-surface/30 rounded border border-emerald-500/20">
+                  <Icon icon="lucide:award" class="w-3 h-3 text-emerald-400 mt-0.5" />
+                  <div class="flex-1">
+                    <span class="text-emerald-400 font-medium">Excellent Performance!</span>
+                    <p class="text-gray-400 text-xs mt-0.5">Consider scaling or adding features</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Recommendations (DATA-DRIVEN) -->
-        <div class="bg-gradient-to-r from-blue-500/20 to-blue-500/10 rounded-lg p-5 border border-blue-500/30">
-          <h4 class="text-md font-medium text-white mb-3">Recommendations</h4>
-          <ul class="space-y-2 text-sm text-text-muted">
-            <li v-if="workflowStats?.kpis?.successRate && workflowStats.kpis.successRate < 95">
-              • Success rate is {{ workflowStats.kpis.successRate }}% - investigate failed executions for improvement opportunities
-            </li>
-            <li v-if="workflowStats?.kpis?.avgRunTime && workflowStats.kpis.avgRunTime > 10000">
-              • Average runtime exceeds 10 seconds - consider optimizing process steps or enabling parallel execution
-            </li>
-            <li v-if="executionsHistory.filter(e => e.status === 'error').length > 0">
-              • {{ executionsHistory.filter(e => e.status === 'error').length }} failed executions detected - review error patterns for resolution
-            </li>
-            <li v-if="!workflowStats?.kpis?.totalExecutions || workflowStats.kpis.totalExecutions === 0">
-              • No execution data available - run the process to collect performance metrics
-            </li>
-            <li v-else-if="workflowStats?.kpis?.successRate >= 95">
-              • Excellent performance maintained - consider expanding process capabilities
-            </li>
-          </ul>
+        <!-- Bottom Stats Summary Bar -->
+        <div class="mt-3 p-2 bg-surface/30 rounded-lg border border-border/50">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4 text-xs">
+              <span class="flex items-center gap-1">
+                <Icon icon="lucide:database" class="w-3 h-3 text-gray-400" />
+                <span class="text-gray-400">Data Points:</span>
+                <span class="text-white font-medium">{{ workflowStats?.kpis?.totalExecutions || 0 }}</span>
+              </span>
+              <span v-if="workflowStats?.period" class="flex items-center gap-1">
+                <Icon icon="lucide:calendar" class="w-3 h-3 text-gray-400" />
+                <span class="text-gray-400">Period:</span>
+                <span class="text-white font-medium">{{ workflowStats.period }}</span>
+              </span>
+              <span class="flex items-center gap-1">
+                <Icon icon="lucide:refresh-cw" class="w-3 h-3 text-gray-400" />
+                <span class="text-gray-400">Updated:</span>
+                <span class="text-white font-medium">{{ new Date(workflowStats?._metadata?.timestamp || Date.now()).toLocaleTimeString() }}</span>
+              </span>
+            </div>
+            <button @click="$emit('refresh')" class="p-1.5 text-gray-400 hover:text-emerald-400 transition-colors rounded hover:bg-white/5">
+              <Icon icon="lucide:refresh-cw" class="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -1007,7 +1239,7 @@ const getBusinessErrorDetails = (step: any): string => {
   // Fallback to direct n8n error details if available
   if (step.data?.n8nErrorDetails) {
     const error = step.data.n8nErrorDetails
-    return error.message || 'Error details not available'
+    return error.message || ''
   }
   
   // Final fallback
@@ -1159,7 +1391,7 @@ const generateBusinessReport = (): string => {
   
   // Process Information
   report += `┌─ PROCESS INFORMATION ${'─'.repeat(56)}┐\n\n`
-  report += `  Process Name:      ${timelineData.value.workflowName || 'Not specified'}\n`
+  report += `  Process Name:      ${timelineData.value.workflowName || ''}\n`
   report += `  Process ID:        ${props.workflowId}\n`
   report += `  Status:            ${timelineData.value.status === 'active' ? 'ACTIVE' : 'INACTIVE'}\n`
   
@@ -1425,10 +1657,10 @@ Status: ${step.status}
 Execution Time: ${formatDuration(step.executionTime || 0)}
 
 Business Summary:
-${step.data?.intelligentSummary?.businessSummary?.description || 'No summary available'}
+${step.data?.intelligentSummary?.businessSummary?.description || ''}
 
 Business Insight:
-${step.data?.intelligentSummary?.businessInsight || 'No insights available'}
+${step.data?.intelligentSummary?.businessInsight || ''}
 
 Generated: ${new Date().toLocaleString()}
   `.trim()

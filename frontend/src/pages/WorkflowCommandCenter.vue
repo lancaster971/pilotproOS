@@ -190,10 +190,10 @@
               <button
                 @click="openBusinessDashboard"
                 :disabled="!selectedWorkflowId"
-                class="px-4 py-2 text-sm font-medium rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all backdrop-blur-sm"
+                class="group px-5 py-2.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-500/10 via-emerald-600/10 to-emerald-500/10 hover:from-emerald-500/20 hover:via-emerald-600/20 hover:to-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 backdrop-blur-xl hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:scale-[1.02]"
               >
-                <Icon icon="lucide:bar-chart-3" class="w-4 h-4" />
-                Business Analytics
+                <Icon icon="lucide:bar-chart-3" class="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
+                <span class="text-emerald-400 group-hover:text-emerald-300 transition-colors">Business Analytics</span>
               </button>
             </div>
 

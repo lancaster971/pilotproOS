@@ -5,10 +5,10 @@
       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 premium-modal-overlay"
       @click.self="handleClickOutside"
     >
-      <div class="w-full max-w-5xl h-[80vh] modal-glassmorphism premium-modal-container overflow-hidden flex flex-col">
+      <div class="w-full max-w-5xl min-h-[70vh] max-h-[90vh] modal-glassmorphism premium-modal-container overflow-hidden flex flex-col">
 
         <!-- Header -->
-        <div class="modal-header flex items-center justify-between p-6">
+        <div class="modal-header flex items-center justify-between p-4">
           <div class="flex items-center gap-4">
             <div class="modal-icon-box p-3 rounded-lg">
               <Icon :icon="headerIcon" class="h-6 w-6 text-emerald-400" />
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Tab Content -->
-          <div class="overflow-y-auto flex-1" style="max-height: calc(70vh - 140px);">
+          <div class="overflow-y-auto flex-1" style="max-height: calc(85vh - 120px);">
             <slot
               :name="activeTab"
               :activeTab="activeTab"
