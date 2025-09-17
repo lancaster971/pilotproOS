@@ -9,6 +9,7 @@ import './design-system/utilities.css'
 import './design-system/premium-no-animations.css'
 import './design-system/enterprise-theme.css' // Enterprise rebrand - NO GREEN!
 import './disable-animations.css'
+import './styles/insights-theme.css' // Global Insights theme applied to all pages
 
 // Vue Toastification - Battle-tested toast system  
 import Toast, { POSITION } from 'vue-toastification'

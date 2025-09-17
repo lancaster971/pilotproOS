@@ -250,7 +250,13 @@
               :connection-line-type="'default'"
               class="workflow-flow h-full"
             >
-              <Background pattern-color="#10b981" :size="1" variant="dots" />
+              <Background
+                pattern-color="#4b5563"
+                :size="2"
+                variant="dots"
+                :gap="20"
+                :style="{ backgroundColor: '#0a0a0a' }"
+              />
               
               <!-- Execute/Stop Button: Central bottom position like n8n (Only for admin/editor) -->
               <div v-if="canExecute" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">

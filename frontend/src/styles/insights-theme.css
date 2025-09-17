@@ -1,0 +1,608 @@
+/* ============================================
+   INSIGHTS THEME - Global Design System
+   Applicato a tutto PilotProOS
+   Priority: Maximum - Overrides all other styles
+   IMPORTANTE: NON tocca VueFlow workflow nodes!
+   ============================================ */
+
+/* ESCLUSIONI - NON toccare VueFlow nodes! */
+/* Solo il background del canvas, non i nodi */
+
+/* Canvas VueFlow - NON sovrascrivere il background per vedere il pattern */
+
+/* NON toccare il pattern - lascia che VueFlow lo gestisca */
+
+/* FORCE OVERRIDE: Apply to ALL PrimeVue Components */
+.p-component,
+.p-card,
+.p-panel,
+.p-dialog,
+.p-tabview,
+.p-datatable,
+.p-dropdown,
+.p-inputtext {
+  font-family: inherit !important;
+}
+
+/* Override PrimeVue Card styles - MAXIMUM SPECIFICITY */
+.p-card,
+.p-card.premium-glass,
+Card.premium-glass,
+.premium-glass,
+.control-card,
+.stat-card,
+div.premium-glass {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: none !important;
+}
+
+/* Force dark background on card content */
+.p-card .p-card-content,
+.premium-glass .p-card-content {
+  background: transparent !important;
+}
+
+.p-card:hover,
+.p-card.premium-glass:hover,
+.premium-glass:hover,
+.control-card:hover,
+.premium-hover-lift:hover {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Specific overrides for WorkflowCommandCenter KPI cards */
+.grid.grid-cols-6 .p-card,
+.grid.grid-cols-6 Card {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Override blue badges */
+.p-badge,
+Badge {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+}
+
+.p-badge[data-severity="info"],
+Badge[severity="info"] {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #93bbfc !important;
+}
+
+.p-badge[data-severity="success"],
+Badge[severity="success"] {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+.p-badge[data-severity="danger"],
+Badge[severity="danger"] {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+/* Override TabView styling */
+.p-tabview,
+.premium-tabs {
+  background: transparent !important;
+}
+
+.p-tabview-nav {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.p-tabview-header {
+  background: transparent !important;
+  border: none !important;
+}
+
+.p-tabview-header.p-highlight .p-tabview-nav-link {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+.p-tabview-panels {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-top: none !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Override DataTable styling */
+.p-datatable {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-radius: 8px !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: rgba(31, 41, 55, 0.3) !important;
+  color: #9ca3af !important;
+  border-color: rgba(31, 41, 55, 0.5) !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(31, 41, 55, 0.2) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border-color: rgba(31, 41, 55, 0.2) !important;
+}
+
+/* Override Button styling */
+.p-button,
+.premium-button,
+.btn-control {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  border-radius: 6px !important;
+  color: #e5e7eb !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.p-button:hover:not(:disabled),
+.premium-button:hover:not(:disabled),
+.btn-control:hover:not(:disabled) {
+  background: rgba(31, 41, 55, 0.8) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.p-button-success {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+.p-button-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+/* Override Badge styling */
+.p-badge {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+
+/* Base Container Styling - FORCE ALL PAGES */
+body,
+#app,
+.page-container,
+.main-content,
+.dashboard-container,
+.workflow-container,
+.settings-container,
+.executions-container,
+[class*="h-[calc(100vh"],
+div[class*="overflow-auto"] {
+  background: linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%) !important;
+  color: #e5e7eb !important;
+}
+
+/* WorkflowCommandCenter specific background */
+.h-\[calc\(100vh-4rem\)\] {
+  background: transparent !important;
+}
+
+/* Sidebar backgrounds */
+.sidebar,
+aside,
+[class*="w-64"],
+[class*="flex-shrink-0"]:not(.p-card) {
+  background: rgba(15, 15, 15, 0.8) !important;
+  border-right: 1px solid rgba(31, 41, 55, 0.3) !important;
+}
+
+/* Section Containers - Glassmorphism Effect */
+.section,
+.card,
+.panel,
+.widget,
+.content-block,
+.data-card,
+.workflow-card,
+.execution-card,
+.settings-section,
+.analytics-card {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  backdrop-filter: blur(10px) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Hover Effects for Cards */
+.card:hover,
+.workflow-card:hover,
+.execution-card:hover,
+.data-card:hover {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Metric Cards - Compact Dark Style */
+.metric,
+.stat,
+.kpi,
+.counter,
+.summary-item {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  min-height: 80px;
+}
+
+/* Value Typography */
+.value,
+.metric-value,
+.stat-value,
+.count,
+.number {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin-bottom: 4px;
+}
+
+/* Label Typography */
+.label,
+.metric-label,
+.stat-label,
+.description {
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px;
+}
+
+/* Status Badges */
+.status,
+.badge,
+.tag,
+.chip {
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  display: inline-block;
+}
+
+.status.active,
+.badge.success,
+.tag.online {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.status.warning,
+.badge.pending {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.status.error,
+.badge.failed {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Progress Bars */
+.progress,
+.progress-bar,
+.meter {
+  height: 4px !important;
+  background: rgba(31, 41, 55, 0.5) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+.progress-fill,
+.bar-fill {
+  height: 100% !important;
+  background: #10b981 !important;
+  border-radius: 2px !important;
+  transition: width 0.3s ease !important;
+}
+
+/* Tables - Dark Theme */
+table,
+.data-table,
+.list-table {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+th {
+  background: rgba(31, 41, 55, 0.3) !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5) !important;
+}
+
+td {
+  padding: 12px 16px !important;
+  color: #e5e7eb !important;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.2) !important;
+}
+
+tr:hover {
+  background: rgba(31, 41, 55, 0.2) !important;
+}
+
+/* Buttons - Insights Style */
+button,
+.btn {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  border-radius: 6px !important;
+  color: #e5e7eb !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+button:hover,
+.btn:hover {
+  background: rgba(31, 41, 55, 0.8) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #93bbfc !important;
+}
+
+.btn-primary:hover {
+  background: rgba(59, 130, 246, 0.25) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Input Fields */
+input,
+textarea,
+select {
+  background: rgba(31, 41, 55, 0.3) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  border-radius: 6px !important;
+  color: #e5e7eb !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  background: rgba(31, 41, 55, 0.5) !important;
+}
+
+/* Headers and Titles */
+h1, h2, h3, h4 {
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+.section-title,
+.card-title,
+.panel-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  margin-bottom: 16px !important;
+}
+
+.section-subtitle {
+  font-size: 13px !important;
+  color: #6b7280 !important;
+  margin-top: 4px !important;
+}
+
+/* Icons */
+.icon {
+  color: #6b7280 !important;
+}
+
+.icon.primary {
+  color: #3b82f6 !important;
+}
+
+.icon.success {
+  color: #10b981 !important;
+}
+
+.icon.warning {
+  color: #f59e0b !important;
+}
+
+.icon.error {
+  color: #ef4444 !important;
+}
+
+/* Tooltips */
+.tooltip {
+  position: absolute;
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  z-index: 1000;
+}
+
+/* Charts Container */
+.chart-container {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+}
+
+/* Grid Layouts */
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4,
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+/* Loading States */
+.loading,
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(31, 41, 55, 0.3) 0%,
+    rgba(31, 41, 55, 0.5) 50%,
+    rgba(31, 41, 55, 0.3) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Dividers */
+hr,
+.divider {
+  border: none !important;
+  border-top: 1px solid rgba(31, 41, 55, 0.3) !important;
+  margin: 20px 0 !important;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.empty-state-description {
+  font-size: 14px;
+  color: #6b7280;
+}
