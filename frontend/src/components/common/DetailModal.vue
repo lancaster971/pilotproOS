@@ -5,16 +5,16 @@
       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 premium-modal-overlay"
       @click.self="handleClickOutside"
     >
-      <div class="w-full max-w-5xl h-[80vh] premium-glass premium-modal-container overflow-hidden flex flex-col premium-float">
+      <div class="w-full max-w-5xl h-[80vh] modal-glassmorphism premium-modal-container overflow-hidden flex flex-col">
 
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-800/50 bg-gradient-to-r from-gray-900/50 to-gray-800/30">
+        <div class="modal-header flex items-center justify-between p-6">
           <div class="flex items-center gap-4">
-            <div class="p-3 bg-primary/20 border border-primary/40 rounded-lg premium-glow-subtle premium-hover-lift">
-              <Icon :icon="headerIcon" class="h-6 w-6 text-primary premium-text-glow" />
+            <div class="modal-icon-box p-3 rounded-lg">
+              <Icon :icon="headerIcon" class="h-6 w-6 text-emerald-400" />
             </div>
             <div>
-              <h2 class="text-xl font-bold text-white premium-gradient-text">{{ title }}</h2>
+              <h2 class="text-xl font-bold text-white">{{ title }}</h2>
               <div v-if="subtitle || $slots.subtitle" class="flex items-center gap-3 mt-1">
                 <slot name="subtitle">
                   <span class="text-sm text-gray-400">{{ subtitle }}</span>
@@ -30,7 +30,7 @@
               v-if="showRefresh"
               @click="handleRefresh"
               :disabled="isLoading"
-              class="p-2 text-gray-400 hover:text-primary disabled:text-gray-600 transition-all duration-200 premium-hover-lift rounded-lg hover:bg-gray-800/50"
+              class="p-2 text-gray-400 hover:text-emerald-400 disabled:text-gray-600 transition-all duration-200 rounded-lg hover:bg-white/5"
               :title="isLoading ? 'Aggiornamento...' : 'Aggiorna dati'"
             >
               <Icon icon="lucide:refresh-cw" :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
@@ -38,7 +38,7 @@
 
             <button
               @click="$emit('close')"
-              class="p-2 text-gray-400 hover:text-red-400 transition-all duration-200 premium-hover-lift rounded-lg hover:bg-red-900/20"
+              class="p-2 text-gray-400 hover:text-red-400 transition-all duration-200 rounded-lg hover:bg-red-500/10"
             >
               <Icon icon="lucide:x" class="h-5 w-5" />
             </button>
@@ -46,9 +46,9 @@
         </div>
 
         <!-- Loading State -->
-        <div v-if="isLoading && !hasContent" class="flex items-center justify-center p-12 bg-gray-900/30">
+        <div v-if="isLoading && !hasContent" class="flex items-center justify-center p-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary premium-neon-pulse"></div>
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
             <p class="mt-4 text-gray-300">{{ loadingText }}</p>
           </div>
         </div>
@@ -68,16 +68,16 @@
         <!-- Content with Tabs -->
         <div v-else class="flex flex-col flex-1">
           <!-- Tabs Navigation -->
-          <div v-if="tabs.length > 1" class="flex items-center gap-1 p-3 border-b border-gray-800/50 bg-gradient-to-r from-gray-900/30 to-gray-800/20">
+          <div v-if="tabs.length > 1" class="modal-tabs flex items-center gap-1 p-3">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
               :class="[
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200 premium-hover-lift',
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200',
                 activeTab === tab.id
-                  ? 'bg-primary text-white premium-glow-intense premium-text-glow'
-                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
               ]"
             >
               <component :is="tab.icon" class="h-4 w-4" />
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Tab Content -->
-          <div class="overflow-y-auto flex-1 bg-gray-900/20" style="max-height: calc(70vh - 140px);">
+          <div class="overflow-y-auto flex-1" style="max-height: calc(70vh - 140px);">
             <slot
               :name="activeTab"
               :activeTab="activeTab"
@@ -171,6 +171,40 @@ const changeTab = (tabId: string) => {
 </script>
 
 <style scoped>
+/* Glassmorphism Modal Theme - Insights Style */
+.modal-glassmorphism {
+  background: linear-gradient(135deg,
+    rgba(15, 15, 15, 0.95) 0%,
+    rgba(20, 20, 20, 0.9) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+.modal-header {
+  background: linear-gradient(135deg,
+    rgba(30, 30, 30, 0.5) 0%,
+    rgba(25, 25, 25, 0.3) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-icon-box {
+  background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.15) 0%,
+    rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.modal-tabs {
+  background: rgba(20, 20, 20, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 /* Premium Modal Animations */
 .premium-modal-overlay {
   animation: modalOverlayFadeIn 0.15s ease-out;

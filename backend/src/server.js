@@ -4314,36 +4314,75 @@ app.get('/api/business/workflow/:workflowId/full-stats', async (req, res) => {
     
     // 2. Get execution statistics (last N days)
     const executionStats = await db.execute(sql`
-      SELECT 
+      SELECT
         COUNT(*) as total_executions,
         COUNT(CASE WHEN status = 'success' THEN 1 END) as successful,
         COUNT(CASE WHEN status = 'error' THEN 1 END) as failed,
-        AVG(CASE 
-          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL 
-          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000 
-          ELSE NULL 
+        COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
+        COUNT(CASE WHEN status = 'running' THEN 1 END) as running,
+        COUNT(CASE WHEN status = 'waiting' THEN 1 END) as waiting,
+        AVG(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
         END) as avg_duration_ms,
+        MIN(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
+        END) as min_duration_ms,
+        MAX(CASE
+          WHEN "stoppedAt" IS NOT NULL AND "startedAt" IS NOT NULL
+          THEN EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) * 1000
+          ELSE NULL
+        END) as max_duration_ms,
         MAX("startedAt") as last_execution
       FROM n8n.execution_entity
       WHERE "workflowId" = ${workflowId}
         AND "startedAt" >= NOW() - INTERVAL '${sql.raw(days)} days'
     `);
+
+    // 3. Get last 24h executions count
+    const last24hResult = await db.execute(sql`
+      SELECT COUNT(*) as count_24h
+      FROM n8n.execution_entity
+      WHERE "workflowId" = ${workflowId}
+        AND "startedAt" >= NOW() - INTERVAL '24 hours'
+    `);
     
     const stats = executionStats[0] || {};
+    const last24h = last24hResult[0] || {};
     const totalExecutions = parseInt(stats.total_executions) || 0;
     const successful = parseInt(stats.successful) || 0;
     const failed = parseInt(stats.failed) || 0;
+    const canceled = parseInt(stats.canceled) || 0;
+    const successRate = totalExecutions > 0 ? (successful / totalExecutions * 100) : 0;
     const avgDurationMs = parseFloat(stats.avg_duration_ms) || 0;
+    const executions24h = parseInt(last24h.count_24h) || 0;
     
     // Format response for Command Center KPIs
     res.json({
       workflowId,
       kpis: {
+        // Main KPIs for Command Center and TimelineModal
         totalExecutions,
+        successfulExecutions: successful,
         failedExecutions: failed,
+        canceledExecutions: canceled,
+        successRate: totalExecutions > 0 ? Math.round(successRate * 10) / 10 : 0,
         failureRate: totalExecutions > 0 ? Math.round((failed / totalExecutions) * 100 * 10) / 10 : 0,
         timeSavedHours: Math.round((successful * 5) / 60),
-        avgRunTime: avgDurationMs > 0 ? avgDurationMs / 1000 : 0 // In secondi con decimali
+        avgRunTime: avgDurationMs > 0 ? Math.round(avgDurationMs) : 0, // in ms
+        minRunTime: parseFloat(stats.min_duration_ms) || 0,
+        maxRunTime: parseFloat(stats.max_duration_ms) || 0,
+        efficiencyScore: totalExecutions > 0 ? Math.min(100, Math.round(successRate * 1.2)) : 0,
+        reliabilityScore: Math.round(successRate),
+        last24hExecutions: executions24h,
+        last7dExecutions: totalExecutions,
+        avgExecutionsPerDay: totalExecutions > 0 ? Math.round(totalExecutions / parseInt(days)) : 0,
+        peakHour: null,
+        totalDataProcessed: totalExecutions * 10,
+        automationImpact: successful * 5
       },
       statistics: {
         n8n: n8nStats,
@@ -4351,7 +4390,16 @@ app.get('/api/business/workflow/:workflowId/full-stats', async (req, res) => {
           total: totalExecutions,
           successful,
           failed,
+          running: parseInt(stats.running) || 0,
+          waiting: parseInt(stats.waiting) || 0,
+          successRate: Math.round(successRate * 10) / 10,
           lastExecution: stats.last_execution
+        },
+        performance: {
+          avgDurationMs: Math.round(avgDurationMs * 10) / 10,
+          minDurationMs: parseFloat(stats.min_duration_ms) || 0,
+          maxDurationMs: parseFloat(stats.max_duration_ms) || 0,
+          avgDurationSeconds: avgDurationMs > 0 ? Math.round(avgDurationMs / 100) / 10 : 0
         }
       },
       period: `${days} days`,

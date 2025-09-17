@@ -5,12 +5,15 @@
         <component :is="Component" />
       </transition>
     </router-view>
+    <!-- Custom notification system -->
+    <NotificationContainer />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import webSocketService from './services/websocket'
+import NotificationContainer from './components/NotificationContainer.vue'
 
 // Initialize Design System theme globally
 import { initializeDesignSystem } from './design-system'

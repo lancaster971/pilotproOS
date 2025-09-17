@@ -22,7 +22,7 @@
     <template #overview="{ data }">
       <div class="p-6 space-y-6">
         <!-- Process Description from Sticky Notes or Default -->
-        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+        <div class="card-glassmorphism rounded-lg p-5">
           <h3 class="text-lg font-semibold text-white mb-3">Process Description</h3>
           <div class="text-text-muted whitespace-pre-wrap">
             {{ workflowInfo?.description || workflowInfo?.purpose ||
@@ -32,7 +32,7 @@
 
         <!-- Key Metrics Grid - Universal for ALL workflows -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-surface-hover rounded-lg p-4 border border-border">
+          <div class="metric-card-glassmorphism rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm text-text-muted">Success Rate</span>
               <Icon icon="lucide:trending-up" class="w-4 h-4 text-green-400" />
@@ -42,7 +42,7 @@
             </div>
           </div>
 
-          <div class="bg-surface-hover rounded-lg p-4 border border-border">
+          <div class="metric-card-glassmorphism rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm text-text-muted">{{ getBusinessMetricLabel() }}</span>
               <Icon icon="lucide:database" class="w-4 h-4 text-blue-400" />
@@ -52,7 +52,7 @@
             </div>
           </div>
 
-          <div class="bg-surface-hover rounded-lg p-4 border border-border">
+          <div class="metric-card-glassmorphism rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm text-text-muted">Total Operations</span>
               <Icon icon="lucide:layers" class="w-4 h-4 text-purple-400" />
@@ -64,7 +64,7 @@
         </div>
 
         <!-- Business Capabilities - Dynamic from workflow nodes -->
-        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+        <div class="card-glassmorphism rounded-lg p-5">
           <h3 class="text-lg font-semibold text-white mb-3">Process Capabilities</h3>
           <ul v-if="workflowInfo?.capabilities?.length > 0" class="space-y-2">
             <li v-for="(capability, index) in workflowInfo.capabilities" :key="index" class="flex items-start gap-2">
@@ -90,7 +90,7 @@
         </div>
 
         <!-- Business Value Statement - Dynamic from execution metrics -->
-        <div class="bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg p-5 border border-primary/30">
+        <div class="value-card-glassmorphism rounded-lg p-5">
           <div class="flex items-start gap-3">
             <Icon icon="lucide:target" class="w-6 h-6 text-primary mt-0.5" />
             <div>
@@ -415,23 +415,23 @@
 
         <!-- History Stats (REAL DATA - Including Canceled) -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Total Executions</div>
+          <div class="metric-card-glassmorphism rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-1">Total Executions</div>
             <div class="text-xl font-bold text-white">{{ workflowStats?.kpis?.totalExecutions || 0 }}</div>
           </div>
-          <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Success</div>
+          <div class="metric-card-glassmorphism rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-1">Success</div>
             <div class="text-xl font-bold text-green-400">{{ workflowStats?.kpis?.successfulExecutions || 0 }}</div>
           </div>
-          <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Failed</div>
+          <div class="metric-card-glassmorphism rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-1">Failed</div>
             <div class="text-xl font-bold text-red-400">{{ workflowStats?.kpis?.failedExecutions || 0 }}</div>
             <div v-if="workflowStats?.kpis?.canceledExecutions > 0" class="text-xs text-orange-400 mt-1">
               +{{ workflowStats.kpis.canceledExecutions }} canceled
             </div>
           </div>
-          <div class="bg-surface-hover rounded-lg p-3 border border-border">
-            <div class="text-xs text-text-muted mb-1">Success Rate</div>
+          <div class="metric-card-glassmorphism rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-1">Success Rate</div>
             <div class="text-xl font-bold" :class="workflowStats?.kpis?.successRate >= 50 ? 'text-green-400' : 'text-orange-400'">
               {{ workflowStats?.kpis?.successRate || 0 }}%
             </div>
@@ -489,7 +489,7 @@
         <h3 class="text-lg font-semibold text-white mb-4">Process Analytics</h3>
 
         <!-- Performance Metrics Grid - UNIVERSAL DATA -->
-        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+        <div class="card-glassmorphism rounded-lg p-5">
           <h4 class="text-md font-medium text-white mb-4">Performance Metrics</h4>
 
           <!-- Primary Metrics -->
@@ -556,7 +556,7 @@
         </div>
 
         <!-- Activity Patterns - UNIVERSAL DATA -->
-        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+        <div class="card-glassmorphism rounded-lg p-5">
           <h4 class="text-md font-medium text-white mb-4">Activity Patterns</h4>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -603,7 +603,7 @@
         </div>
 
         <!-- Business Insights (REAL DATA DRIVEN) -->
-        <div class="bg-surface-hover rounded-lg p-5 border border-border">
+        <div class="card-glassmorphism rounded-lg p-5">
           <h4 class="text-md font-medium text-white mb-3">Business Insights</h4>
           <ul class="space-y-3">
             <li v-if="workflowStats?.kpis?.totalExecutions" class="flex items-start gap-2">
@@ -793,8 +793,14 @@ const loadTimeline = async () => {
   try {
     console.log('🔄 Loading dashboard data for workflow:', props.workflowId)
 
-    // Use new dashboard endpoint that aggregates all data
+    // Load from BOTH endpoints to get complete data
+    // 1. Dashboard endpoint for executions and activity
     const dashboardResponse = await $fetch(`${API_BASE}/api/business/dashboard/${props.workflowId}`)
+
+    // 2. Full-stats endpoint (same as Command Center) for accurate KPIs
+    const fullStatsResponse = await $fetch(`${API_BASE}/api/business/workflow/${props.workflowId}/full-stats`, {
+      params: { days: 30 }
+    })
     console.log('✅ Dashboard data loaded:', dashboardResponse)
 
     // Process workflow info
@@ -808,10 +814,21 @@ const loadTimeline = async () => {
       console.log('✅ Executions with business data:', executionsHistory.value.length)
     }
 
-    // Process statistics
-    if (dashboardResponse.statistics) {
+    // Process statistics - Use full-stats data (same as Command Center)
+    if (fullStatsResponse) {
+      workflowStats.value = fullStatsResponse
+      console.log('✅ Full statistics loaded:', workflowStats.value)
+      console.log('📊 KPIs detail from full-stats:', {
+        total: workflowStats.value?.kpis?.totalExecutions,
+        success: workflowStats.value?.kpis?.successfulExecutions,
+        failed: workflowStats.value?.kpis?.failedExecutions,
+        canceled: workflowStats.value?.kpis?.canceledExecutions,
+        rate: workflowStats.value?.kpis?.successRate
+      })
+    } else if (dashboardResponse.statistics) {
+      // Fallback to dashboard statistics if full-stats fails
       workflowStats.value = dashboardResponse.statistics
-      console.log('✅ Statistics loaded:', workflowStats.value)
+      console.log('⚠️ Using fallback statistics from dashboard endpoint')
     }
 
     // Process recent activity (AI responses, emails)
@@ -1036,29 +1053,44 @@ const toggleExpanded = (stepId: string | number) => {
 
 // Business Data Helper Functions - Universal for ALL workflows
 const calculateSuccessRate = () => {
-  const successCount = workflowStats.value?.successCount || 0
-  const errorCount = workflowStats.value?.errorCount || 0
-  const total = successCount + errorCount
+  // Use REAL KPI data from backend
+  if (workflowStats.value?.kpis?.successRate !== undefined) {
+    return workflowStats.value.kpis.successRate
+  }
+  // Fallback calculation if KPIs not available
+  const successCount = workflowStats.value?.kpis?.successfulExecutions || 0
+  const failedCount = workflowStats.value?.kpis?.failedExecutions || 0
+  const total = successCount + failedCount
   if (total === 0) return 100
   return Math.round((successCount / total) * 100)
 }
 
 const getBusinessMetricLabel = () => {
-  // Intelligently determine what metric to show based on available data
-  if (workflowStats.value?.total_orders > 0) return 'Orders Processed'
-  if (workflowStats.value?.ai_responses > 0) return 'AI Responses'
-  if (workflowStats.value?.emails_processed > 0) return 'Emails Handled'
-  if (workflowStats.value?.unique_senders > 0) return 'Unique Customers'
-  return 'Data Points'
+  // Use REAL KPI data from backend
+  const kpis = workflowStats.value?.kpis
+  if (!kpis) return 'Data Points'
+
+  // Check which metrics have actual data
+  if (kpis.ordersProcessed > 0) return 'Orders Processed'
+  if (kpis.aiResponsesGenerated > 0) return 'AI Responses'
+  if (kpis.emailsProcessed > 0) return 'Emails Handled'
+  if (kpis.avgDataItemsPerRun > 1) return 'Avg Items/Run'
+  if (kpis.totalDataProcessed > 0) return 'Data Processed'
+  return 'Operations'
 }
 
 const formatBusinessMetric = () => {
-  // Show the most relevant business metric
-  if (workflowStats.value?.total_orders > 0) return workflowStats.value.total_orders
-  if (workflowStats.value?.ai_responses > 0) return workflowStats.value.ai_responses
-  if (workflowStats.value?.emails_processed > 0) return workflowStats.value.emails_processed
-  if (workflowStats.value?.unique_senders > 0) return workflowStats.value.unique_senders
-  return workflowStats.value?.total_executions || 0
+  // Show the most relevant REAL business metric
+  const kpis = workflowStats.value?.kpis
+  if (!kpis) return 0
+
+  // Return actual data from KPIs
+  if (kpis.ordersProcessed > 0) return kpis.ordersProcessed
+  if (kpis.aiResponsesGenerated > 0) return kpis.aiResponsesGenerated
+  if (kpis.emailsProcessed > 0) return kpis.emailsProcessed
+  if (kpis.avgDataItemsPerRun > 1) return kpis.avgDataItemsPerRun.toFixed(1)
+  if (kpis.totalDataProcessed > 0) return kpis.totalDataProcessed
+  return kpis.totalExecutions || 0
 }
 
 const formatRelativeTime = (timestamp: string) => {
@@ -1427,3 +1459,61 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+/* Glassmorphism Cards - Insights Theme */
+.card-glassmorphism {
+  background: linear-gradient(135deg,
+    rgba(25, 25, 25, 0.5) 0%,
+    rgba(20, 20, 20, 0.3) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.metric-card-glassmorphism {
+  background: linear-gradient(135deg,
+    rgba(30, 30, 30, 0.4) 0%,
+    rgba(25, 25, 25, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.metric-card-glassmorphism:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.value-card-glassmorphism {
+  background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.08) 0%,
+    rgba(16, 185, 129, 0.03) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(16, 185, 129, 0.05);
+}
+
+/* Performance Metrics Cards */
+.performance-card {
+  background: linear-gradient(135deg,
+    rgba(30, 30, 30, 0.3) 0%,
+    rgba(25, 25, 25, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Activity Pattern Cards */
+.activity-card {
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+</style>

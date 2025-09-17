@@ -10,10 +10,12 @@ import './design-system/premium-no-animations.css'
 import './design-system/enterprise-theme.css' // Enterprise rebrand - NO GREEN!
 import './disable-animations.css'
 import './styles/insights-theme.css' // Global Insights theme applied to all pages
+import './styles/toast-theme.css' // Toast glassmorphism theme
 
-// Vue Toastification - Battle-tested toast system  
+// Vue Toastification - Battle-tested toast system
 import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
+import { toastOptions } from './config/toast-config'
 
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
@@ -130,28 +132,8 @@ app.use(PrimeVue, {
 app.use(pinia)
 app.use(router)
 
-// Vue Toastification configuration - Performance optimized, no animations
-app.use(Toast, {
-  position: POSITION.TOP_RIGHT,
-  timeout: 3000,
-  closeOnClick: true,
-  pauseOnFocusLoss: false,
-  pauseOnHover: false,
-  draggable: false,
-  showCloseButtonOnHover: true,
-  hideProgressBar: true,
-  closeButton: "button",
-  icon: false,
-  rtl: false,
-  transition: "Vue-Toastification__fade", // Fastest transition
-  toastDefaults: {
-    // Remove all transitions for instant display
-    transition: {
-      enter: "Vue-Toastification__fade-enter-active",
-      leave: "Vue-Toastification__fade-leave-active"
-    }
-  }
-})
+// Vue Toastification configuration - Insights theme
+app.use(Toast, toastOptions)
 
 // Import and register missing PrimeVue components
 import Timeline from 'primevue/timeline'

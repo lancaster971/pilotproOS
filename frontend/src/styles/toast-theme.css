@@ -1,0 +1,262 @@
+/* Toast Theme - Insights Glassmorphism Style */
+
+/* Container - ENSURE VISIBILITY */
+.Vue-Toastification__container {
+  z-index: 99999 !important;
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+}
+
+/* Base toast to ensure visibility */
+.Vue-Toastification__toast {
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  z-index: 99999 !important;
+}
+
+/* Base Toast Style */
+.insights-toast {
+  background: linear-gradient(135deg,
+    rgba(15, 15, 15, 0.95) 0%,
+    rgba(20, 20, 20, 0.9) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  color: #f3f4f6 !important;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  min-height: 64px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Toast Body */
+.insights-toast-body {
+  color: #f3f4f6 !important;
+  line-height: 1.5 !important;
+}
+
+/* Success Toast */
+.Vue-Toastification__toast--success.insights-toast {
+  background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.15) 0%,
+    rgba(5, 150, 105, 0.1) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow:
+    0 8px 32px rgba(16, 185, 129, 0.2),
+    inset 0 1px 0 rgba(16, 185, 129, 0.2),
+    0 0 60px rgba(16, 185, 129, 0.1) !important;
+}
+
+.Vue-Toastification__toast--success.insights-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+.Vue-Toastification__toast--success .Vue-Toastification__icon {
+  color: #10b981 !important;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+}
+
+/* Error Toast */
+.Vue-Toastification__toast--error.insights-toast {
+  background: linear-gradient(135deg,
+    rgba(239, 68, 68, 0.15) 0%,
+    rgba(220, 38, 38, 0.1) 100%) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  box-shadow:
+    0 8px 32px rgba(239, 68, 68, 0.2),
+    inset 0 1px 0 rgba(239, 68, 68, 0.2),
+    0 0 60px rgba(239, 68, 68, 0.1) !important;
+}
+
+.Vue-Toastification__toast--error.insights-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+}
+
+.Vue-Toastification__toast--error .Vue-Toastification__icon {
+  color: #ef4444 !important;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+}
+
+/* Info Toast */
+.Vue-Toastification__toast--info.insights-toast {
+  background: linear-gradient(135deg,
+    rgba(59, 130, 246, 0.15) 0%,
+    rgba(37, 99, 235, 0.1) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  box-shadow:
+    0 8px 32px rgba(59, 130, 246, 0.2),
+    inset 0 1px 0 rgba(59, 130, 246, 0.2),
+    0 0 60px rgba(59, 130, 246, 0.1) !important;
+}
+
+.Vue-Toastification__toast--info.insights-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.Vue-Toastification__toast--info .Vue-Toastification__icon {
+  color: #3b82f6 !important;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+/* Warning Toast */
+.Vue-Toastification__toast--warning.insights-toast {
+  background: linear-gradient(135deg,
+    rgba(251, 146, 60, 0.15) 0%,
+    rgba(249, 115, 22, 0.1) 100%) !important;
+  border: 1px solid rgba(251, 146, 60, 0.3) !important;
+  box-shadow:
+    0 8px 32px rgba(251, 146, 60, 0.2),
+    inset 0 1px 0 rgba(251, 146, 60, 0.2),
+    0 0 60px rgba(251, 146, 60, 0.1) !important;
+}
+
+.Vue-Toastification__toast--warning.insights-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+}
+
+.Vue-Toastification__toast--warning .Vue-Toastification__icon {
+  color: #fb923c !important;
+  filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.5));
+}
+
+/* Progress Bar */
+.insights-toast-progress {
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.3) 100%) !important;
+  height: 3px !important;
+  opacity: 0.8 !important;
+}
+
+.Vue-Toastification__toast--success .insights-toast-progress {
+  background: linear-gradient(90deg,
+    #10b981 0%,
+    #34d399 50%,
+    #10b981 100%) !important;
+}
+
+.Vue-Toastification__toast--error .insights-toast-progress {
+  background: linear-gradient(90deg,
+    #ef4444 0%,
+    #f87171 50%,
+    #ef4444 100%) !important;
+}
+
+.Vue-Toastification__toast--info .insights-toast-progress {
+  background: linear-gradient(90deg,
+    #3b82f6 0%,
+    #60a5fa 50%,
+    #3b82f6 100%) !important;
+}
+
+.Vue-Toastification__toast--warning .insights-toast-progress {
+  background: linear-gradient(90deg,
+    #fb923c 0%,
+    #fdba74 50%,
+    #fb923c 100%) !important;
+}
+
+/* Close Button */
+.Vue-Toastification__close-button {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+  transition: all 0.3s ease !important;
+}
+
+.Vue-Toastification__close-button:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+  transform: rotate(90deg);
+}
+
+/* Toast Title */
+.insights-toast .toast-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+/* Animations */
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.Vue-Toastification__fade-enter-active {
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+.Vue-Toastification__fade-leave-active {
+  animation: toastSlideIn 0.3s ease-out reverse;
+}
+
+/* Pulse animation for new toasts */
+.insights-toast {
+  animation: toastPulse 0.5s ease-out;
+}
+
+@keyframes toastPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Icon animations */
+.Vue-Toastification__icon {
+  animation: iconRotate 0.5s ease-out;
+}
+
+@keyframes iconRotate {
+  0% {
+    transform: rotate(-180deg) scale(0);
+  }
+  100% {
+    transform: rotate(0) scale(1);
+  }
+}

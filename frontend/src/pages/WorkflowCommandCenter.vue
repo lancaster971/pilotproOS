@@ -115,8 +115,8 @@
                 :key="workflow.id"
                 @click="selectWorkflow(workflow)"
                 class="p-2 rounded-md cursor-pointer transition-all text-xs"
-                :class="selectedWorkflowId === workflow.id 
-                  ? 'bg-primary/10 border border-primary/30' 
+                :class="selectedWorkflowId === workflow.id
+                  ? 'selected-workflow'
                   : 'bg-surface/50 hover:bg-surface border border-transparent hover:border-border'"
               >
                 <div class="flex items-center gap-2 mb-1">
@@ -248,7 +248,7 @@
               :min-zoom="0.2"
               :max-zoom="3"
               :connection-line-type="'default'"
-              class="workflow-flow h-full"
+              class="workflow-flow h-full workflow-transition"
             >
               <Background
                 pattern-color="#4b5563"
@@ -844,8 +844,8 @@ import DetailModal from '../components/common/DetailModal.vue'
 import N8nIcon from '../components/N8nIcon.vue'
 import { useUIStore } from '../stores/ui'
 import { useAuthStore } from '../stores/auth'
-import { useToast } from 'vue-toastification'
 import { businessAPI, $fetch } from '../services/api-client'
+import { useNotification } from '../composables/useNotification'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'
@@ -859,7 +859,12 @@ const authStore = useAuthStore()
 // Computed property for role-based permissions
 const isViewer = computed(() => authStore.user?.role === 'viewer')
 const canExecute = computed(() => !isViewer.value)
-const { success, error } = useToast()
+
+// Initialize our custom notification system
+const toast = useNotification()
+
+// Notification system ready
+console.log('🔔 Custom notification system initialized')
 
 // State
 const isLoading = ref(false)
@@ -1058,7 +1063,7 @@ const refreshAllData = async () => {
       ? 'Cannot connect to backend server. Is it running on port 3001?' 
       : `API Error: ${error.message}`
     
-    error('Errore di Connessione', errorMsg)
+    toast.error(errorMsg)
     
     // Set empty array as fallback
     realWorkflows.value = []
@@ -1652,14 +1657,8 @@ const connectExecutionStream = (workflowId: string, executionId: string) => {
             }
           }))
 
-          // Show success toast ONLY now (after visual completion)
-          const workflowName = selectedWorkflowData.value?.process_name || 'Workflow'
-          success(
-            'Processo Completato ✅',
-            `"${workflowName}" eseguito con successo`
-          )
-
-          console.log(`✅ Toast shown AFTER final animation`)
+          // Don't show toast here - polling will handle it with duration info
+          console.log(`✅ Workflow completed - toast will be shown by polling with duration`)
 
           // Reload workflow stats after completion
           setTimeout(async () => {
@@ -1676,7 +1675,7 @@ const connectExecutionStream = (workflowId: string, executionId: string) => {
         isExecuting.value = false
         executingNodes.value.clear()
         eventSource.close()
-        error('Errore Esecuzione', data.message)
+        toast.error(`Errore Esecuzione: ${data.message}`)
         break
     }
   }
@@ -1701,7 +1700,7 @@ const connectExecutionStream = (workflowId: string, executionId: string) => {
 
 const executeWorkflow = async () => {
   if (!selectedWorkflowData.value || !selectedWorkflowId.value) {
-    error('Nessun Workflow', 'Seleziona un workflow da eseguire')
+    toast.error('Seleziona un workflow da eseguire')
     return
   }
 
@@ -1709,6 +1708,10 @@ const executeWorkflow = async () => {
 
   const workflowName = selectedWorkflowData.value.process_name || 'Unknown'
   isExecuting.value = true
+
+  // Show start toast IMMEDIATELY
+  console.log('🎯 Showing start notification...')
+  toast.success(`Il workflow "${workflowName}" è stato avviato correttamente`)
 
   try {
     console.log(`🚀 Executing workflow ${selectedWorkflowId.value}...`)
@@ -1722,14 +1725,19 @@ const executeWorkflow = async () => {
     console.log(`📞 Calling businessAPI.executeWorkflow...`)
     const result = await businessAPI.executeWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow execution result:', result)
-    
+
     if (result.success && result.data.executionStarted) {
       // Store execution ID for stop functionality
       currentExecutionId.value = result.data.executionId
-      
-      // NO TOAST HERE - SSE will show completion toast
-      console.log(`🚀 Workflow "${workflowName}" started, SSE will handle feedback`)
-      
+
+      console.log(`🚀 Workflow "${workflowName}" started`)
+
+      // Update KPI immediately (increment execution count)
+      if (workflowStats.value && workflowStats.value.kpis) {
+        workflowStats.value.kpis.totalExecutions = (workflowStats.value.kpis.totalExecutions || 0) + 1
+        workflowStats.value.kpis.runningExecutions = (workflowStats.value.kpis.runningExecutions || 0) + 1
+      }
+
       // Start polling execution status
       let pollCount = 0
       const maxPolls = 30 // Max 30 secondi
@@ -1745,32 +1753,53 @@ const executeWorkflow = async () => {
             isExecuting.value = false
             currentExecutionId.value = null
             
+            // Update KPI: remove from running count
+            if (workflowStats.value && workflowStats.value.kpis) {
+              workflowStats.value.kpis.runningExecutions = Math.max(0, (workflowStats.value.kpis.runningExecutions || 0) - 1)
+            }
+
             if (statusResult.data.status === 'success') {
-              success(
-                'Esecuzione Completata',
-                `Il workflow "${workflowName}" è stato eseguito con successo in ${Math.round(statusResult.data.duration / 1000)}s`
-              )
+              // Simplified toast call
+              toast.success(`Il workflow "${workflowName}" è stato eseguito con successo in ${Math.round(statusResult.data.duration / 1000)}s`)
+              // Update success count in KPIs
+              if (workflowStats.value && workflowStats.value.kpis) {
+                workflowStats.value.kpis.successfulExecutions = (workflowStats.value.kpis.successfulExecutions || 0) + 1
+                // Recalculate success rate
+                const total = workflowStats.value.kpis.totalExecutions || 1
+                const success = workflowStats.value.kpis.successfulExecutions || 0
+                workflowStats.value.kpis.successRate = Math.round((success / total) * 100)
+              }
             } else if (statusResult.data.status === 'error' && statusResult.data.errorInfo) {
               // Mostra errori specifici di n8n
-              const errorDetails = statusResult.data.errorInfo.errors.map(e => 
+              const errorDetails = statusResult.data.errorInfo.errors.map(e =>
                 `${e.nodeName}: ${e.error.message}`
               ).join('\n')
-              
-              error(
-                'Esecuzione Fallita',
-                `Il workflow "${workflowName}" ha riscontrato errori:\n${errorDetails}`
-              )
+
+              toast.error(`Il workflow "${workflowName}" ha riscontrato errori: ${errorDetails}`)
+              // Update failed count in KPIs
+              if (workflowStats.value && workflowStats.value.kpis) {
+                workflowStats.value.kpis.failedExecutions = (workflowStats.value.kpis.failedExecutions || 0) + 1
+                // Recalculate success rate
+                const total = workflowStats.value.kpis.totalExecutions || 1
+                const success = workflowStats.value.kpis.successfulExecutions || 0
+                workflowStats.value.kpis.successRate = Math.round((success / total) * 100)
+              }
             } else {
-              error(
-                'Esecuzione Interrotta',
-                `Il workflow "${workflowName}" è stato interrotto`
-              )
+              toast.error(`Il workflow "${workflowName}" è stato interrotto`)
+              // Update failed count in KPIs
+              if (workflowStats.value && workflowStats.value.kpis) {
+                workflowStats.value.kpis.failedExecutions = (workflowStats.value.kpis.failedExecutions || 0) + 1
+                // Recalculate success rate
+                const total = workflowStats.value.kpis.totalExecutions || 1
+                const success = workflowStats.value.kpis.successfulExecutions || 0
+                workflowStats.value.kpis.successRate = Math.round((success / total) * 100)
+              }
             }
-            
-            // Ricarica dati
+
+            // Ricarica dati completi per avere statistiche accurate
             fetchRealWorkflows()
             if (selectedWorkflowId.value) {
-              loadWorkflowStatistics(selectedWorkflowId.value)
+              await loadWorkflowStatistics(selectedWorkflowId.value)
             }
           }
           
@@ -1780,8 +1809,7 @@ const executeWorkflow = async () => {
             isExecuting.value = false
             currentExecutionId.value = null
             
-            success(
-              'Esecuzione in Corso',
+            toast.info(
               `Il workflow "${workflowName}" è ancora in esecuzione dopo 30s`
             )
           }
@@ -1794,8 +1822,7 @@ const executeWorkflow = async () => {
       isExecuting.value = false
       currentExecutionId.value = null
       
-      error(
-        'Esecuzione Fallita',
+      toast.error(
         result.data?.n8nApiResult?.error || `Impossibile eseguire il workflow "${workflowName}"`
       )
     }
@@ -1807,8 +1834,7 @@ const executeWorkflow = async () => {
     isExecuting.value = false
     currentExecutionId.value = null
     
-    error(
-      'Errore di Esecuzione',
+    toast.error(
       `Impossibile eseguire il workflow "${workflowName}". ${error.message}`
     )
   }
@@ -1818,7 +1844,7 @@ const executeWorkflow = async () => {
 // Stop workflow execution
 const stopWorkflow = async () => {
   if (!selectedWorkflowId.value || !currentExecutionId.value) {
-    error('Errore Stop', 'Nessuna esecuzione da fermare')
+    toast.error('Nessuna esecuzione da fermare')
     return
   }
   
@@ -1832,13 +1858,11 @@ const stopWorkflow = async () => {
     console.log('✅ Workflow stop result:', result)
     
     if (result.success) {
-      success(
-        'Esecuzione Fermata',
+      toast.success(
         `Il workflow "${workflowName}" è stato fermato con successo`
       )
     } else {
-      error(
-        'Errore Stop',
+      toast.error(
         result.data?.n8nApiResult?.error || `Impossibile fermare il workflow "${workflowName}"`
       )
     }
@@ -1846,8 +1870,7 @@ const stopWorkflow = async () => {
   } catch (error: any) {
     console.error('❌ Failed to stop workflow:', error)
     
-    error(
-      'Errore di Stop',
+    toast.error(
       `Impossibile fermare il workflow "${workflowName}". ${error.message}`
     )
   } finally {
@@ -1895,19 +1918,16 @@ const toggleWorkflowStatus = async () => {
     if (result.success) {
       // Se c'è un errore con n8n ma il database è stato aggiornato
       if (result.data?.n8nApiResult?.error) {
-        success(
-          `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
+        toast.success(
           `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} localmente`
         )
       } else {
-        success(
-          `Workflow ${newStatus ? 'Attivato' : 'Disattivato'}`,
+        toast.success(
           `${result.data.workflowName} è stato ${newStatus ? 'attivato' : 'disattivato'} con successo`
         )
       }
     } else {
-      error(
-        'Errore Attivazione',
+      toast.error(
         'Impossibile aggiornare lo stato del workflow'
       )
     }
@@ -1922,8 +1942,7 @@ const toggleWorkflowStatus = async () => {
       realWorkflows.value[workflowIndex].is_active = currentStatus
     }
     
-    error(
-      'Errore di Attivazione',
+    toast.error(
       `Impossibile ${newStatus ? 'attivare' : 'disattivare'} il workflow. ${error.message}`
     )
   }
@@ -2315,8 +2334,97 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Selected workflow - Professional subtle style with smooth animations */
+.selected-workflow {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.1) inset;
+  position: relative;
+  animation: smoothSelection 0.3s ease-out;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes smoothSelection {
+  from {
+    opacity: 0.6;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.selected-workflow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #10b981, #059669);
+  border-radius: 2px 0 0 2px;
+  animation: slideInLeft 0.2s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Remove any white borders from theme */
+.selected-workflow * {
+  border-color: transparent !important;
+  outline: none !important;
+}
 .workflow-flow {
   background: var(--color-background);
+}
+
+/* Smooth transitions for workflow canvas */
+.workflow-transition {
+  animation: fadeInCanvas 0.4s ease-out;
+}
+
+@keyframes fadeInCanvas {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+/* Smooth transition for all workflow items in list */
+.p-2.rounded-md.cursor-pointer {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* VueFlow nodes smooth appearance */
+:deep(.vue-flow__node) {
+  animation: nodeAppear 0.3s ease-out;
+  transition: transform 0.3s ease-out;
+}
+
+@keyframes nodeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Clear default VueFlow styles */
