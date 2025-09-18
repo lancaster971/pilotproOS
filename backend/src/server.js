@@ -699,6 +699,88 @@ app.get('/api/business/process-runs', async (req, res) => {
   }
 });
 
+// All Business Executions API - Returns all executions with status
+app.get('/api/business/executions', async (req, res) => {
+  const startTime = Date.now();
+
+  try {
+    console.log('⚡ Loading ALL business executions with status');
+
+    const { limit = 50, offset = 0 } = req.query;
+
+    // Query for all executions with workflow names
+    const executions = await db
+      .select({
+        id: executionEntity.id,
+        status: executionEntity.status,
+        finished: executionEntity.finished,
+        mode: executionEntity.mode,
+        startedAt: executionEntity.startedAt,
+        stoppedAt: executionEntity.stoppedAt,
+        workflowId: executionEntity.workflowId,
+        workflowName: workflowEntity.name
+      })
+      .from(executionEntity)
+      .leftJoin(workflowEntity, eq(executionEntity.workflowId, workflowEntity.id))
+      .orderBy(desc(executionEntity.startedAt))
+      .limit(parseInt(limit))
+      .offset(parseInt(offset));
+
+    // Transform to business terminology
+    const businessExecutions = executions.map(execution => ({
+      processRunId: execution.id,
+      processId: execution.workflowId,
+      processName: execution.workflowName || execution.workflowId,
+      processRunStatus: getBusinessStatus(execution.status),
+      processRunCompleted: execution.finished,
+      processRunStarted: execution.startedAt,
+      processRunStopped: execution.stoppedAt,
+      processRunMode: execution.mode === 'manual' ? 'Manual' : 'Automatic',
+      processRunDuration: execution.stoppedAt && execution.startedAt
+        ? Math.round((new Date(execution.stoppedAt) - new Date(execution.startedAt)) / 1000)
+        : null,
+      originalStatus: execution.status // Keep original for debugging
+    }));
+
+    const duration = Date.now() - startTime;
+
+    businessLogger.info('🏢 All business executions loaded via Drizzle ORM', {
+      service: 'pilotpros-backend',
+      version: '1.0.0',
+      count: businessExecutions.length,
+      duration: `${duration}ms`,
+      type: 'business_operation'
+    });
+
+    res.json({
+      processRuns: businessExecutions,
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        total: businessExecutions.length
+      },
+      performance: {
+        queryTime: `${duration}ms`,
+        recordsReturned: businessExecutions.length
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading business executions:', error);
+
+    businessLogger.error('❌ Business executions query failed', {
+      service: 'pilotpros-backend',
+      error: error.message,
+      type: 'business_operation_error'
+    });
+
+    res.status(500).json({
+      error: sanitizeErrorMessage(error.message),
+      message: 'Failed to load business process executions'
+    });
+  }
+});
+
 // Process Details API (Drizzle ORM - Type Safe)
 app.get('/api/business/process-details/:processId', async (req, res) => {
   try {

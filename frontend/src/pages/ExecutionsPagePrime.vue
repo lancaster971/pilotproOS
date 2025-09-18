@@ -140,7 +140,7 @@
                 <td class="p-4">
                   <div class="font-medium text-white max-w-xs">
                     <span class="truncate block hover:text-green-400 transition-colors" :title="execution.process_name">
-                      {{ execution.process_name }}
+                      {{ execution.processName }}
                     </span>
                   </div>
                 </td>
@@ -148,23 +148,23 @@
                 <td class="p-4">
                   <span 
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
-                    :class="getStatusClass(execution.status)"
+                    :class="getStatusClass(execution.originalStatus)"
                   >
-                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.status)" />
-                    {{ getStatusLabel(execution.status) }}
+                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.originalStatus)" />
+                    {{ execution.processRunStatus?.label || getStatusLabel(execution.originalStatus) }}
                   </span>
                 </td>
                 
                 <td class="p-4 text-sm text-gray-300">
-                  {{ formatTime(execution.start_time) }}
+                  {{ formatTime(execution.processRunStarted) }}
                 </td>
                 
                 <td class="p-4 text-sm text-gray-300 font-mono">
-                  {{ formatDuration(execution.duration_ms) }}
+                  {{ formatDuration(execution.processRunDuration * 1000) }}
                 </td>
                 
                 <td class="p-4 text-sm text-gray-300 font-mono">
-                  {{ execution.run_id }}
+                  {{ execution.processRunId }}
                 </td>
                 
                 <td class="p-4">
@@ -228,23 +228,23 @@ const selectedExecutionId = ref<string>('')
 // Computed
 const executionStats = computed(() => ({
   total: executions.value.length,
-  success: executions.value.filter(e => e.status === 'success').length,
-  error: executions.value.filter(e => e.status === 'error').length,
-  running: executions.value.filter(e => e.status === 'running').length,
-  waiting: executions.value.filter(e => e.status === 'waiting').length,
+  success: executions.value.filter(e => e.originalStatus === 'success').length,
+  error: executions.value.filter(e => e.originalStatus === 'error').length,
+  running: executions.value.filter(e => e.originalStatus === 'running').length,
+  waiting: executions.value.filter(e => e.originalStatus === 'waiting').length,
 }))
 
 const filteredExecutions = computed(() => {
   return executions.value.filter((execution) => {
     // Search filter
-    const matchesSearch = execution.process_name?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-                         String(execution.run_id).includes(searchTerm.value)
-    
+    const matchesSearch = execution.processName?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+                         String(execution.processRunId).includes(searchTerm.value)
+
     // Status filter
-    const matchesStatus = statusFilter.value === 'all' || execution.status === statusFilter.value
-    
+    const matchesStatus = statusFilter.value === 'all' || execution.originalStatus === statusFilter.value
+
     // Workflow filter
-    const matchesWorkflow = workflowFilter.value === 'all' || execution.process_id === workflowFilter.value
+    const matchesWorkflow = workflowFilter.value === 'all' || execution.processId === workflowFilter.value
     
     return matchesSearch && matchesStatus && matchesWorkflow
   })
@@ -255,10 +255,10 @@ const refreshExecutions = async () => {
   isLoading.value = true
   
   try {
-    const data = await businessAPI.getProcessRuns()
+    const data = await businessAPI.getProcessExecutions()
     
-    if (data.data && Array.isArray(data.data)) {
-      executions.value = data.data
+    if (data.processRuns && Array.isArray(data.processRuns)) {
+      executions.value = data.processRuns
     } else {
       executions.value = []
     }
