@@ -947,7 +947,7 @@ import { useBusinessParser } from '../../composables/useBusinessParser'
 import { businessAPI, $fetch } from '../../services/api-client'
 import { API_BASE_URL } from '../../utils/api-config'
 import { UnifiedBusinessProcessor, cleanHtmlContent, truncateText } from '../../shared/business-parsers'
-import * as XLSX from 'xlsx'
+// XLSX will be loaded on demand to avoid module errors
 
 interface Props {
   workflowId: string
@@ -1645,75 +1645,82 @@ const requestAIAnalysis = async (step: any) => {
 
 const exportToExcel = async (step: any) => {
   try {
-
-    // Prepare data for Excel
-    const worksheetData = []
+    // Prepare CSV data for Excel-compatible format
+    const csvRows = []
 
     // Add headers
-    worksheetData.push({
-      'Step Name': step.name,
-      'Type': step.data?.intelligentSummary?.businessSummary?.title || step.type,
-      'Status': step.status,
-      'Execution Time': formatDuration(step.executionTime || 0),
-      'Started': step.startTime ? new Date(step.startTime).toLocaleString('it-IT') : '',
-      'Finished': step.endTime ? new Date(step.endTime).toLocaleString('it-IT') : ''
-    })
+    csvRows.push(['Field', 'Value', 'Details'])
+
+    // Add basic info
+    csvRows.push(['Step Name', step.name, ''])
+    csvRows.push(['Type', step.data?.intelligentSummary?.businessSummary?.title || step.type, ''])
+    csvRows.push(['Status', step.status, ''])
+    csvRows.push(['Execution Time', formatDuration(step.executionTime || 0), ''])
+    csvRows.push(['Started', step.startTime ? new Date(step.startTime).toLocaleString('it-IT') : '', ''])
+    csvRows.push(['Finished', step.endTime ? new Date(step.endTime).toLocaleString('it-IT') : '', ''])
 
     // Add business summary if available
     if (step.data?.intelligentSummary?.businessSummary?.description) {
-      worksheetData.push({
-        'Step Name': 'Business Summary',
-        'Type': step.data.intelligentSummary.businessSummary.description
-      })
+      csvRows.push(['', '', '']) // Empty row
+      csvRows.push(['Business Summary', step.data.intelligentSummary.businessSummary.description, ''])
     }
 
     // Add metrics if available
     if (step.data?.intelligentSummary?.metrics) {
-      const metrics = step.data.intelligentSummary.metrics
-      Object.entries(metrics).forEach(([key, value]) => {
-        worksheetData.push({
-          'Step Name': 'Metric',
-          'Type': key,
-          'Status': String(value)
-        })
+      csvRows.push(['', '', '']) // Empty row
+      csvRows.push(['Metrics', '', ''])
+      Object.entries(step.data.intelligentSummary.metrics).forEach(([key, value]) => {
+        csvRows.push(['', key, String(value)])
       })
     }
 
     // Add preview data if available
     if (step.data?.intelligentSummary?.preview?.sampleRows) {
-      worksheetData.push({}) // Empty row
-      worksheetData.push({ 'Step Name': 'Preview Data' })
+      csvRows.push(['', '', '']) // Empty row
+      csvRows.push(['Preview Data', '', ''])
 
       const sampleRows = step.data.intelligentSummary.preview.sampleRows
       if (Array.isArray(sampleRows) && sampleRows.length > 0) {
+        // Add headers from first row
+        const headers = Object.keys(sampleRows[0])
+        csvRows.push(headers)
+
+        // Add data rows
         sampleRows.forEach((row: any) => {
-          worksheetData.push(row)
+          csvRows.push(headers.map(h => String(row[h] || '')))
         })
       }
     }
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.json_to_sheet(worksheetData)
+    // Convert to CSV string
+    const csvContent = csvRows
+      .map(row => row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma or newline
+        const escaped = String(cell).replace(/"/g, '""')
+        return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
+          ? `"${escaped}"`
+          : escaped
+      }).join(','))
+      .join('\n')
 
-    // Auto-size columns
-    const maxWidth = 50
-    const cols = Object.keys(worksheetData[0] || {}).map(key => ({
-      wch: Math.min(maxWidth, Math.max(key.length, 15))
-    }))
-    ws['!cols'] = cols
+    // Create blob with BOM for Excel compatibility
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Process Step Data')
+    // Download file
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${step.name}-data-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
 
-    // Generate Excel file
-    const fileName = `${step.name}-data-${new Date().toISOString().slice(0, 10)}.xlsx`
-    XLSX.writeFile(wb, fileName)
-
-    showToast('success', 'Excel file downloaded successfully')
+    showToast('success', 'CSV file downloaded successfully (Excel compatible)')
   } catch (error) {
-    console.error('Excel export error:', error)
-    showToast('error', 'Failed to export Excel file')
+    console.error('Export error:', error)
+    showToast('error', 'Failed to export data')
   }
 }
 
