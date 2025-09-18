@@ -1642,9 +1642,80 @@ const requestAIAnalysis = async (step: any) => {
   }, 2000)
 }
 
-const exportToExcel = (step: any) => {
-  // TODO: Implement Excel export using a library like xlsx
-  showToast('info', 'Excel export feature coming soon')
+const exportToExcel = async (step: any) => {
+  try {
+    // Dynamically import xlsx to avoid bundle bloat
+    const XLSX = await import('xlsx')
+
+    // Prepare data for Excel
+    const worksheetData = []
+
+    // Add headers
+    worksheetData.push({
+      'Step Name': step.name,
+      'Type': step.data?.intelligentSummary?.businessSummary?.title || step.type,
+      'Status': step.status,
+      'Execution Time': formatDuration(step.executionTime || 0),
+      'Started': step.startTime ? new Date(step.startTime).toLocaleString('it-IT') : '',
+      'Finished': step.endTime ? new Date(step.endTime).toLocaleString('it-IT') : ''
+    })
+
+    // Add business summary if available
+    if (step.data?.intelligentSummary?.businessSummary?.description) {
+      worksheetData.push({
+        'Step Name': 'Business Summary',
+        'Type': step.data.intelligentSummary.businessSummary.description
+      })
+    }
+
+    // Add metrics if available
+    if (step.data?.intelligentSummary?.metrics) {
+      const metrics = step.data.intelligentSummary.metrics
+      Object.entries(metrics).forEach(([key, value]) => {
+        worksheetData.push({
+          'Step Name': 'Metric',
+          'Type': key,
+          'Status': String(value)
+        })
+      })
+    }
+
+    // Add preview data if available
+    if (step.data?.intelligentSummary?.preview?.sampleRows) {
+      worksheetData.push({}) // Empty row
+      worksheetData.push({ 'Step Name': 'Preview Data' })
+
+      const sampleRows = step.data.intelligentSummary.preview.sampleRows
+      if (Array.isArray(sampleRows) && sampleRows.length > 0) {
+        sampleRows.forEach((row: any) => {
+          worksheetData.push(row)
+        })
+      }
+    }
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(worksheetData)
+
+    // Auto-size columns
+    const maxWidth = 50
+    const cols = Object.keys(worksheetData[0] || {}).map(key => ({
+      wch: Math.min(maxWidth, Math.max(key.length, 15))
+    }))
+    ws['!cols'] = cols
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Process Step Data')
+
+    // Generate Excel file
+    const fileName = `${step.name}-data-${new Date().toISOString().slice(0, 10)}.xlsx`
+    XLSX.writeFile(wb, fileName)
+
+    showToast('success', 'Excel file downloaded successfully')
+  } catch (error) {
+    console.error('Excel export error:', error)
+    showToast('error', 'Failed to export Excel file')
+  }
 }
 
 const generateStepReport = (step: any) => {
