@@ -379,8 +379,11 @@ app.get('/health', async (req, res) => {
     let n8nStatus = 'unknown';
     try {
       const n8nUrl = process.env.N8N_URL || 'http://localhost:5678';
-      const response = await fetch(`${n8nUrl}/rest/active-workflows`);
-      n8nStatus = response.ok ? 'healthy' : 'degraded';
+      await ofetch(`${n8nUrl}/rest/active-workflows`, {
+        timeout: 5000,
+        retry: 1,
+      });
+      n8nStatus = 'healthy';
     } catch (error) {
       n8nStatus = 'unavailable';
     }
@@ -2306,8 +2309,10 @@ app.post('/api/business/toggle-workflow/:workflowId', async (req, res) => {
         throw new Error('N8N_API_KEY not configured');
       }
       
-      const n8nResponse = await fetch(n8nApiUrl, {
+      const n8nResponse = await ofetch.raw(n8nApiUrl, {
         method: 'POST',
+        timeout: 10000,
+        retry: 2,
         headers: {
           'Content-Type': 'application/json',
           'X-N8N-API-KEY': n8nApiKey
@@ -2410,8 +2415,10 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
       
       console.log(`🌐 Trying webhook-test execution: ${webhookUrl}`);
       
-      const n8nResponse = await fetch(webhookUrl, {
+      const n8nResponse = await ofetch.raw(webhookUrl, {
         method: 'POST',
+        timeout: 30000,
+        retry: 1,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -2440,8 +2447,9 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
           const webhookUrl = `${n8nUrl}/webhook-test/${workflowId}`;
           console.log(`🌐 Trying webhook test: ${webhookUrl}`);
           
-          const webhookResponse = await fetch(webhookUrl, {
+          const webhookResponse = await ofetch.raw(webhookUrl, {
             method: 'POST',
+            timeout: 30000,
             headers: { 'Content-Type': 'application/json' }
           });
           
@@ -4138,8 +4146,9 @@ app.get('/api/business/process-timeline/:processId/report', async (req, res) => 
     const { tenantId } = req.query;
     
     // Get timeline data first
-    const timelineResponse = await fetch(`http://localhost:${port}/api/business/process-timeline/${processId}`);
-    const timelineData = await timelineResponse.json();
+    const timelineData = await ofetch(`http://localhost:${port}/api/business/process-timeline/${processId}`, {
+      timeout: 10000,
+    });
     
     if (!timelineData.success) {
       throw new Error('Failed to get timeline data');

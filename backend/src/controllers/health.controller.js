@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { Pool } from 'pg';
+import { ofetch } from 'ofetch';
 import config from '../config/index.js';
 import businessLogger from '../utils/logger.js';
 import fs from 'fs';
@@ -266,44 +267,36 @@ async function checkN8n(detailed = false) {
 
   try {
     const n8nUrl = config.n8n.url;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(`${n8nUrl}/rest/health`, {
-      signal: controller.signal,
+    // ofetch handles timeouts and retries automatically
+    await ofetch(`${n8nUrl}/rest/health`, {
+      timeout: 5000,
+      retry: 1,
       headers: {
         'Accept': 'application/json',
       },
     });
 
-    clearTimeout(timeout);
+    health.status = 'healthy';
 
-    if (response.ok) {
-      health.status = 'healthy';
+    if (detailed) {
+      try {
+        // Try to get workflow stats using ofetch
+        const workflows = await ofetch(`${n8nUrl}/rest/workflows`, {
+          timeout: 5000,
+          headers: {
+            'X-N8N-API-KEY': config.n8n.apiKey || '',
+          },
+        });
 
-      if (detailed) {
-        try {
-          // Try to get workflow stats
-          const workflowResponse = await fetch(`${n8nUrl}/rest/workflows`, {
-            headers: {
-              'X-N8N-API-KEY': config.n8n.apiKey || '',
-            },
-          });
-
-          if (workflowResponse.ok) {
-            const workflows = await workflowResponse.json();
-            health.details = {
-              totalWorkflows: workflows.data?.length || 0,
-              activeWorkflows: workflows.data?.filter(w => w.active).length || 0,
-            };
-          }
-        } catch (detailError) {
-          // Details are optional, don't fail the health check
-          health.details = { error: 'Could not fetch details' };
-        }
+        health.details = {
+          totalWorkflows: workflows.data?.length || 0,
+          activeWorkflows: workflows.data?.filter(w => w.active).length || 0,
+        };
+      } catch (detailError) {
+        // Details are optional, don't fail the health check
+        health.details = { error: 'Could not fetch details' };
       }
-    } else {
-      health.status = response.status >= 500 ? 'unhealthy' : 'degraded';
     }
 
     health.responseTime = Date.now() - startTime;
