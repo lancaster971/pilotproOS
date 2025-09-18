@@ -74,7 +74,7 @@
               :key="tab.id"
               @click="activeTab = tab.id"
               :class="[
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200',
+                'flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200',
                 activeTab === tab.id
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
