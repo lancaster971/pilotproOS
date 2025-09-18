@@ -628,10 +628,10 @@ class PostgreSQLSyncService {
 ### **MCP Tool Enhancement per PostgreSQL**
 
 ```typescript
-// ai-agent/src/mcp/enhanced-mcp-tools.ts
+// Esempio implementazione MCP Tools per PostgreSQL
 class EnhancedMCPTools {
   private db: Pool;
-  
+
   constructor(dbPool: Pool) {
     this.db = dbPool;
   }

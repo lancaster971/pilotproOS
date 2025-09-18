@@ -106,7 +106,7 @@ router.beforeEach(async (to, from, next) => {
 
 **TEMPO STIMATO**: 4-7 ore sviluppo
 **BLOCCO VENDITE**: IMMEDIATO fino a risoluzione
-**ASSIGNEE**: Claude (mi prendo la responsabilità del casino)
+**ASSIGNEE**: Da assegnare
 
 ### NEXT STEPS:
 1. **STOP** tutte le feature development
@@ -118,12 +118,13 @@ router.beforeEach(async (to, from, next) => {
 
 **⚠️ NOTA**: Questo debito è stato creato durante sviluppo workflow cards. L'autenticazione ERA funzionante prima delle modifiche di navigazione.
 
-**RESPONSABILITÀ**: Claude ha disabilitato auth per testing e non l'ha ripristinata correttamente.
+**RESPONSABILITÀ**: L'auth è stata disabilitata per testing e non è stata ripristinata correttamente.
 
 **SOLUZIONE**: Fix immediato prima di qualsiasi deployment cliente.
 
 ---
 
 *Documento creato: 2025-09-14 23:56*
+*Ultimo aggiornamento: 2025-01-18*
 *Severity: CRITICAL*
 *Impact: BUSINESS BLOCKING*

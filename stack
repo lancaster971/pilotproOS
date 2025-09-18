@@ -1,0 +1,3 @@
+#!/bin/bash
+# PilotProOS Stack Management
+node stack-cli.cjs "$@"

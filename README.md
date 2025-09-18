@@ -114,8 +114,7 @@ npm run dev
 ```bash
 # Individual services
 npm run dev:frontend    # Vue 3 + Vite (port 3000)
-npm run dev:backend     # Express API (port 3001)  
-npm run dev:ai-agent    # AI Agent (sperimentale) (port 3002)
+npm run dev:backend     # Express API (port 3001)
 npm run dev:n8n         # Workflow Engine (port 5678)
 
 # n8n Management
@@ -347,5 +346,3 @@ npm run dev:stack
 **👉 Start with: `./deploy-client.sh your-domain.com`**
 
 ---
-
-Nota AI Agent: il modulo AI (cartella `ai-agent/`) è attualmente disattivato per i deployment di produzione. Il codice rimane come base sperimentale; lasciare il servizio spento per i clienti.

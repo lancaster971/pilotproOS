@@ -75,7 +75,7 @@ if ! id "pilotpros" &>/dev/null; then
 fi
 
 log "📁 Creating directory structure..."
-mkdir -p /opt/pilotpros/{database,backend,frontend,n8n,ai-agent,logs,backups,scripts}
+mkdir -p /opt/pilotpros/{database,backend,frontend,n8n,logs,backups,scripts}
 chown -R pilotpros:pilotpros /opt/pilotpros
 
 log "🗄️ Setting up PostgreSQL for PilotProOS..."

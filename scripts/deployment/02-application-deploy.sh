@@ -136,44 +136,6 @@ cd ..
 
 success "Backend API deployed"
 
-log "🤖 Deploying AI Agent..."
-
-# Copy AI Agent
-cp -r ../PilotProOS/ai-agent/ .
-cd ai-agent
-
-npm install --production
-
-# AI Agent configuration
-cat > .env << EOF
-NODE_ENV=production
-AI_AGENT_PORT=3002
-MCP_SERVER_PATH=../src/index.ts
-LOG_LEVEL=info
-EOF
-
-# PM2 configuration for AI Agent
-cat > ecosystem.config.js << 'EOF'
-module.exports = {
-  apps: [{
-    name: 'pilotpros-ai-agent',
-    script: 'src/index.js',
-    cwd: '/opt/pilotpros/ai-agent',
-    env: {
-      NODE_ENV: 'production'
-    },
-    max_memory_restart: '256M',
-    error_file: '/opt/pilotpros/logs/ai-agent-error.log',
-    out_file: '/opt/pilotpros/logs/ai-agent-out.log',
-    time: true
-  }]
-};
-EOF
-
-sudo -u pilotpros pm2 start ecosystem.config.js
-cd ..
-
-success "AI Agent deployed"
 
 log "🎨 Deploying Frontend..."
 

@@ -16,8 +16,6 @@ npm run dev:backend &
 echo "🎨 Starting frontend interface..."
 npm run dev:frontend &
 
-echo "🤖 Starting AI agent..."
-npm run dev:ai-agent &
 
 echo ""
 echo "✅ All services started!"

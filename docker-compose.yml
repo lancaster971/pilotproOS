@@ -1,11 +1,42 @@
 version: '3.8'
 
 services:
+  # Stack Controller - DEVE AVVIARSI PER PRIMO per monitorare tutto
+  stack-controller:
+    container_name: pilotpros-stack-controller
+    build:
+      context: ./stack-controller
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./stack-controller/config:/app/config
+      - ./stack-controller/web:/app/web
+      - ./stack-controller/src:/app/src
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - MONITOR_INTERVAL=30
+      - AUTO_RECOVERY=true
+      - MAX_RESTART_ATTEMPTS=3
+    restart: unless-stopped
+    networks:
+      - pilotpros-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # PostgreSQL Database (completamente isolato nel progetto)
   postgres:
     image: postgres:16-alpine
     container_name: pilotpros-postgres
     restart: unless-stopped
+    depends_on:
+      stack-controller:
+        condition: service_started
     environment:
       POSTGRES_DB: pilotpros_db
       POSTGRES_USER: pilotpros_user
@@ -33,6 +64,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      stack-controller:
+        condition: service_started
     environment:
       # PostgreSQL Configuration
       DB_TYPE: postgresdb
@@ -111,6 +144,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      stack-controller:
+        condition: service_started
     environment:
       NODE_ENV: development
       PORT: 3001
@@ -161,42 +196,6 @@ services:
     depends_on:
       - backend
 
-  # AI Agent MCP
-  ai-agent:
-    build:
-      context: ./ai-agent
-      dockerfile: ../docker/ai-agent.Dockerfile
-    container_name: pilotpros-ai-agent
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      n8n:
-        condition: service_healthy
-    environment:
-      NODE_ENV: development
-      PORT: 3002
-      
-      # Database
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: pilotpros_db
-      DB_USER: pilotpros_user
-      DB_PASSWORD: pilotpros_secure_pass_2025
-      
-      # n8n Integration
-      N8N_URL: http://n8n:5678
-      N8N_ADMIN_USER: admin
-      N8N_ADMIN_PASSWORD: pilotpros_admin_2025
-      
-    volumes:
-      - ./ai-agent:/app
-      - ./logs/ai-agent:/app/logs
-      - /app/node_modules
-    ports:
-      - "3002:3002"
-    networks:
-      - pilotpros-network
 
 networks:
   pilotpros-network:
