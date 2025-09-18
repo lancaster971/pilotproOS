@@ -220,7 +220,7 @@ const allNavigationItems = [
   {
     name: 'executions',
     path: '/executions',
-    label: 'Esecuzioni',
+    label: 'Executions',
     description: 'Cronologia processi',
     icon: Play,
     roles: ['admin', 'viewer']
