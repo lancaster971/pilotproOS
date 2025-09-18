@@ -483,7 +483,7 @@ class BusinessIntelligenceService {
       },
       businessInsight: 'Complex data structure processed',
       fullDataAvailable: true,
-      actions: ['view_raw', 'download', 'request_ai_analysis']
+      actions: ['view_raw', 'download', 'export_excel', 'request_ai_analysis']
     };
   }
 
