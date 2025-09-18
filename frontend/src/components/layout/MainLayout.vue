@@ -118,16 +118,26 @@
           </div>
         </div>
 
-        <!-- Center Toggle Button (n8n style) -->
-        <button
-          @click="sidebarCollapsed = !sidebarCollapsed"
-          class="sidebar-toggle-center"
-          :title="sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'"
-        >
-          <ChevronLeft v-if="!sidebarCollapsed" class="w-4 h-4" />
-          <ChevronRight v-else class="w-4 h-4" />
-        </button>
       </aside>
+
+      <!-- Center Toggle Button - Just White Arrow -->
+      <div
+        @click="sidebarCollapsed = !sidebarCollapsed"
+        :style="{
+          position: 'fixed',
+          left: sidebarCollapsed ? '60px' : '252px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 100,
+          transition: 'left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          cursor: 'pointer'
+        }"
+        class="hover:scale-110 transition-transform"
+        :title="sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'"
+      >
+        <ChevronLeft v-if="!sidebarCollapsed" class="w-6 h-6 text-white drop-shadow-lg" />
+        <ChevronRight v-else class="w-6 h-6 text-white drop-shadow-lg" />
+      </div>
 
       <!-- Main content area -->
       <main
@@ -572,45 +582,4 @@ onMounted(() => {
   background: rgba(107, 114, 128, 0.5);
 }
 
-/* Center Toggle Button (n8n style) */
-.sidebar-toggle-center {
-  position: absolute;
-  right: -14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(55, 65, 81, 0.95);
-  border: 1px solid rgba(156, 163, 175, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 50;
-  color: #e5e7eb;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-toggle-center:hover {
-  background: rgba(75, 85, 99, 1);
-  border-color: rgba(59, 130, 246, 0.5);
-  color: #ffffff;
-  transform: translateY(-50%) scale(1.05);
-  box-shadow:
-    0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.sidebar-toggle-center:active {
-  transform: translateY(-50%) scale(0.95);
-}
-
-/* Adjust position when sidebar is collapsed */
-.w-16 .sidebar-toggle-center {
-  right: -14px;
-}
 </style>
