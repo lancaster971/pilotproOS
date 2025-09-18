@@ -11,6 +11,7 @@ import './design-system/enterprise-theme.css' // Enterprise rebrand - NO GREEN!
 import './disable-animations.css'
 import './styles/insights-theme.css' // Global Insights theme applied to all pages
 import './styles/toast-theme.css' // Toast glassmorphism theme
+import './styles/sidebar-premium.css' // Premium sidebar styling
 
 // Vue Toastification - Battle-tested toast system
 import Toast, { POSITION } from 'vue-toastification'
