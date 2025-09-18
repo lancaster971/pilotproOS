@@ -1,0 +1,111 @@
+{
+  "services": {
+    "postgres-dev": {
+      "displayName": "Database Service",
+      "businessName": "Data Management System",
+      "critical": true,
+      "maxRestarts": 3,
+      "healthCheck": {
+        "type": "exec",
+        "command": ["pg_isready", "-U", "pilotpros_user"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "resources": {
+        "memoryLimit": "512MB",
+        "cpuLimit": "1.0"
+      }
+    },
+    "backend-dev": {
+      "displayName": "Business Logic Service",
+      "businessName": "Automation Engine",
+      "critical": true,
+      "maxRestarts": 5,
+      "healthCheck": {
+        "type": "http",
+        "endpoint": "http://localhost:3001/health",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "resources": {
+        "memoryLimit": "256MB",
+        "cpuLimit": "0.8"
+      },
+      "dependencies": ["postgres-dev"]
+    },
+    "frontend-dev": {
+      "displayName": "User Interface Service",
+      "businessName": "Business Portal",
+      "critical": false,
+      "maxRestarts": 5,
+      "healthCheck": {
+        "type": "http",
+        "endpoint": "http://localhost:3000",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "resources": {
+        "memoryLimit": "384MB",
+        "cpuLimit": "0.5"
+      }
+    },
+    "automation-engine-dev": {
+      "displayName": "Automation Service",
+      "businessName": "AI Automation Engine",
+      "critical": true,
+      "maxRestarts": 3,
+      "healthCheck": {
+        "type": "http",
+        "endpoint": "http://localhost:5678/healthz",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "resources": {
+        "memoryLimit": "768MB",
+        "cpuLimit": "1.5"
+      },
+      "dependencies": ["postgres-dev"]
+    },
+    "nginx-dev": {
+      "displayName": "Gateway Service",
+      "businessName": "Access Manager",
+      "critical": false,
+      "maxRestarts": 5,
+      "healthCheck": {
+        "type": "tcp",
+        "port": 80,
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "resources": {
+        "memoryLimit": "64MB",
+        "cpuLimit": "0.3"
+      }
+    }
+  },
+  "alerts": {
+    "enabled": true,
+    "channels": {
+      "console": true,
+      "file": true,
+      "webhook": false
+    },
+    "thresholds": {
+      "cpuWarning": 70,
+      "cpuCritical": 90,
+      "memoryWarning": 80,
+      "memoryCritical": 95,
+      "restartLimit": 3
+    }
+  },
+  "monitoring": {
+    "checkInterval": 30000,
+    "metricsRetention": 86400000,
+    "logRetention": 604800000
+  }
+}

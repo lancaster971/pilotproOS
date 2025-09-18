@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Progress</title>
+    <style>
+        body {
+            background: #1e293b;
+            color: white;
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        .service {
+            background: #334155;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+        .progress-bar {
+            height: 30px;
+            background: #475569;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+        .phase {
+            margin: 10px 0;
+            font-style: italic;
+        }
+    </style>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <h1>Debug Progress Bar</h1>
+    <div id="app">
+        <div v-for="service in services" :key="service.id" class="service">
+            <h2>{{ service.name }}</h2>
+            <p>Status: {{ service.status }}</p>
+
+            <div v-if="service.isRefreshing">
+                <div class="phase">{{ service.restartPhase }}</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" :style="{width: service.restartProgress + '%'}">
+                        {{ service.restartProgress }}%
+                    </div>
+                </div>
+            </div>
+
+            <button @click="testRestart(service)" :disabled="service.isRefreshing">
+                {{ service.isRefreshing ? 'Restarting...' : 'Test Restart' }}
+            </button>
+
+            <button @click="realRestart(service)" :disabled="service.isRefreshing">
+                Real Restart
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    services: [
+                        {
+                            id: 'nginx-dev',
+                            name: 'Access Manager',
+                            status: 'Running',
+                            isRefreshing: false,
+                            restartProgress: 0,
+                            restartPhase: ''
+                        },
+                        {
+                            id: 'postgres-dev',
+                            name: 'Data Management System',
+                            status: 'Running',
+                            isRefreshing: false,
+                            restartProgress: 0,
+                            restartPhase: ''
+                        }
+                    ]
+                }
+            },
+
+            methods: {
+                async testRestart(service) {
+                    console.log('Starting test restart for', service.name);
+
+                    service.isRefreshing = true;
+                    service.restartProgress = 0;
+                    service.restartPhase = 'Initializing...';
+
+                    await this.delay(500);
+                    service.restartProgress = 20;
+                    service.restartPhase = 'Stopping service...';
+
+                    await this.delay(1000);
+                    service.restartProgress = 40;
+                    service.restartPhase = 'Service stopped';
+
+                    await this.delay(1000);
+                    service.restartProgress = 60;
+                    service.restartPhase = 'Starting service...';
+
+                    await this.delay(1000);
+                    service.restartProgress = 80;
+                    service.restartPhase = 'Health checks...';
+
+                    await this.delay(1000);
+                    service.restartProgress = 100;
+                    service.restartPhase = 'Completed!';
+
+                    await this.delay(2000);
+                    service.isRefreshing = false;
+                    service.restartProgress = 0;
+                    service.restartPhase = '';
+                },
+
+                async realRestart(service) {
+                    console.log('Starting REAL restart for', service.name);
+
+                    service.isRefreshing = true;
+                    service.restartProgress = 0;
+                    service.restartPhase = 'Initializing...';
+
+                    // Start real restart
+                    const restartPromise = fetch(`/api/system/service/${service.id}/refresh`, {
+                        method: 'POST'
+                    });
+
+                    // Animate while waiting
+                    for (let i = 10; i <= 90; i += 10) {
+                        await this.delay(500);
+                        service.restartProgress = i;
+                        service.restartPhase = `Progress: ${i}%`;
+                    }
+
+                    // Wait for actual restart
+                    const response = await restartPromise;
+
+                    if (response.ok) {
+                        service.restartProgress = 100;
+                        service.restartPhase = 'Restart successful!';
+                    } else {
+                        service.restartPhase = 'Restart failed!';
+                    }
+
+                    await this.delay(2000);
+                    service.isRefreshing = false;
+                    service.restartProgress = 0;
+                    service.restartPhase = '';
+                },
+
+                delay(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

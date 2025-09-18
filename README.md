@@ -224,12 +224,18 @@ module.exports = {
 ## 🔒 Sicurezza & Compliance
 
 ### Security Features
+- ✅ **Multi-Layer Authentication**: CLI, Web Dashboard, and Frontend protection
 - ✅ **SSL/HTTPS**: Certificati automatici Let's Encrypt
 - ✅ **Firewall**: Porte backend completamente bloccate
-- ✅ **Authentication**: JWT enterprise-grade
-- ✅ **Rate Limiting**: Protezione DDoS/brute force
+- ✅ **JWT Token Auth**: Enterprise-grade token management
+- ✅ **Rate Limiting**: Protezione DDoS/brute force (100 req/15min)
+- ✅ **Account Lockout**: Auto-block after failed attempts
+- ✅ **Session Management**: 30-minute timeout with auto-extension
 - ✅ **Security Headers**: OWASP compliance
 - ✅ **Zero Tech Exposure**: Tecnologie completamente nascoste
+- ✅ **Audit Logging**: All access attempts tracked
+
+📚 **Security Documentation**: See [STACK-CONTROLLER-SECURITY.md](./STACK-CONTROLLER-SECURITY.md) for complete security guide
 
 ### Compliance Standards
 - 🛡️ **GDPR Ready**: Data privacy by design

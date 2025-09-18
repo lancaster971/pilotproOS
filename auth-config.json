@@ -1,0 +1,33 @@
+{
+  "auth": {
+    "enabled": true,
+    "method": "password",
+    "maxAttempts": 3,
+    "lockoutMinutes": 15,
+    "sessionTimeout": 30
+  },
+  "users": {
+    "admin": {
+      "passwordHash": "$2b$10$YourHashHere",
+      "role": "administrator",
+      "permissions": ["all"]
+    }
+  },
+  "security": {
+    "requireHttps": true,
+    "corsOrigins": ["http://localhost:3000"],
+    "rateLimit": {
+      "windowMs": 900000,
+      "max": 100
+    },
+    "jwt": {
+      "secret": "CHANGE_THIS_SECRET_IN_PRODUCTION",
+      "expiresIn": "24h"
+    }
+  },
+  "audit": {
+    "logAccess": true,
+    "logCommands": true,
+    "retentionDays": 90
+  }
+}

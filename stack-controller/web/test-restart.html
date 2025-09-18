@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Restart Monitor</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .service-list {
+            display: grid;
+            gap: 20px;
+            max-width: 800px;
+        }
+        .service-card {
+            background: #334155;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #475569;
+        }
+        .service-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .btn-restart {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-restart:hover {
+            background: #2563eb;
+        }
+        .log-output {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Restart Monitor</h1>
+    <div id="app">
+        <div class="service-list">
+            <div v-for="service in services" :key="service.id" class="service-card">
+                <div class="service-name">{{ service.name }}</div>
+                <div>Status: {{ service.status || 'Unknown' }}</div>
+                <div>Container: {{ service.container }}</div>
+                <button @click="restartService(service)" class="btn-restart">
+                    Restart {{ service.name }}
+                </button>
+            </div>
+        </div>
+
+        <div class="log-output">
+            <h3>Operation Log:</h3>
+            <div v-for="log in logs" :key="log.time">
+                {{ log.time }} - {{ log.message }}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    services: [
+                        { id: 'postgres-dev', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
+                        { id: 'backend-dev', name: 'Automation Engine', container: 'pilotpros-backend-dev' },
+                        { id: 'frontend-dev', name: 'Business Portal', container: 'pilotpros-frontend-dev' },
+                        { id: 'automation-engine-dev', name: 'AI Automation Engine', container: 'pilotpros-automation-engine-dev' },
+                        { id: 'nginx-dev', name: 'Access Manager', container: 'pilotpros-nginx-dev' }
+                    ],
+                    logs: []
+                };
+            },
+
+            methods: {
+                async restartService(service) {
+                    this.addLog(`Starting restart for ${service.name}...`);
+
+                    try {
+                        this.addLog(`Sending restart request for ${service.id}...`);
+
+                        const response = await fetch(`/api/system/service/${service.id}/refresh`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            this.addLog(`✅ ${service.name} restarted successfully`);
+
+                            // Check status after 3 seconds
+                            setTimeout(async () => {
+                                const statusResponse = await fetch('/api/system/status');
+                                const status = await statusResponse.json();
+                                const serviceStatus = status.services.find(s => s.name === service.id);
+                                if (serviceStatus) {
+                                    this.addLog(`Status update: ${service.name} is ${serviceStatus.status}`);
+                                    service.status = serviceStatus.status;
+                                }
+                            }, 3000);
+                        } else {
+                            this.addLog(`❌ Failed to restart ${service.name}`);
+                        }
+                    } catch (error) {
+                        this.addLog(`❌ Error: ${error.message}`);
+                    }
+                },
+
+                addLog(message) {
+                    const time = new Date().toLocaleTimeString();
+                    this.logs.unshift({ time, message });
+                    if (this.logs.length > 50) {
+                        this.logs = this.logs.slice(0, 50);
+                    }
+                }
+            },
+
+            mounted() {
+                this.addLog('Test page loaded - ready to test restarts');
+                this.loadStatus();
+            },
+
+            async loadStatus() {
+                try {
+                    const response = await fetch('/api/system/status');
+                    const data = await response.json();
+
+                    data.services.forEach(s => {
+                        const service = this.services.find(srv => srv.id === s.name);
+                        if (service) {
+                            service.status = s.status;
+                        }
+                    });
+
+                    this.addLog('Loaded current service status');
+                } catch (error) {
+                    this.addLog('Failed to load status: ' + error.message);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

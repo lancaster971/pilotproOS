@@ -1,0 +1,620 @@
+/* System Health Dashboard Styles - PilotPro Theme */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #111827;
+    --bg-card: rgba(17, 24, 39, 0.8);
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --border: rgba(16, 185, 129, 0.2);
+    --border-secondary: #334155;
+}
+
+body {
+    font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#app {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.header {
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.overall-status {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.overall-status.operational {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-green);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.overall-status.partial {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-yellow);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.overall-status.degraded {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-red);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.last-update {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Main Dashboard */
+.dashboard {
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Services Grid */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.service-card {
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 20px rgba(16, 185, 129, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card.healthy {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.service-card.warning {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.service-card.error {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.service-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.service-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+/* Status Indicator */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.active {
+    background: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status-dot.stopped {
+    background: var(--accent-red);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    animation: none;
+}
+
+.status-dot.warning {
+    background: var(--accent-yellow);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.service-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.service-status.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-green);
+}
+
+.service-status.stopped {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-red);
+}
+
+.service-status.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-yellow);
+}
+
+.service-metrics {
+    margin: 1rem 0;
+}
+
+.metric {
+    margin-bottom: 1rem;
+}
+
+.metric-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 1rem;
+}
+
+.progress-bar {
+    height: 0.5rem;
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    transition: width 0.3s ease;
+}
+
+.cpu-bar, .memory-bar {
+    margin-bottom: 0.75rem;
+}
+
+.cpu-bar span, .memory-bar span {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.service-actions {
+    margin-top: 1rem;
+}
+
+.btn-refresh {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-refresh:hover {
+    background: #2563eb;
+}
+
+.btn-refresh:disabled {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+/* Inline Restart Progress */
+.restart-progress {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 0.5rem;
+}
+
+.restart-status {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.progress-bar-restart {
+    height: 1.5rem;
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill-restart {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Actions Panel */
+.actions-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.actions-panel h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-primary);
+}
+
+/* Activity Panel */
+.activity-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.activity-panel h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.activity-log {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-entry {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.log-level {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    min-width: 80px;
+    text-align: center;
+}
+
+.log-Success .log-level {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-green);
+}
+
+.log-Warning .log-level {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-yellow);
+}
+
+.log-Error .log-level,
+.log-Critical .log-level {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-red);
+}
+
+.log-message {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+/* Footer */
+.footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.restart-info {
+    background: var(--bg-primary);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.restart-info p {
+    margin: 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.status-starting {
+    color: var(--accent-yellow);
+}
+
+.status-stopping {
+    color: var(--accent-red);
+}
+
+.status-running {
+    color: var(--accent-green);
+}
+
+.status-completed {
+    color: var(--accent-green);
+}
+
+.status-error {
+    color: var(--accent-red);
+}
+
+/* Progress Section */
+.progress-section {
+    margin: 1.5rem 0;
+}
+
+.progress-bar-large {
+    height: 2rem;
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.progress-fill-large {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Restart Log */
+.restart-log {
+    margin-top: 1.5rem;
+}
+
+.restart-log h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.log-container {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.log-line {
+    margin: 0.25rem 0;
+    display: flex;
+    gap: 1rem;
+}
+
+.log-time {
+    color: var(--text-secondary);
+    min-width: 70px;
+}
+
+.log-msg {
+    flex: 1;
+}
+
+.log-info .log-msg {
+    color: var(--text-primary);
+}
+
+.log-success .log-msg {
+    color: var(--accent-green);
+}
+
+.log-warning .log-msg {
+    color: var(--accent-yellow);
+}
+
+.log-error .log-msg {
+    color: var(--accent-red);
+}
+
+.modal-actions {
+    margin-top: 1.5rem;
+    text-align: right;
+}

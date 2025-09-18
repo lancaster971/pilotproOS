@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Health Dashboard - PilotProOS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>System Health Dashboard</h1>
+                <div class="header-status">
+                    <span class="overall-status" :class="overallStatusClass">
+                        {{ overallStatus }}
+                    </span>
+                    <span class="last-update">Last check: {{ lastUpdate }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <!-- Service Cards Grid -->
+            <section class="services-grid">
+                <div v-for="service in services" :key="service.id"
+                     class="service-card" :class="getServiceClass(service)">
+                    <div class="service-header">
+                        <h3>{{ service.name }}</h3>
+                        <div class="status-indicator">
+                            <span class="status-dot" :class="getStatusDotClass(service)"></span>
+                            <span class="service-status" :class="getStatusTextClass(service)">
+                                {{ service.isRefreshing ? 'Restarting' : service.status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="service-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Performance:</span>
+                            <div class="metric-value">
+                                <div class="cpu-bar">
+                                    <span>Processing: {{ service.cpu }}%</span>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" :style="{width: service.cpu + '%'}"></div>
+                                    </div>
+                                </div>
+                                <div class="memory-bar">
+                                    <span>Memory: {{ service.memory.percent }}%</span>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" :style="{width: service.memory.percent + '%'}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Uptime:</span>
+                            <span class="metric-value">{{ service.uptime || '0m' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Restart Progress -->
+                    <div v-if="service.isRefreshing" class="restart-progress">
+                        <div class="restart-status">
+                            <strong>Restarting:</strong> {{ service.restartPhase || 'Initializing...' }}
+                        </div>
+                        <div class="progress-bar-restart">
+                            <div class="progress-fill-restart" :style="{width: (service.restartProgress || 0) + '%'}">
+                                {{ service.restartProgress || 0 }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-actions">
+                        <button @click="refreshService(service.id)"
+                                :disabled="service.isRefreshing"
+                                class="btn-refresh">
+                            {{ service.isRefreshing ? 'In Progress...' : 'Refresh Service' }}
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions Panel -->
+            <section class="actions-panel">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button @click="refreshAll" class="btn btn-primary">
+                        Refresh All Services
+                    </button>
+                    <button @click="exportMetrics" class="btn btn-secondary">
+                        Export Performance Report
+                    </button>
+                    <button @click="viewLogs" class="btn btn-secondary">
+                        View System Logs
+                    </button>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section class="activity-panel">
+                <h2>Recent Activity</h2>
+                <div class="activity-log">
+                    <div v-for="event in recentEvents" :key="event.timestamp"
+                         class="log-entry" :class="'log-' + event.level">
+                        <span class="log-time">{{ formatTime(event.timestamp) }}</span>
+                        <span class="log-level">{{ event.level }}</span>
+                        <span class="log-message">{{ event.message }}</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>System Health Dashboard v1.0 - Business Process Automation Platform</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

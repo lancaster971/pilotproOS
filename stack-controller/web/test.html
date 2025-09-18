@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .service { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .status { font-weight: bold; }
+    </style>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>Test Dashboard - Dati Reali</h1>
+        <p>Stato Sistema: <span class="status">{{ systemStatus }}</span></p>
+        <p>Servizi Attivi: {{ services.length }}</p>
+
+        <div v-for="service in services" :key="service.name" class="service">
+            <h3>{{ service.businessName }}</h3>
+            <p>Stato: {{ service.status }}</p>
+            <p>CPU: {{ service.metrics.cpu }}%</p>
+            <p>Memoria: {{ service.metrics.memory.percent }}%</p>
+            <p>Uptime: {{ service.uptime }}</p>
+        </div>
+
+        <h3>Eventi Recenti:</h3>
+        <ul>
+            <li v-for="event in events" :key="event.timestamp">
+                {{ event.timestamp }} - {{ event.message }}
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    systemStatus: 'Loading...',
+                    services: [],
+                    events: []
+                };
+            },
+
+            async mounted() {
+                // Carica stato sistema
+                try {
+                    const statusRes = await fetch('/api/system/status');
+                    const statusData = await statusRes.json();
+
+                    this.systemStatus = statusData.overall;
+                    this.services = statusData.services;
+
+                    // Carica eventi
+                    const eventsRes = await fetch('/api/system/events?limit=5');
+                    const eventsData = await eventsRes.json();
+                    this.events = eventsData;
+
+                    console.log('Dati caricati:', {
+                        status: this.systemStatus,
+                        servicesCount: this.services.length,
+                        eventsCount: this.events.length
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento dati:', error);
+                    this.systemStatus = 'Errore caricamento';
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
