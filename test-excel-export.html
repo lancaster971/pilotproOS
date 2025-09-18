@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Excel Export</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Test Excel Export Functionality</h1>
+    <button onclick="testExcel()">Test Excel Download</button>
+
+    <script>
+    function testExcel() {
+        try {
+            // Test data similar to what Timeline would have
+            const worksheetData = [
+                {
+                    'Step Name': 'Test Step',
+                    'Type': 'HTTP Request',
+                    'Status': 'success',
+                    'Execution Time': '2.5s',
+                    'Started': new Date().toLocaleString('it-IT'),
+                    'Finished': new Date().toLocaleString('it-IT')
+                },
+                {
+                    'Step Name': 'Business Summary',
+                    'Type': 'Successfully processed HTTP request to external API'
+                },
+                {
+                    'Step Name': 'Metric',
+                    'Type': 'Response Time',
+                    'Status': '250ms'
+                }
+            ];
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(worksheetData);
+
+            // Auto-size columns
+            const cols = Object.keys(worksheetData[0]).map(key => ({
+                wch: Math.min(50, Math.max(key.length, 15))
+            }));
+            ws['!cols'] = cols;
+
+            // Add worksheet
+            XLSX.utils.book_append_sheet(wb, ws, 'Process Step Data');
+
+            // Download
+            XLSX.writeFile(wb, 'test-export.xlsx');
+
+            alert('Excel file downloaded successfully!');
+        } catch (error) {
+            alert('Error: ' + error.message);
+            console.error(error);
+        }
+    }
+    </script>
+</body>
+</html>
