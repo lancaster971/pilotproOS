@@ -202,16 +202,23 @@
               <!-- Last execution indicator -->
               <div v-if="workflowStats?.kpis?.last24hExecutions" class="flex items-center gap-2 text-xs">
                 <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
-                <span class="text-text-muted">{{ workflowStats.kpis.last24hExecutions }} runs today</span>
+                <span class="text-gray-300 font-medium">{{ workflowStats.kpis.last24hExecutions }} runs today</span>
               </div>
 
               <!-- Efficiency badge -->
-              <Badge
+              <span
                 v-if="workflowStats?.kpis?.efficiencyScore"
-                :value="`${workflowStats.kpis.efficiencyScore}% efficiency`"
-                :severity="workflowStats.kpis.efficiencyScore >= 80 ? 'success' : workflowStats.kpis.efficiencyScore >= 60 ? 'warning' : 'danger'"
-                class="text-xs"
-              />
+                :class="[
+                  'px-2 py-1 rounded text-xs font-medium',
+                  workflowStats.kpis.efficiencyScore >= 80
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : workflowStats.kpis.efficiencyScore >= 60
+                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                    : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                ]"
+              >
+                {{ workflowStats.kpis.efficiencyScore }}% efficiency
+              </span>
 
               <!-- Active/Inactive toggle -->
               <div class="flex items-center gap-2">
