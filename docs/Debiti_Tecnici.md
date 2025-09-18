@@ -1,9 +1,9 @@
 # 🔴 Technical Debt Analysis - PilotProOS
 
-**Branch**: `Debitibassi`
+**Branch**: `main`
 **Analysis Date**: 2025-01-18
 **Status**: Enterprise features implemented
-**Last Update**: CONFIG-001, DOC-001 completed
+**Last Update**: Rimozione tentativi over-engineering CONFIG-001 e DOC-001
 
 ---
 
@@ -13,13 +13,13 @@
 - **🔴 CRITICI**: 0 issues ✅ AUTH SYSTEM RISOLTO
 - **🟡 ALTI**: 0 issues ✅ TUTTI RISOLTI
 - **🟢 MEDI**: 11 issues (Features, UX)
-- **⚪ BASSI**: 12 issues (Nice-to-have, Optimization) ✅ 2 RISOLTI OGGI
-- **✅ RISOLTI**: 12 issues (AUTH-001, AUTH-002, PERF-001, PERF-002, PERF-003, BI-002, DATA-001, SEC-001, ARCH-002, AUTH-003, CONFIG-001, DOC-001)
+- **⚪ BASSI**: 14 issues (Nice-to-have, Optimization)
+- **✅ RISOLTI**: 10 issues (AUTH-001, AUTH-002, PERF-001, PERF-002, PERF-003, BI-002, DATA-001, SEC-001, ARCH-002, AUTH-003)
 
 ### **Production Blocker Assessment**
 - **BLOCKERS**: 0 issues ✅ SISTEMA ENTERPRISE READY
 - **RECOMMENDED**: 0 issues ✅ All high priority resolved
-- **OPTIONAL**: 23 issues can be addressed post-launch
+- **OPTIONAL**: 25 issues can be addressed post-launch
 
 ---
 
@@ -222,33 +222,29 @@ Priority: P2 - ANALYTICS
 
 ## ⚪ **LOW PRIORITY DEBT (Future Enhancements)**
 
-### ✅ **CONFIG-001: Environment Configuration Hardcoding [RISOLTO]**
+### **CONFIG-001: Environment Configuration**
 ```
-Status: ✅ COMPLETATO - 2025-01-18
-Branch: Debitibassi
+Files: Various backend files with localhost:3001 hardcoded
+Severity: LOW
+Priority: P4 - Nice-to-have
 ```
-**RISOLTO**: Configurazione centralizzata implementata
-- ✅ File .env.example completo con 100+ variabili documentate
-- ✅ Configurazione centralizzata in /backend/src/config/index.js
-- ✅ Tutti i valori hardcoded rimossi dal codice
-- ✅ Validazione configurazione all'avvio
-- ✅ Supporto multi-ambiente (dev/staging/prod)
+**Issue**: Environment values hardcoded in multiple files instead of using config
+**Impact**: Requires code changes for different environments
+**Effort**: 1 day
+**Business Risk**: VERY LOW - System works fine with current setup
+**Note**: Not worth the complexity. Current hardcoded values work perfectly.
 
-**Risultato**: Sistema completamente configurabile via environment variables
-
-### ✅ **DOC-001: API Documentation Incomplete [RISOLTO]**
+### **DOC-001: API Documentation**
 ```
-Status: ✅ COMPLETATO - 2025-01-18
-Branch: Debitibassi
+Files: No swagger/OpenAPI docs
+Severity: LOW
+Priority: P4 - Nice-to-have
 ```
-**RISOLTO**: Documentazione API completa implementata
-- ✅ Swagger configuration in /backend/src/docs/swagger.js
-- ✅ OpenAPI 3.0 definitions in api-definitions.yaml
-- ✅ Tutti gli endpoint documentati con schema completo
-- ✅ Esempi e response types definiti
-- ✅ Security schemes (JWT, Cookie) documentati
-
-**Risultato**: API completamente documentate per developer experience ottimale
+**Issue**: API endpoints not formally documented
+**Impact**: Developers need to read code to understand APIs
+**Effort**: 1-2 days
+**Business Risk**: VERY LOW - Code is self-documenting
+**Note**: Over-engineering. Current inline comments sufficient.
 
 ---
 
@@ -433,21 +429,6 @@ Status: ✅ RISOLTO (2025-09-11)
 
 ## ✅ **RESOLVED ISSUES LOG**
 
-### **2025-01-18 - Branch Debitibassi**
-- **CONFIG-001**: Environment Configuration Hardcoding
-  - Created comprehensive .env.example with 100+ documented variables
-  - Implemented central configuration in /backend/src/config/index.js
-  - Removed all hardcoded values from codebase
-  - Added configuration validation at startup
-  - Support for multiple environments (dev/staging/prod)
-
-- **DOC-001**: API Documentation Incomplete
-  - Created Swagger configuration in /backend/src/docs/swagger.js
-  - Implemented OpenAPI 3.0 definitions in api-definitions.yaml
-  - Documented all endpoints with complete schemas
-  - Added request/response examples
-  - Documented security schemes (JWT, Cookie auth)
-
 ### **2025-09-12**
 - **AUTH-003**: Authentication System Fixed
   - Fixed login endpoint path (/api/auth/login)
@@ -481,6 +462,6 @@ Status: ✅ RISOLTO (2025-09-11)
 **Owner**: Development Team  
 **Stakeholders**: CTO, Product Owner, DevOps Team
 
-**Total Debts Remaining**: 32 (down from 34)
-**Progress Today**: 2 LOW priority issues resolved (CONFIG-001, DOC-001)
+**Total Debts Remaining**: 25 (11 MEDIUM + 14 LOW)
+**Progress Today**: 0 issues resolved (CONFIG-001 and DOC-001 remain LOW priority)
 **Previous Progress**: 10 issues resolved (architectural, auth, performance, UX)
