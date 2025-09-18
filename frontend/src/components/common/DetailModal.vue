@@ -68,7 +68,7 @@
         <!-- Content with Tabs -->
         <div v-else class="flex flex-col flex-1">
           <!-- Tabs Navigation -->
-          <div v-if="tabs.length > 1" class="modal-tabs flex items-center gap-1 p-3">
+          <div v-if="tabs.length > 1" class="modal-tabs flex items-center justify-center gap-1 p-3">
             <button
               v-for="tab in tabs"
               :key="tab.id"
