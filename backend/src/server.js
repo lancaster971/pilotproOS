@@ -3,11 +3,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import config from './config/index.js';
+// import config from './config/index.js'; // TEMPORARILY DISABLED
 // import { getErrorNotificationService } from './services/errorNotification.service.js'; // Temporarily disabled
 import { createServer } from 'http';
 import fs from 'fs';
@@ -61,29 +63,31 @@ import authController from './controllers/auth.controller.js';
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
 
-// Health Check Controller
-import healthController from './controllers/health.controller.js';
+// Health Check Controller - TEMPORARILY DISABLED
+// import healthController from './controllers/health.controller.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = config.server.port;
-const host = config.server.host;
+// Load environment variables
+dotenv.config();
+
+const port = parseInt(process.env.PORT || '3001');
+const host = process.env.HOST || '127.0.0.1';
 
 // ============================================================================
 // DATABASE CONNECTION (PostgreSQL condiviso con n8n)
 // ============================================================================
 const dbPool = new Pool({
-  host: config.database.host,
-  port: config.database.port,
-  user: config.database.user,
-  password: config.database.password,
-  database: config.database.name,
-  max: config.database.pool.size,
-  idleTimeoutMillis: config.database.pool.idleTimeoutMillis,
-  connectionTimeoutMillis: config.database.pool.connectionTimeoutMillis,
-  ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'pilotpros_user',
+  password: process.env.DB_PASSWORD || 'pilotpros_password',
+  database: process.env.DB_NAME || 'pilotpros_db',
+  max: parseInt(process.env.DB_POOL_SIZE || '20'),
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000'),
 });
 
 // Test database connection on startup and ensure default users
@@ -124,9 +128,18 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Configure CORS from central config
+// Configure CORS with environment variables
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    ];
+
 app.use(cors({
-  origin: config.security.corsOrigins,
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -136,11 +149,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
-// Configurable Rate Limiting
-import { globalRateLimiter, authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
-
-// Apply global rate limiter (if enabled in config)
-app.use(globalRateLimiter);
+// Rate limiting (RELAXED for development)
+app.use(rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window for development
+  max: 10000, // 10000 requests per minute for development
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false
+}));
 
 // ============================================================================
 // N8N ICON SYSTEM - CATEGORY-BASED WITH FALLBACKS 
@@ -379,11 +395,8 @@ app.get('/health', async (req, res) => {
     let n8nStatus = 'unknown';
     try {
       const n8nUrl = process.env.N8N_URL || 'http://localhost:5678';
-      await ofetch(`${n8nUrl}/rest/active-workflows`, {
-        timeout: 5000,
-        retry: 1,
-      });
-      n8nStatus = 'healthy';
+      const response = await fetch(`${n8nUrl}/rest/active-workflows`);
+      n8nStatus = response.ok ? 'healthy' : 'degraded';
     } catch (error) {
       n8nStatus = 'unavailable';
     }
@@ -2309,7 +2322,7 @@ app.post('/api/business/toggle-workflow/:workflowId', async (req, res) => {
         throw new Error('N8N_API_KEY not configured');
       }
       
-      const n8nResponse = await ofetch.raw(n8nApiUrl, {
+      const n8nResponse = await fetch(n8nApiUrl, {
         method: 'POST',
         timeout: 10000,
         retry: 2,
@@ -2415,10 +2428,8 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
       
       console.log(`🌐 Trying webhook-test execution: ${webhookUrl}`);
       
-      const n8nResponse = await ofetch.raw(webhookUrl, {
+      const n8nResponse = await fetch(webhookUrl, {
         method: 'POST',
-        timeout: 30000,
-        retry: 1,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -2447,9 +2458,8 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
           const webhookUrl = `${n8nUrl}/webhook-test/${workflowId}`;
           console.log(`🌐 Trying webhook test: ${webhookUrl}`);
           
-          const webhookResponse = await ofetch.raw(webhookUrl, {
+          const webhookResponse = await fetch(webhookUrl, {
             method: 'POST',
-            timeout: 30000,
             headers: { 'Content-Type': 'application/json' }
           });
           
@@ -4146,9 +4156,8 @@ app.get('/api/business/process-timeline/:processId/report', async (req, res) => 
     const { tenantId } = req.query;
     
     // Get timeline data first
-    const timelineData = await ofetch(`http://localhost:${port}/api/business/process-timeline/${processId}`, {
-      timeout: 10000,
-    });
+    const timelineResponse = await fetch(`http://localhost:${port}/api/business/process-timeline/${processId}`);
+    const timelineData = await timelineResponse.json();
     
     if (!timelineData.success) {
       throw new Error('Failed to get timeline data');
@@ -4259,8 +4268,8 @@ function extractBusinessContext(executionData, timeline) {
 // ============================================================================
 // AUTHENTICATION ROUTES
 // ============================================================================
-// Health check routes (no authentication required)
-app.use('/api/health', healthController);
+// Health check routes - TEMPORARILY DISABLED
+// app.use('/api/health', healthController);
 
 // ============================================================================
 // Basic auth routes (login, logout, etc.)

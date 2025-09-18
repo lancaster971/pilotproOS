@@ -49,8 +49,9 @@
     <div class="flex">
       <!-- Premium Enterprise Sidebar -->
       <aside
-        :class="sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'"
-        class="sidebar-container-main"
+        :class="sidebarCollapsed ? 'w-16' : 'w-64'"
+        class="flex-shrink-0 relative h-screen bg-gray-900"
+        style="height: calc(100vh - 2.5rem);"
       >
         <!-- Glass morphism backdrop -->
         <div class="sidebar-backdrop-main"></div>
@@ -60,10 +61,6 @@
           <!-- Logo Section -->
           <div v-if="!sidebarCollapsed" class="sidebar-header-main">
             <div class="sidebar-logo-main">
-              <div class="logo-icon-main">
-                <div class="logo-pulse-main"></div>
-                <Cpu class="logo-svg-main" />
-              </div>
               <div class="logo-text-main">
                 <h2 class="logo-title-main">PilotPro OS</h2>
                 <p class="logo-subtitle-main">Enterprise Command</p>
@@ -123,9 +120,9 @@
       </aside>
 
       <!-- Main content area -->
-      <main 
-        :class="sidebarCollapsed ? 'ml-16' : 'ml-52'"
-        class="flex-1 transition-all duration-300"
+      <main
+        class="flex-1"
+        style="transition: margin-left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); will-change: margin-left;"
       >
         <div class="p-6">
           <slot />
@@ -190,8 +187,7 @@ const allNavigationItems = [
     label: 'Insights',
     description: 'Panoramica generale',
     icon: LayoutDashboard,
-    roles: ['admin', 'viewer'],
-    badge: { text: 'LIVE', type: 'new' }
+    roles: ['admin', 'viewer']
   },
   {
     name: 'command-center',
@@ -263,10 +259,13 @@ onMounted(() => {
 
 /* Container principale */
 .sidebar-container-main {
-  @apply relative flex-shrink-0 transition-all duration-300 fixed left-0 z-40;
-  top: 2.5rem;
+  flex-shrink: 0;
+  transition: width 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: width;
   height: calc(100vh - 2.5rem);
+  position: relative;
   isolation: isolate;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 .sidebar-expanded {
@@ -304,12 +303,14 @@ onMounted(() => {
   @apply p-6 pb-4;
   border-bottom: 1px solid rgba(31, 41, 55, 0.2);
   background: linear-gradient(180deg, rgba(31, 41, 55, 0.1) 0%, transparent 100%);
-  animation: fadeInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInDown 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: translateZ(0);
 }
 
 .sidebar-logo-main {
   @apply flex items-center gap-3;
-  animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInScale 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: translateZ(0);
 }
 
 /* Logo icon con pulse effect */
@@ -358,15 +359,21 @@ onMounted(() => {
 
 /* Nav items */
 .nav-item-main {
-  @apply relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-200;
+  @apply relative flex items-center px-3 py-2.5 rounded-xl;
   background: transparent;
-  animation: slideInLeft var(--delay) cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  animation: slideInLeft var(--delay) cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
   border: 1px solid transparent;
+  transition:
+    background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: transform, background-color;
+  transform: translateZ(0); /* GPU acceleration */
 }
 
 .nav-item-main:hover {
   background: rgba(31, 41, 55, 0.2);
-  transform: translateX(2px);
+  transform: translateX(3px) translateZ(0);
   border-color: rgba(59, 130, 246, 0.1);
 }
 
@@ -378,14 +385,10 @@ onMounted(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Active indicator */
+/* Active indicator semplice */
 .active-indicator-main {
   @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full;
-  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
-  box-shadow:
-    0 0 12px rgba(59, 130, 246, 0.6),
-    0 0 24px rgba(59, 130, 246, 0.3);
-  animation: glow 2s ease-in-out infinite;
+  background: #3b82f6;
 }
 
 /* Icon wrapper */
@@ -394,8 +397,10 @@ onMounted(() => {
 }
 
 .nav-icon-bg-main {
-  @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200;
+  @apply absolute inset-0 rounded-lg opacity-0;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  transition: opacity 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: opacity;
 }
 
 .nav-item-main:hover .nav-icon-bg-main,
@@ -406,7 +411,11 @@ onMounted(() => {
 .nav-icon-main {
   @apply w-5 h-5 relative z-10;
   color: rgba(148, 163, 184, 0.8);
-  transition: all 0.2s;
+  transition:
+    color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: transform, color;
+  transform: translateZ(0);
 }
 
 .nav-item-main:hover .nav-icon-main {
@@ -427,7 +436,8 @@ onMounted(() => {
 .nav-label-main {
   @apply text-sm font-medium;
   color: rgba(229, 231, 235, 0.9);
-  transition: color 0.2s;
+  transition: color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: color;
 }
 
 .nav-item-main:hover .nav-label-main {
@@ -523,8 +533,14 @@ onMounted(() => {
 }
 
 @keyframes slideInLeft {
-  0% { opacity: 0; transform: translateX(-20px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(-15px) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
 }
 
 /* Scrollbar */
