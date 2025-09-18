@@ -947,6 +947,7 @@ import { useBusinessParser } from '../../composables/useBusinessParser'
 import { businessAPI, $fetch } from '../../services/api-client'
 import { API_BASE_URL } from '../../utils/api-config'
 import { UnifiedBusinessProcessor, cleanHtmlContent, truncateText } from '../../shared/business-parsers'
+import * as XLSX from 'xlsx'
 
 interface Props {
   workflowId: string
@@ -1644,8 +1645,6 @@ const requestAIAnalysis = async (step: any) => {
 
 const exportToExcel = async (step: any) => {
   try {
-    // Dynamically import xlsx to avoid bundle bloat
-    const XLSX = await import('xlsx')
 
     // Prepare data for Excel
     const worksheetData = []
