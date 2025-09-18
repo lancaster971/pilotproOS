@@ -1126,8 +1126,9 @@ class BusinessIntelligenceService {
   }
 
   estimatePages(text) {
-    // Estimate pages based on character count (roughly 3000 chars per page)
-    return Math.ceil(text.length / 3000);
+    const charsPerPage = parseInt(process.env.BI_CHARS_PER_PAGE || '3000');
+    // Estimate pages based on character count
+    return Math.ceil(text.length / charsPerPage);
   }
 
   inferDataTypes(rows, columns) {

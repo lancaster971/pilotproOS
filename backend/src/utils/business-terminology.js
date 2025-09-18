@@ -416,7 +416,8 @@ export function generateBusinessInsights(metrics) {
     });
   }
   
-  if (metrics.avgDurationMs && metrics.avgDurationMs < 30000) {
+  const fastThreshold = parseInt(process.env.METRICS_FAST_THRESHOLD_MS || '30000');
+  if (metrics.avgDurationMs && metrics.avgDurationMs < fastThreshold) {
     insights.push({
       type: 'positive',
       icon: '⚡',

@@ -1,0 +1,571 @@
+# PilotProOS API Definitions
+# Complete OpenAPI 3.0 documentation
+# Resolves DOC-001 technical debt
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION ENDPOINTS
+  # ============================================================================
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@pilotpros.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Logout user and invalidate token
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        200:
+          description: Logout successful
+        401:
+          description: Not authenticated
+
+  /api/auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get user profile
+      description: Get current user profile information
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        200:
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Not authenticated
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Refresh JWT token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  refreshToken:
+                    type: string
+
+  # ============================================================================
+  # BUSINESS PROCESS ENDPOINTS
+  # ============================================================================
+
+  /api/business/processes:
+    get:
+      tags:
+        - Business Processes
+      summary: List all business processes
+      description: Get list of all business processes with filtering and pagination
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [active, inactive, error]
+        - name: limit
+          in: query
+          description: Number of items to return
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          description: Number of items to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        200:
+          description: List of business processes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BusinessProcess'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /api/business/processes/{id}:
+    get:
+      tags:
+        - Business Processes
+      summary: Get process details
+      description: Get detailed information about a specific business process
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Process ID
+          schema:
+            type: string
+      responses:
+        200:
+          description: Process details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessProcess'
+        404:
+          description: Process not found
+
+    put:
+      tags:
+        - Business Processes
+      summary: Update process
+      description: Update business process configuration
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Process ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        200:
+          description: Process updated
+        404:
+          description: Process not found
+
+  /api/business/processes/{id}/execute:
+    post:
+      tags:
+        - Business Processes
+      summary: Execute process
+      description: Trigger manual execution of a business process
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Process ID
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  description: Input data for process execution
+      responses:
+        200:
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executionId:
+                    type: string
+                  status:
+                    type: string
+        400:
+          description: Invalid request
+        404:
+          description: Process not found
+
+  # ============================================================================
+  # EXECUTION ENDPOINTS
+  # ============================================================================
+
+  /api/business/executions:
+    get:
+      tags:
+        - Executions
+      summary: List executions
+      description: Get list of process executions with filtering
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: processId
+          in: query
+          description: Filter by process ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [success, error, running, waiting]
+        - name: startDate
+          in: query
+          description: Filter by start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Filter by end date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        200:
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProcessExecution'
+                  total:
+                    type: integer
+
+  /api/business/executions/{id}:
+    get:
+      tags:
+        - Executions
+      summary: Get execution details
+      description: Get detailed information about a specific execution
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Execution ID
+          schema:
+            type: string
+      responses:
+        200:
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ProcessExecution'
+                  - type: object
+                    properties:
+                      steps:
+                        type: array
+                        items:
+                          type: object
+                      data:
+                        type: object
+        404:
+          description: Execution not found
+
+  # ============================================================================
+  # PERFORMANCE ENDPOINTS
+  # ============================================================================
+
+  /api/business/performance-metrics:
+    get:
+      tags:
+        - Performance
+      summary: Get performance metrics
+      description: Get system performance metrics and KPIs
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Time period for metrics
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+      responses:
+        200:
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+  /api/business/analytics:
+    get:
+      tags:
+        - Performance
+      summary: Get business analytics
+      description: Get advanced business analytics and insights
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        200:
+          description: Business analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trends:
+                    type: object
+                  patterns:
+                    type: object
+                  predictions:
+                    type: object
+                  insights:
+                    type: array
+                    items:
+                      type: object
+
+  # ============================================================================
+  # TIMELINE ENDPOINTS
+  # ============================================================================
+
+  /api/business/timeline:
+    get:
+      tags:
+        - Timeline
+      summary: Get business timeline
+      description: Get timeline of all business events and activities
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          description: Start date for timeline
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End date for timeline
+          schema:
+            type: string
+            format: date-time
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        200:
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                        type:
+                          type: string
+                        category:
+                          type: string
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        metadata:
+                          type: object
+                  summary:
+                    type: object
+                  patterns:
+                    type: array
+
+  # ============================================================================
+  # HEALTH & STATUS ENDPOINTS
+  # ============================================================================
+
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: System health check
+      description: Check overall system health and status
+      responses:
+        200:
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                      n8n:
+                        type: string
+                      redis:
+                        type: string
+                  version:
+                    type: string
+
+  /api/health/database:
+    get:
+      tags:
+        - Health
+      summary: Database health check
+      description: Check database connection and performance
+      responses:
+        200:
+          description: Database status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  responseTime:
+                    type: integer
+                  activeConnections:
+                    type: integer
+                  version:
+                    type: string
+
+  /api/health/n8n:
+    get:
+      tags:
+        - Health
+      summary: n8n health check
+      description: Check n8n automation engine status
+      responses:
+        200:
+          description: n8n status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  activeWorkflows:
+                    type: integer
+                  runningExecutions:
+                    type: integer
+                  version:
+                    type: string

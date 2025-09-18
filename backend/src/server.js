@@ -6,9 +6,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import config from './config/index.js';
 // import { getErrorNotificationService } from './services/errorNotification.service.js'; // Temporarily disabled
 import { createServer } from 'http';
 import fs from 'fs';
@@ -62,28 +62,26 @@ import authController from './controllers/auth.controller.js';
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
 
-// Load environment variables
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3001;
-const host = process.env.HOST || '127.0.0.1';
+const port = config.server.port;
+const host = config.server.host;
 
 // ============================================================================
 // DATABASE CONNECTION (PostgreSQL condiviso con n8n)
 // ============================================================================
 const dbPool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER || 'pilotpros_user',
-  password: process.env.DB_PASSWORD || 'pilotpros_password',
-  database: process.env.DB_NAME || 'pilotpros_db',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  host: config.database.host,
+  port: config.database.port,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.name,
+  max: config.database.pool.size,
+  idleTimeoutMillis: config.database.pool.idleTimeoutMillis,
+  connectionTimeoutMillis: config.database.pool.connectionTimeoutMillis,
+  ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
 });
 
 // Test database connection on startup and ensure default users
@@ -124,18 +122,9 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Configure CORS with environment variables
-const corsOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',')
-  : [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173'
-    ];
-
+// Configure CORS from central config
 app.use(cors({
-  origin: corsOrigins,
+  origin: config.security.corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
