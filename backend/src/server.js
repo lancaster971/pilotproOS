@@ -3,7 +3,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
 import path from 'path';
@@ -61,6 +60,9 @@ import authController from './controllers/auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
+
+// Health Check Controller
+import healthController from './controllers/health.controller.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -134,14 +136,11 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
-// Rate limiting (RELAXED for development)
-app.use(rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute window for development  
-  max: 10000, // 10000 requests per minute for development
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false
-}));
+// Configurable Rate Limiting
+import { globalRateLimiter, authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
+
+// Apply global rate limiter (if enabled in config)
+app.use(globalRateLimiter);
 
 // ============================================================================
 // N8N ICON SYSTEM - CATEGORY-BASED WITH FALLBACKS 
@@ -4250,6 +4249,10 @@ function extractBusinessContext(executionData, timeline) {
 
 // ============================================================================
 // AUTHENTICATION ROUTES
+// ============================================================================
+// Health check routes (no authentication required)
+app.use('/api/health', healthController);
+
 // ============================================================================
 // Basic auth routes (login, logout, etc.)
 app.use('/api/auth', authController);

@@ -47,46 +47,78 @@
     </header>
 
     <div class="flex">
-      <!-- Collapsible PREMIUM Sidebar -->
-      <aside 
-        :class="sidebarCollapsed ? 'w-16' : 'w-52'"
-        class="premium-glass border-r border-border flex-shrink-0 premium-scrollbar transition-all duration-300 fixed left-0 z-40 overflow-y-auto"
-        style="top: 2.5rem; height: calc(100vh - 2.5rem);"
+      <!-- Premium Enterprise Sidebar -->
+      <aside
+        :class="sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'"
+        class="sidebar-container-main"
       >
-        <div :class="sidebarCollapsed ? 'p-2' : 'p-4'">
+        <!-- Glass morphism backdrop -->
+        <div class="sidebar-backdrop-main"></div>
+
+        <!-- Content -->
+        <div class="sidebar-content-main">
+          <!-- Logo Section -->
+          <div v-if="!sidebarCollapsed" class="sidebar-header-main">
+            <div class="sidebar-logo-main">
+              <div class="logo-icon-main">
+                <div class="logo-pulse-main"></div>
+                <Cpu class="logo-svg-main" />
+              </div>
+              <div class="logo-text-main">
+                <h2 class="logo-title-main">PilotPro OS</h2>
+                <p class="logo-subtitle-main">Enterprise Command</p>
+              </div>
+            </div>
+          </div>
 
           <!-- Navigation -->
-          <nav class="space-y-1">
+          <nav class="sidebar-nav-main">
             <router-link
               v-for="(item, index) in navigationItems"
               :key="item.name"
               :to="item.path"
-              :class="[
-                'flex items-center rounded-lg premium-transition text-text-secondary hover:bg-surface-hover hover:text-text',
-                sidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2',
-                $route.path === item.path ? 'bg-primary text-white' : ''
-              ]"
-              :style="{ animationDelay: `${index * 50}ms` }"
+              class="nav-item-main"
+              :class="{ 'nav-item-active-main': $route.path === item.path }"
+              :style="{ '--delay': `${index * 50}ms` }"
               :title="sidebarCollapsed ? item.label : ''"
             >
-              <component :is="item.icon" :class="sidebarCollapsed ? 'h-4 w-4' : 'h-4 w-4'" />
-              <span v-if="!sidebarCollapsed" class="text-sm font-medium">{{ item.label }}</span>
+              <!-- Active indicator -->
+              <div v-if="$route.path === item.path" class="active-indicator-main"></div>
+
+              <!-- Icon wrapper -->
+              <div class="nav-icon-wrapper-main">
+                <div class="nav-icon-bg-main"></div>
+                <component :is="item.icon" class="nav-icon-main" />
+              </div>
+
+              <!-- Content -->
+              <div v-if="!sidebarCollapsed" class="nav-content-main">
+                <div class="nav-label-main">{{ item.label }}</div>
+                <div v-if="item.description" class="nav-description-main">{{ item.description }}</div>
+              </div>
+
+              <!-- Badge -->
+              <div v-if="!sidebarCollapsed && item.badge"
+                   class="nav-badge-main"
+                   :class="`badge-${item.badge.type}-main`">
+                <span class="badge-text-main">{{ item.badge.text }}</span>
+                <div v-if="item.badge.type === 'new'" class="badge-pulse-main"></div>
+              </div>
             </router-link>
           </nav>
 
-          <!-- Footer in sidebar -->
-          <div class="mt-8 pt-4 border-t border-border">
-            <div v-if="!sidebarCollapsed" class="flex items-center justify-between px-3 py-2">
-              <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                <span class="text-xs text-text-muted">Stack Healthy</span>
+          <!-- Footer -->
+          <div class="sidebar-footer-main">
+            <div class="status-container-main">
+              <div v-if="!sidebarCollapsed" class="status-indicator-main">
+                <div class="status-dot-main"></div>
+                <span class="status-text-main">Sistema Operativo</span>
+              </div>
+              <div v-else class="flex justify-center">
+                <div class="status-dot-main"></div>
               </div>
             </div>
-            <div v-else class="flex justify-center">
-              <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-            </div>
           </div>
-
         </div>
       </aside>
 
@@ -152,10 +184,39 @@ onUnmounted(() => {
 
 // Navigation items with role-based filtering (simplified to 2 roles)
 const allNavigationItems = [
-  { name: 'insights', path: '/insights', label: 'Insights', icon: LayoutDashboard, roles: ['admin', 'viewer'] },
-  { name: 'command-center', path: '/command-center', label: 'Command Center', icon: Zap, roles: ['admin', 'viewer'] },
-  { name: 'executions', path: '/executions', label: 'Executions', icon: Play, roles: ['admin', 'viewer'] },
-  { name: 'settings', path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
+  {
+    name: 'insights',
+    path: '/insights',
+    label: 'Insights',
+    description: 'Panoramica generale',
+    icon: LayoutDashboard,
+    roles: ['admin', 'viewer'],
+    badge: { text: 'LIVE', type: 'new' }
+  },
+  {
+    name: 'command-center',
+    path: '/command-center',
+    label: 'Processi',
+    description: 'Automazioni business',
+    icon: Zap,
+    roles: ['admin', 'viewer']
+  },
+  {
+    name: 'executions',
+    path: '/executions',
+    label: 'Esecuzioni',
+    description: 'Cronologia processi',
+    icon: Play,
+    roles: ['admin', 'viewer']
+  },
+  {
+    name: 'settings',
+    path: '/settings',
+    label: 'Impostazioni',
+    description: 'Configurazione sistema',
+    icon: Settings,
+    roles: ['admin']
+  }
 ]
 
 // Filter navigation based on user role
@@ -198,9 +259,290 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Active route styling using design system */
-.router-link-active {
-  background: var(--color-primary);
-  color: white;
+/* Premium Sidebar Styles - Enterprise Design */
+
+/* Container principale */
+.sidebar-container-main {
+  @apply relative flex-shrink-0 transition-all duration-300 fixed left-0 z-40;
+  top: 2.5rem;
+  height: calc(100vh - 2.5rem);
+  isolation: isolate;
+}
+
+.sidebar-expanded {
+  width: 16rem; /* w-64 */
+}
+
+.sidebar-collapsed {
+  width: 4rem; /* w-16 */
+}
+
+/* Backdrop con glass morphism premium */
+.sidebar-backdrop-main {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 15, 15, 0.95) 0%,
+    rgba(15, 15, 15, 0.98) 50%,
+    rgba(10, 10, 10, 0.99) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgba(31, 41, 55, 0.3);
+  box-shadow:
+    4px 0 24px rgba(0, 0, 0, 0.4),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Content */
+.sidebar-content-main {
+  @apply relative z-10 flex flex-col h-full overflow-y-auto;
+}
+
+/* Header con logo */
+.sidebar-header-main {
+  @apply p-6 pb-4;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.2);
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.1) 0%, transparent 100%);
+  animation: fadeInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-logo-main {
+  @apply flex items-center gap-3;
+  animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Logo icon con pulse effect */
+.logo-icon-main {
+  @apply relative w-10 h-10 flex items-center justify-center;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 12px rgba(59, 130, 246, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.logo-pulse-main {
+  @apply absolute inset-0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 12px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  opacity: 0.4;
+}
+
+.logo-svg-main {
+  @apply w-6 h-6 text-white relative z-10;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Logo text */
+.logo-title-main {
+  @apply text-white text-base font-semibold tracking-tight;
+  background: linear-gradient(90deg, #ffffff 0%, #e5e7eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-subtitle-main {
+  @apply text-xs font-medium;
+  color: rgba(148, 163, 184, 0.8);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Navigation */
+.sidebar-nav-main {
+  @apply flex-1 px-3 py-4 space-y-1;
+}
+
+/* Nav items */
+.nav-item-main {
+  @apply relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-200;
+  background: transparent;
+  animation: slideInLeft var(--delay) cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  border: 1px solid transparent;
+}
+
+.nav-item-main:hover {
+  background: rgba(31, 41, 55, 0.2);
+  transform: translateX(2px);
+  border-color: rgba(59, 130, 246, 0.1);
+}
+
+.nav-item-active-main {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  box-shadow:
+    0 0 20px rgba(59, 130, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Active indicator */
+.active-indicator-main {
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  box-shadow:
+    0 0 12px rgba(59, 130, 246, 0.6),
+    0 0 24px rgba(59, 130, 246, 0.3);
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Icon wrapper */
+.nav-icon-wrapper-main {
+  @apply relative flex items-center justify-center w-9 h-9 rounded-lg;
+}
+
+.nav-icon-bg-main {
+  @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+}
+
+.nav-item-main:hover .nav-icon-bg-main,
+.nav-item-active-main .nav-icon-bg-main {
+  opacity: 1;
+}
+
+.nav-icon-main {
+  @apply w-5 h-5 relative z-10;
+  color: rgba(148, 163, 184, 0.8);
+  transition: all 0.2s;
+}
+
+.nav-item-main:hover .nav-icon-main {
+  color: #93bbfc;
+  transform: scale(1.1);
+}
+
+.nav-item-active-main .nav-icon-main {
+  color: #3b82f6;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+}
+
+/* Content area */
+.nav-content-main {
+  @apply flex-1 ml-3;
+}
+
+.nav-label-main {
+  @apply text-sm font-medium;
+  color: rgba(229, 231, 235, 0.9);
+  transition: color 0.2s;
+}
+
+.nav-item-main:hover .nav-label-main {
+  color: #ffffff;
+}
+
+.nav-item-active-main .nav-label-main {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nav-description-main {
+  @apply text-xs mt-0.5;
+  color: rgba(148, 163, 184, 0.6);
+}
+
+/* Badges */
+.nav-badge-main {
+  @apply relative px-2 py-0.5 rounded-full text-xs font-semibold;
+  animation: fadeIn 0.3s ease;
+}
+
+.badge-new-main {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.badge-pulse-main {
+  @apply absolute inset-0 rounded-full;
+  background: rgba(16, 185, 129, 0.4);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Footer */
+.sidebar-footer-main {
+  @apply p-4 mt-auto;
+  border-top: 1px solid rgba(31, 41, 55, 0.2);
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 10, 0.5) 100%);
+}
+
+.status-container-main {
+  @apply flex items-center justify-between;
+}
+
+.status-indicator-main {
+  @apply flex items-center gap-2;
+}
+
+.status-dot-main {
+  @apply w-2 h-2 rounded-full;
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  box-shadow:
+    0 0 8px rgba(16, 185, 129, 0.6),
+    0 0 16px rgba(16, 185, 129, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-text-main {
+  @apply text-xs font-medium;
+  color: rgba(148, 163, 184, 0.8);
+  letter-spacing: 0.5px;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Scrollbar */
+.sidebar-content-main::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-content-main::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.2);
+  border-radius: 2px;
+}
+
+.sidebar-content-main::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.3);
+  border-radius: 2px;
+}
+
+.sidebar-content-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.5);
 }
 </style>
