@@ -9,13 +9,11 @@
     :is-loading="isLoading"
     :error="error"
     :data="timelineData"
-    :show-refresh="true"
     @close="$emit('close')"
-    @refresh="handleForceRefresh"
     @retry="loadTimeline"
   >
     <!-- Header Actions Slot -->
-    <template #headerActions="{ isLoading, refresh }">
+    <template #headerActions="{ isLoading }">
     </template>
 
     <!-- Process Overview Tab -->
@@ -124,6 +122,7 @@
         </div>
       </div>
     </template>
+
 
     <!-- Latest Activity Tab - Shows recent operations -->
     <template #executions="{ data }">
@@ -1010,10 +1009,10 @@ const modalSubtitle = computed(() => {
 })
 
 const tabs = [
-  { id: 'overview', label: 'Process Overview', icon: 'lucide:info' },
-  { id: 'executions', label: 'Latest Activity', icon: 'lucide:activity' },
-  { id: 'history', label: 'Process History', icon: 'lucide:history' },
-  { id: 'analytics', label: 'Analytics', icon: 'lucide:bar-chart-2' },
+  { id: 'overview', label: 'Process Overview' },
+  { id: 'executions', label: 'Latest Activity' },
+  { id: 'history', label: 'Process History' },
+  { id: 'analytics', label: 'Analytics' },
 ]
 
 // Timeline logic
@@ -1146,26 +1145,6 @@ const loadTimeline = async () => {
   }
 }
 
-const handleForceRefresh = async () => {
-  try {
-    console.log('🔥 Force refresh: Process timeline for', props.workflowId)
-    
-    // Try force refresh endpoint first  
-    try {
-      await businessAPI.refreshProcess(props.workflowId)
-      console.log('✅ Force refresh succeeded')
-      showToast('success', 'Timeline data refreshed successfully')
-    } catch (refreshError) {
-      console.warn('⚠️ Force refresh endpoint not available:', refreshError)
-    }
-    
-    // Reload timeline data
-    await loadTimeline()
-    
-  } catch (error: any) {
-    showToast('error', 'Failed to refresh', error.message)
-  }
-}
 
 // Step visualization helpers
 const getStepIcon = (status: string) => {
@@ -1642,6 +1621,7 @@ const requestAIAnalysis = async (step: any) => {
     showToast('success', 'AI analysis complete')
   }, 2000)
 }
+
 
 const exportToExcel = async (step: any) => {
   try {

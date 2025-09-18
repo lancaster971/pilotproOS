@@ -24,17 +24,7 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <slot name="headerActions" :isLoading="isLoading" :refresh="handleRefresh"></slot>
-
-            <button
-              v-if="showRefresh"
-              @click="handleRefresh"
-              :disabled="isLoading"
-              class="p-2 text-gray-400 hover:text-emerald-400 disabled:text-gray-600 transition-all duration-200 rounded-lg hover:bg-white/5"
-              :title="isLoading ? 'Aggiornamento...' : 'Aggiorna dati'"
-            >
-              <Icon icon="lucide:refresh-cw" :class="['h-4 w-4', { 'animate-spin': isLoading }]" />
-            </button>
+            <slot name="headerActions" :isLoading="isLoading"></slot>
 
             <button
               @click="$emit('close')"
@@ -123,7 +113,6 @@ interface Props {
   tabs?: Tab[]
   defaultTab?: string
   loadingText?: string
-  showRefresh?: boolean
   isLoading?: boolean
   error?: string | null
   data?: any
@@ -133,7 +122,6 @@ const props = withDefaults(defineProps<Props>(), {
   headerIcon: 'lucide:file-text',
   tabs: () => [],
   loadingText: 'Caricamento dati...',
-  showRefresh: true,
   isLoading: false,
   error: null,
   data: null
@@ -141,7 +129,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   close: []
-  refresh: []
   retry: []
   tabChanged: [tabId: string]
 }>()
@@ -159,9 +146,6 @@ const modalClickOutside = () => {
   emit('close')
 }
 
-const handleRefresh = () => {
-  emit('refresh')
-}
 
 const changeTab = (tabId: string) => {
   activeTab.value = tabId
@@ -247,4 +231,5 @@ const changeTab = (tabId: string) => {
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.5);
 }
+
 </style>
