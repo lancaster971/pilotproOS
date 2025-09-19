@@ -43,10 +43,11 @@ const colors = {
   white: '\x1b[37m'
 };
 
-// Create readline interface
+// Create readline interface with proper terminal handling
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
+  terminal: true
 });
 
 // Promisify readline question
