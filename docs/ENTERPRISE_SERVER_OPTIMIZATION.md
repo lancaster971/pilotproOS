@@ -4,7 +4,7 @@
 **Version**: 1.0.0  
 **Date**: 2025-09-12  
 **Target**: Enterprise Servers (16GB+ RAM, 8+ CPU cores)  
-**Status**: Multi-Tier Architecture Ready  
+**Status**: 🔴 **DA IMPLEMENTARE** - Configurazioni Enterprise non ancora create  
 
 ---
 
@@ -46,11 +46,11 @@ Performance: Enterprise-scale operations
 
 ## 🚀 **ADAPTIVE CONFIGURATION SYSTEM**
 
-### **1. Environment Detection & Auto-Configuration**
+### **1. Environment Detection & Auto-Configuration** 🔴 **DA IMPLEMENTARE**
 
 ```bash
 #!/bin/bash
-# scripts/detect-and-configure-environment.sh
+# scripts/detect-and-configure-environment.sh - DA IMPLEMENTARE
 # Automatic environment detection and optimization
 
 set -euo pipefail
@@ -278,9 +278,9 @@ main "$@"
 
 ### **2. Multi-Tier Docker Compose Configurations**
 
-#### **Enterprise-S (16GB RAM, 8 CPU)**
+#### **Enterprise-S (16GB RAM, 8 CPU)** 🔴 **DA IMPLEMENTARE**
 ```yaml
-# docker-compose.enterprise-s.yml
+# docker-compose.enterprise-s.yml - DA IMPLEMENTARE
 version: '3.8'
 
 services:
@@ -404,9 +404,9 @@ networks:
       com.docker.network.driver.mtu: 9000     # Jumbo frames for performance
 ```
 
-#### **Enterprise-L (64GB+ RAM, 32+ CPU)**
+#### **Enterprise-L (64GB+ RAM, 32+ CPU)** 🔴 **DA IMPLEMENTARE**
 ```yaml
-# docker-compose.enterprise-l.yml - Maximum Performance Configuration
+# docker-compose.enterprise-l.yml - Maximum Performance Configuration - DA IMPLEMENTARE
 version: '3.8'
 
 services:

@@ -1,15 +1,57 @@
 # 🟢 Technical Debt - PilotProOS
 
-**Status**: **PRODUCTION READY** ✅
-**Impact**: Sistema completamente deployabile
+**Status**: 🟡 **DEVELOPMENT READY** - VPS/Enterprise 🔴 **DA IMPLEMENTARE**
+**Impact**: Solo deployment locale funzionante
 
 ---
 
 ## 📊 **SUMMARY**
 
 ### **Debiti Attivi**
-- **🟢 MEDI**: 1 issue - Excel Export temporaneamente disabilitato
+- **🔴 CRITICO**: VPS/Enterprise deployment configurations
+- **🔴 ALTO**: Automated deployment scripts
+- **🟢 MEDIO**: Excel Export temporaneamente disabilitato
 - **🟡 MINOR**: Performance optimizations
+
+---
+
+## 🔴 **CRITICAL PRIORITY**
+
+### **DEPLOY-001: VPS/Enterprise Configurations** 🔴 **DA IMPLEMENTARE**
+```
+Components: docker-compose.vps.yml, docker-compose.enterprise-*.yml
+Priority: P0 - Blocking production deployment
+Status: Missing - Documentation exists but files not implemented
+```
+
+**Problema**:
+- Documentazione descrive configurazioni VPS/Enterprise complete
+- File docker-compose specifici per VPS/Enterprise non esistono
+- Script di deployment automatici mancanti
+
+**Impatto**: Impossibile deployment produzione
+**Effort**: 1-2 giorni per implementazione completa
+**Files da creare**:
+- `docker-compose.vps.yml`
+- `docker-compose.enterprise-s.yml`
+- `docker-compose.enterprise-l.yml`
+- `scripts/setup-vps-production.sh`
+- `scripts/detect-and-configure-environment.sh`
+
+### **DEPLOY-002: Automated Deployment Scripts** 🔴 **DA IMPLEMENTARE**
+```
+Components: VPS setup automation, environment detection
+Priority: P0 - Production deployment automation
+Status: Missing scripts referenced in documentation
+```
+
+**Problema**:
+- Documentazione descrive script di deployment automatici
+- Script di auto-detection environment non esistono
+- Configurazioni ottimizzate per tier mancanti
+
+**Impatto**: Deployment manuale complesso e error-prone
+**Effort**: 1 giorno per automazione completa
 
 ---
 
@@ -81,10 +123,10 @@ Priority: P3 - Enhancement
 
 ## 🚀 **SYSTEM STATUS**
 
-**PRODUCTION READY**: Sistema completamente funzionante e sicuro
-**DEPLOYMENT**: Nessun blocker attivo
-**SECURITY**: Autenticazione enterprise-grade implementata
-**USABILITY**: CLI manager completo per gestione stack
+**DEVELOPMENT READY**: Sistema locale funzionante e sicuro
+**DEPLOYMENT**: Blocker attivi per VPS/Enterprise - 🔴 **DA IMPLEMENTARE**
+**SECURITY**: Autenticazione enterprise-grade implementata ✅
+**USABILITY**: CLI manager completo per gestione stack ✅
 
 ---
 
