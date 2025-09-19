@@ -205,7 +205,7 @@ const allNavigationItems = [
     name: 'insights',
     path: '/insights',
     label: 'Insights',
-    description: 'Panoramica generale',
+    description: 'Business intelligence & analytics',
     icon: LayoutDashboard,
     roles: ['admin', 'viewer']
   },
@@ -213,7 +213,7 @@ const allNavigationItems = [
     name: 'command-center',
     path: '/command-center',
     label: 'AI Automation',
-    description: 'Automazioni business',
+    description: 'Workflow automation & AI agents',
     icon: Workflow,
     roles: ['admin', 'viewer']
   },
@@ -221,7 +221,7 @@ const allNavigationItems = [
     name: 'executions',
     path: '/executions',
     label: 'Executions',
-    description: 'Cronologia processi',
+    description: 'Process execution history & logs',
     icon: Play,
     roles: ['admin', 'viewer']
   },
@@ -229,7 +229,7 @@ const allNavigationItems = [
     name: 'settings',
     path: '/settings',
     label: 'Impostazioni',
-    description: 'Configurazione sistema',
+    description: 'System configuration & user management',
     icon: Settings,
     roles: ['admin']
   }
