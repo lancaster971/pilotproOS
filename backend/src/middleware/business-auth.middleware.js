@@ -15,9 +15,8 @@ const authService = getAuthService();
  * (per future implementazioni se necessario)
  */
 const PUBLIC_ROUTES = [
-  // SSE endpoints are read-only and need to work with EventSource (which doesn't support cookies)
+  // SSE endpoints for execution tracking - secured by execution verification
   '/api/business/processes/*/execution-stream',
-  // Esempio: '/api/business/public/health',
 ];
 
 /**

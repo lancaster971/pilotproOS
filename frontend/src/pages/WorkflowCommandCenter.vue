@@ -1573,10 +1573,10 @@ const isExecuting = ref(false)
 const currentExecutionId = ref<string | null>(null)
 const executingNodes = ref<Set<string>>(new Set())
 
-// Function to connect to SSE for execution tracking
+// Function to connect to SSE for execution tracking (secured by execution verification)
 const connectExecutionStream = (workflowId: string, executionId: string) => {
   const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/business/processes/${workflowId}/execution-stream?executionId=${executionId}`
-  console.log('🔗 Connecting to SSE:', url)
+  console.log('🔗 Connecting to SSE for active execution:', url)
 
   const eventSource = new EventSource(url)
 
@@ -1723,12 +1723,7 @@ const executeWorkflow = async () => {
   try {
     console.log(`🚀 Executing workflow ${selectedWorkflowId.value}...`)
 
-    // Connect to SSE for real-time tracking FIRST
-    const executionId = `exec_${Date.now()}`
-    console.log(`🔗 About to connect SSE with executionId: ${executionId}`)
-    const eventSource = connectExecutionStream(selectedWorkflowId.value, executionId)
-
-    // API call to execute workflow - OFETCH Migration
+    // API call to execute workflow FIRST to get real execution ID
     console.log(`📞 Calling businessAPI.executeWorkflow...`)
     const result = await businessAPI.executeWorkflow(selectedWorkflowId.value)
     console.log('✅ Workflow execution result:', result)
@@ -1736,6 +1731,10 @@ const executeWorkflow = async () => {
     if (result.success && result.data.executionStarted) {
       // Store execution ID for stop functionality
       currentExecutionId.value = result.data.executionId
+
+      // Connect to SSE for real-time tracking with REAL execution ID
+      console.log(`🔗 Connecting SSE with real executionId: ${result.data.executionId}`)
+      const eventSource = connectExecutionStream(selectedWorkflowId.value, result.data.executionId)
 
       console.log(`🚀 Workflow "${workflowName}" started`)
 

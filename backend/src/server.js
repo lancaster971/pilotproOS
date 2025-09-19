@@ -2660,14 +2660,45 @@ app.get('/api/business/processes/:id/execution-stream', async (req, res) => {
   const workflowId = req.params.id;
   const { executionId } = req.query;
 
-  console.log(`📡 SSE connection opened for workflow ${workflowId}, execution ${executionId}`);
+  // SECURITY: Only allow SSE for active executions (last 5 minutes)
+  if (!executionId) {
+    return res.status(400).json({
+      success: false,
+      error: 'ExecutionId required for SSE access'
+    });
+  }
 
-  // Set SSE headers
+  // Verify execution exists and is recent (security measure)
+  try {
+    const executionCheck = await dbPool.query(
+      `SELECT id, "startedAt", finished FROM n8n.execution_entity
+       WHERE id = $1 AND "startedAt" > NOW() - INTERVAL '5 minutes'`,
+      [executionId]
+    );
+
+    if (executionCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Execution not found or too old'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error checking execution:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Database error'
+    });
+  }
+
+  console.log(`📡 SSE connection opened for workflow ${workflowId}, execution ${executionId} (verified active execution)`);
+
+  // Set SSE headers with secure CORS
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': process.env.FRONTEND_URL || 'http://localhost:3000',
+    'Access-Control-Allow-Credentials': 'true'
   });
 
   // Send initial connection
