@@ -1,42 +1,9 @@
-version: '3.8'
-
 services:
-  # Stack Controller - DEVE AVVIARSI PER PRIMO per monitorare tutto
-  stack-controller:
-    container_name: pilotpros-stack-controller
-    build:
-      context: ./stack-controller
-      dockerfile: Dockerfile
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./stack-controller/config:/app/config
-      - ./stack-controller/web:/app/web
-      - ./stack-controller/src:/app/src
-    ports:
-      - "3005:3005"
-    environment:
-      - NODE_ENV=production
-      - PORT=3005
-      - MONITOR_INTERVAL=30
-      - AUTO_RECOVERY=true
-      - MAX_RESTART_ATTEMPTS=3
-    restart: unless-stopped
-    networks:
-      - pilotpros-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/api/system/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # PostgreSQL Database (completamente isolato nel progetto)
-  postgres:
+  # PostgreSQL Database per Sviluppo
+  postgres-dev:
     image: postgres:16-alpine
-    container_name: pilotpros-postgres
+    container_name: pilotpros-postgres-dev
     restart: unless-stopped
-    depends_on:
-      stack-controller:
-        condition: service_started
     environment:
       POSTGRES_DB: pilotpros_db
       POSTGRES_USER: pilotpros_user
@@ -44,32 +11,37 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/init-dev:/docker-entrypoint-initdb.d
       - ./database/backups:/backups
+      - ./BU_Hostinger:/imports  # Per importare backup esistenti
     ports:
       - "5432:5432"
     networks:
-      - pilotpros-network
+      - pilotpros-dev
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pilotpros_user -d pilotpros_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+    command: >
+      postgres -c log_statement=all
+               -c log_destination=stderr
+               -c logging_collector=on
+               -c max_connections=200
+               -c shared_buffers=256MB
 
-  # n8n Workflow Engine
-  n8n:
+  # Automation Engine - Development
+  automation-engine-dev:
     image: n8nio/n8n:1.110.1
-    container_name: pilotpros-n8n
+    container_name: pilotpros-automation-engine-dev
     restart: unless-stopped
     depends_on:
-      postgres:
+      postgres-dev:
         condition: service_healthy
-      stack-controller:
-        condition: service_started
     environment:
       # PostgreSQL Configuration
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_HOST: postgres-dev
       DB_POSTGRESDB_PORT: 5432
       DB_POSTGRESDB_DATABASE: pilotpros_db
       DB_POSTGRESDB_USER: pilotpros_user
@@ -78,133 +50,203 @@ services:
       DB_POSTGRESDB_POOL_SIZE: 10
       DB_POSTGRESDB_SSL_MODE: disable
       
+      # Force IPv4 connection to avoid IPv6 issues
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      
       # n8n Server Configuration
       N8N_PORT: 5678
       N8N_HOST: 0.0.0.0
-      N8N_BASIC_AUTH_ACTIVE: true
-      N8N_BASIC_AUTH_USER: admin
-      N8N_BASIC_AUTH_PASSWORD: pilotpros_admin_2025
+      N8N_BASIC_AUTH_ACTIVE: false
       
-      # Webhooks
-      WEBHOOK_URL: http://localhost:5678
+      # Public API Configuration
+      N8N_PUBLIC_API_DISABLED: false
+      N8N_PUBLIC_API_ENDPOINT_PREFIX: api/v1
+      
+      # Development-specific
+      N8N_LOG_LEVEL: debug
+      N8N_LOG_OUTPUT: console
+      
+      # Webhooks - HTTPS through nginx proxy
+      WEBHOOK_URL: https://localhost/webhook
       N8N_PAYLOAD_SIZE_MAX: 16
       
-      # Performance
+      # OAuth & External Services (HTTPS for OAuth providers)
+      N8N_EDITOR_BASE_URL: https://localhost
+      N8N_PROTOCOL: https
+      N8N_HOST_IP: localhost
+      
+      # Performance (development tuned)
       EXECUTIONS_TIMEOUT: 300
       EXECUTIONS_TIMEOUT_MAX: 3600
       EXECUTIONS_DATA_SAVE_ON_ERROR: all
-      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
-      EXECUTIONS_DATA_MAX_AGE: 336
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all  # Save all in dev for debugging
+      EXECUTIONS_DATA_MAX_AGE: 168  # 1 week in dev
       
       # Features
       N8N_METRICS: true
-      N8N_LOG_LEVEL: info
-      N8N_LOG_OUTPUT: console
       
-      # Privacy
+      # Privacy (relaxed in dev)
       N8N_DIAGNOSTICS_ENABLED: false
       N8N_VERSION_NOTIFICATIONS_ENABLED: false
       N8N_ANONYMOUS_TELEMETRY: false
-      N8N_PERSONALIZATION_ENABLED: false
+      N8N_PERSONALIZATION_ENABLED: true  # Enabled in dev
       
-      # Security
+      # Security (relaxed for dev)
       N8N_SECURE_COOKIE: false
-      N8N_COOKIE_SAME_SITE: strict
+      N8N_COOKIE_SAME_SITE: lax
       
       # Binary Data
       N8N_DEFAULT_BINARY_DATA_MODE: filesystem
       
-      # UI
-      N8N_HIDE_USAGE_PAGE: true
-      N8N_TEMPLATES_ENABLED: false
+      # UI (development friendly)
+      N8N_HIDE_USAGE_PAGE: false
+      N8N_TEMPLATES_ENABLED: true  # Templates enabled in dev
       
-      # Task Runners (v1.106.3)
+      # Task Runners (v1.107.3)
       N8N_RUNNERS_ENABLED: true
       
     volumes:
       - n8n_dev_data:/home/node/.n8n
-      - ./logs/n8n:/var/log/n8n
+      - ./logs/n8n-dev:/var/log/n8n
+      - ./BU_Hostinger:/imports  # Per accesso diretto ai backup
     ports:
       - "5678:5678"
+      - "5679:5679"  # Task runners port
     networks:
-      - pilotpros-network
+      - pilotpros-dev
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
 
-  # Backend API
-  backend:
+  # Backend API - Development with Hot Reload
+  backend-dev:
     build:
       context: ./backend
-      dockerfile: ../docker/backend.Dockerfile
-    container_name: pilotpros-backend
+      dockerfile: ../docker/backend-dev.Dockerfile
+    container_name: pilotpros-backend-dev
     restart: unless-stopped
     depends_on:
-      postgres:
+      postgres-dev:
         condition: service_healthy
-      stack-controller:
-        condition: service_started
+      automation-engine-dev:
+        condition: service_healthy
     environment:
       NODE_ENV: development
       PORT: 3001
       HOST: 0.0.0.0
       
       # PostgreSQL Connection
-      DB_HOST: postgres
+      DB_HOST: postgres-dev
       DB_PORT: 5432
       DB_NAME: pilotpros_db
       DB_USER: pilotpros_user
       DB_PASSWORD: pilotpros_secure_pass_2025
       
-      # n8n Integration
-      N8N_URL: http://n8n:5678
+      # Automation Engine Integration
+      N8N_URL: http://automation-engine-dev:5678
+      N8N_API_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlODkxMDgwOC0xODQxLTRiM2UtYWJmOC0xZDllYWI4OGU5NDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU1NzI4NTc1fQ.PVJjopivarCkKARjxDcRI2HvKDw8okwu3t1_7yJvM18
       N8N_ADMIN_USER: admin
       N8N_ADMIN_PASSWORD: pilotpros_admin_2025
       
-      # Security
-      JWT_SECRET: pilotpros_jwt_secret_key_2025_super_secure
-      BCRYPT_ROUNDS: 12
+      # Security (development)
+      JWT_SECRET: pilotpros_dev_jwt_secret_2025_secure
+      BCRYPT_ROUNDS: 4  # Faster in development
+      
+      # Development specific
+      DEBUG: "pilotpros:*"
+      LOG_LEVEL: debug
       
     volumes:
       - ./backend:/app
-      - ./logs/backend:/app/logs
-      - /app/node_modules
+      - ./logs/backend-dev:/app/logs
+      - /app/node_modules  # Anonymous volume for node_modules
     ports:
       - "3001:3001"
     networks:
-      - pilotpros-network
+      - pilotpros-dev
+    command: npm run dev  # Uses nodemon for hot reload
 
-  # Frontend Development Server
-  frontend:
+  # Frontend Development Server with Hot Reload
+  frontend-dev:
     build:
       context: ./frontend
-      dockerfile: ../docker/frontend.Dockerfile
-    container_name: pilotpros-frontend
+      dockerfile: ../docker/frontend-dev.Dockerfile
+    container_name: pilotpros-frontend-dev
     restart: unless-stopped
     environment:
       VITE_API_URL: http://localhost:3001
-      VITE_APP_NAME: PilotProOS
+      VITE_N8N_URL: http://localhost:5678
+      VITE_APP_NAME: PilotProOS Development
+      VITE_NODE_ENV: development
+      CHOKIDAR_USEPOLLING: true  # For file watching in containers
+      
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - /app/node_modules  # Anonymous volume for node_modules
     ports:
       - "3000:3000"
     networks:
-      - pilotpros-network
+      - pilotpros-dev
     depends_on:
-      - backend
+      - backend-dev
+    command: npm run dev -- --host 0.0.0.0 --port 3000
 
+
+  # AI Agent directory reserved for future implementation
+
+  # Nginx Reverse Proxy for Webhook Accessibility
+  nginx-dev:
+    image: nginx:alpine
+    container_name: pilotpros-nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - frontend-dev
+      - backend-dev
+      - automation-engine-dev
+    volumes:
+      - ./config/nginx-development.conf:/etc/nginx/conf.d/default.conf
+      - ./config/ssl:/etc/ssl/pilotpros:ro  # SSL certificates for HTTPS
+      - ./logs/nginx-dev:/var/log/nginx
+    ports:
+      - "80:80"   # HTTP access
+      - "443:443" # HTTPS access (REQUIRED for Microsoft OAuth)
+    networks:
+      - pilotpros-dev
+    environment:
+      - NGINX_ENTRYPOINT_QUIET_LOGS=1
+
+  # Database Administration Tool (development only)
+  pgadmin-dev:
+    image: dpage/pgadmin4:latest
+    container_name: pilotpros-pgadmin-dev
+    restart: unless-stopped
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pilotpros.dev
+      PGADMIN_DEFAULT_PASSWORD: pilotpros_admin_2025
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_dev_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - pilotpros-dev
+    profiles:
+      - tools  # Solo quando esplicitamente richiesto
 
 networks:
-  pilotpros-network:
+  pilotpros-dev:
     driver: bridge
+    name: pilotpros-development
 
 volumes:
   postgres_dev_data:
-    external: true
     name: pilotpros_postgres_dev_data
   n8n_dev_data:
-    external: true
     name: pilotpros_n8n_dev_data
+  pgadmin_dev_data:
+    name: pilotpros_pgadmin_dev_data

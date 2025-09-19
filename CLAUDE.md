@@ -4,6 +4,17 @@
 
 PilotProOS - Containerized Business Process Operating System
 
+## 🤖 **INSTRUCTIONS FOR AI AGENTS**
+
+**MANDATORY**: Before answering ANY question about this project, you MUST:
+
+1. **Read docs/README.md** - Project overview and structure
+2. **Read docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md** - What actually works now
+3. **If deployment/production question**: Read docs/TODO/P0-PRODUCTION_DEPLOYMENT_TODO.md
+4. **If business/strategy question**: Read docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
+
+**DO NOT answer project questions from CLAUDE.md alone - always read the specific documentation files above first.**
+
 ## 🚨 **REGOLE FONDAMENTALI**
 
 ### **Docker Isolation Policy**
@@ -125,12 +136,25 @@ docs/
     └── ENTERPRISE_SCRIPTING_STRATEGY.md
 ```
 
-### Reading Sequence (START HERE)
-1. **FIRST**: `docs/README.md` - Documentation index and navigation
-2. **For developers**: `docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md` - What works now
-3. **For tech details**: `docs/IMPLEMENTED/architecture.md` - Technical design
-4. **For next steps**: `docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md` - Implementation priorities
-5. **For business**: `docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md` - Deployment strategy
+### **MANDATORY READING FOR AGENTS** 🤖
+**CRITICAL**: AI agents MUST read these documents before answering ANY project questions:
+
+```bash
+# STEP 1: Always read project overview first
+READ: docs/README.md
+
+# STEP 2: For ANY question about current features/status
+READ: docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md
+
+# STEP 3: For production/deployment questions
+READ: docs/TODO/README.md
+READ: docs/TODO/P0-PRODUCTION_DEPLOYMENT_TODO.md
+
+# STEP 4: For business/strategy questions
+READ: docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
+```
+
+**AGENT RULE**: Cannot answer project questions without reading relevant docs above.
 
 ### Quick Commands Reference
 ```bash

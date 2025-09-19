@@ -26,7 +26,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://pilotpros-backend:3001',
+        // ALWAYS use backend-dev for consistency
+        target: 'http://pilotpros-backend-dev:3001',
         changeOrigin: true,
         secure: false,
       }

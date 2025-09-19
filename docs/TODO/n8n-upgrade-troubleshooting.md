@@ -1,4 +1,4 @@
-# PilotProOS - n8n Upgrade Troubleshooting Guide
+# P2 - PilotProOS n8n Upgrade Troubleshooting Guide
 
 **Documento**: Troubleshooting Upgrade n8n  
 **Versione**: 1.0.0  
