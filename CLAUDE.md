@@ -1,98 +1,20 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this PilotProOS repository.
+PilotProOS - Containerized Business Process Operating System
 
-## 🚨 **REGOLA FERREA - DOCKER ISOLATION POLICY**
+## 🚨 **REGOLE FONDAMENTALI**
 
+### **Docker Isolation Policy**
 ⚠️ **REGOLA ASSOLUTA**: TUTTO IN DOCKER tranne strumenti sviluppo
 
-### **macOS Host SOLO per**:
-- ✅ VS Code / Editor
-- ✅ Browser / Testing tools
-- ✅ Git / Version control
-- ✅ Docker Desktop management
+**macOS Host SOLO per**: VS Code, Browser, Git, Docker Desktop
+**Docker Container per**: Database, Backend, Frontend, Automation, Analytics
 
-### **Docker Container per**:
-- 🗄️ **Database**: PostgreSQL, Redis, etc - MAI host-mount
-- 🔧 **Backend**: Node.js, Python, API servers
-- 🎨 **Frontend**: Build tools, dev servers
-- 🤖 **Automation**: n8n, workflow engines
-- 📊 **Analytics**: Data processing, AI models
+**VIETATO**: Host-mounted volumes per database, bind-mount di runtime data
+**OBBLIGATORIO**: Named volumes Docker (`postgres_data:/var/lib/postgresql/data`)
 
-### **VIETATO ASSOLUTAMENTE**:
-❌ Host-mounted volumes per database (`./data:/var/lib/postgresql/data`)
-❌ Bind-mount di runtime data su macOS filesystem
-❌ Mixed permissions tra Linux container e macOS host
-❌ Direct filesystem access per dati persistenti
-
-### **SOLO Named Volumes Docker**:
-```yaml
-# CORRETTO - ISOLAMENTO TOTALE:
-volumes:
-  postgres_data:/var/lib/postgresql/data  # Docker filesystem
-
-# SBAGLIATO - CAUSA CORRUZIONE:
-volumes:
-  ./data:/var/lib/postgresql/data  # macOS filesystem
-```
-
-### **USER MANAGEMENT POLICY**:
-⚠️ **REGOLA ENTERPRISE**: User management SOLO via UI/database diretta
-
-- ✅ **Modifiche utenti**: Via interfaccia web o SQL dirette
-- ✅ **Password changes**: Via UI o bcrypt manual update
-- ❌ **ZERO backend seeding**: Nessun override automatico
-- ❌ **ZERO init script** per utenti production: Solo schema/struttura
-
----
-
-## 🎯 **ZERO CUSTOM CODE POLICY**
-
-⚠️ **REGOLA FONDAMENTALE**: Battle-tested libraries FIRST, custom code LAST RESORT
-
-### Process:
-1. Search existing libraries (`npm search [functionality]`)
-2. Evaluate: stars, maintenance, TypeScript support
-3. Test POC with library
-4. Use library OR document why custom code necessary
-
-### Icon System Enterprise:
-- **Location**: `frontend/src/components/N8nIcon.vue`
-- **Pattern**: Direct Iconify imports con 1:1 n8n node type mapping
-- **Categories**: 12 categorie semantiche con colori enterprise
-- **Coverage**: 40+ nodi con icone professionali
-
-## Project Overview
-
-**PilotProOS**: Containerized Business Process Operating System
-- **Architecture**: 3-layer clean with complete tech abstraction
-- **Frontend**: Vue 3/TypeScript (business terminology only)
-- **Backend**: Express API (translates business ↔ technical)
-- **Data**: PostgreSQL dual schema (n8n + pilotpros)
-
-## Development Commands
-
-### Docker-First Development
-```bash
-npm run dev               # Auto-install Docker + start stack
-npm run setup             # Install dependencies
-npm run docker:stop       # Stop containers
-npm run docker:restart    # Safe restart (preserves volumes)
-npm run docker:logs       # View all logs
-npm run docker:psql       # Connect to PostgreSQL
-```
-
-### Testing
-```bash
-npm run test              # All tests in Docker
-npm run lint              # Code quality
-npm run type-check        # TypeScript validation
-```
-
-## Architecture Principles
-
-### Business Abstraction Layer
-**CRITICAL**: Frontend NEVER exposes n8n, PostgreSQL, or technical terms
+### **Business Abstraction Layer**
+**CRITICAL**: Frontend NEVER exposes technical terms (n8n, PostgreSQL, etc.)
 
 **Translations**:
 - `workflow` → `Business Process`
@@ -100,59 +22,114 @@ npm run type-check        # TypeScript validation
 - `node` → `Process Step`
 - `webhook` → `Integration Endpoint`
 
-### Database Strategy
-**Dual Schema**:
-- `n8n`: n8n-managed tables
-- `pilotpros`: Business application data
+### **Zero Custom Code Policy**
+1. Search existing libraries FIRST
+2. Evaluate: stars, maintenance, TypeScript support
+3. Use library OR document why custom code necessary
 
-## Key Constraints
+---
 
-1. **Zero Custom Code Tolerance**: Research libraries FIRST
-2. **Business Language Only**: No technical terms in frontend
-3. **Single Container Deploy**: All services in Docker
-4. **Enterprise Security**: JWT, SSL, rate limiting required
+## 🏗️ **ARCHITECTURE**
 
-## Current Status
+**3-layer clean architecture** with complete tech abstraction:
+- **Frontend**: Vue 3/TypeScript (business terminology only)
+- **Backend**: Express API (translates business ↔ technical)
+- **Data**: PostgreSQL dual schema (n8n + pilotpros)
 
-### Production Blockers
-- ❌ **CRITICAL**: Authentication system DISABLED - vedere `docs/AUTH_TECHNICAL_DEBT.md`
-- ❌ Sistema NON deployabile in produzione fino a fix auth
+**Authentication**: JWT with HttpOnly cookies, bcrypt hashing, session management
 
-### Working Features
-- ✅ PostgreSQL dual schema with workflows
-- ✅ Vue 3 + VueFlow enterprise visualization
-- ✅ n8n integration (admin/pilotpros_admin_2025)
-- ✅ Business data extraction from all workflow types
-- ✅ Docker development with hot-reload
-- ✅ Pattern-based Timeline analysis
+---
 
-## Documentation Structure
+## 🎯 **DEVELOPMENT COMMANDS**
 
-Essential docs in `/docs/` folder:
+### Stack Management
+```bash
+./stack                   # Interactive CLI manager (password: PilotPro2025!)
+npm run dev               # Auto-install Docker + start stack
+npm run docker:stop       # Stop containers
+npm run docker:restart    # Safe restart (preserves volumes)
+npm run docker:logs       # View all logs
+npm run docker:psql       # Connect to PostgreSQL
+```
 
-### Core Technical Docs
+### Quality & Testing
+```bash
+npm run lint              # Code quality
+npm run type-check        # TypeScript validation
+npm run test              # All tests in Docker
+```
+
+---
+
+## 🔐 **SECURITY & AUTHENTICATION**
+
+### **SISTEMA COMPLETAMENTE FUNZIONANTE** ✅
+- **Backend Auth**: JWT con HttpOnly cookies
+- **Frontend Auth Guard**: Protezione tutte le route
+- **Password Security**: bcrypt + doppia conferma nei modal
+- **Session Management**: 30 minuti timeout
+- **Stack Controller**: Autenticazione completa (PilotPro2025!)
+- **CLI Manager**: Password mascherata con asterischi
+
+### **Credenziali Predefinite**:
+- **Frontend**: tiziano@gmail.com / testtest123
+- **Stack Controller**: admin / PilotPro2025!
+- **n8n**: admin / pilotpros_admin_2025
+
+---
+
+## 🚀 **CURRENT STATUS**
+
+### **Production Ready Features** ✅
+- ✅ **Authentication System**: Completo e funzionante
+- ✅ **PostgreSQL**: Dual schema con workflows
+- ✅ **Vue 3 + VueFlow**: Enterprise visualization
+- ✅ **n8n Integration**: Automation engine
+- ✅ **Business Data Extraction**: Tutti i workflow types
+- ✅ **Docker Development**: Hot-reload
+- ✅ **CLI Stack Manager**: Auto-start Container Engine
+- ✅ **Password Security**: Double confirmation
+- ✅ **Timeline Analysis**: Pattern-based
+
+### **CLI Stack Manager Features** 🎯
+- Password authentication con asterischi mascherati
+- Auto-start Container Engine quando Docker è down
+- Business Portal integration (option 7)
+- Smart stack startup quando opening Portal
+- Session management 30-minute timeout
+- Fix double input bug macOS
+- Business terminology only (no technical terms)
+
+---
+
+## 📚 **DOCUMENTATION**
+
+### Core Tech
 - `architecture.md` - Technical architecture
-- `AUTH_TECHNICAL_DEBT.md` - **CRITICAL: Auth system disabled**
-- `Debiti_Tecnici.md` - Active technical debt
-
-### Setup & Configuration
-- `postgresql-setup.md` - Database setup
-- `n8n-upgrade-troubleshooting.md` - n8n compatibility
-- `developer-access-instructions.md` - Developer setup
 - `security.md` - Security controls
+- `postgresql-setup.md` - Database setup
 
-### Features
-- `Business_Intelligence_Service.md` - Timeline analysis
+### Development
+- `developer-access-instructions.md` - Developer setup
 - `workflows.md` - Workflow guidelines
+- `Business_Intelligence_Service.md` - Timeline analysis
 
 ### Deployment
 - `deployment.md` - Deployment overview
 - `VPS_DEPLOYMENT_GUIDE.md` - VPS deployment (2-4GB RAM)
 - `ENTERPRISE_SERVER_OPTIMIZATION.md` - Enterprise setup (16GB+ RAM)
-- `DOCKER_OPTIMIZATION_PLAN.md` - Container optimization
 - `CUSTOMIZATION-STRATEGY.md` - White-label customization
-- `REVERSE_PROXY_README.md` - Reverse proxy config
 
 ---
 
-**Development Workflow**: Research libraries → Business terminology → Docker testing → Fix auth before deploy
+## 🛠️ **DEVELOPMENT WORKFLOW**
+
+1. **Research libraries** → Business terminology → Docker testing
+2. **Use CLI manager** `./stack` per gestione container
+3. **Business Portal** http://localhost:3000 (auto-start via CLI option 7)
+4. **Stack Controller** http://localhost:3005
+5. **n8n Admin** http://localhost:5678
+
+**Password Requirements**: 8+ chars, maiuscola, carattere speciale
+**Session Timeout**: 30 minuti
+**Container Engine**: Auto-start on demand
