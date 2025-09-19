@@ -84,10 +84,10 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard - TEMPORANEAMENTE DISABILITATO per sviluppo
+// Auth guard - RIABILITATO con fix autenticazione
 router.beforeEach(async (to, from, next) => {
-  // DEVELOPMENT MODE - Skip auth
-  if (import.meta.env.DEV) {
+  // Skip auth only for login page
+  if (to.name === 'login') {
     next()
     return
   }

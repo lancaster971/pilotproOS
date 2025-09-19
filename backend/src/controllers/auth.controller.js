@@ -6,12 +6,12 @@
 
 import express from 'express';
 import { getAuthService } from '../auth/jwt-auth.js';
-// import { DatabaseConnection } from '../database/connection.js'; // Temporarily disabled
+import { DatabaseConnection } from '../database/connection.js';
 // import { resolveTenantId, validateTenantId, getTenantConfig } from '../config/tenant-config.js'; // Temporarily disabled
 
 const router = express.Router();
 const authService = getAuthService();
-// const db = DatabaseConnection.getInstance(); // Temporarily disabled
+const db = DatabaseConnection.getInstance();
 
 /**
  * @swagger
@@ -184,19 +184,21 @@ router.post('/register',
         });
       }
 
-      // Risolvi tenant ID utilizzando la configurazione mono/multi-tenant
-      const resolvedTenantId = resolveTenantId(tenantId);
-      const tenantConfig = getTenantConfig();
+      // Tenant support temporarily disabled - use default
+      const resolvedTenantId = 'default';
 
-      // Valida tenant ID
+      // Skip tenant validation for now
+      /*
+      const tenantConfig = getTenantConfig();
       if (!validateTenantId(resolvedTenantId)) {
         return res.status(400).json({
           error: 'Bad Request',
-          message: tenantConfig.isMultiTenantMode 
-            ? 'Invalid tenant ID' 
+          message: tenantConfig.isMultiTenantMode
+            ? 'Invalid tenant ID'
             : `Invalid tenant ID. System is configured for mono-tenant mode with tenant: ${tenantConfig.defaultTenantId}`
         });
       }
+      */
 
       const user = await authService.createUser({
         email,
@@ -215,11 +217,11 @@ router.post('/register',
         success: true,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        details: { 
-          targetEmail: email, 
-          targetRole: role, 
+        details: {
+          targetEmail: email,
+          targetRole: role,
           targetTenant: resolvedTenantId,
-          monoTenantMode: !tenantConfig.isMultiTenantMode
+          monoTenantMode: true // Default to mono-tenant for now
         }
       });
 
@@ -440,7 +442,7 @@ router.put('/profile',
 
         // Verifica password corrente
         const userRecord = await db.getOne(
-          'SELECT password_hash FROM auth_users WHERE id = $1',
+          'SELECT password_hash FROM pilotpros.users WHERE id = $1',
           [userId]
         );
 
@@ -457,7 +459,7 @@ router.put('/profile',
 
         // Aggiorna password
         await db.query(
-          'UPDATE auth_users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+          'UPDATE pilotpros.users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
           [newPasswordHash, userId]
         );
 
@@ -523,13 +525,12 @@ router.get('/users',
   async (req, res) => {
     try {
       const users = await db.getMany(`
-        SELECT 
-          u.id, u.email, u.role, u.tenant_id, u.permissions, u.active,
-          u.created_at, u.last_login_at,
-          t.name as tenant_name
-        FROM auth_users u
-        LEFT JOIN tenants t ON u.tenant_id = t.id
-        WHERE u.active = true
+        SELECT
+          u.id, u.email, u.role, u.is_active as active,
+          u.created_at, u.last_login,
+          u.full_name
+        FROM pilotpros.users u
+        WHERE u.is_active = true
         ORDER BY u.created_at DESC
       `);
 
@@ -537,12 +538,11 @@ router.get('/users',
         id: user.id,
         email: user.email,
         role: user.role,
-        tenantId: user.tenant_id,
-        tenantName: user.tenant_name,
-        permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions || [],
+        fullName: user.full_name,
+        permissions: authService.getDefaultPermissions(user.role),
         active: user.active,
         createdAt: user.created_at,
-        lastLoginAt: user.last_login_at
+        lastLoginAt: user.last_login
       }));
 
       res.json({
@@ -602,7 +602,7 @@ router.delete('/users/:id',
 
       // Disabilita invece di eliminare (soft delete)
       await db.query(
-        'UPDATE auth_users SET active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+        'UPDATE pilotpros.users SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
         [id]
       );
 
@@ -696,11 +696,11 @@ router.get('/audit',
       const { limit = 50, offset = 0, userId, action } = req.query;
 
       let query = `
-        SELECT 
-          a.*, 
+        SELECT
+          a.*,
           u.email as user_email
-        FROM auth_audit_log a
-        LEFT JOIN auth_users u ON a.user_id = u.id
+        FROM pilotpros.audit_logs a
+        LEFT JOIN pilotpros.users u ON a.user_id = u.id
       `;
       const params = [];
 
@@ -746,24 +746,25 @@ router.get('/audit',
  */
 async function logAuditAction(data) {
   try {
+    // Use the existing pilotpros.audit_logs table structure
     await db.query(`
-      INSERT INTO auth_audit_log (
+      INSERT INTO pilotpros.audit_logs (
         user_id, action, resource_type, resource_id,
-        details, ip_address, user_agent, success, error_message
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        old_values, new_values, ip_address, user_agent, timestamp
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
     `, [
       data.userId || null,
       data.action,
       data.resourceType || null,
       data.resourceId || null,
-      data.details ? JSON.stringify(data.details) : null,
+      data.oldValues ? JSON.stringify(data.oldValues) : null,
+      data.details ? JSON.stringify(data.details) : data.newValues ? JSON.stringify(data.newValues) : null,
       data.ip || null,
-      data.userAgent || null,
-      data.success,
-      data.errorMessage || null
+      data.userAgent || null
     ]);
   } catch (error) {
-    console.error('Failed to log audit action:', error);
+    // Log error but don't fail the request
+    console.error('Failed to log audit action:', error.message);
   }
 }
 
