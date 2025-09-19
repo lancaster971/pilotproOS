@@ -2495,16 +2495,12 @@ app.post('/api/business/execute-workflow/:workflowId', async (req, res) => {
 
     const workflow = workflowResult.rows[0];
 
-    // Check if workflow is active
-    if (!workflow.active) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot execute inactive workflow',
-        message: 'Please activate the workflow first'
-      });
-    }
+    // Log workflow status but allow execution anyway (manual execution should work even for inactive workflows)
+    console.log(`🔄 Executing workflow: ${workflow.name} (${workflowId}) - Active: ${workflow.active}`);
 
-    console.log(`🔄 Executing workflow: ${workflow.name} (${workflowId})`);
+    if (!workflow.active) {
+      console.log(`⚠️ Note: Executing inactive workflow manually`);
+    }
 
     // Execute via n8n API - try multiple approaches
     let n8nResult = { executed: false, executionId: null };

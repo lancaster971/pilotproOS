@@ -15,7 +15,8 @@ const authService = getAuthService();
  * (per future implementazioni se necessario)
  */
 const PUBLIC_ROUTES = [
-  // Per ora NESSUNA route business è pubblica
+  // SSE endpoints are read-only and need to work with EventSource (which doesn't support cookies)
+  '/api/business/processes/*/execution-stream',
   // Esempio: '/api/business/public/health',
 ];
 
@@ -80,10 +81,16 @@ export const businessAuthMiddleware = async (req, res, next) => {
 
     console.log(`🔐 [Business Auth] Checking: ${req.method} ${relativePath}`);
 
-    // 1. Check if route is public
-    const isPublicRoute = PUBLIC_ROUTES.some(route =>
-      relativePath.startsWith(route)
-    );
+    // 1. Check if route is public (with wildcard support)
+    const isPublicRoute = PUBLIC_ROUTES.some(route => {
+      // Convert wildcard pattern to regex
+      if (route.includes('*')) {
+        const pattern = route.replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(relativePath);
+      }
+      return relativePath.startsWith(route);
+    });
 
     if (isPublicRoute) {
       console.log(`✅ [Business Auth] Public route, skipping auth`);
