@@ -8,7 +8,7 @@
   },
   "users": {
     "admin": {
-      "passwordHash": "$2b$10$YourHashHere",
+      "passwordHash": "$2b$10$KN7IwictM52lLF2k6cuxpuDbJA.t17LZJFV3P05uRrCE2Sm/LpHRm",
       "role": "administrator",
       "permissions": ["all"]
     }
