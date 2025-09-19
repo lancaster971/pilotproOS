@@ -1,35 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * PilotProOS Manager - Cross-Platform Interactive Menu
- * Works on Windows, macOS, and Linux
+ * PilotProOS Manager - Fixed Version
  */
 
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const readline = require('readline');
 const util = require('util');
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
 const execAsync = util.promisify(exec);
 
-// Service mappings - business-friendly names
+// Service mappings
 const services = {
-  '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
-  '2': { key: 'engine', name: 'Automation Engine', container: 'pilotpros-backend-dev' },
-  '3': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend-dev' },
-  '4': { key: 'ai', name: 'AI Automation Engine', container: 'pilotpros-automation-engine-dev' },
-  '5': { key: 'access', name: 'Access Manager', container: 'pilotpros-nginx-dev' },
-  '6': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-stack-controller' }
+  '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres' },
+  '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend' },
+  '3': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend' },
+  '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-n8n' },
+  '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-stack-controller' }
 };
 
-// Cross-platform clear screen
-const clearScreen = () => {
-  if (process.platform === 'win32') {
-    console.clear();
-  } else {
-    console.log('\x1Bc');
-  }
-};
-
-// Cross-platform colors (works in most terminals)
+// Colors
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -43,15 +35,10 @@ const colors = {
   white: '\x1b[37m'
 };
 
-// Create readline interface with proper terminal handling
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: true
-});
-
-// Promisify readline question
-const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+// Clear screen
+const clearScreen = () => {
+  console.log('\x1Bc');
+};
 
 // Helper to execute Docker commands
 async function dockerExec(command) {
@@ -111,246 +98,519 @@ function showMainMenu() {
   console.log(`  ${colors.cyan}4)${colors.reset} View Service Logs`);
   console.log(`  ${colors.cyan}5)${colors.reset} Start All Services`);
   console.log(`  ${colors.cyan}6)${colors.reset} Stop All Services`);
-  console.log(`  ${colors.cyan}7)${colors.reset} Open Web Dashboard`);
+  console.log(`  ${colors.cyan}7)${colors.reset} Open Business Portal`);
   console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status\n`);
   console.log(`  ${colors.red}q)${colors.reset} Quit\n`);
-}
-
-// Show service menu
-async function selectService(action) {
-  console.log(`\n${colors.bright}Select Service:${colors.reset}\n`);
-
-  for (const [num, service] of Object.entries(services)) {
-    console.log(`  ${colors.cyan}${num})${colors.reset} ${service.name}`);
-  }
-  console.log(`\n  ${colors.yellow}0)${colors.reset} Back to main menu\n`);
-
-  const choice = await question('Select service: ');
-
-  if (choice === '0') return null;
-  if (services[choice]) return services[choice];
-
-  console.log(`${colors.red}Invalid selection${colors.reset}`);
-  await sleep(1500);
-  return null;
 }
 
 // Sleep helper
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Restart service
-async function restartService() {
-  const service = await selectService('restart');
-  if (!service) return;
-
-  console.log(`\n${colors.yellow}Restarting ${service.name}...${colors.reset}\n`);
-
-  // Stop
-  process.stdout.write('  Stopping...');
-  await dockerExec(`docker stop ${service.container}`);
-  process.stdout.write(`\r  ${colors.green}✓${colors.reset} Stopped    \n`);
-
-  // Start
-  process.stdout.write('  Starting...');
-  await dockerExec(`docker start ${service.container}`);
-  process.stdout.write(`\r  ${colors.green}✓${colors.reset} Started    \n`);
-
-  // Health check
-  process.stdout.write('  Health check...');
-  await sleep(3000);
-  const result = await dockerExec(`docker ps --filter name=${service.container} --format "{{.Status}}"`);
-
-  if (result.output.includes('Up')) {
-    process.stdout.write(`\r  ${colors.green}✓${colors.reset} Healthy    \n`);
-    console.log(`\n${colors.green}Successfully restarted ${service.name}${colors.reset}`);
-  } else {
-    process.stdout.write(`\r  ${colors.red}✗${colors.reset} Failed     \n`);
-    console.log(`\n${colors.red}Failed to restart ${service.name}${colors.reset}`);
+// Main application
+class StackManager {
+  constructor() {
+    // Don't create readline interface here - will create after auth
+    this.rl = null;
   }
 
-  await question('\nPress Enter to continue...');
-}
+  async run() {
+    await this.authenticate();
 
-// View logs
-async function viewLogs() {
-  const service = await selectService('logs');
-  if (!service) return;
+    // Create readline interface AFTER authentication
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true
+    });
 
-  const lines = await question('How many lines? (default 50): ') || '50';
+    await this.checkDocker();
+    await this.mainLoop();
+  }
 
-  console.log(`\n${colors.yellow}Loading logs...${colors.reset}\n`);
+  async authenticate() {
+    const sessionFile = path.join(__dirname, '.session');
+    const authConfigPath = path.join(__dirname, 'auth-config.json');
 
-  const result = await dockerExec(`docker logs ${service.container} --tail ${lines}`);
-  console.log(result.output || result.error);
+    // Check if session exists and is valid
+    if (fs.existsSync(sessionFile)) {
+      try {
+        const session = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+        const now = Date.now();
+        const sessionAge = (now - session.timestamp) / 1000 / 60; // in minutes
 
-  await question('\nPress Enter to continue...');
-}
+        // Session valid for 30 minutes
+        if (sessionAge < 30) {
+          console.log(`${colors.green}✓ Authenticated as ${session.user}${colors.reset}`);
+          return;
+        }
+      } catch (e) {
+        // Invalid session, continue to auth
+      }
+    }
 
-// Quick health check
-async function healthCheck() {
-  console.log(`\n${colors.yellow}Running health check...${colors.reset}\n`);
+    // Read auth config
+    let authConfig;
+    try {
+      authConfig = JSON.parse(fs.readFileSync(authConfigPath, 'utf8'));
+    } catch (e) {
+      console.error(`${colors.red}Error: Cannot read auth configuration${colors.reset}`);
+      process.exit(1);
+    }
 
-  const statuses = await getAllStatus();
-  let healthy = 0;
-  let unhealthy = 0;
+    if (!authConfig.auth.enabled) {
+      return; // Auth disabled
+    }
 
-  for (const status of statuses) {
-    if (status.status === 'Running') {
-      healthy++;
-      process.stdout.write(`${colors.green}✓${colors.reset}`);
-    } else {
-      unhealthy++;
-      process.stdout.write(`${colors.red}✗${colors.reset}`);
+    clearScreen();
+    console.log(`${colors.cyan}╔══════════════════════════════════════════════╗${colors.reset}`);
+    console.log(`${colors.cyan}║${colors.reset}      ${colors.bright}PilotProOS Security Authentication${colors.reset}      ${colors.cyan}║${colors.reset}`);
+    console.log(`${colors.cyan}╚══════════════════════════════════════════════╝${colors.reset}\n`);
+
+    let attempts = 0;
+    const maxAttempts = authConfig.auth.maxAttempts || 3;
+
+    while (attempts < maxAttempts) {
+      const password = await this.askPassword('Password: ');
+
+      // Check password against admin user
+      const validPassword = await bcrypt.compare(password, authConfig.users.admin.passwordHash);
+
+      if (validPassword) {
+        // Create session
+        const session = {
+          user: 'admin',
+          timestamp: Date.now()
+        };
+        fs.writeFileSync(sessionFile, JSON.stringify(session));
+        console.log(`${colors.green}✓ Authentication successful${colors.reset}\n`);
+        await sleep(1000);
+        return;
+      } else {
+        attempts++;
+        if (attempts < maxAttempts) {
+          console.log(`${colors.red}✗ Invalid password. ${maxAttempts - attempts} attempts remaining.${colors.reset}`);
+        } else {
+          console.log(`${colors.red}✗ Authentication failed. Access denied.${colors.reset}`);
+          process.exit(1);
+        }
+      }
     }
   }
 
-  console.log(`\n\n${colors.green}${healthy} Healthy${colors.reset} | ${colors.red}${unhealthy} Down${colors.reset}`);
+  askPassword(prompt) {
+    return new Promise((resolve) => {
+      const stdin = process.stdin;
+      const stdout = process.stdout;
 
-  if (unhealthy === 0) {
-    console.log(`${colors.green}All systems operational!${colors.reset}`);
-  } else {
-    console.log(`${colors.yellow}Some services need attention${colors.reset}`);
+      // Check if we're in a TTY
+      if (stdin.isTTY) {
+        stdout.write(prompt);
+        let password = '';
+
+        // Set raw mode to capture individual keystrokes
+        stdin.setRawMode(true);
+        stdin.setEncoding('utf8');
+        stdin.resume();
+
+        const onData = (char) => {
+          // Handle special characters
+          if (char === '\u0003') { // Ctrl+C
+            stdin.setRawMode(false);
+            process.exit();
+          } else if (char === '\n' || char === '\r' || char === '\u0004') { // Enter or Ctrl+D
+            stdin.setRawMode(false);
+            stdin.pause();
+            stdin.removeListener('data', onData);
+            stdout.write('\n');
+            resolve(password);
+          } else if (char === '\u007f' || char === '\b') { // Backspace
+            if (password.length > 0) {
+              password = password.slice(0, -1);
+              stdout.write('\b \b');
+            }
+          } else if (char.charCodeAt(0) >= 32) { // Printable characters
+            password += char;
+            stdout.write('*');
+          }
+        };
+
+        stdin.on('data', onData);
+      } else {
+        // Fallback for non-TTY - create temporary readline
+        const tempRl = readline.createInterface({
+          input: stdin,
+          output: stdout
+        });
+        tempRl.question(prompt, (password) => {
+          tempRl.close();
+          resolve(password);
+        });
+      }
+    });
   }
 
-  await question('\nPress Enter to continue...');
-}
+  async checkDocker(silent = false) {
+    const result = await dockerExec('docker version');
+    if (!result.success || !result.output.includes('Server')) {
+      if (!silent) {
+        console.log(`\n${colors.yellow}⚠️  Container Engine not running${colors.reset}`);
+        console.log(`${colors.cyan}Starting Container Engine...${colors.reset}`);
+      }
 
-// Start all services
-async function startAll() {
-  console.log(`\n${colors.yellow}Starting all services...${colors.reset}\n`);
+      // Auto-start Docker Desktop on macOS
+      if (process.platform === 'darwin') {
+        await execAsync('open -a "Docker Desktop"');
 
-  const order = ['postgres', 'n8n', 'backend', 'frontend', 'nginx', 'stack'];
+        if (!silent) {
+          process.stdout.write('Waiting for Container Engine to initialize');
+        }
 
-  for (const key of order) {
-    const service = Object.values(services).find(s => s.key === key);
-    if (service) {
-      process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
-      const result = await dockerExec(`docker start ${service.container}`);
-      console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
-      await sleep(1000);
+        // Wait up to 30 seconds for Docker to start
+        let dockerReady = false;
+        for (let i = 0; i < 30; i++) {
+          await sleep(1000);
+          if (!silent) process.stdout.write('.');
+          const check = await dockerExec('docker version');
+          if (check.success && check.output.includes('Server')) {
+            dockerReady = true;
+            break;
+          }
+        }
+        if (!silent) console.log('');
+
+        if (!dockerReady) {
+          console.error(`${colors.red}Error: Container Engine failed to start!${colors.reset}`);
+          console.error('Please start Docker Desktop manually.');
+          process.exit(1);
+        }
+
+        if (!silent) {
+          console.log(`${colors.green}✓ Container Engine started successfully!${colors.reset}`);
+          await sleep(2000);
+        }
+        return true;
+      } else {
+        console.error(`${colors.red}Error: Container Engine is not running!${colors.reset}`);
+        console.error('Please start Docker Desktop and try again.');
+        process.exit(1);
+      }
     }
+    return true;
   }
 
-  console.log(`\n${colors.green}All services started${colors.reset}`);
-  await question('\nPress Enter to continue...');
-}
-
-// Stop all services
-async function stopAll() {
-  const confirm = await question(`\n${colors.yellow}⚠️  WARNING: This will stop all services!${colors.reset}\nAre you sure? (y/N): `);
-
-  if (confirm.toLowerCase() !== 'y') return;
-
-  console.log(`\n${colors.yellow}Stopping all services...${colors.reset}\n`);
-
-  for (const service of Object.values(services)) {
-    process.stdout.write(`  Stopping ${service.name.padEnd(25)}`);
-    const result = await dockerExec(`docker stop ${service.container}`);
-    console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
-  }
-
-  console.log(`\n${colors.green}All services stopped${colors.reset}`);
-  await question('\nPress Enter to continue...');
-}
-
-// Open dashboard
-async function openDashboard() {
-  console.log(`\n${colors.yellow}Opening web dashboard...${colors.reset}`);
-
-  // Cross-platform browser opening
-  const url = 'http://localhost:3005';
-  const platform = process.platform;
-
-  if (platform === 'win32') {
-    exec(`start ${url}`);
-  } else if (platform === 'darwin') {
-    exec(`open ${url}`);
-  } else {
-    exec(`xdg-open ${url}`);
-  }
-
-  console.log(`${colors.green}Dashboard opened in browser${colors.reset}`);
-  await sleep(2000);
-}
-
-// Main loop
-async function main() {
-  while (true) {
+  async mainLoop() {
     printHeader();
     await showQuickStatus();
     showMainMenu();
+    this.prompt();
+  }
 
-    const choice = await question('Select option: ');
+  prompt() {
+    this.rl.question('Select option: ', async (choice) => {
+      await this.handleChoice(choice);
+    });
+  }
 
+  async handleChoice(choice) {
     switch (choice.toLowerCase()) {
       case '1':
-        printHeader();
-        await showQuickStatus();
-        await question('Press Enter to continue...');
+        await this.viewStatus();
         break;
       case '2':
-        printHeader();
-        await restartService();
+        await this.restartService();
         break;
       case '3':
-        printHeader();
-        await healthCheck();
+        await this.healthCheck();
         break;
       case '4':
-        printHeader();
-        await viewLogs();
+        await this.viewLogs();
         break;
       case '5':
-        printHeader();
-        await startAll();
+        await this.startAll();
         break;
       case '6':
-        printHeader();
-        await stopAll();
+        await this.stopAll();
         break;
       case '7':
-        await openDashboard();
+        await this.openFrontend();
         break;
       case '8':
         // Just refresh
-        continue;
+        await this.mainLoop();
+        break;
       case 'q':
         console.log(`\n${colors.green}Goodbye!${colors.reset}\n`);
-        rl.close();
+        this.rl.close();
         process.exit(0);
         break;
       default:
         console.log(`${colors.red}Invalid option${colors.reset}`);
         await sleep(1500);
+        await this.mainLoop();
     }
   }
-}
 
-// Check Docker availability
-async function checkDocker() {
-  const result = await dockerExec('docker --version');
-  if (!result.success) {
-    console.error(`${colors.red}Error: Docker is not available!${colors.reset}`);
-    console.error('Please ensure Docker is installed and running.');
-    process.exit(1);
+  async viewStatus() {
+    printHeader();
+    await showQuickStatus();
+    this.rl.question('Press Enter to continue...', () => {
+      this.mainLoop();
+    });
   }
-}
 
-// Entry point
-async function start() {
-  await checkDocker();
-  await main();
+  async restartService() {
+    // Check Docker before any operation
+    await this.checkDocker(true);
+    printHeader();
+    console.log(`\n${colors.bright}Select Service:${colors.reset}\n`);
+
+    for (const [num, service] of Object.entries(services)) {
+      console.log(`  ${colors.cyan}${num})${colors.reset} ${service.name}`);
+    }
+    console.log(`\n  ${colors.yellow}0)${colors.reset} Back to main menu\n`);
+
+    this.rl.question('Select service: ', async (choice) => {
+      if (choice === '0') {
+        await this.mainLoop();
+        return;
+      }
+
+      const service = services[choice];
+      if (!service) {
+        console.log(`${colors.red}Invalid selection${colors.reset}`);
+        await sleep(1500);
+        await this.mainLoop();
+        return;
+      }
+
+      console.log(`\n${colors.yellow}Restarting ${service.name}...${colors.reset}\n`);
+
+      // Stop
+      process.stdout.write('  Stopping...');
+      await dockerExec(`docker stop ${service.container}`);
+      process.stdout.write(`\r  ${colors.green}✓${colors.reset} Stopped    \n`);
+
+      // Start
+      process.stdout.write('  Starting...');
+      await dockerExec(`docker start ${service.container}`);
+      process.stdout.write(`\r  ${colors.green}✓${colors.reset} Started    \n`);
+
+      // Health check
+      process.stdout.write('  Health check...');
+      await sleep(3000);
+      const result = await dockerExec(`docker ps --filter name=${service.container} --format "{{.Status}}"`);
+
+      if (result.output.includes('Up')) {
+        process.stdout.write(`\r  ${colors.green}✓${colors.reset} Healthy    \n`);
+        console.log(`\n${colors.green}Successfully restarted ${service.name}${colors.reset}`);
+      } else {
+        process.stdout.write(`\r  ${colors.red}✗${colors.reset} Failed     \n`);
+        console.log(`\n${colors.red}Failed to restart ${service.name}${colors.reset}`);
+      }
+
+      this.rl.question('\nPress Enter to continue...', () => {
+        this.mainLoop();
+      });
+    });
+  }
+
+  async healthCheck() {
+    // Check Docker before any operation
+    await this.checkDocker(true);
+    printHeader();
+    console.log(`\n${colors.yellow}Running health check...${colors.reset}\n`);
+
+    const statuses = await getAllStatus();
+    let healthy = 0;
+    let unhealthy = 0;
+
+    for (const status of statuses) {
+      if (status.status === 'Running') {
+        healthy++;
+        process.stdout.write(`${colors.green}✓${colors.reset}`);
+      } else {
+        unhealthy++;
+        process.stdout.write(`${colors.red}✗${colors.reset}`);
+      }
+    }
+
+    console.log(`\n\n${colors.green}${healthy} Healthy${colors.reset} | ${colors.red}${unhealthy} Down${colors.reset}`);
+
+    if (unhealthy === 0) {
+      console.log(`${colors.green}All systems operational!${colors.reset}`);
+    } else {
+      console.log(`${colors.yellow}Some services need attention${colors.reset}`);
+    }
+
+    this.rl.question('\nPress Enter to continue...', () => {
+      this.mainLoop();
+    });
+  }
+
+  async viewLogs() {
+    // Check Docker before any operation
+    await this.checkDocker(true);
+    printHeader();
+    console.log(`\n${colors.bright}Select Service:${colors.reset}\n`);
+
+    for (const [num, service] of Object.entries(services)) {
+      console.log(`  ${colors.cyan}${num})${colors.reset} ${service.name}`);
+    }
+    console.log(`\n  ${colors.yellow}0)${colors.reset} Back to main menu\n`);
+
+    this.rl.question('Select service: ', (choice) => {
+      if (choice === '0') {
+        this.mainLoop();
+        return;
+      }
+
+      const service = services[choice];
+      if (!service) {
+        console.log(`${colors.red}Invalid selection${colors.reset}`);
+        sleep(1500).then(() => this.mainLoop());
+        return;
+      }
+
+      this.rl.question('How many lines? (default 50): ', async (lines) => {
+        const lineCount = lines || '50';
+
+        console.log(`\n${colors.yellow}Loading logs...${colors.reset}\n`);
+
+        const result = await dockerExec(`docker logs ${service.container} --tail ${lineCount}`);
+        console.log(result.output || result.error);
+
+        this.rl.question('\nPress Enter to continue...', () => {
+          this.mainLoop();
+        });
+      });
+    });
+  }
+
+  async startAll() {
+    // Check Docker before any operation
+    await this.checkDocker();
+    printHeader();
+    console.log(`\n${colors.yellow}Starting all services...${colors.reset}\n`);
+
+    const order = ['postgres', 'n8n', 'backend', 'frontend', 'stack'];
+
+    for (const key of order) {
+      const service = Object.values(services).find(s => s.container.includes(key));
+      if (service) {
+        process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
+        const result = await dockerExec(`docker start ${service.container}`);
+        console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+        await sleep(1000);
+      }
+    }
+
+    console.log(`\n${colors.green}All services started${colors.reset}`);
+    this.rl.question('\nPress Enter to continue...', () => {
+      this.mainLoop();
+    });
+  }
+
+  async stopAll() {
+    // Check Docker before any operation
+    await this.checkDocker(true);
+    printHeader();
+    this.rl.question(`\n${colors.yellow}⚠️  WARNING: This will stop all services!${colors.reset}\nAre you sure? (y/N): `, async (confirm) => {
+      if (confirm.toLowerCase() !== 'y') {
+        await this.mainLoop();
+        return;
+      }
+
+      console.log(`\n${colors.yellow}Stopping all services...${colors.reset}\n`);
+
+      for (const service of Object.values(services)) {
+        process.stdout.write(`  Stopping ${service.name.padEnd(25)}`);
+        const result = await dockerExec(`docker stop ${service.container}`);
+        console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+      }
+
+      console.log(`\n${colors.green}All services stopped${colors.reset}`);
+      this.rl.question('\nPress Enter to continue...', () => {
+        this.mainLoop();
+      });
+    });
+  }
+
+  async openFrontend() {
+    // Check if services are running
+    const statuses = await getAllStatus();
+    const runningCount = statuses.filter(s => s.status === 'Running').length;
+
+    if (runningCount < 5) {
+      console.log(`\n${colors.yellow}⚠️  Stack is not fully running${colors.reset}`);
+      console.log(`${colors.cyan}To access the Business Portal, all services must be running.${colors.reset}\n`);
+
+      this.rl.question('Start all services now? (Y/n): ', async (answer) => {
+        if (answer.toLowerCase() !== 'n') {
+          console.log(`\n${colors.yellow}Starting all services...${colors.reset}\n`);
+
+          // Ensure Docker is running first
+          await this.checkDocker();
+
+          const order = ['postgres', 'n8n', 'backend', 'frontend', 'stack'];
+
+          for (const key of order) {
+            const service = Object.values(services).find(s => s.container.includes(key));
+            if (service) {
+              process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
+              const result = await dockerExec(`docker start ${service.container}`);
+              console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+              await sleep(1000);
+            }
+          }
+
+          console.log(`\n${colors.green}All services started${colors.reset}`);
+          console.log(`${colors.yellow}Waiting for services to be ready...${colors.reset}`);
+          await sleep(5000);
+
+          // Now open the portal
+          this.openPortalInBrowser();
+        } else {
+          console.log(`${colors.red}Cannot open Business Portal without running services${colors.reset}`);
+          await sleep(2000);
+        }
+        await this.mainLoop();
+      });
+    } else {
+      // Services are running, just open the portal
+      this.openPortalInBrowser();
+      await sleep(2000);
+      await this.mainLoop();
+    }
+  }
+
+  openPortalInBrowser() {
+    console.log(`\n${colors.yellow}Opening Business Portal...${colors.reset}`);
+
+    // Cross-platform browser opening
+    const url = 'http://localhost:3000';
+    const platform = process.platform;
+
+    if (platform === 'win32') {
+      exec(`start ${url}`);
+    } else if (platform === 'darwin') {
+      exec(`open ${url}`);
+    } else {
+      exec(`xdg-open ${url}`);
+    }
+
+    console.log(`${colors.green}Business Portal opened in browser${colors.reset}`);
+  }
 }
 
 // Handle Ctrl+C gracefully
 process.on('SIGINT', () => {
   console.log(`\n\n${colors.green}Goodbye!${colors.reset}\n`);
-  rl.close();
   process.exit(0);
 });
 
 // Start the application
-start().catch(error => {
+const manager = new StackManager();
+manager.run().catch(error => {
   console.error(`${colors.red}Fatal error: ${error.message}${colors.reset}`);
   process.exit(1);
 });

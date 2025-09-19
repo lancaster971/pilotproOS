@@ -62,6 +62,27 @@
           placeholder="Password sicura"
           required
         />
+      </div>
+
+      <!-- Confirm Password -->
+      <div>
+        <label for="confirmPassword" class="block text-sm font-medium text-text mb-2">
+          Conferma Password *
+        </label>
+        <Password
+          id="confirmPassword"
+          v-model="form.confirmPassword"
+          :feedback="false"
+          toggleMask
+          class="w-full"
+          placeholder="Conferma password"
+          required
+          :invalid="form.confirmPassword && form.password !== form.confirmPassword"
+        />
+        <div v-if="form.confirmPassword && form.password !== form.confirmPassword"
+             class="mt-1 text-sm text-red-500">
+          Le password non coincidono
+        </div>
         <div class="mt-2 text-xs text-text-muted">
           <div class="font-medium mb-1">Requisiti password:</div>
           <ul class="list-disc list-inside space-y-0.5">
@@ -108,7 +129,7 @@
         </Button>
         <Button
           @click="createUser"
-          :disabled="isCreating || !form.email || !form.password || !form.role"
+          :disabled="isCreating || !form.email || !form.password || !form.confirmPassword || form.password !== form.confirmPassword || !form.role"
           severity="success"
           size="small"
           :loading="isCreating"
@@ -144,6 +165,7 @@ const emit = defineEmits(['close', 'created'])
 const form = ref({
   email: '',
   password: '',
+  confirmPassword: '',
   role: 'viewer'
 })
 
@@ -168,14 +190,38 @@ const createUser = async () => {
   isCreating.value = true
   error.value = ''
 
+  // Validate password confirmation
+  if (!form.value.password) {
+    error.value = 'Inserisci la password'
+    isCreating.value = false
+    return
+  }
+  if (!form.value.confirmPassword) {
+    error.value = 'Conferma la password'
+    isCreating.value = false
+    return
+  }
+  if (form.value.password !== form.value.confirmPassword) {
+    error.value = 'Le password non coincidono'
+    isCreating.value = false
+    return
+  }
+
   try {
+    // Don't send confirmPassword to backend
+    const userData = {
+      email: form.value.email,
+      password: form.value.password,
+      role: form.value.role
+    }
+
     const response = await fetch(`${API_BASE}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       credentials: 'include', // Include HttpOnly cookies
-      body: JSON.stringify(form.value)
+      body: JSON.stringify(userData)
     })
 
     const data = await response.json()

@@ -102,19 +102,42 @@
           </label>
         </div>
         
-        <div v-if="changePassword">
-          <label for="password" class="block text-sm font-medium text-text mb-2">
-            Nuova Password *
-          </label>
-          <Password
-            id="password"
-            v-model="form.password"
-            :feedback="false"
-            toggleMask
-            class="w-full"
-            placeholder="Password sicura"
-            :required="changePassword"
-          />
+        <div v-if="changePassword" class="space-y-4">
+          <div>
+            <label for="password" class="block text-sm font-medium text-text mb-2">
+              Nuova Password *
+            </label>
+            <Password
+              id="password"
+              v-model="form.password"
+              :feedback="false"
+              toggleMask
+              class="w-full"
+              placeholder="Password sicura"
+              :required="changePassword"
+            />
+          </div>
+
+          <div>
+            <label for="confirmPassword" class="block text-sm font-medium text-text mb-2">
+              Conferma Password *
+            </label>
+            <Password
+              id="confirmPassword"
+              v-model="form.confirmPassword"
+              :feedback="false"
+              toggleMask
+              class="w-full"
+              placeholder="Conferma password"
+              :required="changePassword"
+              :invalid="changePassword && form.confirmPassword && form.password !== form.confirmPassword"
+            />
+            <div v-if="changePassword && form.confirmPassword && form.password !== form.confirmPassword"
+                 class="mt-1 text-sm text-red-500">
+              Le password non coincidono
+            </div>
+          </div>
+
           <div class="mt-2 text-xs text-text-muted">
             <div class="font-medium mb-1">Requisiti password:</div>
             <ul class="list-disc list-inside space-y-0.5">
@@ -144,7 +167,7 @@
         </Button>
         <Button
           @click="updateUser"
-          :disabled="isUpdating || !form.email || !form.role"
+          :disabled="isUpdating || !form.email || !form.role || (changePassword && (!form.password || !form.confirmPassword || form.password !== form.confirmPassword))"
           severity="info"
           size="small"
           :loading="isUpdating"
@@ -187,7 +210,8 @@ const form = ref({
   email: '',
   role: '',
   is_active: true,
-  password: ''
+  password: '',
+  confirmPassword: ''
 })
 
 const changePassword = ref(false)
@@ -208,7 +232,8 @@ onMounted(() => {
     email: props.user.email,
     role: props.user.role,
     is_active: props.user.is_active,
-    password: ''
+    password: '',
+    confirmPassword: ''
   }
 })
 
@@ -220,6 +245,25 @@ const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
 const updateUser = async () => {
   isUpdating.value = true
   error.value = ''
+
+  // Validate password confirmation if changing password
+  if (changePassword.value) {
+    if (!form.value.password) {
+      error.value = 'Inserisci la nuova password'
+      isUpdating.value = false
+      return
+    }
+    if (!form.value.confirmPassword) {
+      error.value = 'Conferma la password'
+      isUpdating.value = false
+      return
+    }
+    if (form.value.password !== form.value.confirmPassword) {
+      error.value = 'Le password non coincidono'
+      isUpdating.value = false
+      return
+    }
+  }
 
   try {
     const updateData = {
