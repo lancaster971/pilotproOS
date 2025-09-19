@@ -27,7 +27,9 @@ export class JwtAuthService {
   constructor(config) {
     this.config = { ...defaultAuthConfig, ...config };
     this.db = dbPool;
-    
+    this.maxRetries = 3;
+    this.retryDelay = 1000; // 1 second
+
     if (this.config.jwtSecret.length < 32) {
       throw new Error('JWT_SECRET deve essere almeno 32 caratteri');
     }
@@ -150,13 +152,34 @@ export class JwtAuthService {
       // Check for rate limiting based on failed attempts
       await this.checkLoginRateLimit(email, clientIP);
 
-      const result = await this.db`
-        SELECT
-          id, email, password_hash, role,
-          created_at, last_login
-        FROM pilotpros.users
-        WHERE email = ${email} AND is_active = true
-      `;
+      // Retry mechanism for database query
+      let result = null;
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+        try {
+          result = await this.db`
+            SELECT
+              id, email, password_hash, role,
+              created_at, last_login
+            FROM pilotpros.users
+            WHERE email = ${email} AND is_active = true
+          `;
+          break; // Success, exit retry loop
+        } catch (error) {
+          lastError = error;
+          console.error(`⚠️ [JWT Auth] Database query attempt ${attempt} failed:`, error.message);
+
+          if (attempt < this.maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+          }
+        }
+      }
+
+      if (!result) {
+        throw new Error(`Database connection failed after ${this.maxRetries} attempts: ${lastError?.message}`);
+      }
+
       const userRecord = result[0];
 
       if (!userRecord) {

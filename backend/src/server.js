@@ -4543,21 +4543,31 @@ app.use((req, res) => {
   });
 });
 
+// Import graceful shutdown handler
+import { gracefulShutdown } from './db/connection.js';
+
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('🔄 SIGTERM received, shutting down gracefully...');
-  dbPool.end(() => {
-    console.log('✅ Database connections closed');
-    process.exit(0);
-  });
+  await gracefulShutdown();
+  process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('🔄 SIGINT received, shutting down gracefully...');
-  dbPool.end(() => {
-    console.log('✅ Database connections closed');
-    process.exit(0);
-  });
+  await gracefulShutdown();
+  process.exit(0);
+});
+
+// Handle uncaught errors to prevent connection leaks
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  gracefulShutdown().then(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown().then(() => process.exit(1));
 });
 
 // ============================================================================
