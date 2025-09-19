@@ -1,4 +1,6 @@
-# CLAUDE.md
+# 📋 CLAUDE.md - PROJECT GUIDE
+
+**READ THIS FIRST** - Complete project guide and documentation index
 
 PilotProOS - Containerized Business Process Operating System
 
@@ -80,7 +82,7 @@ npm run test              # All tests in Docker
 
 ## 🚀 **CURRENT STATUS**
 
-### **Production Ready Features** ✅
+### **Development Ready Features** ✅ (LOCAL ONLY)
 - ✅ **Authentication System**: Completo e funzionante
 - ✅ **PostgreSQL**: Dual schema con workflows
 - ✅ **Vue 3 + VueFlow**: Enterprise visualization
@@ -90,6 +92,13 @@ npm run test              # All tests in Docker
 - ✅ **CLI Stack Manager**: Auto-start Container Engine
 - ✅ **Password Security**: Double confirmation
 - ✅ **Timeline Analysis**: Pattern-based
+
+### **Production Deployment** 🔴 **DA IMPLEMENTARE**
+- 🔴 **VPS Configurations**: docker-compose.vps.yml missing
+- 🔴 **Environment Detection**: Auto-tier selection missing
+- 🔴 **SSL Automation**: Let's Encrypt integration missing
+- 🔴 **VPS Templates**: Golden image creation needed
+- 🔴 **Enterprise Scripts**: Multi-environment deployment missing
 
 ### **CLI Stack Manager Features** 🎯
 - Password authentication con asterischi mascherati
@@ -104,21 +113,35 @@ npm run test              # All tests in Docker
 
 ## 📚 **DOCUMENTATION**
 
-### Core Tech
-- `architecture.md` - Technical architecture
-- `security.md` - Security controls
-- `postgresql-setup.md` - Database setup
+### Structure (Reorganized 2025-09-19)
+```
+docs/
+├── IMPLEMENTED/     # What works NOW
+│   └── CURRENT_ARCHITECTURE.md
+├── TODO/           # What needs implementation
+│   └── PRODUCTION_DEPLOYMENT_TODO.md
+└── STRATEGY/       # Future plans
+    ├── VPS_TEMPLATE_STRATEGY.md
+    └── ENTERPRISE_SCRIPTING_STRATEGY.md
+```
 
-### Development
-- `developer-access-instructions.md` - Developer setup
-- `workflows.md` - Workflow guidelines
-- `Business_Intelligence_Service.md` - Timeline analysis
+### Reading Sequence (START HERE)
+1. **FIRST**: `docs/README.md` - Documentation index and navigation
+2. **For developers**: `docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md` - What works now
+3. **For tech details**: `docs/IMPLEMENTED/architecture.md` - Technical design
+4. **For next steps**: `docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md` - Implementation priorities
+5. **For business**: `docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md` - Deployment strategy
 
-### Deployment
-- `deployment.md` - Deployment overview
-- `VPS_DEPLOYMENT_GUIDE.md` - VPS deployment (2-4GB RAM)
-- `ENTERPRISE_SERVER_OPTIMIZATION.md` - Enterprise setup (16GB+ RAM)
-- `CUSTOMIZATION-STRATEGY.md` - White-label customization
+### Quick Commands Reference
+```bash
+# Development
+npm run dev               # Start local development stack
+./stack                   # Interactive CLI manager (password: PilotPro2025!)
+
+# Access points
+http://localhost:3000     # Business Portal (tiziano@gmail.com / testtest123)
+http://localhost:3005     # Stack Controller (admin / PilotPro2025!)
+```
 
 ---
 
