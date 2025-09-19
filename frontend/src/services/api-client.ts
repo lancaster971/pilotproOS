@@ -12,7 +12,9 @@ const baseFetch = ofetch.create({
   baseURL: import.meta.env.VITE_API_URL || API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  // CRITICAL: Include cookies for authentication!
+  credentials: 'include' // This sends HttpOnly cookies with every request
 })
 
 // Auth API - Clean OFETCH implementation

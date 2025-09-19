@@ -151,10 +151,10 @@ export class JwtAuthService {
       await this.checkLoginRateLimit(email, clientIP);
 
       const result = await this.db`
-        SELECT 
+        SELECT
           id, email, password_hash, role,
           created_at, last_login
-        FROM pilotpros.users 
+        FROM pilotpros.users
         WHERE email = ${email} AND is_active = true
       `;
       const userRecord = result[0];

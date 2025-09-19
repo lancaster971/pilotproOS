@@ -62,6 +62,7 @@ import authController from './controllers/auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
+import { businessAuthMiddleware } from './middleware/business-auth.middleware.js';
 
 // Health Check Controller - TEMPORARILY DISABLED
 // import healthController from './controllers/health.controller.js';
@@ -362,15 +363,20 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
 // BUSINESS MIDDLEWARE (Applied after icon routes)
 // ============================================================================
 
-// Apply business middleware to all /api/business/* routes
+// SECURITY: Apply authentication to ALL business routes
+app.use('/api/business/*', businessAuthMiddleware);
+
+// Additional security headers for business routes
 app.use('/api/business/*', (req, res, next) => {
-  console.log('🔒 [Business Middleware] Processing request:', req.url);
-  
+  console.log('🔒 [Business Security] Additional headers applied');
+
   // Security headers
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('X-Frame-Options', 'DENY');
   res.set('X-XSS-Protection', '1; mode=block');
-  
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
   next();
 });
 

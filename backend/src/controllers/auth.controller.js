@@ -7,6 +7,14 @@
 import express from 'express';
 import { getAuthService } from '../auth/jwt-auth.js';
 import { DatabaseConnection } from '../database/connection.js';
+import {
+  loginRateLimiter,
+  progressiveDelay,
+  recordFailedLogin,
+  clearFailedAttempts,
+  registrationLimiter,
+  passwordResetLimiter
+} from '../middleware/auth-rate-limiting.js';
 // import { resolveTenantId, validateTenantId, getTenantConfig } from '../config/tenant-config.js'; // Temporarily disabled
 
 const router = express.Router();
@@ -71,7 +79,7 @@ router.get('/config', async (req, res) => {
   });
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimiter, progressiveDelay, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -83,6 +91,9 @@ router.post('/login', async (req, res) => {
     }
 
     const { user, accessToken, refreshToken } = await authService.login(email, password, req.ip);
+
+    // Clear failed attempts on successful login
+    clearFailedAttempts(req);
 
     // Set secure HttpOnly cookies
     authService.setAuthCookies(res, accessToken, refreshToken);
@@ -109,6 +120,9 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
+    // Record failed login attempt for rate limiting
+    recordFailedLogin(req);
+
     // Log audit fallimento
     await logAuditAction({
       action: 'login',
@@ -170,7 +184,8 @@ router.post('/login', async (req, res) => {
  *       401:
  *         description: Unauthorized
  */
-router.post('/register', 
+router.post('/register',
+  registrationLimiter,
   authService.authenticateToken(),
   authService.requirePermission('users:write'),
   async (req, res) => {
