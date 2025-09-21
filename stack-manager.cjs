@@ -9,7 +9,6 @@ const readline = require('readline');
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs');
 const execAsync = util.promisify(exec);
 
 // Service mappings
@@ -114,9 +113,10 @@ class StackManager {
   }
 
   async run() {
-    await this.authenticate();
+    // Skip authentication - local tool only
+    // await this.authenticate();
 
-    // Create readline interface AFTER authentication
+    // Create readline interface immediately
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -176,7 +176,7 @@ class StackManager {
       const validPassword = await bcrypt.compare(password, authConfig.users.admin.passwordHash);
 
       if (validPassword) {
-        // Create session
+        // Create session with correct timestamp
         const session = {
           user: 'admin',
           timestamp: Date.now()
