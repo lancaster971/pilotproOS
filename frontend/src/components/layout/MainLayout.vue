@@ -50,7 +50,7 @@
       <!-- Premium Enterprise Sidebar -->
       <aside
         :class="sidebarCollapsed ? 'w-16' : 'w-64'"
-        class="flex-shrink-0 relative h-screen bg-gray-900"
+        class="flex-shrink-0 fixed left-0 top-10 h-screen bg-gray-900 z-40"
         style="height: calc(100vh - 2.5rem);"
       >
         <!-- Glass morphism backdrop -->
@@ -58,16 +58,6 @@
 
         <!-- Content -->
         <div class="sidebar-content-main">
-          <!-- Logo Section -->
-          <div v-if="!sidebarCollapsed" class="sidebar-header-main">
-            <div class="sidebar-logo-main">
-              <div class="logo-text-main">
-                <h2 class="logo-title-main">PilotPro OS</h2>
-                <p class="logo-subtitle-main">Enterprise Command</p>
-              </div>
-            </div>
-          </div>
-
           <!-- Navigation -->
           <nav class="sidebar-nav-main">
             <router-link
@@ -109,7 +99,7 @@
             <div class="status-container-main">
               <div v-if="!sidebarCollapsed" class="status-indicator-main">
                 <div class="status-dot-main"></div>
-                <span class="status-text-main">Sistema Operativo</span>
+                <span class="status-text-main">Stack Running</span>
               </div>
               <div v-else class="flex justify-center">
                 <div class="status-dot-main"></div>
@@ -142,7 +132,11 @@
       <!-- Main content area -->
       <main
         class="flex-1"
-        style="transition: margin-left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); will-change: margin-left;"
+        :style="{
+          marginLeft: sidebarCollapsed ? '64px' : '256px',
+          transition: 'margin-left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          willChange: 'margin-left'
+        }"
       >
         <div class="p-6">
           <slot />
@@ -374,7 +368,7 @@ onMounted(() => {
 
 /* Navigation */
 .sidebar-nav-main {
-  @apply flex-1 px-3 py-4 space-y-1;
+  @apply flex-1 px-3 pt-6 py-4 space-y-1;
 }
 
 /* Nav items */
