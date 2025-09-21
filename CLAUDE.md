@@ -85,7 +85,7 @@ npm run test              # All tests in Docker
 - **CLI Manager**: Password mascherata con asterischi
 
 ### **Credenziali Predefinite**:
-- **Frontend**: tiziano@gmail.com / testtest123
+- **Frontend**: tiziano@gmail.com / Hamlet@108
 - **Stack Controller**: admin / PilotPro2025!
 - **n8n**: admin / pilotpros_admin_2025
 

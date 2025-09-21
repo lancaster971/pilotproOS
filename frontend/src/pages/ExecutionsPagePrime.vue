@@ -32,35 +32,42 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div class="control-card p-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.total }}</p>
             <p class="text-xs text-gray-400">Totali</p>
           </div>
         </div>
-        
+
         <div class="control-card p-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.success }}</p>
             <p class="text-xs text-gray-400">Success</p>
           </div>
         </div>
-        
+
         <div class="control-card p-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.error }}</p>
             <p class="text-xs text-gray-400">Error</p>
           </div>
         </div>
-        
+
+        <div class="control-card p-4">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-white">{{ executionStats.canceled }}</p>
+            <p class="text-xs text-gray-400">Canceled</p>
+          </div>
+        </div>
+
         <div class="control-card p-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.running }}</p>
             <p class="text-xs text-gray-400">Running</p>
           </div>
         </div>
-        
+
         <div class="control-card p-4">
           <div class="text-center">
             <p class="text-2xl font-bold text-white">{{ executionStats.waiting }}</p>
@@ -89,6 +96,7 @@
             <option value="all">Any Status ({{ executionStats.total }})</option>
             <option value="success">Success ({{ executionStats.success }})</option>
             <option value="error">Error ({{ executionStats.error }})</option>
+            <option value="canceled">Canceled ({{ executionStats.canceled }})</option>
             <option value="running">Running ({{ executionStats.running }})</option>
             <option value="waiting">Waiting ({{ executionStats.waiting }})</option>
           </select>
@@ -102,75 +110,90 @@
         </div>
       </div>
 
-      <!-- Executions Table -->
-      <div class="control-card overflow-hidden">
+      <!-- Executions Table - Excel Dark Style -->
+      <div class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full border-collapse">
             <thead>
-              <tr class="border-b border-gray-800">
-                <th class="text-left p-4 text-sm font-medium text-gray-400">
-                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+              <tr class="bg-gray-800 border-b-2 border-gray-600">
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-center w-8">
+                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600" />
                 </th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Workflow</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Status</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Started</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Run Time</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Exec. ID</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">A<br/>Workflow</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">B<br/>Status</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">C<br/>Started</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">D<br/>Run Time</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">E<br/>Exec. ID</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="6" class="p-8 text-center text-gray-500">
+                <td colspan="6" class="px-2 py-8 text-center text-gray-500 bg-gray-900">
                   <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
                   Nessuna execution trovata
                 </td>
               </tr>
-              
+
               <tr
-                v-for="execution in filteredExecutions"
+                v-for="(execution, index) in filteredExecutions"
                 :key="execution.id"
-                class="border-b border-gray-800/50 hover:bg-gray-900/30 transition-colors cursor-pointer"
+                class="border-b border-gray-700 hover:bg-gray-800 cursor-pointer"
+                :class="{ 'bg-gray-900': index % 2 === 0, 'bg-gray-850': index % 2 === 1 }"
                 @click="openExecutionDetails(execution)"
               >
-                <td class="p-4">
-                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+                <td class="border-r border-gray-700 px-2 py-1 text-center">
+                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600" />
                 </td>
-                
-                <td class="p-4">
-                  <div class="font-medium text-white max-w-xs">
-                    <span class="truncate block hover:text-green-400 transition-colors" :title="execution.process_name">
+
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <div class="text-xs text-gray-100 max-w-xs">
+                    <span class="truncate block" :title="execution.process_name">
                       {{ execution.processName }}
                     </span>
                   </div>
                 </td>
                 
-                <td class="p-4">
-                  <div
-                    v-if="execution.originalStatus === 'canceled'"
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <!-- Success Status -->
+                  <span
+                    v-if="execution.originalStatus === 'success'"
+                    class="text-xs text-green-300 font-bold"
                   >
-                    <span>❓</span>
-                    <span>Unknown Status</span>
-                  </div>
-                  <div
+                    SUCCESS
+                  </span>
+                  <!-- Error Status -->
+                  <span
+                    v-else-if="execution.originalStatus === 'error'"
+                    class="text-xs text-red-300 font-bold"
+                  >
+                    ERROR
+                  </span>
+                  <!-- Canceled Status -->
+                  <span
+                    v-else-if="execution.originalStatus === 'canceled'"
+                    class="text-xs text-yellow-300 font-bold"
+                  >
+                    CANCELED
+                  </span>
+                  <!-- Unknown Status (fallback) -->
+                  <span
                     v-else
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/30"
+                    class="text-xs text-white font-bold"
                   >
-                    <span>✅</span>
-                    <span>Completed Successfully</span>
-                  </div>
+                    {{ (execution.originalStatus || 'UNKNOWN').toUpperCase() }}
+                  </span>
                 </td>
                 
-                <td class="p-4 text-sm text-gray-300">
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
                   {{ formatTime(execution.processRunStarted) }}
                 </td>
                 
-                <td class="p-4 text-sm text-gray-300 font-mono">
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
                   {{ formatDuration(execution.processRunDuration * 1000) }}
                 </td>
                 
-                <td class="p-4 text-sm text-gray-300 font-mono">
-                  {{ execution.processRunId }}
+                <td class="border-gray-700 px-2 py-1 text-xs text-gray-400">
+                  #{{ execution.processRunId }}
                 </td>
               </tr>
             </tbody>
@@ -254,6 +277,7 @@ const executionStats = computed(() => {
     total: executions.value.length,
     success: executions.value.filter(e => e.statusKey === 'success').length,
     error: executions.value.filter(e => e.statusKey === 'error').length,
+    canceled: executions.value.filter(e => e.statusKey === 'canceled').length,
     running: executions.value.filter(e => e.statusKey === 'running').length,
     waiting: executions.value.filter(e => e.statusKey === 'waiting').length,
   }
@@ -290,26 +314,31 @@ const totalPages = computed(() => {
 })
 
 const normalizeStatus = (status?: string | null, label?: string | null) => {
-  const raw = (status || '').toLowerCase()
-  const labelValue = (label || '').toLowerCase()
-  const value = raw || labelValue
+  // Use n8n exact status values
+  const raw = (status || '').toLowerCase().trim()
 
-  // If empty status, default to success
-  if (!value || value === '') {
-    console.log('⚠️ Empty status detected, defaulting to success')
-    return 'success'
+  // Map n8n statuses directly
+  switch (raw) {
+    case 'success':
+      return 'success'
+    case 'error':
+      return 'error'
+    case 'canceled':
+      return 'canceled'
+    case 'running':
+      return 'running'
+    case 'waiting':
+      return 'waiting'
+    default:
+      // If empty status, default to success
+      if (!raw) {
+        console.log('⚠️ Empty status detected, defaulting to success')
+        return 'success'
+      }
+      // Log unexpected status
+      console.log('📊 Unexpected status:', status, '→ keeping as is')
+      return raw
   }
-
-  if (value.includes('success')) return 'success'
-  if (value.includes('error') || value.includes('fail') || value.includes('attention') || value.includes('crash')) return 'error'
-  if (value.includes('running') || value.includes('progress')) return 'running'
-  if (value.includes('wait') || value.includes('pause') || value.includes('queue')) return 'waiting'
-  if (value.includes('stop')) return 'waiting'
-  if (value.includes('unknown')) return 'unknown'
-
-  // Default to success for unrecognized statuses
-  console.log('📊 Unrecognized status:', value, '→ defaulting to success')
-  return 'success'
 }
 
 const mapExecution = (execution: any) => {
@@ -321,6 +350,7 @@ const mapExecution = (execution: any) => {
 
   return {
     ...execution,
+    originalStatus: execution.originalStatus, // ENSURE originalStatus is preserved!
     statusKey,
     // Ensure we always have a status label
     processRunStatus: {
