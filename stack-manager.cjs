@@ -14,11 +14,11 @@ const execAsync = util.promisify(exec);
 
 // Service mappings
 const services = {
-  '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres' },
-  '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend' },
-  '3': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend' },
-  '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-n8n' },
-  '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-stack-controller' }
+  '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
+  '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
+  '3': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend-dev' },
+  '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
+  '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };
 
 // Colors
@@ -492,15 +492,45 @@ class StackManager {
     printHeader();
     console.log(`\n${colors.yellow}Starting all services...${colors.reset}\n`);
 
-    const order = ['postgres', 'n8n', 'backend', 'frontend', 'stack'];
+    // First check if containers exist
+    const checkResult = await dockerExec('docker ps -a --format "{{.Names}}"');
+    const existingContainers = checkResult.output.split('\n').filter(name => name);
 
-    for (const key of order) {
-      const service = Object.values(services).find(s => s.container.includes(key));
-      if (service) {
-        process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
-        const result = await dockerExec(`docker start ${service.container}`);
-        console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
-        await sleep(1000);
+    // Check if our containers exist
+    const ourContainers = Object.values(services).map(s => s.container);
+    const missingContainers = ourContainers.filter(c => !existingContainers.includes(c));
+
+    if (missingContainers.length > 0) {
+      console.log(`${colors.yellow}Containers not found. Creating with docker-compose...${colors.reset}\n`);
+
+      // Use docker-compose to create and start all services
+      process.stdout.write('  Creating and starting services...');
+      const composeResult = await dockerExec('docker-compose up -d');
+
+      if (composeResult.success) {
+        console.log(` ${colors.green}✓${colors.reset}`);
+        console.log(`\n${colors.yellow}Waiting for services to be ready...${colors.reset}`);
+        await sleep(10000); // Wait for services to initialize
+      } else {
+        console.log(` ${colors.red}✗${colors.reset}`);
+        console.log(`${colors.red}Error: ${composeResult.error}${colors.reset}`);
+        this.rl.question('\nPress Enter to continue...', () => {
+          this.mainLoop();
+        });
+        return;
+      }
+    } else {
+      // Containers exist, just start them
+      const order = ['postgres', 'automation-engine', 'backend', 'frontend', 'nginx'];
+
+      for (const key of order) {
+        const service = Object.values(services).find(s => s.container.includes(key));
+        if (service) {
+          process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
+          const result = await dockerExec(`docker start ${service.container}`);
+          console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+          await sleep(1000);
+        }
       }
     }
 
@@ -551,15 +581,32 @@ class StackManager {
           // Ensure Docker is running first
           await this.checkDocker();
 
-          const order = ['postgres', 'n8n', 'backend', 'frontend', 'stack'];
+          // Check if containers exist first
+          const checkResult = await dockerExec('docker ps -a --format "{{.Names}}"');
+          const existingContainers = checkResult.output.split('\n').filter(name => name);
+          const ourContainers = Object.values(services).map(s => s.container);
+          const missingContainers = ourContainers.filter(c => !existingContainers.includes(c));
 
-          for (const key of order) {
-            const service = Object.values(services).find(s => s.container.includes(key));
-            if (service) {
-              process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
-              const result = await dockerExec(`docker start ${service.container}`);
-              console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
-              await sleep(1000);
+          if (missingContainers.length > 0) {
+            // Use docker-compose to create containers
+            process.stdout.write('  Creating containers with docker-compose...');
+            const composeResult = await dockerExec('docker-compose up -d');
+            console.log(composeResult.success ? ` ${colors.green}✓${colors.reset}` : ` ${colors.red}✗${colors.reset}`);
+            if (!composeResult.success) {
+              console.log(`${colors.red}Error: ${composeResult.error}${colors.reset}`);
+            }
+          } else {
+            // Containers exist, start them in order
+            const order = ['postgres', 'automation-engine', 'backend', 'frontend', 'nginx'];
+
+            for (const key of order) {
+              const service = Object.values(services).find(s => s.container.includes(key));
+              if (service) {
+                process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
+                const result = await dockerExec(`docker start ${service.container}`);
+                console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+                await sleep(1000);
+              }
             }
           }
 
