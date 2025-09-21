@@ -116,12 +116,11 @@
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Started</th>
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Run Time</th>
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Exec. ID</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400"></th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="7" class="p-8 text-center text-gray-500">
+                <td colspan="6" class="p-8 text-center text-gray-500">
                   <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
                   Nessuna execution trovata
                 </td>
@@ -146,12 +145,12 @@
                 </td>
                 
                 <td class="p-4">
-                  <span 
+                  <span
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
-                    :class="getStatusClass(execution.originalStatus)"
+                    :class="getStatusClass(execution.statusKey)"
                   >
-                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.originalStatus)" />
-                    {{ execution.processRunStatus?.label || getStatusLabel(execution.originalStatus) }}
+                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.statusKey)" />
+                    {{ execution.processRunStatus?.label || getStatusLabel(execution.statusKey) }}
                   </span>
                 </td>
                 
@@ -165,12 +164,6 @@
                 
                 <td class="p-4 text-sm text-gray-300 font-mono">
                   {{ execution.processRunId }}
-                </td>
-                
-                <td class="p-4">
-                  <button class="p-1 text-gray-400 hover:text-white transition-colors">
-                    <MoreHorizontal class="h-4 w-4" />
-                  </button>
                 </td>
               </tr>
             </tbody>
@@ -207,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Search, Play, MoreHorizontal } from 'lucide-vue-next'
+import { RefreshCw, Search, Play } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
 import { businessAPI } from '../services/api-client'
@@ -228,10 +221,10 @@ const selectedExecutionId = ref<string>('')
 // Computed
 const executionStats = computed(() => ({
   total: executions.value.length,
-  success: executions.value.filter(e => e.originalStatus === 'success').length,
-  error: executions.value.filter(e => e.originalStatus === 'error').length,
-  running: executions.value.filter(e => e.originalStatus === 'running').length,
-  waiting: executions.value.filter(e => e.originalStatus === 'waiting').length,
+  success: executions.value.filter(e => e.statusKey === 'success').length,
+  error: executions.value.filter(e => e.statusKey === 'error').length,
+  running: executions.value.filter(e => e.statusKey === 'running').length,
+  waiting: executions.value.filter(e => e.statusKey === 'waiting').length,
 }))
 
 const filteredExecutions = computed(() => {
@@ -241,7 +234,7 @@ const filteredExecutions = computed(() => {
                          String(execution.processRunId).includes(searchTerm.value)
 
     // Status filter
-    const matchesStatus = statusFilter.value === 'all' || execution.originalStatus === statusFilter.value
+    const matchesStatus = statusFilter.value === 'all' || execution.statusKey === statusFilter.value
 
     // Workflow filter
     const matchesWorkflow = workflowFilter.value === 'all' || execution.processId === workflowFilter.value
@@ -249,6 +242,28 @@ const filteredExecutions = computed(() => {
     return matchesSearch && matchesStatus && matchesWorkflow
   })
 })
+
+const normalizeStatus = (status?: string | null, label?: string | null) => {
+  const raw = (status || '').toLowerCase()
+  const labelValue = (label || '').toLowerCase()
+  const value = raw || labelValue
+
+  if (value.includes('success')) return 'success'
+  if (value.includes('error') || value.includes('fail') || value.includes('attention') || value.includes('crash')) return 'error'
+  if (value.includes('running') || value.includes('progress')) return 'running'
+  if (value.includes('wait') || value.includes('pause') || value.includes('queue')) return 'waiting'
+  if (value.includes('stop')) return 'waiting'
+
+  return 'unknown'
+}
+
+const mapExecution = (execution: any) => {
+  const statusKey = normalizeStatus(execution.originalStatus, execution.processRunStatus?.label)
+  return {
+    ...execution,
+    statusKey,
+  }
+}
 
 // Methods
 const refreshExecutions = async () => {
@@ -258,7 +273,7 @@ const refreshExecutions = async () => {
     const data = await businessAPI.getProcessExecutions()
     
     if (data.processRuns && Array.isArray(data.processRuns)) {
-      executions.value = data.processRuns
+      executions.value = data.processRuns.map(mapExecution)
     } else {
       executions.value = []
     }

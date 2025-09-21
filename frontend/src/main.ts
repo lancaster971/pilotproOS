@@ -84,28 +84,24 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard - RIABILITATO con fix autenticazione
+// Auth guard - verifica cookie HttpOnly prima di decidere le route
 router.beforeEach(async (to, from, next) => {
-  // Skip auth only for login page
-  if (to.name === 'login') {
-    next()
-    return
-  }
-
   const { useAuthStore } = await import('./stores/auth')
   const authStore = useAuthStore()
 
-  // Check if route requires authentication
+  await authStore.ensureInitialized()
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    // Redirect to login if not authenticated
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Redirect to insights if already authenticated
-    next({ name: 'insights' })
-  } else {
-    // Proceed normally
-    next()
+    return
   }
+
+  if (to.name === 'login' && authStore.isAuthenticated) {
+    next({ name: 'insights' })
+    return
+  }
+
+  next()
 })
 
 // Create app with same structure as n8n

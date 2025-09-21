@@ -1,39 +1,123 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '../types'
-import { authAPI } from '../services/api-client'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State - same pattern as n8n stores
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('pilotpro_token'))
+  const token = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const autoLogoutTimer = ref<NodeJS.Timeout | null>(null)
+  const isInitialized = ref(false)
 
-  // Getters
-  const isAuthenticated = computed(() => !!token.value)
+  const tokenRefreshTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+  const inactivityTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+  let initializationPromise: Promise<boolean> | null = null
+
+  const ACCESS_TOKEN_REFRESH_INTERVAL_MS = 13 * 60 * 1000
+  const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000
+
+  const isAuthenticated = computed(() => !!user.value)
   const tenantId = computed(() => user.value?.tenantId || 'client_simulation_a')
 
-  // Actions - HttpOnly cookies + real API
+  const clearTokenRefreshTimer = () => {
+    if (tokenRefreshTimer.value) {
+      clearTimeout(tokenRefreshTimer.value)
+      tokenRefreshTimer.value = null
+    }
+  }
+
+  const clearInactivityTimer = () => {
+    if (inactivityTimer.value) {
+      clearTimeout(inactivityTimer.value)
+      inactivityTimer.value = null
+    }
+  }
+
+  const clearAutoLogoutTimer = () => {
+    clearTokenRefreshTimer()
+    clearInactivityTimer()
+  }
+
+  const scheduleTokenRefresh = () => {
+    clearTokenRefreshTimer()
+
+    tokenRefreshTimer.value = setTimeout(async () => {
+      console.log('🔄 Auto-refresh: Refreshing token before expiry...')
+
+      try {
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          console.log('✅ Token refreshed successfully!')
+          scheduleTokenRefresh()
+        } else {
+          console.log('❌ Token refresh failed, logging out')
+          await logout()
+          error.value = 'Sessione scaduta. Effettua nuovamente il login.'
+        }
+      } catch (err) {
+        console.error('❌ Error refreshing token:', err)
+        scheduleTokenRefresh()
+      }
+    }, ACCESS_TOKEN_REFRESH_INTERVAL_MS)
+  }
+
+  const scheduleInactivityLogout = () => {
+    clearInactivityTimer()
+
+    inactivityTimer.value = setTimeout(async () => {
+      console.log('⏳ Session expired due to inactivity, logging out...')
+      await logout()
+      error.value = 'Sessione scaduta per inattività.'
+    }, INACTIVITY_TIMEOUT_MS)
+  }
+
+  const setAutoLogoutTimer = () => {
+    scheduleTokenRefresh()
+    scheduleInactivityLogout()
+  }
+
+  const markInitialized = () => {
+    if (!isInitialized.value) {
+      isInitialized.value = true
+    }
+  }
+
+  const handleAuthSuccess = (data: { id: string; email: string; role: string; createdAt?: string }) => {
+    user.value = {
+      id: data.id,
+      email: data.email,
+      name: data.email.split('@')[0],
+      role: data.role,
+      tenantId: 'pilotpros_client',
+      createdAt: data.createdAt || new Date().toISOString(),
+    }
+
+    token.value = 'authenticated'
+    setAutoLogoutTimer()
+  }
+
   const login = async (email: string, password: string) => {
     isLoading.value = true
     error.value = null
 
     try {
       console.log('🌐 Making fetch to /api/auth/login...')
-      
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include' // Include HttpOnly cookies
+        credentials: 'include'
       })
 
       console.log('📡 Response received:', response.status, response.statusText)
-      
+
       const data = await response.json()
       console.log('📄 Response data:', data)
 
@@ -41,24 +125,15 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.message || 'Login failed')
       }
 
-      // HttpOnly cookies are set automatically by browser
-      user.value = {
+      handleAuthSuccess({
         id: data.user.id,
         email: data.user.email,
-        name: data.user.email.split('@')[0], // Use email prefix as name
-        role: data.user.role,
-        tenantId: 'pilotpros_client',
-        createdAt: new Date().toISOString(),
-      }
+        role: data.user.role
+      })
 
-      // No token in localStorage - it's in HttpOnly cookies
-      token.value = 'authenticated' // Flag for UI state
-      
-      // Set auto-logout timer for 15 minutes (matching access token expiry)
-      setAutoLogoutTimer()
-      
+      markInitialized()
+
       console.log('✅ Login successful with HttpOnly cookies:', user.value)
-      
     } catch (err: any) {
       error.value = err.message || 'Login failed'
       console.error('❌ Login failed:', err)
@@ -70,128 +145,104 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     console.log('🚪 Logout initiated...')
-    
-    // Clear timer first to prevent race conditions
+
     clearAutoLogoutTimer()
-    
+
     try {
-      // Call logout API to clear server-side session
       await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include' // Clear HttpOnly cookies
+        credentials: 'include'
       })
       console.log('✅ Server logout successful')
-    } catch (error) {
-      console.error('❌ Logout API failed (continuing anyway):', error)
+    } catch (err) {
+      console.error('❌ Logout API failed (continuing anyway):', err)
     }
 
-    // Clear all client state immediately
     user.value = null
     token.value = null
     error.value = null
-    localStorage.removeItem('pilotpro_token') // Legacy cleanup
-    
+    isInitialized.value = false
+    initializationPromise = null
+
     console.log('✅ Logout completed - all state cleared')
   }
 
   const initializeAuth = async () => {
-    // Clean up old localStorage token
-    localStorage.removeItem('pilotpro_token')
-    
-    // Check if user is already authenticated via HttpOnly cookies
-    try {
-      const response = await fetch('/api/auth/profile', {
-        credentials: 'include' // Send HttpOnly cookies
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        
-        user.value = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.email.split('@')[0],
-          role: data.user.role,
-          tenantId: 'pilotpros_client',
-          createdAt: data.user.createdAt,
-        }
-        
-        token.value = 'authenticated'
-        setAutoLogoutTimer() // Set timer if already authenticated
-        console.log('✅ Auth initialized from HttpOnly cookies:', user.value)
-      } else {
-        // Silent fail for 401 - user just not authenticated
-        console.log('ℹ️ No existing authentication found (expected)')
-      }
-    } catch (error) {
-      // Suppress network errors on auth init
-      console.log('ℹ️ Auth initialization skipped (no connection)')
+    if (isInitialized.value && !initializationPromise) {
+      return !!user.value
     }
-  }
 
-  // Auto-refresh token management (refresh before expiry)
-  const setAutoLogoutTimer = () => {
-    clearAutoLogoutTimer()
-    
-    // Set timer for 13 minutes to refresh token BEFORE it expires
-    autoLogoutTimer.value = setTimeout(async () => {
-      console.log('🔄 Auto-refresh: Refreshing token before expiry...')
-      
+    if (initializationPromise) {
+      return initializationPromise
+    }
+
+    console.log('🔄 Initializing auth from cookies...')
+
+    initializationPromise = (async () => {
       try {
-        // Call refresh endpoint to get new tokens
-        const response = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include' // Send refresh token cookie
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          credentials: 'include'
         })
-        
+
+        console.log('📡 Profile response status:', response.status)
+
         if (response.ok) {
-          console.log('✅ Token refreshed successfully!')
-          // Reset timer for another 13 minutes
-          setAutoLogoutTimer()
-        } else {
-          // Only logout if refresh fails (refresh token expired after 7 days)
-          console.log('❌ Token refresh failed, logging out')
-          await logout()
-          error.value = 'Sessione scaduta. Effettua nuovamente il login.'
+          const data = await response.json()
+          console.log('✅ Profile data received:', data)
+
+          handleAuthSuccess({
+            id: data.user.id,
+            email: data.user.email,
+            role: data.user.role,
+            createdAt: data.user.createdAt
+          })
+
+          console.log('✅ Auth initialized from HttpOnly cookies:', user.value)
+          return true
         }
+
+        if (response.status !== 401) {
+          const errorText = await response.text()
+          console.log('❌ Auth check failed:', response.status, errorText)
+        }
+
+        return false
       } catch (err) {
-        console.error('❌ Error refreshing token:', err)
-        // Keep user logged in if network error - will retry on next API call
-        setAutoLogoutTimer() // Retry in another 13 minutes
+        console.error('❌ Auth initialization error:', err)
+        return false
+      } finally {
+        markInitialized()
+        initializationPromise = null
       }
-    }, 13 * 60 * 1000) // 13 minutes (refresh 2 minutes before expiry)
+    })()
+
+    return initializationPromise
   }
 
-  const clearAutoLogoutTimer = () => {
-    if (autoLogoutTimer.value) {
-      clearTimeout(autoLogoutTimer.value)
-      autoLogoutTimer.value = null
-    }
-  }
-
-  // Reset timer on user activity
   const resetAutoLogoutTimer = () => {
     if (isAuthenticated.value) {
-      setAutoLogoutTimer()
+      scheduleInactivityLogout()
     }
   }
 
   return {
-    // State
     user,
     token,
     isLoading,
     error,
-    
-    // Getters
+    isInitialized,
     isAuthenticated,
     tenantId,
-    
-    // Actions
     login,
     logout,
     initializeAuth,
     resetAutoLogoutTimer,
     clearAutoLogoutTimer,
+    ensureInitialized: async () => {
+      if (!isInitialized.value) {
+        await initializeAuth()
+      }
+    },
   }
 })
