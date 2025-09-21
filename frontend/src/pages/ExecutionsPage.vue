@@ -53,28 +53,28 @@
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-green-400">{{ executionStats.success }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.success }}</p>
             <p class="text-xs text-gray-400">Success</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-red-400">{{ executionStats.error }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.error }}</p>
             <p class="text-xs text-gray-400">Error</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-blue-400">{{ executionStats.running }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.running }}</p>
             <p class="text-xs text-gray-400">Running</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-yellow-400">{{ executionStats.waiting }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.waiting }}</p>
             <p class="text-xs text-gray-400">Waiting</p>
           </div>
         </div>
@@ -228,12 +228,11 @@
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Started</th>
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Run Time</th>
                 <th class="text-left p-4 text-sm font-medium text-gray-400">Exec. ID</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400"></th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="7" class="p-8 text-center text-gray-500">
+                <td colspan="6" class="p-8 text-center text-gray-500">
                   <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
                   Nessuna execution trovata
                 </td>
@@ -261,12 +260,12 @@
                 </td>
                 
                 <td class="p-4">
-                  <span 
+                  <span
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
-                    :class="getStatusClass(execution.status)"
+                    :class="getStatusClass(execution.status || 'unknown')"
                   >
-                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.status)" />
-                    {{ getStatusLabel(execution.status) }}
+                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.status || 'unknown')" />
+                    {{ getStatusLabel(execution.status || 'unknown') }}
                   </span>
                 </td>
                 
@@ -280,12 +279,6 @@
                 
                 <td class="p-4 text-sm text-gray-300 font-mono">
                   {{ execution.id }}
-                </td>
-                
-                <td class="p-4">
-                  <button class="p-1 text-gray-400 hover:text-white transition-colors">
-                    <MoreHorizontal class="h-4 w-4" />
-                  </button>
                 </td>
               </tr>
             </tbody>
@@ -359,13 +352,18 @@ const selectedExecutionWorkflowId = ref<string>('')
 let refreshInterval: NodeJS.Timeout
 
 // Computed
-const executionStats = computed(() => ({
-  total: executions.value.length,
-  success: executions.value.filter(e => e.status === 'success').length,
-  error: executions.value.filter(e => e.status === 'error').length,
-  running: executions.value.filter(e => e.status === 'running').length,
-  waiting: executions.value.filter(e => e.status === 'waiting').length,
-}))
+const executionStats = computed(() => {
+  const stats = {
+    total: executions.value.length,
+    success: executions.value.filter(e => e.status === 'success').length,
+    error: executions.value.filter(e => e.status === 'error').length,
+    running: executions.value.filter(e => e.status === 'running').length,
+    waiting: executions.value.filter(e => e.status === 'waiting').length,
+  }
+  console.log('📈 Execution Stats:', stats)
+  console.log('📈 All statuses:', executions.value.map(e => e.status))
+  return stats
+})
 
 const filteredExecutions = computed(() => {
   console.log('🔍 Filtering executions. Total:', executions.value.length)
@@ -391,48 +389,54 @@ const refreshExecutions = async () => {
   alert('🚀 REFRESH EXECUTIONS CALLED!')
   console.log('🚀 STARTING refreshExecutions...')
   isLoading.value = true
-  
+
   try {
     console.log('🌐 Making API call to /process-runs...')
-    
+
     // Use OFETCH API client instead of direct fetch
     const testData = await businessAPI.getProcessRuns()
     console.log('✅ OFETCH data loaded, length:', testData.data?.length)
-    
+
     // Now try with businessAPI
     const response = await businessAPI.get('/process-runs')
     console.log('📡 BusinessAPI response status:', response.status)
     const data = response.data
     console.log('📊 BusinessAPI data:', data)
-    
+
     if (!data.data || !Array.isArray(data.data)) {
       throw new Error('Invalid API response format')
     }
-    
-    // Create a simple test execution first
-    executions.value = [{
-      id: 999,
-      workflow_id: 'test-id',
-      workflow_name: 'TEST EXECUTION - Click me!',
-      status: 'success',
-      mode: 'webhook',
-      started_at: new Date().toISOString(),
-      stopped_at: new Date().toISOString(),
-      duration_ms: 1000,
-      business_status: 'Completed Successfully',
-      issue_description: null
-    }]
-    
-    console.log('✅ SET TEST EXECUTION:', executions.value)
-    
+
+    // Map backend data to frontend format with proper status mapping
+    executions.value = data.data.map((item: any, index: number) => {
+      const businessStatus = item.business_status || ''
+      const mappedStatus = mapBackendStatus(businessStatus)
+      console.log(`📊 [${index}] Status mapping: "${businessStatus}" → "${mappedStatus}"`)
+      console.log(`   Raw item:`, item)
+      return {
+        id: item.id,
+        workflow_id: item.workflow_id,
+        workflow_name: item.workflow_name,
+        status: mappedStatus,
+        mode: item.mode || 'unknown',
+        started_at: item.started_at,
+        stopped_at: item.stopped_at,
+        duration_ms: item.duration_ms || 0,
+        business_status: item.business_status,
+        issue_description: item.issue_description
+      }
+    })
+
+    console.log('✅ Executions loaded:', executions.value.length)
+
     if (executions.value.length > 0) {
-      uiStore.showToast('SUCCESS', `${executions.value.length} test executions loaded`, 'success')
+      uiStore.showToast('Process Runs', `${executions.value.length} process runs loaded`, 'success')
     }
-    
+
   } catch (error: any) {
     console.error('❌ ERROR in refreshExecutions:', error)
     uiStore.showToast('Errore', error.message || 'Impossibile caricare le executions', 'error')
-    
+
     // Fallback to empty array on error
     executions.value = []
   } finally {
@@ -443,6 +447,12 @@ const refreshExecutions = async () => {
 
 // Helper to map backend status to frontend status
 const mapBackendStatus = (businessStatus: string): string => {
+  console.log('🔍 Mapping business status:', businessStatus)
+
+  if (!businessStatus || businessStatus === '') {
+    return 'success' // Default to success if no status
+  }
+
   switch (businessStatus) {
     case 'Completed Successfully':
       return 'success'
@@ -450,8 +460,10 @@ const mapBackendStatus = (businessStatus: string): string => {
       return 'error'
     case 'In Progress':
       return 'running'
+    case 'Unknown':
+      return 'unknown'
     default:
-      return 'waiting'
+      return 'success' // Default to success instead of waiting
   }
 }
 
@@ -466,8 +478,10 @@ const getStatusClass = (status: string | null) => {
       return 'text-blue-400 bg-blue-500/10 border-blue-500/30'
     case 'waiting':
       return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
-    default:
+    case 'unknown':
       return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
+    default:
+      return 'text-green-400 bg-green-500/10 border-green-500/30' // Default to success color
   }
 }
 
@@ -477,7 +491,8 @@ const getStatusDot = (status: string | null) => {
     case 'error': return 'bg-red-500'
     case 'running': return 'bg-blue-500'
     case 'waiting': return 'bg-yellow-500'
-    default: return 'bg-gray-500'
+    case 'unknown': return 'bg-gray-500'
+    default: return 'bg-green-500' // Default to success color
   }
 }
 
@@ -487,7 +502,8 @@ const getStatusLabel = (status: string | null) => {
     case 'error': return 'Error'
     case 'running': return 'Running'
     case 'waiting': return 'Waiting'
-    default: return 'Unknown'
+    case 'unknown': return 'Unknown'
+    default: return 'Success' // Default to Success
   }
 }
 

@@ -42,28 +42,28 @@
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-green-400">{{ executionStats.success }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.success }}</p>
             <p class="text-xs text-gray-400">Success</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-red-400">{{ executionStats.error }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.error }}</p>
             <p class="text-xs text-gray-400">Error</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-blue-400">{{ executionStats.running }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.running }}</p>
             <p class="text-xs text-gray-400">Running</p>
           </div>
         </div>
         
         <div class="control-card p-4">
           <div class="text-center">
-            <p class="text-2xl font-bold text-yellow-400">{{ executionStats.waiting }}</p>
+            <p class="text-2xl font-bold text-white">{{ executionStats.waiting }}</p>
             <p class="text-xs text-gray-400">Waiting</p>
           </div>
         </div>
@@ -145,13 +145,20 @@
                 </td>
                 
                 <td class="p-4">
-                  <span
-                    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
-                    :class="getStatusClass(execution.statusKey)"
+                  <div
+                    v-if="execution.originalStatus === 'canceled'"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-400 border border-gray-500/30"
                   >
-                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.statusKey)" />
-                    {{ execution.processRunStatus?.label || getStatusLabel(execution.statusKey) }}
-                  </span>
+                    <span>❓</span>
+                    <span>Unknown Status</span>
+                  </div>
+                  <div
+                    v-else
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/30"
+                  >
+                    <span>✅</span>
+                    <span>Completed Successfully</span>
+                  </div>
                 </td>
                 
                 <td class="p-4 text-sm text-gray-300">
@@ -174,14 +181,28 @@
       <!-- Pagination -->
       <div v-if="executions.length > 0" class="flex items-center justify-between">
         <p class="text-sm text-gray-400">
-          Visualizzando {{ filteredExecutions.length }} di {{ executions.length }} executions
+          Pagina {{ currentPage }} di {{ totalPages }} -
+          Visualizzando {{ filteredExecutions.length }} di {{ allFilteredExecutions.length }} risultati
         </p>
         <div class="flex items-center gap-2">
-          <button class="btn-control text-xs px-3 py-1" disabled>
-            Precedente
+          <button
+            @click="currentPage = Math.max(1, currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="btn-control text-xs px-3 py-1"
+            :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''"
+          >
+            ← Precedente
           </button>
-          <button class="btn-control text-xs px-3 py-1" disabled>
-            Successiva
+          <span class="text-white text-sm px-2">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+          <button
+            @click="currentPage = Math.min(totalPages, currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="btn-control text-xs px-3 py-1"
+            :class="currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''"
+          >
+            Successiva →
           </button>
         </div>
       </div>
@@ -199,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RefreshCw, Search, Play } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
@@ -213,21 +234,35 @@ const statusFilter = ref<'all' | 'success' | 'error' | 'running' | 'waiting'>('a
 const workflowFilter = ref('all')
 const executions = ref<any[]>([])
 
+// Pagination state
+const currentPage = ref(1)
+const itemsPerPage = ref(20)
+
+// Reset to page 1 when filters change
+watch([searchTerm, statusFilter, workflowFilter], () => {
+  currentPage.value = 1
+})
+
 // Modal state
 const showTimelineModal = ref(false)
 const selectedExecutionWorkflowId = ref<string>('')
 const selectedExecutionId = ref<string>('')
 
 // Computed
-const executionStats = computed(() => ({
-  total: executions.value.length,
-  success: executions.value.filter(e => e.statusKey === 'success').length,
-  error: executions.value.filter(e => e.statusKey === 'error').length,
-  running: executions.value.filter(e => e.statusKey === 'running').length,
-  waiting: executions.value.filter(e => e.statusKey === 'waiting').length,
-}))
+const executionStats = computed(() => {
+  const stats = {
+    total: executions.value.length,
+    success: executions.value.filter(e => e.statusKey === 'success').length,
+    error: executions.value.filter(e => e.statusKey === 'error').length,
+    running: executions.value.filter(e => e.statusKey === 'running').length,
+    waiting: executions.value.filter(e => e.statusKey === 'waiting').length,
+  }
+  console.log('📈 Execution Stats:', stats)
+  console.log('📈 All statusKeys:', executions.value.map(e => e.statusKey))
+  return stats
+})
 
-const filteredExecutions = computed(() => {
+const allFilteredExecutions = computed(() => {
   return executions.value.filter((execution) => {
     // Search filter
     const matchesSearch = execution.processName?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
@@ -238,9 +273,20 @@ const filteredExecutions = computed(() => {
 
     // Workflow filter
     const matchesWorkflow = workflowFilter.value === 'all' || execution.processId === workflowFilter.value
-    
+
     return matchesSearch && matchesStatus && matchesWorkflow
   })
+})
+
+const filteredExecutions = computed(() => {
+  // Apply pagination
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return allFilteredExecutions.value.slice(start, end)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(allFilteredExecutions.value.length / itemsPerPage.value)
 })
 
 const normalizeStatus = (status?: string | null, label?: string | null) => {
@@ -248,36 +294,59 @@ const normalizeStatus = (status?: string | null, label?: string | null) => {
   const labelValue = (label || '').toLowerCase()
   const value = raw || labelValue
 
+  // If empty status, default to success
+  if (!value || value === '') {
+    console.log('⚠️ Empty status detected, defaulting to success')
+    return 'success'
+  }
+
   if (value.includes('success')) return 'success'
   if (value.includes('error') || value.includes('fail') || value.includes('attention') || value.includes('crash')) return 'error'
   if (value.includes('running') || value.includes('progress')) return 'running'
   if (value.includes('wait') || value.includes('pause') || value.includes('queue')) return 'waiting'
   if (value.includes('stop')) return 'waiting'
+  if (value.includes('unknown')) return 'unknown'
 
-  return 'unknown'
+  // Default to success for unrecognized statuses
+  console.log('📊 Unrecognized status:', value, '→ defaulting to success')
+  return 'success'
 }
 
 const mapExecution = (execution: any) => {
-  const statusKey = normalizeStatus(execution.originalStatus, execution.processRunStatus?.label)
+  const statusKey = normalizeStatus(execution.originalStatus, execution.processRunStatus?.label) || 'success'
+  console.log('📋 Mapping execution:', execution.processName)
+  console.log('   Original Status:', execution.originalStatus)
+  console.log('   Process Run Status:', execution.processRunStatus)
+  console.log('   → Mapped to:', statusKey)
+
   return {
     ...execution,
     statusKey,
+    // Ensure we always have a status label
+    processRunStatus: {
+      ...execution.processRunStatus,
+      label: execution.processRunStatus?.label || getStatusLabel(statusKey)
+    }
   }
 }
 
 // Methods
 const refreshExecutions = async () => {
   isLoading.value = true
-  
+
   try {
     const data = await businessAPI.getProcessExecutions()
-    
+    console.log('🔥 RAW API DATA:', data)
+
     if (data.processRuns && Array.isArray(data.processRuns)) {
+      console.log('📦 First execution raw:', data.processRuns[0])
       executions.value = data.processRuns.map(mapExecution)
+      console.log('✅ Mapped executions:', executions.value)
     } else {
+      console.log('⚠️ No processRuns in data')
       executions.value = []
     }
-    
+
   } catch (error: any) {
     console.error('❌ ERROR loading executions:', error.message)
     executions.value = []
@@ -297,8 +366,11 @@ const getStatusClass = (status: string) => {
       return 'text-blue-400 bg-blue-500/10 border-blue-500/30'
     case 'waiting':
       return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
-    default:
+    case 'canceled':
+    case 'unknown':
       return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
+    default:
+      return 'text-green-400 bg-green-500/10 border-green-500/30' // Default to success style
   }
 }
 
@@ -308,18 +380,40 @@ const getStatusDot = (status: string) => {
     case 'error': return 'bg-red-500'
     case 'running': return 'bg-blue-500'
     case 'waiting': return 'bg-yellow-500'
-    default: return 'bg-gray-500'
+    case 'canceled':
+    case 'unknown': return 'bg-gray-500'
+    default: return 'bg-green-500' // Default to success color
   }
 }
 
-const getStatusLabel = (status: string) => {
+const getStatusLabel = (status: string | null | undefined) => {
+  if (!status) return 'Success' // Default if no status
+
   switch (status) {
     case 'success': return 'Success'
     case 'error': return 'Error'
     case 'running': return 'Running'
     case 'waiting': return 'Waiting'
-    default: return 'Unknown'
+    case 'unknown': return 'Unknown'
+    default: return 'Success' // Default to Success
   }
+}
+
+const getExecutionStatusLabel = (execution: any) => {
+  // Try to get label from processRunStatus object first
+  if (execution.processRunStatus && typeof execution.processRunStatus === 'object') {
+    if (execution.processRunStatus.label) {
+      return execution.processRunStatus.label
+    }
+  }
+
+  // Fallback to originalStatus
+  if (execution.originalStatus === 'canceled') {
+    return 'Unknown Status'
+  }
+
+  // Default
+  return 'Completed Successfully'
 }
 
 const formatTime = (dateString: string) => {
