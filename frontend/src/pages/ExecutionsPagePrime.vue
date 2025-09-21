@@ -1,36 +1,6 @@
 <template>
   <MainLayout>
     <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gradient">Executions</h1>
-          <p class="text-gray-400 mt-1">Monitora le esecuzioni dei tuoi workflow</p>
-        </div>
-        
-        <div class="flex items-center gap-3">
-          <!-- Auto Refresh Toggle -->
-          <div class="flex items-center gap-2">
-            <input
-              v-model="autoRefresh"
-              type="checkbox"
-              id="auto-refresh"
-              class="w-4 h-4 text-green-500 bg-gray-900 border-gray-600 rounded focus:ring-green-500"
-            />
-            <label for="auto-refresh" class="text-sm text-white">Auto refresh</label>
-          </div>
-          
-          <button 
-            @click="refreshExecutions"
-            :disabled="isLoading"
-            class="btn-control"
-          >
-            <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
-            Refresh
-          </button>
-        </div>
-      </div>
-
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div class="control-card p-4">
@@ -106,6 +76,13 @@
             class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
           >
             <option value="all">All Workflows</option>
+            <option
+              v-for="workflow in uniqueWorkflows"
+              :key="workflow.id"
+              :value="workflow.id"
+            >
+              {{ workflow.name }}
+            </option>
           </select>
         </div>
       </div>
@@ -116,19 +93,16 @@
           <table class="w-full border-collapse">
             <thead>
               <tr class="bg-gray-800 border-b-2 border-gray-600">
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-center w-8">
-                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600" />
-                </th>
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">A<br/>Workflow</th>
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">B<br/>Status</th>
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">C<br/>Started</th>
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">D<br/>Run Time</th>
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">E<br/>Exec. ID</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">Workflow</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">Status</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">Started</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">Run Time</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">Exec. ID</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="6" class="px-2 py-8 text-center text-gray-500 bg-gray-900">
+                <td colspan="5" class="px-2 py-8 text-center text-gray-500 bg-gray-900">
                   <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
                   Nessuna execution trovata
                 </td>
@@ -137,14 +111,9 @@
               <tr
                 v-for="(execution, index) in filteredExecutions"
                 :key="execution.id"
-                class="border-b border-gray-700 hover:bg-gray-800 cursor-pointer"
+                class="border-b border-gray-700 hover:bg-gray-800"
                 :class="{ 'bg-gray-900': index % 2 === 0, 'bg-gray-850': index % 2 === 1 }"
-                @click="openExecutionDetails(execution)"
               >
-                <td class="border-r border-gray-700 px-2 py-1 text-center">
-                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600" />
-                </td>
-
                 <td class="border-r border-gray-700 px-2 py-1">
                   <div class="text-xs text-gray-100 max-w-xs">
                     <span class="truncate block" :title="execution.process_name">
@@ -231,14 +200,6 @@
       </div>
     </div>
 
-    <!-- Timeline Modal for Execution Details -->
-    <TimelineModal
-      :show="showTimelineModal"
-      :workflow-id="selectedExecutionWorkflowId"
-      :execution-id="selectedExecutionId"
-      :tenant-id="'client_simulation_a'"
-      @close="closeTimelineModal"
-    />
   </MainLayout>
 </template>
 
@@ -246,7 +207,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { RefreshCw, Search, Play } from 'lucide-vue-next'
 import MainLayout from '../components/layout/MainLayout.vue'
-import TimelineModal from '../components/common/TimelineModal.vue'
 import { businessAPI } from '../services/api-client'
 
 // Local state
@@ -266,12 +226,20 @@ watch([searchTerm, statusFilter, workflowFilter], () => {
   currentPage.value = 1
 })
 
-// Modal state
-const showTimelineModal = ref(false)
-const selectedExecutionWorkflowId = ref<string>('')
-const selectedExecutionId = ref<string>('')
-
 // Computed
+const uniqueWorkflows = computed(() => {
+  const workflows = new Map()
+  executions.value.forEach(exec => {
+    if (exec.processId && exec.processName) {
+      workflows.set(exec.processId, exec.processName)
+    }
+  })
+  return Array.from(workflows.entries()).map(([id, name]) => ({
+    id,
+    name
+  })).sort((a, b) => a.name.localeCompare(b.name))
+})
+
 const executionStats = computed(() => {
   const stats = {
     total: executions.value.length,
@@ -476,18 +444,6 @@ const formatDuration = (ms?: string | number) => {
   return `${Math.round(duration / 60000 * 10) / 10}min`
 }
 
-// Modal functions
-const openExecutionDetails = (execution: any) => {
-  selectedExecutionWorkflowId.value = execution.process_id
-  selectedExecutionId.value = execution.run_id
-  showTimelineModal.value = true
-}
-
-const closeTimelineModal = () => {
-  showTimelineModal.value = false
-  selectedExecutionWorkflowId.value = ''
-  selectedExecutionId.value = ''
-}
 
 // Lifecycle
 onMounted(() => {

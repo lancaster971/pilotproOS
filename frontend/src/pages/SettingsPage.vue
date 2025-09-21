@@ -1,12 +1,6 @@
 <template>
   <MainLayout>
     <div class="space-y-4">
-      <!-- Compact Page Title -->
-      <div class="mb-2">
-        <h1 class="text-lg font-bold text-gradient">Settings</h1>
-        <p class="text-xs text-text-muted">Gestione utenti, ruoli e permessi</p>
-      </div>
-
       <!-- Settings Tabs -->
       <TabView class="premium-tabs">
         <TabPanel>

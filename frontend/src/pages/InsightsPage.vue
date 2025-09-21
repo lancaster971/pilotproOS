@@ -1,12 +1,6 @@
 <template>
   <MainLayout>
     <div class="insights-container">
-      <!-- COMPACT PROFESSIONAL HEADER -->
-      <div class="header-bar">
-        <h1 class="page-title">System Overview</h1>
-        <div class="last-update">Last update: {{ lastUpdateTime }}</div>
-      </div>
-
       <!-- PROFESSIONAL KPI BAR -->
       <div class="professional-kpi-bar">
         <div class="kpi-card highlight">
