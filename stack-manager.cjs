@@ -199,31 +199,39 @@ class StackManager {
       if (stdin.isTTY) {
         stdout.write(prompt);
         let password = '';
+        let buffer = '';
 
         // Set raw mode to capture individual keystrokes
         stdin.setRawMode(true);
         stdin.setEncoding('utf8');
         stdin.resume();
 
-        const onData = (char) => {
-          // Handle special characters
-          if (char === '\u0003') { // Ctrl+C
-            stdin.setRawMode(false);
-            process.exit();
-          } else if (char === '\n' || char === '\r' || char === '\u0004') { // Enter or Ctrl+D
-            stdin.setRawMode(false);
-            stdin.pause();
-            stdin.removeListener('data', onData);
-            stdout.write('\n');
-            resolve(password);
-          } else if (char === '\u007f' || char === '\b') { // Backspace
-            if (password.length > 0) {
-              password = password.slice(0, -1);
-              stdout.write('\b \b');
+        const onData = (chunk) => {
+          // Process each character in the chunk
+          for (let i = 0; i < chunk.length; i++) {
+            const char = chunk[i];
+
+            // Handle special characters
+            if (char === '\u0003') { // Ctrl+C
+              stdin.setRawMode(false);
+              process.exit();
+            } else if (char === '\n' || char === '\r' || char === '\u0004') { // Enter or Ctrl+D
+              stdin.setRawMode(false);
+              stdin.pause();
+              stdin.removeListener('data', onData);
+              stdout.write('\n');
+              // Trim the password to remove any trailing characters
+              resolve(password.trim());
+              return;
+            } else if (char === '\u007f' || char === '\b' || char === '\u0008') { // Backspace
+              if (password.length > 0) {
+                password = password.slice(0, -1);
+                stdout.write('\b \b');
+              }
+            } else if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) < 127) { // Printable ASCII characters
+              password += char;
+              stdout.write('*');
             }
-          } else if (char.charCodeAt(0) >= 32) { // Printable characters
-            password += char;
-            stdout.write('*');
           }
         };
 
@@ -236,7 +244,7 @@ class StackManager {
         });
         tempRl.question(prompt, (password) => {
           tempRl.close();
-          resolve(password);
+          resolve(password.trim());
         });
       }
     });
