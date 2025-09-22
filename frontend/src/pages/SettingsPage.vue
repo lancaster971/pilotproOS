@@ -6,7 +6,7 @@
         <TabPanel>
           <template #header>
             <div class="flex items-center gap-2">
-              <Users class="h-4 w-4" />
+              <Icon icon="mdi:account-group" class="h-4 w-4" />
               <span>Gestione Utenti</span>
             </div>
           </template>
@@ -20,7 +20,7 @@
               size="small"
               class="premium-button"
             >
-              <RefreshCw :class="['h-3 w-3 mr-2', { 'animate-spin': isLoading }]" />
+              <Icon icon="mdi:refresh" :class="['h-3 w-3 mr-2', { 'animate-spin': isLoading }]" />
               Aggiorna
             </Button>
             <Button
@@ -29,7 +29,7 @@
               size="small"
               class="premium-button"
             >
-              <UserPlus class="h-3 w-3 mr-2" />
+              <Icon icon="mdi:account-plus" class="h-3 w-3 mr-2" />
               Nuovo Utente
             </Button>
           </div>
@@ -47,7 +47,7 @@
             <template #content>
               <div class="p-4">
                 <div class="flex items-center">
-                  <AlertCircle class="h-5 w-5 text-red-400 mr-3" />
+                  <Icon icon="mdi:alert-circle" class="h-5 w-5 text-red-400 mr-3" />
                   <div>
                     <h3 class="text-red-300 font-medium">Errore nel caricamento</h3>
                     <p class="text-red-400 text-sm mt-1">{{ error }}</p>
@@ -129,7 +129,7 @@
                         size="small"
                         class="premium-button p-2"
                       >
-                        <Edit2 class="h-3 w-3" />
+                        <Icon icon="mdi:pencil" class="h-3 w-3" />
                       </Button>
                       <Button
                         @click="confirmDeleteUser(data)"
@@ -137,7 +137,7 @@
                         size="small"
                         class="premium-button p-2"
                       >
-                        <Trash2 class="h-3 w-3" />
+                        <Icon icon="mdi:delete" class="h-3 w-3" />
                       </Button>
                     </div>
                   </template>
@@ -150,7 +150,7 @@
         <TabPanel>
           <template #header>
             <div class="flex items-center gap-2">
-              <Shield class="h-4 w-4" />
+              <Icon icon="mdi:shield" class="h-4 w-4" />
               <span>Autenticazione</span>
             </div>
           </template>
@@ -164,7 +164,7 @@
               <div class="flex items-center">
                 <div class="flex-shrink-0 mr-4">
                   <div class="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                    <Shield class="h-5 w-5 text-white" />
+                    <Icon icon="mdi:shield" class="h-5 w-5 text-white" />
                   </div>
                 </div>
                 <div>
@@ -196,7 +196,7 @@
                   @click="openAuthConfigModal('local')"
                 >
                   <div class="p-6 text-center">
-                    <Key class="h-12 w-12 mx-auto mb-4 text-primary" />
+                    <Icon icon="mdi:key" class="h-12 w-12 mx-auto mb-4 text-primary" />
                     <h3 class="text-lg font-medium text-text mb-2">Local</h3>
                     <p class="text-sm text-text-muted mb-4">Autenticazione con database locale</p>
                     <Button 
@@ -299,7 +299,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RefreshCw, UserPlus, AlertCircle, Edit2, Trash2, Users, Shield, Key, Server } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
 import UserCreateModal from '../components/settings/UserCreateModal.vue'
 import UserEditModal from '../components/settings/UserEditModal.vue'
@@ -559,6 +559,221 @@ onMounted(() => {
   loadAuthConfig()
 })
 </script>
+
+<style scoped>
+/* Import Insights Theme Consistency */
+.settings-container {
+  width: 100%;
+  padding: 20px;
+  background: #0a0a0a;
+  min-height: 100vh;
+}
+
+/* Override PrimeVue Components to match Insights */
+:deep(.p-tabview) {
+  background: transparent !important;
+}
+
+:deep(.p-tabview-nav) {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-radius: 8px 8px 0 0 !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+:deep(.p-tabview-header) {
+  background: transparent !important;
+  border: none !important;
+}
+
+:deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+:deep(.p-tabview-nav-link) {
+  color: #9ca3af !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+:deep(.p-tabview-panels) {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-top: none !important;
+  backdrop-filter: blur(10px) !important;
+  padding: 24px !important;
+}
+
+/* Card Styling to match Insights */
+:deep(.p-card) {
+  background: rgba(10, 10, 15, 0.9) !important;
+  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6) !important;
+}
+
+:deep(.p-card-title) {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #9ca3af !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5) !important;
+}
+
+:deep(.p-card-content) {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+/* Button Styling to match Insights */
+:deep(.p-button) {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  border-radius: 6px !important;
+  color: #e5e7eb !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+:deep(.p-button:hover:not(:disabled)) {
+  background: rgba(31, 41, 55, 0.8) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+:deep(.p-button-success) {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+:deep(.p-button-danger) {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+/* DataTable Styling to match Insights */
+:deep(.p-datatable) {
+  background: transparent !important;
+  border: none !important;
+}
+
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+  background: transparent !important;
+  color: #9ca3af !important;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 12px !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr) {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr:hover) {
+  background: rgba(31, 41, 55, 0.1) !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr > td) {
+  border-bottom: 1px solid rgba(31, 41, 55, 0.2) !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+}
+
+/* Tag/Badge Styling */
+:deep(.p-tag) {
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  border: 1px solid !important;
+}
+
+:deep(.p-tag-success) {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+:deep(.p-tag-danger) {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+:deep(.p-tag-warning) {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+:deep(.p-tag-info) {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #93bbfc !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Custom Classes matching Insights */
+.premium-glass {
+  background: rgba(15, 15, 15, 0.6) !important;
+  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.premium-hover-lift:hover {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Loading State */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+:deep(.p-datatable-emptymessage) {
+  text-align: center !important;
+  padding: 60px 20px !important;
+  color: #9ca3af !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  :deep(.p-tabview-nav-link) {
+    font-size: 11px !important;
+  }
+
+  :deep(.p-card) {
+    padding: 16px !important;
+  }
+}
+</style>
 
 <style scoped>
 .premium-tabs :deep(.p-tabview-nav) {

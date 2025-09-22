@@ -1,98 +1,98 @@
 <template>
   <MainLayout>
-    <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
+    <div class="executions-container">
+      <!-- Professional Header Bar -->
+      <div class="header-bar">
         <div>
-          <h1 class="text-3xl font-bold text-gradient">
-            ⚡ CODICE AGGIORNATO ADESSO! - {{ authStore.tenantId }}
-          </h1>
-          <p class="text-gray-400 mt-1">
-            Monitora le esecuzioni dei tuoi workflow
-          </p>
+          <h1 class="page-title">Process Runs</h1>
+          <p class="page-subtitle">Monitor and analyze your business process executions</p>
         </div>
         
-        <div class="flex items-center gap-3">
+        <div class="header-actions">
           <!-- Auto Refresh Toggle -->
-          <div class="flex items-center gap-2">
+          <div class="auto-refresh-toggle">
             <input
               v-model="autoRefresh"
               type="checkbox"
               id="auto-refresh"
-              class="w-4 h-4 text-green-500 bg-gray-900 border-gray-600 rounded focus:ring-green-500"
+              class="checkbox-input"
             />
-            <label for="auto-refresh" class="text-sm text-white">
+            <label for="auto-refresh" class="checkbox-label">
+              <Icon icon="mdi:refresh-auto" class="inline-icon" />
               Auto refresh
             </label>
           </div>
-          
-          <button 
+
+          <button
             @click="refreshExecutions"
             :disabled="isLoading"
-            class="btn-control"
+            class="action-button"
           >
-            <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
+            <Icon icon="mdi:refresh" :class="{ 'animate-spin': isLoading }" class="button-icon" />
             Refresh
           </button>
-          
-          <button class="btn-control">
-            <Download class="h-4 w-4" />
-            Esporta
+
+          <button class="action-button primary">
+            <Icon icon="mdi:download" class="button-icon" />
+            Export
           </button>
         </div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="control-card p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.total }}</p>
-            <p class="text-xs text-gray-400">Totali</p>
+      <!-- Professional KPI Bar -->
+      <div class="professional-kpi-bar">
+        <div class="kpi-card">
+          <Icon icon="mdi:sigma" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.total }}</div>
+            <div class="kpi-card-label">TOTAL RUNS</div>
           </div>
         </div>
-        
-        <div class="control-card p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.success }}</p>
-            <p class="text-xs text-gray-400">Success</p>
+
+        <div class="kpi-card highlight-success">
+          <Icon icon="mdi:check-circle" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.success }}</div>
+            <div class="kpi-card-label">SUCCESS</div>
           </div>
         </div>
-        
-        <div class="control-card p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.error }}</p>
-            <p class="text-xs text-gray-400">Error</p>
+
+        <div class="kpi-card highlight-error">
+          <Icon icon="mdi:alert-circle" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.error }}</div>
+            <div class="kpi-card-label">ERRORS</div>
           </div>
         </div>
-        
-        <div class="control-card p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.running }}</p>
-            <p class="text-xs text-gray-400">Running</p>
+
+        <div class="kpi-card">
+          <Icon icon="mdi:play-circle" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.running }}</div>
+            <div class="kpi-card-label">RUNNING</div>
           </div>
         </div>
-        
-        <div class="control-card p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">{{ executionStats.waiting }}</p>
-            <p class="text-xs text-gray-400">Waiting</p>
+
+        <div class="kpi-card">
+          <Icon icon="mdi:clock-outline" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.waiting }}</div>
+            <div class="kpi-card-label">WAITING</div>
           </div>
         </div>
       </div>
 
-      <!-- Modern Filters with Premium Design -->
-      <div class="control-card p-4">
+      <!-- Filters Section -->
+      <div class="section-container">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <!-- Search Input -->
           <div class="relative group">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted transition-colors group-focus-within:text-primary" />
+            <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 transition-colors group-focus-within:text-green-400" />
             <input
               v-model="searchTerm"
               type="text"
-              placeholder="Cerca executions..."
-              class="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
-                     focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
-                     transition-all duration-200 placeholder:text-text-muted"
+              placeholder="Search process runs..."
+              class="search-input pl-10"
             />
           </div>
 
@@ -117,7 +117,7 @@
                     statusFilter === 'running' ? `Running (${executionStats.running})` :
                     `Waiting (${executionStats.waiting})` }}
               </span>
-              <ChevronDown class="h-4 w-4 text-text-muted transition-transform duration-200" 
+              <Icon icon="mdi:chevron-down" class="h-4 w-4 text-gray-400 transition-transform duration-200"
                           :class="showStatusDropdown ? 'rotate-180' : ''" />
             </button>
             
@@ -175,7 +175,7 @@
                 {{ workflowFilter === 'all' ? 'All Workflows' : 
                     workflowsStore.workflows.find(w => w.id === workflowFilter)?.name || 'Select Workflow' }}
               </span>
-              <ChevronDown class="h-4 w-4 text-text-muted transition-transform duration-200 flex-shrink-0" 
+              <Icon icon="mdi:chevron-down" class="h-4 w-4 text-gray-400 transition-transform duration-200 flex-shrink-0"
                           :class="showWorkflowDropdown ? 'rotate-180' : ''" />
             </button>
             
@@ -215,26 +215,26 @@
       </div>
 
       <!-- Executions Table -->
-      <div class="control-card overflow-hidden">
+      <div class="section-container">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b border-gray-800">
-                <th class="text-left p-4 text-sm font-medium text-gray-400">
-                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+                <th>
+                  <input type="checkbox" class="checkbox-input" />
                 </th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Workflow</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Status</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Started</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Run Time</th>
-                <th class="text-left p-4 text-sm font-medium text-gray-400">Exec. ID</th>
+                <th>Process Name</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Duration</th>
+                <th>Run ID</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="6" class="p-8 text-center text-gray-500">
-                  <Play class="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                  Nessuna execution trovata
+                <td colspan="6" class="empty-state">
+                  <Icon icon="mdi:play-circle-outline" class="empty-icon" />
+                  <p>No process runs found</p>
                 </td>
               </tr>
               
@@ -244,7 +244,7 @@
                 class="border-b border-gray-800/50 hover:bg-gray-900/30 transition-colors"
               >
                 <td class="p-4">
-                  <input type="checkbox" class="w-4 h-4 bg-gray-900 border-gray-600 rounded" />
+                  <input type="checkbox" class="checkbox-input" />
                 </td>
                 
                 <td class="p-4">
@@ -287,16 +287,18 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="filteredExecutions.length > 0" class="flex items-center justify-between">
+      <div v-if="filteredExecutions.length > 0" class="pagination">
         <p class="text-sm text-gray-400">
-          Visualizzando {{ filteredExecutions.length }} di {{ executions.length }} executions
+          Showing {{ filteredExecutions.length }} of {{ executions.length }} process runs
         </p>
         <div class="flex items-center gap-2">
-          <button class="btn-control text-xs px-3 py-1" disabled>
-            Precedente
+          <button class="action-button" disabled>
+            <Icon icon="mdi:chevron-left" class="button-icon" />
+            Previous
           </button>
-          <button class="btn-control text-xs px-3 py-1" disabled>
-            Successiva
+          <button class="action-button" disabled>
+            Next
+            <Icon icon="mdi:chevron-right" class="button-icon" />
           </button>
         </div>
       </div>
@@ -314,10 +316,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import {
-  RefreshCw, Download, Search, Play, CheckCircle, XCircle,
-  Clock, Pause, MoreHorizontal, ChevronDown
-} from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import MainLayout from '../components/layout/MainLayout.vue'
 import TimelineModal from '../components/common/TimelineModal.vue'
 import { useAuthStore } from '../stores/auth'
@@ -581,3 +580,348 @@ onUnmounted(() => {
   window.removeEventListener('execution:completed', refreshExecutions)
 })
 </script>
+
+<style scoped>
+/* Professional Design matching InsightsPage */
+.executions-container {
+  width: 100%;
+  padding: 20px;
+  background: #0a0a0a;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 40px);
+}
+
+/* Header Styling */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-input {
+  width: 16px;
+  height: 16px;
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inline-icon {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Action Buttons */
+.action-button {
+  padding: 8px 16px;
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-button:hover:not(:disabled) {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+.action-button.primary {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93bbfc;
+}
+
+.action-button.primary:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-icon {
+  font-size: 16px;
+}
+
+/* Professional KPI Bar */
+.professional-kpi-bar {
+  display: flex;
+  gap: 0;
+  background: rgba(10, 10, 15, 0.8);
+  border: 1px solid rgba(31, 41, 55, 0.4);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.kpi-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(15, 15, 20, 0.6);
+  border: 1px solid rgba(31, 41, 55, 0.3);
+  border-radius: 8px;
+  margin-right: 16px;
+  position: relative;
+}
+
+.kpi-card:last-child {
+  margin-right: 0;
+}
+
+.kpi-card.highlight-success {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.kpi-card.highlight-success .kpi-card-value {
+  color: #10b981;
+}
+
+.kpi-card.highlight-success .kpi-card-icon {
+  color: #10b981;
+}
+
+.kpi-card.highlight-error {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.kpi-card.highlight-error .kpi-card-value {
+  color: #ef4444;
+}
+
+.kpi-card.highlight-error .kpi-card-icon {
+  color: #ef4444;
+}
+
+.kpi-card-icon {
+  font-size: 24px;
+  color: #64748b;
+  opacity: 0.8;
+}
+
+.kpi-card-content {
+  flex: 1;
+}
+
+.kpi-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.kpi-card-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+/* Section Containers */
+.section-container {
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(31, 41, 55, 0.5);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+}
+
+/* Filter Inputs */
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  background: rgba(31, 41, 55, 0.3);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(31, 41, 55, 0.5);
+}
+
+/* Table Styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.3);
+}
+
+td {
+  padding: 12px;
+  font-size: 13px;
+  color: #e5e7eb;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.2);
+}
+
+tr:hover {
+  background: rgba(31, 41, 55, 0.1);
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .professional-kpi-bar {
+    padding: 20px 16px;
+  }
+
+  .kpi-card {
+    padding: 12px 14px;
+    margin-right: 12px;
+  }
+
+  .kpi-card-value {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .professional-kpi-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .kpi-card {
+    min-width: calc(50% - 6px);
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .professional-kpi-bar {
+    padding: 16px;
+  }
+
+  .kpi-card {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .kpi-card-value {
+    font-size: 22px;
+  }
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+</style>
