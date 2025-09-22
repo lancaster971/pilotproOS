@@ -3,17 +3,26 @@
     <div class="flex min-h-screen">
       <!-- Left Side - Integrations Gradient with Brand Texts -->
       <div class="hidden lg:flex lg:w-1/2 relative bg-black overflow-hidden">
-        <!-- Same gradient as integrations section -->
-        <div class="absolute inset-0 bg-gradient-to-br from-yellow-400/30 via-lime-400/25 to-green-400/30"></div>
-        <div class="absolute inset-0 bg-gradient-to-tr from-green-400/20 via-transparent to-yellow-400/20"></div>
+        <!-- Dark gradient -->
+        <div class="absolute inset-0 bg-gradient-to-br from-green-900/40 via-green-800/30 to-black/50"></div>
+        <div class="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-green-900/40"></div>
         
         <div class="relative z-10 flex flex-col justify-center items-center text-center px-12 w-full">
           <div class="max-w-2xl">
+            <!-- Logo PilotPro -->
+            <div class="mb-12">
+              <span class="text-6xl md:text-7xl font-light text-white">Pilot</span>
+              <span class="text-6xl md:text-7xl font-light" style="color: #10b981;">Pro</span>
+            </div>
+
             <h1 class="text-4xl sm:text-5xl md:text-6xl text-white mb-6 tracking-tight leading-tight" style="font-weight: 300;">
               {{ BRAND_TITLE }}
             </h1>
-            <p class="text-lg md:text-xl text-gray-300 leading-relaxed" style="font-weight: 200;">
+            <p class="text-lg md:text-xl text-gray-300 leading-relaxed mb-8" style="font-weight: 200;">
               {{ BRAND_DESCRIPTION }}
+            </p>
+            <p class="text-lg md:text-xl text-gray-300" style="font-weight: 200;">
+              Benvenuto!
             </p>
           </div>
         </div>
@@ -25,11 +34,11 @@
           <div class="w-full max-w-md">
             <div class="bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-700 p-6 text-left relative">
               <div>
-                <h3 class="text-lg md:text-xl text-white mb-4" style="font-weight: 300;">
+                <h3 class="text-lg md:text-xl text-white mb-6" style="font-weight: 300;">
                   {{ isSignUp ? SIGNUP_TITLE : LOGIN_TITLE }}
                 </h3>
-                <p class="text-base text-gray-300 leading-relaxed mb-6" style="font-weight: 200;">
-                  {{ isSignUp ? SIGNUP_DESCRIPTION : LOGIN_DESCRIPTION }}
+                <p v-if="isSignUp && SIGNUP_DESCRIPTION" class="text-base text-gray-300 leading-relaxed mb-6" style="font-weight: 200;">
+                  {{ SIGNUP_DESCRIPTION }}
                 </p>
                 
                 <!-- Enhanced Login Form DISABLED - using fixed auth system -->
@@ -95,29 +104,6 @@
                     </span>
                   </button>
                 </form>
-                
-                <div class="flex flex-col space-y-4 mt-6">
-                  <div class="text-center">
-                    <span class="text-sm text-gray-400" style="font-weight: 200;">
-                      {{ isSignUp ? 'Hai già un account?' : 'Non hai un account?' }}
-                    </span>
-                    <button
-                      @click="toggleMode"
-                      class="p-0 ml-1 text-green-400 hover:text-green-300 transition-colors"
-                    >
-                      {{ isSignUp ? 'Accedi' : 'Registrati' }}
-                    </button>
-                  </div>
-                  
-                  <div v-if="isSignUp">
-                    <p class="text-xs text-gray-500 text-center" style="font-weight: 200;">
-                      Registrandoti accetti i nostri 
-                      <a href="#" class="text-green-400 hover:text-green-300">termini di servizio</a>
-                      e la
-                      <a href="#" class="text-green-400 hover:text-green-300">privacy policy</a>
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -144,12 +130,12 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 
 // Constants - same as new loginPage design
-const LOGIN_TITLE = "Bentornato"
-const LOGIN_DESCRIPTION = "Accedi per gestire i tuoi Ai Agent."
+const LOGIN_TITLE = "Login on OS System"
+const LOGIN_DESCRIPTION = ""
 const SIGNUP_TITLE = "Crea un Account"
 const SIGNUP_DESCRIPTION = "Registrati per iniziare a trasformare la tua azienda con PilotPro."
 const BRAND_TITLE = "I primi Ai business Agent in Italia"
-const BRAND_DESCRIPTION = "Trasformiamo il modo di lavorare delle aziende attraverso l'intelligenza artificiale. Benvenuto!"
+const BRAND_DESCRIPTION = "Trasformiamo il modo di lavorare delle aziende attraverso l'intelligenza artificiale."
 
 // Stores - Pinia composition pattern like n8n
 const authStore = useAuthStore()

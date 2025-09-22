@@ -4,8 +4,8 @@
     <header class="premium-glass sticky top-0 z-50 h-10 border-b border-border/50">
       <div class="flex items-center justify-between h-full px-4">
         <div class="flex items-center gap-3">
-          <button 
-            @click="sidebarCollapsed = !sidebarCollapsed" 
+          <button
+            @click="sidebarCollapsed = !sidebarCollapsed"
             class="text-text-muted hover:text-primary transition-colors p-1"
           >
             <Menu class="h-4 w-4" />
@@ -245,10 +245,11 @@ const handleLogout = async () => {
   } catch (error) {
     console.error('Logout error:', error)
     // Force logout anyway
-    await router.push('/login') 
+    await router.push('/login')
     showUserMenu.value = false
   }
 }
+
 
 // Close user menu when clicking outside
 onMounted(() => {

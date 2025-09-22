@@ -45,33 +45,52 @@
         </div>
       </div>
 
-      <!-- WORKFLOW LIST -->
+      <!-- WORKFLOW LIST - EXCEL STYLE -->
       <div class="section-container" v-if="topWorkflows.length > 0">
         <h2 class="section-title">Top 3 Most Executed Processes</h2>
-        <div class="workflow-table">
-          <table>
+        <div class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+          <table class="w-full">
             <thead>
-              <tr>
-                <th>Process Name</th>
-                <th>Success Rate</th>
-                <th>Executions</th>
-                <th>Avg Duration</th>
-                <th>Status</th>
+              <tr class="bg-gray-800 border-b border-gray-700">
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">PROCESS NAME</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">SUCCESS RATE</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">EXECUTIONS</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">AVG DURATION</th>
+                <th class="px-2 py-1 text-xs font-bold text-gray-300 text-left">STATUS</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="workflow in topWorkflows" :key="workflow.workflow_id">
-                <td>{{ workflow.process_name }}</td>
-                <td>
-                  <span :class="{ 'text-green': workflow.success_rate >= 95, 'text-yellow': workflow.success_rate >= 80, 'text-red': workflow.success_rate < 80 }">
+              <tr v-for="(workflow, index) in topWorkflows"
+                  :key="workflow.workflow_id"
+                  @click="navigateToWorkflow(workflow.workflow_id)"
+                  :class="index % 2 === 0 ? 'bg-gray-850' : 'bg-gray-900'"
+                  class="border-b border-gray-700 hover:bg-gray-800 transition-colors cursor-pointer">
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <span class="text-xs font-medium text-white">
+                    {{ workflow.process_name }}
+                  </span>
+                </td>
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <span class="text-xs font-bold"
+                        :class="workflow.success_rate >= 95 ? 'text-green-300' :
+                                workflow.success_rate >= 80 ? 'text-yellow-300' : 'text-red-300'">
                     {{ workflow.success_rate }}%
                   </span>
                 </td>
-                <td>{{ workflow.execution_count }}</td>
-                <td>{{ Math.round(workflow.avg_duration_ms / 1000) }}s</td>
-                <td>
-                  <span class="status-badge" :class="workflow.is_active ? 'active' : 'inactive'">
-                    {{ workflow.is_active ? 'Active' : 'Inactive' }}
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
+                  {{ workflow.execution_count }}
+                </td>
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
+                  {{ Math.round(workflow.avg_duration_ms / 1000) }}s
+                </td>
+                <td class="px-2 py-1">
+                  <span v-if="workflow.is_active"
+                        class="text-xs text-green-300 font-bold">
+                    ACTIVE
+                  </span>
+                  <span v-else
+                        class="text-xs text-gray-400 font-bold">
+                    INACTIVE
                   </span>
                 </td>
               </tr>
@@ -169,6 +188,12 @@ const failedExecutions = ref(0)
 const avgDurationSeconds = ref(0)
 const timeSavedHours = ref(0)
 const lastUpdateTime = ref('')
+
+// New KPIs (real data)
+const executionsToday = ref(0)
+const dataProcessed = ref('0 MB')
+const activeUsers = ref(1) // Current user
+const efficiency = ref(0)
 
 // Workflow Data
 const topWorkflows = ref([])
@@ -386,6 +411,15 @@ const loadData = async () => {
   }
 }
 
+// Navigate to workflow in AI Automation page
+const navigateToWorkflow = (workflowId: string) => {
+  // Navigate to command-center (AI Automation) with workflow ID as query parameter
+  router.push({
+    path: '/command-center',
+    query: { workflowId: workflowId }
+  })
+}
+
 // Interval for auto-refresh
 let refreshInterval: number | undefined
 
@@ -577,6 +611,11 @@ tr:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
+}
+
+/* Excel-style table zebra striping */
+.bg-gray-850 {
+  background-color: #1a1a1a;
 }
 
 /* Responsive breakpoints for System Components */
@@ -815,9 +854,9 @@ tr:hover {
 }
 
 .small-chart-wrapper {
-  height: 350px;
+  height: 180px;
   position: relative;
-  padding: 20px;
+  padding: 10px;
 }
 
 /* Two Column Grid */

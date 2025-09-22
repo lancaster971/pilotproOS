@@ -899,10 +899,42 @@ app.get('/api/business/analytics', async (req, res) => {
       total_executions: data.total_executions
     });
     
-    const successRate = data.total_executions > 0 
-      ? (data.successful_executions / data.total_executions * 100) 
+    const successRate = data.total_executions > 0
+      ? (data.successful_executions / data.total_executions * 100)
       : 0;
-    
+
+    // Get daily execution counts for the trend chart
+    const dailyExecutions = await db
+      .select({
+        date: sql`DATE(${executionEntity.startedAt})`,
+        count: count(executionEntity.id)
+      })
+      .from(executionEntity)
+      .where(sql`${executionEntity.startedAt} >= ${sevenDaysAgoISO}`)
+      .groupBy(sql`DATE(${executionEntity.startedAt})`)
+      .orderBy(sql`DATE(${executionEntity.startedAt})`);
+
+    // Format trend data for the chart
+    const trendLabels = [];
+    const trendValues = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayLabel = date.toLocaleDateString('en', { weekday: 'short' });
+
+      trendLabels.push(dayLabel);
+
+      const dayData = dailyExecutions.find(d => {
+        const execDate = new Date(d.date).toISOString().split('T')[0];
+        return execDate === dateStr;
+      });
+
+      trendValues.push(dayData ? parseInt(dayData.count) : 0);
+    }
+
     res.json({
       overview: {
         totalProcesses: parseInt(data.total_processes) || 0,
@@ -911,16 +943,28 @@ app.get('/api/business/analytics', async (req, res) => {
         successRate: Math.round(successRate * 10) / 10,
         avgDurationSeconds: Math.round((data.avg_duration_ms || 0) / 1000)
       },
+      trendData: {
+        labels: trendLabels,
+        datasets: [{
+          label: 'Executions',
+          data: trendValues,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true
+        }]
+      },
       businessImpact: {
         timeSavedHours: Math.round(((data.successful_executions || 0) * 5) / 60),
         estimatedCostSavings: Math.round((data.successful_executions || 0) * 2.5)
       },
       insights: [
-        successRate >= 95 ? 'Excellent process performance' : 
+        successRate >= 95 ? 'Excellent process performance' :
         successRate >= 80 ? 'Good performance with room for improvement' :
         'Processes need optimization attention',
-        
-        data.active_processes > 0 ? 
+
+        data.active_processes > 0 ?
           `${data.active_processes} business processes are actively running` :
           'No active processes - consider activating automation'
       ],

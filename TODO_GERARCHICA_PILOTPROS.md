@@ -14,8 +14,38 @@ Basandomi sull'analisi completa di tutti i documenti, ho identificato **DUE TRAC
 
 ## 📋 **SEQUENZA CHIRURGICA OTTIMALE**
 
-### **FASE 1: FOUNDATION CRITICA (Settimana 1-2)**
-**Prerequisito assoluto**: Senza questi file, ZERO revenue possibile
+### **FASE 0: AUTH CRITICAL FIX (Giorni 1-3)** 🚨 **BLOCCA TUTTO**
+**Prerequisito assoluto**: Sistema auth custom ROTTO - blocca sviluppo, testing, API
+
+```
+0.1 🚨 NPM Security Vulnerabilities
+    ├── npm audit fix --force
+    ├── axios@latest update (DoS vulnerability)
+    ├── form-data@latest update (unsafe random)
+    ├── Dipendenze: NESSUNA
+    └── Effort: 2 ore
+    📚 Approfondimento: TECHNICAL_DEBT_PLAN.md
+
+0.2 🚨 Passport.js + Redis Implementation (CRITICAL)
+    ├── Sostituire backend/src/auth/jwt-auth.js (708 righe BUGGY)
+    ├── Redis session store setup per stability
+    ├── Multi-strategy authentication standard
+    ├── API reliability fix immediato
+    ├── Dipendenze: npm audit fix completato
+    └── Effort: 2-3 giorni
+    📚 Approfondimento: TECHNICAL_DEBT_PLAN.md
+
+0.3 🗑️ File Obsoleti Cleanup
+    ├── Rimuovere ExecutionsPagePrime.vue
+    ├── Rimuovere .DS_Store, *.log files
+    ├── Update .gitignore
+    ├── Dipendenze: NESSUNA (parallelo)
+    └── Effort: 1 ora
+    📚 Approfondimento: TECHNICAL_DEBT_PLAN.md
+```
+
+### **FASE 1: FOUNDATION CRITICA (Giorni 4-7)**
+**Prerequisito**: Auth system funzionante, senza questo ZERO revenue possibile
 
 ```
 1.1 🔴 docker-compose.vps.yml
@@ -151,23 +181,15 @@ Basandomi sull'analisi completa di tutti i documenti, ho identificato **DUE TRAC
     📚 Approfondimento: TECHNICAL_DEBT_PLAN.md
 ```
 
-### **FASE 6: AUTHENTICATION REFACTOR (Settimana 2-3)**
-**Dopo FASE 1 completata**
+### **FASE 6: REVERSE PROXY IMPLEMENTATION (Settimana 2-3)**
+**Dopo Auth fix completato**
 
 ```
-6.1 🔐 Passport.js + Redis Implementation
-    ├── Sostituire jwt-auth.js custom (708 righe)
-    ├── Redis session store setup
-    ├── Multi-strategy authentication
-    ├── Dipendenze: Production foundation ready
-    └── Effort: 3-4 giorni
-    📚 Approfondimento: TECHNICAL_DEBT_PLAN.md
-
-6.2 🌐 Reverse Proxy Implementation
+6.1 🌐 Reverse Proxy Implementation
     ├── Update reverse proxy per Redis integration
     ├── Session affinity configuration
     ├── Network isolation completa
-    ├── Dipendenze: Passport.js + Redis funzionante
+    ├── Dipendenze: Passport.js + Redis funzionante (FASE 0)
     └── Effort: 1 giorno
     📚 Approfondimento: docs/STRATEGY/REVERSE_PROXY_README.md
 ```
@@ -204,23 +226,29 @@ Basandomi sull'analisi completa di tutti i documenti, ho identificato **DUE TRAC
 
 ## ⏱️ **TIMELINE CRITICO**
 
-### **SETTIMANA 1: FOUNDATION**
-- **Giorni 1-2**: docker-compose VPS configurations
-- **Giorni 3-5**: Environment detection script
-- **Parallelo**: NPM security fixes + cleanup
+### **GIORNI 1-3: AUTH CRITICAL FIX** 🚨
+- **Giorno 1**: NPM security fixes (2 ore) + File cleanup (1 ora)
+- **Giorni 2-3**: Passport.js + Redis implementation
+- **BLOCCA**: Tutto il resto fino a risoluzione
+- 📚 **Riferimenti**: TECHNICAL_DEBT_PLAN.md
+
+### **GIORNI 4-7: FOUNDATION**
+- **Giorni 4-5**: docker-compose VPS configurations
+- **Giorni 6-7**: Environment detection script
+- **Prerequisito**: Auth system funzionante
 - 📚 **Riferimenti**: docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md
 
 ### **SETTIMANA 2: SECURITY**
 - **Giorni 1-2**: SSL automation
 - **Giorni 3-4**: Production environment configs
 - **Giorni 5**: Testing su VPS reale
-- **Parallelo**: Start Passport.js implementation
+- **Parallelo**: Reverse proxy implementation
 - 📚 **Riferimenti**: docs/IMPLEMENTED/security.md
 
 ### **SETTIMANA 3: VPS TEMPLATE**
 - **Giorni 1-2**: Template builder script
 - **Giorni 3-5**: First-boot wizard
-- **Parallelo**: Complete Passport.js + Redis
+- **Parallelo**: Business parsers refactor start
 - 📚 **Riferimenti**: docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
 
 ### **SETTIMANA 4: MARKETPLACE**

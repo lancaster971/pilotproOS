@@ -49,9 +49,10 @@
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
-    "n8n": "^1.107.3",
+    "n8n": "^1.113.0",
     "pg": "^8.16.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "vite": "^5.4.20"
   },
   "devDependencies": {
     "chalk": "^5.6.0",

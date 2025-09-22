@@ -1,4 +1,22 @@
 services:
+  # Redis Cache & Session Store
+  redis-dev:
+    image: redis:7-alpine
+    container_name: pilotpros-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - pilotpros-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
   # PostgreSQL Database per Sviluppo
   postgres-dev:
     image: postgres:16-alpine
@@ -130,6 +148,8 @@ services:
     depends_on:
       postgres-dev:
         condition: service_healthy
+      redis-dev:
+        condition: service_healthy
       automation-engine-dev:
         condition: service_healthy
     environment:
@@ -150,8 +170,13 @@ services:
       N8N_ADMIN_USER: admin
       N8N_ADMIN_PASSWORD: pilotpros_admin_2025
       
+      # Redis Configuration
+      REDIS_HOST: redis-dev
+      REDIS_PORT: 6379
+
       # Security (development)
       JWT_SECRET: pilotpros_dev_jwt_secret_2025_secure
+      SESSION_SECRET: pilotpros_dev_session_secret_2025_secure
       BCRYPT_ROUNDS: 4  # Faster in development
       
       # Development specific
