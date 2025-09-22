@@ -271,6 +271,8 @@ networks:
 volumes:
   postgres_dev_data:
     name: pilotpros_postgres_dev_data
+  redis_dev_data:
+    name: pilotpros_redis_dev_data
   n8n_dev_data:
     name: pilotpros_n8n_dev_data
   pgadmin_dev_data:

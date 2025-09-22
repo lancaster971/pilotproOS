@@ -59,6 +59,7 @@ import enhancedAuthController from './controllers/enhanced-auth.controller.js';
 
 // Basic Authentication Controller (login/logout)
 import authController from './controllers/auth.controller.js';
+import passportAuthController from './controllers/passport-auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
@@ -4431,8 +4432,11 @@ function extractBusinessContext(executionData, timeline) {
 // app.use('/api/health', healthController);
 
 // ============================================================================
-// Basic auth routes (login, logout, etc.)
-app.use('/api/auth', authController);
+// Basic auth routes (login, logout, etc.) - Using Passport.js
+app.use('/api/auth', passportAuthController);
+
+// Legacy auth routes (for backward compatibility during transition)
+app.use('/api/auth/legacy', authController);
 
 // Enhanced auth routes (LDAP, MFA, etc.)
 app.use('/api/auth/enhanced', enhancedAuthController);
