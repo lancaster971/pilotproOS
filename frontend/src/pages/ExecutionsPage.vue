@@ -66,6 +66,14 @@
         </div>
 
         <div class="kpi-card">
+          <Icon icon="mdi:cancel" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ executionStats.canceled }}</div>
+            <div class="kpi-card-label">CANCELED</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
           <Icon icon="mdi:play-circle" class="kpi-card-icon" />
           <div class="kpi-card-content">
             <div class="kpi-card-value">{{ executionStats.running }}</div>
@@ -114,6 +122,7 @@
                 {{ statusFilter === 'all' ? `Any Status (${executionStats.total})` :
                     statusFilter === 'success' ? `Success (${executionStats.success})` :
                     statusFilter === 'error' ? `Error (${executionStats.error})` :
+                    statusFilter === 'canceled' ? `Canceled (${executionStats.canceled})` :
                     statusFilter === 'running' ? `Running (${executionStats.running})` :
                     `Waiting (${executionStats.waiting})` }}
               </span>
@@ -133,29 +142,32 @@
               <div v-if="showStatusDropdown" 
                    class="absolute z-10 mt-2 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden">
                 <button
-                  v-for="status in ['all', 'success', 'error', 'running', 'waiting']"
+                  v-for="status in ['all', 'success', 'error', 'canceled', 'running', 'waiting']"
                   :key="status"
                   @click="statusFilter = status; showStatusDropdown = false"
-                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors 
+                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors
                          flex items-center justify-between group"
                   :class="statusFilter === status ? 'bg-primary/10 text-primary' : 'text-text'"
                 >
                   <span class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full"
-                         :class="status === 'success' ? 'bg-green-400' : 
+                         :class="status === 'success' ? 'bg-green-400' :
                                  status === 'error' ? 'bg-red-400' :
-                                 status === 'running' ? 'bg-blue-400' : 
+                                 status === 'canceled' ? 'bg-gray-400' :
+                                 status === 'running' ? 'bg-blue-400' :
                                  status === 'waiting' ? 'bg-yellow-400' : 'bg-transparent'"
                     />
                     {{ status === 'all' ? 'Any Status' :
                         status === 'success' ? 'Success' :
                         status === 'error' ? 'Error' :
+                        status === 'canceled' ? 'Canceled' :
                         status === 'running' ? 'Running' : 'Waiting' }}
                   </span>
                   <span class="text-text-muted text-xs">
                     {{ status === 'all' ? executionStats.total :
                         status === 'success' ? executionStats.success :
                         status === 'error' ? executionStats.error :
+                        status === 'canceled' ? executionStats.canceled :
                         status === 'running' ? executionStats.running : executionStats.waiting }}
                   </span>
                 </button>
@@ -335,7 +347,7 @@ const uiStore = useUIStore()
 const isLoading = ref(false)
 const autoRefresh = ref(true)
 const searchTerm = ref('')
-const statusFilter = ref<'all' | 'success' | 'error' | 'running' | 'waiting'>('all')
+const statusFilter = ref<'all' | 'success' | 'error' | 'canceled' | 'running' | 'waiting'>('all')
 const workflowFilter = ref('all')
 const executions = ref<Execution[]>([])
 
@@ -356,11 +368,11 @@ const executionStats = computed(() => {
     total: executions.value.length,
     success: executions.value.filter(e => e.status === 'success').length,
     error: executions.value.filter(e => e.status === 'error').length,
+    canceled: executions.value.filter(e => e.status === 'canceled').length,
     running: executions.value.filter(e => e.status === 'running').length,
     waiting: executions.value.filter(e => e.status === 'waiting').length,
   }
   console.log('📈 Execution Stats:', stats)
-  console.log('📈 All statuses:', executions.value.map(e => e.status))
   return stats
 })
 
@@ -383,88 +395,76 @@ const filteredExecutions = computed(() => {
   return filtered
 })
 
+// Helper to normalize status
+const normalizeStatus = (originalStatus: string | null, label?: string): string => {
+  if (!originalStatus) return 'success'
+
+  const status = originalStatus.toLowerCase()
+  if (status.includes('success')) return 'success'
+  if (status.includes('error') || status.includes('fail')) return 'error'
+  if (status.includes('cancel')) return 'canceled'
+  if (status.includes('running') || status.includes('progress')) return 'running'
+  if (status.includes('waiting') || status.includes('pending')) return 'waiting'
+
+  // Check business label as fallback
+  if (label) {
+    const businessLabel = label.toLowerCase()
+    if (businessLabel.includes('completed')) return 'success'
+    if (businessLabel.includes('attention')) return 'error'
+    if (businessLabel.includes('progress')) return 'running'
+  }
+
+  return 'success' // Default to success
+}
+
+// Helper to map execution data
+const mapExecution = (execution: any) => {
+  const statusKey = normalizeStatus(execution.originalStatus, execution.processRunStatus?.label) || 'success'
+  return {
+    ...execution,
+    id: execution.processRunId || execution.id,
+    workflow_id: execution.processId || execution.workflow_id,
+    workflow_name: execution.processName || execution.workflow_name,
+    status: statusKey,
+    started_at: execution.processRunStartTime || execution.started_at,
+    stopped_at: execution.processRunEndTime || execution.stopped_at,
+    duration_ms: execution.processDuration || execution.duration_ms || 0,
+    originalStatus: execution.originalStatus,
+    processRunStatus: execution.processRunStatus
+  }
+}
+
 // Methods
 const refreshExecutions = async () => {
-  alert('🚀 REFRESH EXECUTIONS CALLED!')
-  console.log('🚀 STARTING refreshExecutions...')
+  console.log('🚀 Starting refresh executions...')
   isLoading.value = true
 
   try {
-    console.log('🌐 Making API call to /process-runs...')
+    // Use the correct API method that ExecutionsPagePrime uses
+    const data = await businessAPI.getProcessExecutions()
+    console.log('🔥 RAW API DATA:', data)
 
-    // Use OFETCH API client instead of direct fetch
-    const testData = await businessAPI.getProcessRuns()
-    console.log('✅ OFETCH data loaded, length:', testData.data?.length)
+    if (data.processRuns && Array.isArray(data.processRuns)) {
+      console.log('📦 First execution raw:', data.processRuns[0])
+      executions.value = data.processRuns.map(mapExecution)
+      console.log('✅ Mapped executions:', executions.value)
 
-    // Now try with businessAPI
-    const response = await businessAPI.get('/process-runs')
-    console.log('📡 BusinessAPI response status:', response.status)
-    const data = response.data
-    console.log('📊 BusinessAPI data:', data)
-
-    if (!data.data || !Array.isArray(data.data)) {
-      throw new Error('Invalid API response format')
-    }
-
-    // Map backend data to frontend format with proper status mapping
-    executions.value = data.data.map((item: any, index: number) => {
-      const businessStatus = item.business_status || ''
-      const mappedStatus = mapBackendStatus(businessStatus)
-      console.log(`📊 [${index}] Status mapping: "${businessStatus}" → "${mappedStatus}"`)
-      console.log(`   Raw item:`, item)
-      return {
-        id: item.id,
-        workflow_id: item.workflow_id,
-        workflow_name: item.workflow_name,
-        status: mappedStatus,
-        mode: item.mode || 'unknown',
-        started_at: item.started_at,
-        stopped_at: item.stopped_at,
-        duration_ms: item.duration_ms || 0,
-        business_status: item.business_status,
-        issue_description: item.issue_description
+      if (executions.value.length > 0) {
+        uiStore.showToast('Process Runs', `${executions.value.length} process runs loaded`, 'success')
       }
-    })
-
-    console.log('✅ Executions loaded:', executions.value.length)
-
-    if (executions.value.length > 0) {
-      uiStore.showToast('Process Runs', `${executions.value.length} process runs loaded`, 'success')
+    } else {
+      console.log('⚠️ No processRuns in data')
+      executions.value = []
     }
-
   } catch (error: any) {
-    console.error('❌ ERROR in refreshExecutions:', error)
-    uiStore.showToast('Errore', error.message || 'Impossibile caricare le executions', 'error')
-
-    // Fallback to empty array on error
+    console.error('❌ ERROR loading executions:', error.message)
+    uiStore.showToast('Error', error.message || 'Unable to load process runs', 'error')
     executions.value = []
   } finally {
-    console.log('🏁 FINISHED refreshExecutions. Executions count:', executions.value.length)
     isLoading.value = false
   }
 }
 
-// Helper to map backend status to frontend status
-const mapBackendStatus = (businessStatus: string): string => {
-  console.log('🔍 Mapping business status:', businessStatus)
-
-  if (!businessStatus || businessStatus === '') {
-    return 'success' // Default to success if no status
-  }
-
-  switch (businessStatus) {
-    case 'Completed Successfully':
-      return 'success'
-    case 'Requires Attention':
-      return 'error'
-    case 'In Progress':
-      return 'running'
-    case 'Unknown':
-      return 'unknown'
-    default:
-      return 'success' // Default to success instead of waiting
-  }
-}
 
 // Status helpers - same pattern as n8n
 const getStatusClass = (status: string | null) => {
@@ -473,6 +473,8 @@ const getStatusClass = (status: string | null) => {
       return 'text-green-400 bg-green-500/10 border-green-500/30'
     case 'error':
       return 'text-red-400 bg-red-500/10 border-red-500/30'
+    case 'canceled':
+      return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
     case 'running':
       return 'text-blue-400 bg-blue-500/10 border-blue-500/30'
     case 'waiting':
@@ -488,6 +490,7 @@ const getStatusDot = (status: string | null) => {
   switch (status) {
     case 'success': return 'bg-green-500'
     case 'error': return 'bg-red-500'
+    case 'canceled': return 'bg-gray-500'
     case 'running': return 'bg-blue-500'
     case 'waiting': return 'bg-yellow-500'
     case 'unknown': return 'bg-gray-500'
@@ -499,6 +502,7 @@ const getStatusLabel = (status: string | null) => {
   switch (status) {
     case 'success': return 'Success'
     case 'error': return 'Error'
+    case 'canceled': return 'Canceled'
     case 'running': return 'Running'
     case 'waiting': return 'Waiting'
     case 'unknown': return 'Unknown'
