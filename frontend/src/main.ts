@@ -56,7 +56,6 @@ const InsightsPage = () => import('./pages/InsightsPage.vue')
 // Heavy page with VueFlow - lazy load critical!
 const WorkflowCommandCenter = () => import('./pages/WorkflowCommandCenter.vue')
 const ExecutionsPage = () => import('./pages/ExecutionsPage.vue')
-const ExecutionsPagePrime = () => import('./pages/ExecutionsPagePrime.vue')
 const SettingsPage = () => import('./pages/SettingsPage.vue')
 const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
 
@@ -71,7 +70,6 @@ const routes = [
   { path: '/workflows/visual', redirect: '/command-center' },
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPage, name: 'executions', meta: { requiresAuth: true } },
-  { path: '/executions-prime', component: ExecutionsPagePrime, name: 'executions-prime', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
   { path: '/security', redirect: '/command-center' }, // Security functionality not needed

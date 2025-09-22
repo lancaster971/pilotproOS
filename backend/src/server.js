@@ -712,7 +712,7 @@ app.get('/api/business/executions', async (req, res) => {
   try {
     console.log('⚡ Loading ALL business executions with status');
 
-    const { limit = 200, offset = 0 } = req.query;
+    const { limit = 10000, offset = 0 } = req.query;
 
     // Query for all executions with workflow names
     const executions = await db

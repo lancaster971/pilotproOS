@@ -1,43 +1,6 @@
 <template>
   <MainLayout>
     <div class="executions-container">
-      <!-- Professional Header Bar -->
-      <div class="header-bar">
-        <div>
-          <h1 class="page-title">Process Runs</h1>
-          <p class="page-subtitle">Monitor and analyze your business process executions</p>
-        </div>
-        
-        <div class="header-actions">
-          <!-- Auto Refresh Toggle -->
-          <div class="auto-refresh-toggle">
-            <input
-              v-model="autoRefresh"
-              type="checkbox"
-              id="auto-refresh"
-              class="checkbox-input"
-            />
-            <label for="auto-refresh" class="checkbox-label">
-              <Icon icon="mdi:refresh-auto" class="inline-icon" />
-              Auto refresh
-            </label>
-          </div>
-
-          <button
-            @click="refreshExecutions"
-            :disabled="isLoading"
-            class="action-button"
-          >
-            <Icon icon="mdi:refresh" :class="{ 'animate-spin': isLoading }" class="button-icon" />
-            Refresh
-          </button>
-
-          <button class="action-button primary">
-            <Icon icon="mdi:download" class="button-icon" />
-            Export
-          </button>
-        </div>
-      </div>
 
       <!-- Professional KPI Bar -->
       <div class="professional-kpi-bar">
@@ -140,9 +103,6 @@
           <table class="w-full border-collapse">
             <thead>
               <tr class="bg-gray-800 border-b-2 border-gray-600">
-                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">
-                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600 rounded" />
-                </th>
                 <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">PROCESS NAME</th>
                 <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">STATUS</th>
                 <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">STARTED</th>
@@ -164,9 +124,6 @@
                 class="border-b border-gray-700 hover:bg-gray-800"
                 :class="{ 'bg-gray-900': index % 2 === 0, 'bg-gray-850': index % 2 === 1 }"
               >
-                <td class="border-r border-gray-700 px-2 py-1">
-                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600 rounded" />
-                </td>
 
                 <td class="border-r border-gray-700 px-2 py-1">
                   <div class="text-xs text-gray-100 max-w-xs">
@@ -243,18 +200,30 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="filteredExecutions.length > 0" class="pagination">
+      <div v-if="executions.length > 0" class="flex items-center justify-between">
         <p class="text-sm text-gray-400">
-          Showing {{ filteredExecutions.length }} of {{ executions.length }} process runs
+          Pagina {{ currentPage }} di {{ totalPages }} -
+          Visualizzando {{ filteredExecutions.length }} di {{ allFilteredExecutions.length }} risultati
         </p>
         <div class="flex items-center gap-2">
-          <button class="action-button" disabled>
-            <Icon icon="mdi:chevron-left" class="button-icon" />
-            Previous
+          <button
+            @click="currentPage = Math.max(1, currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="btn-control text-xs px-3 py-1"
+            :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''"
+          >
+            ← Precedente
           </button>
-          <button class="action-button" disabled>
-            Next
-            <Icon icon="mdi:chevron-right" class="button-icon" />
+          <span class="text-white text-sm px-2">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+          <button
+            @click="currentPage = Math.min(totalPages, currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="btn-control text-xs px-3 py-1"
+            :class="currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''"
+          >
+            Successiva →
           </button>
         </div>
       </div>
@@ -299,12 +268,21 @@ const executions = ref<Execution[]>([])
 const showStatusDropdown = ref(false)
 const showWorkflowDropdown = ref(false)
 
+// Pagination state
+const currentPage = ref(1)
+const itemsPerPage = ref(20)
+
 // Modal state
 const showTimelineModal = ref(false)
 const selectedExecutionWorkflowId = ref<string>('')
 
 // Auto-refresh interval
 let refreshInterval: NodeJS.Timeout
+
+// Reset to page 1 when filters change
+watch([searchTerm, statusFilter, workflowFilter], () => {
+  currentPage.value = 1
+})
 
 // Computed
 const executionStats = computed(() => {
@@ -335,23 +313,38 @@ const uniqueWorkflows = computed(() => {
   }))
 })
 
-const filteredExecutions = computed(() => {
+// All filtered executions (before pagination)
+const allFilteredExecutions = computed(() => {
   console.log('🔍 Filtering executions. Total:', executions.value.length)
   const filtered = executions.value.filter((execution) => {
-    // Search filter (fix: id is a number, not string)
+    // Search filter
     const matchesSearch = execution.workflow_name?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+                         execution.processName?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
                          String(execution.id).includes(searchTerm.value)
-    
+
     // Status filter
     const matchesStatus = statusFilter.value === 'all' || execution.status === statusFilter.value
-    
+
     // Workflow filter
-    const matchesWorkflow = workflowFilter.value === 'all' || execution.workflow_id === workflowFilter.value
-    
+    const matchesWorkflow = workflowFilter.value === 'all' ||
+                          execution.workflow_id === workflowFilter.value ||
+                          execution.processId === workflowFilter.value
+
     return matchesSearch && matchesStatus && matchesWorkflow
   })
-  console.log('✅ Filtered executions:', filtered.length)
+  console.log('✅ All filtered:', filtered.length)
   return filtered
+})
+
+// Paginated executions
+const filteredExecutions = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return allFilteredExecutions.value.slice(start, end)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(allFilteredExecutions.value.length / itemsPerPage.value)
 })
 
 // Helper to normalize status
@@ -385,9 +378,9 @@ const mapExecution = (execution: any) => {
     workflow_id: execution.processId || execution.workflow_id,
     workflow_name: execution.processName || execution.workflow_name,
     status: statusKey,
-    started_at: execution.processRunStartTime || execution.started_at,
-    stopped_at: execution.processRunEndTime || execution.stopped_at,
-    duration_ms: execution.processDuration || execution.duration_ms || 0,
+    started_at: execution.processRunStarted || execution.processRunStartTime || execution.started_at,
+    stopped_at: execution.processRunStopped || execution.processRunEndTime || execution.stopped_at,
+    duration_ms: execution.processRunDuration ? execution.processRunDuration * 1000 : (execution.processDuration || execution.duration_ms || 0),
     originalStatus: execution.originalStatus,
     processRunStatus: execution.processRunStatus
   }
@@ -469,25 +462,29 @@ const getStatusLabel = (status: string | null) => {
   }
 }
 
-const formatTime = (dateString: string) => {
+const formatTime = (dateString: string | null | undefined) => {
+  if (!dateString) return '-'
+
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return '-'
+
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const executionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  
-  const timeStr = date.toLocaleTimeString('it-IT', { 
-    hour: '2-digit', 
+
+  const timeStr = date.toLocaleTimeString('it-IT', {
+    hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
   })
-  
+
   if (executionDate.getTime() === today.getTime()) {
     return timeStr
   }
-  
-  return `${date.toLocaleDateString('it-IT', { 
-    month: 'short', 
-    day: '2-digit' 
+
+  return `${date.toLocaleDateString('it-IT', {
+    month: 'short',
+    day: '2-digit'
   })}, ${timeStr}`
 }
 
