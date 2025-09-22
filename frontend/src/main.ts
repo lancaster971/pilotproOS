@@ -70,8 +70,8 @@ const routes = [
   { path: '/workflows', redirect: '/command-center' },
   { path: '/workflows/visual', redirect: '/command-center' },
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
-  { path: '/executions', component: ExecutionsPagePrime, name: 'executions', meta: { requiresAuth: true } },
-  { path: '/executions-old', component: ExecutionsPage, name: 'executions-old', meta: { requiresAuth: true } },
+  { path: '/executions', component: ExecutionsPage, name: 'executions', meta: { requiresAuth: true } },
+  { path: '/executions-prime', component: ExecutionsPagePrime, name: 'executions-prime', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
   { path: '/security', redirect: '/command-center' }, // Security functionality not needed
