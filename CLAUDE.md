@@ -15,6 +15,52 @@ PilotProOS - Containerized Business Process Operating System
 
 **DO NOT answer project questions from CLAUDE.md alone - always read the specific documentation files above first.**
 
+## 📋 **IMPLEMENTATION ROADMAP**
+
+**For complete implementation sequence**: Read **[TODO_GERARCHICA_PILOTPROS.md](./TODO_GERARCHICA_PILOTPROS.md)**
+
+This document contains the chirurgical TODO list with:
+- Critical path analysis (Production vs Technical Debt tracks)
+- Phase-by-phase implementation sequence
+- Detailed dependencies and effort estimates
+- Complete documentation references for each task
+- Timeline with business impact prioritization
+
+## 📚 **ORDINE DI LETTURA DOCUMENTAZIONE**
+
+### **🎯 SEQUENCE OBBLIGATORIA (30-40 min)**
+```
+1. CLAUDE.md (questo file)                    # Regole fondamentali
+2. docs/README.md                             # Struttura documentazione
+3. docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md  # Cosa funziona ORA
+4. TODO_GERARCHICA_PILOTPROS.md              # Piano lavoro chirurgico
+5. docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md   # Blockers P0 revenue
+```
+
+### **🔧 LETTURA PER RUOLO**
+
+**👨‍💻 DEVELOPER** (implementazione immediata):
+```
+Sequence obbligatoria + docs/IMPLEMENTED/architecture.md + TECHNICAL_DEBT_PLAN.md
+```
+
+**🏢 BUSINESS/PRODUCT** (strategy & revenue):
+```
+Sequence obbligatoria + docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md + docs/STRATEGY/ENTERPRISE_SCRIPTING_STRATEGY.md
+```
+
+**🔧 DEVOPS** (deployment & operations):
+```
+Sequence obbligatoria + docs/STRATEGY/REVERSE_PROXY_README.md + docs/TODO/DOCKER_OPTIMIZATION_PLAN.md
+```
+
+### **⚡ QUICK START (per chi ha fretta)**
+```
+1. CLAUDE.md (5 min)
+2. TODO_GERARCHICA_PILOTPROS.md - solo Timeline (10 min)
+3. docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md - solo P0 (15 min)
+```
+
 ## 🚨 **REGOLE FONDAMENTALI**
 
 ### **Docker Isolation Policy**
