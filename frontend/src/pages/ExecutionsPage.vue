@@ -90,207 +90,151 @@
         </div>
       </div>
 
-      <!-- Filters Section -->
-      <div class="section-container">
+      <!-- Filters - Excel Style -->
+      <div class="control-card p-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <!-- Search Input -->
-          <div class="relative group">
-            <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 transition-colors group-focus-within:text-green-400" />
+          <div class="relative">
+            <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <input
               v-model="searchTerm"
               type="text"
-              placeholder="Search process runs..."
-              class="search-input pl-10"
+              placeholder="Cerca executions..."
+              class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
             />
           </div>
 
-          <!-- Status Filter Dropdown -->
-          <div class="relative">
-            <button
-              @click="showStatusDropdown = !showStatusDropdown"
-              class="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
-                     hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
-                     transition-all duration-200 flex items-center justify-between group"
-            >
-              <span class="flex items-center gap-2">
-                <div v-if="statusFilter !== 'all'" 
-                     class="w-2 h-2 rounded-full"
-                     :class="statusFilter === 'success' ? 'bg-green-400' : 
-                             statusFilter === 'error' ? 'bg-red-400' :
-                             statusFilter === 'running' ? 'bg-blue-400' : 'bg-yellow-400'"
-                />
-                {{ statusFilter === 'all' ? `Any Status (${executionStats.total})` :
-                    statusFilter === 'success' ? `Success (${executionStats.success})` :
-                    statusFilter === 'error' ? `Error (${executionStats.error})` :
-                    statusFilter === 'canceled' ? `Canceled (${executionStats.canceled})` :
-                    statusFilter === 'running' ? `Running (${executionStats.running})` :
-                    `Waiting (${executionStats.waiting})` }}
-              </span>
-              <Icon icon="mdi:chevron-down" class="h-4 w-4 text-gray-400 transition-transform duration-200"
-                          :class="showStatusDropdown ? 'rotate-180' : ''" />
-            </button>
-            
-            <!-- Status Dropdown Menu -->
-            <transition
-              enter-active-class="transition ease-out duration-200"
-              enter-from-class="transform opacity-0 scale-95"
-              enter-to-class="transform opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-150"
-              leave-from-class="transform opacity-100 scale-100"
-              leave-to-class="transform opacity-0 scale-95"
-            >
-              <div v-if="showStatusDropdown" 
-                   class="absolute z-10 mt-2 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden">
-                <button
-                  v-for="status in ['all', 'success', 'error', 'canceled', 'running', 'waiting']"
-                  :key="status"
-                  @click="statusFilter = status; showStatusDropdown = false"
-                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors
-                         flex items-center justify-between group"
-                  :class="statusFilter === status ? 'bg-primary/10 text-primary' : 'text-text'"
-                >
-                  <span class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full"
-                         :class="status === 'success' ? 'bg-green-400' :
-                                 status === 'error' ? 'bg-red-400' :
-                                 status === 'canceled' ? 'bg-gray-400' :
-                                 status === 'running' ? 'bg-blue-400' :
-                                 status === 'waiting' ? 'bg-yellow-400' : 'bg-transparent'"
-                    />
-                    {{ status === 'all' ? 'Any Status' :
-                        status === 'success' ? 'Success' :
-                        status === 'error' ? 'Error' :
-                        status === 'canceled' ? 'Canceled' :
-                        status === 'running' ? 'Running' : 'Waiting' }}
-                  </span>
-                  <span class="text-text-muted text-xs">
-                    {{ status === 'all' ? executionStats.total :
-                        status === 'success' ? executionStats.success :
-                        status === 'error' ? executionStats.error :
-                        status === 'canceled' ? executionStats.canceled :
-                        status === 'running' ? executionStats.running : executionStats.waiting }}
-                  </span>
-                </button>
-              </div>
-            </transition>
-          </div>
+          <!-- Status Filter -->
+          <select
+            v-model="statusFilter"
+            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
+          >
+            <option value="all">Any Status ({{ executionStats.total }})</option>
+            <option value="success">Success ({{ executionStats.success }})</option>
+            <option value="error">Error ({{ executionStats.error }})</option>
+            <option value="canceled">Canceled ({{ executionStats.canceled }})</option>
+            <option value="running">Running ({{ executionStats.running }})</option>
+            <option value="waiting">Waiting ({{ executionStats.waiting }})</option>
+          </select>
 
-          <!-- Workflow Filter Dropdown -->
-          <div class="relative">
-            <button
-              @click="showWorkflowDropdown = !showWorkflowDropdown"
-              class="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text text-sm 
-                     hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20
-                     transition-all duration-200 flex items-center justify-between group"
+          <!-- Workflow Filter -->
+          <select
+            v-model="workflowFilter"
+            class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:border-green-500 focus:outline-none"
+          >
+            <option value="all">All Workflows</option>
+            <option
+              v-for="workflow in uniqueWorkflows"
+              :key="workflow.id"
+              :value="workflow.id"
             >
-              <span class="truncate">
-                {{ workflowFilter === 'all' ? 'All Workflows' : 
-                    workflowsStore.workflows.find(w => w.id === workflowFilter)?.name || 'Select Workflow' }}
-              </span>
-              <Icon icon="mdi:chevron-down" class="h-4 w-4 text-gray-400 transition-transform duration-200 flex-shrink-0"
-                          :class="showWorkflowDropdown ? 'rotate-180' : ''" />
-            </button>
-            
-            <!-- Workflow Dropdown Menu -->
-            <transition
-              enter-active-class="transition ease-out duration-200"
-              enter-from-class="transform opacity-0 scale-95"
-              enter-to-class="transform opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-150"
-              leave-from-class="transform opacity-100 scale-100"
-              leave-to-class="transform opacity-0 scale-95"
-            >
-              <div v-if="showWorkflowDropdown" 
-                   class="absolute z-10 mt-2 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden max-h-64 overflow-y-auto">
-                <button
-                  @click="workflowFilter = 'all'; showWorkflowDropdown = false"
-                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors"
-                  :class="workflowFilter === 'all' ? 'bg-primary/10 text-primary' : 'text-text'"
-                >
-                  All Workflows
-                </button>
-                <button
-                  v-for="workflow in workflowsStore.workflows"
-                  :key="workflow.id"
-                  @click="workflowFilter = workflow.id; showWorkflowDropdown = false"
-                  class="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover transition-colors flex items-center gap-2"
-                  :class="workflowFilter === workflow.id ? 'bg-primary/10 text-primary' : 'text-text'"
-                >
-                  <div class="w-2 h-2 rounded-full" 
-                       :class="workflow.active ? 'bg-green-400' : 'bg-gray-400'" />
-                  <span class="truncate">{{ workflow.name }}</span>
-                </button>
-              </div>
-            </transition>
-          </div>
+              {{ workflow.name }}
+            </option>
+          </select>
         </div>
       </div>
 
-      <!-- Executions Table -->
-      <div class="section-container">
+      <!-- Executions Table - Excel Dark Style -->
+      <div class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full border-collapse">
             <thead>
-              <tr class="border-b border-gray-800">
-                <th>
-                  <input type="checkbox" class="checkbox-input" />
+              <tr class="bg-gray-800 border-b-2 border-gray-600">
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">
+                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600 rounded" />
                 </th>
-                <th>Process Name</th>
-                <th>Status</th>
-                <th>Started</th>
-                <th>Duration</th>
-                <th>Run ID</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">PROCESS NAME</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">STATUS</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">STARTED</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">RUN TIME</th>
+                <th class="border-r border-gray-700 px-2 py-1 text-xs font-bold text-gray-300 text-left">EXEC. ID</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExecutions.length === 0">
-                <td colspan="6" class="empty-state">
-                  <Icon icon="mdi:play-circle-outline" class="empty-icon" />
-                  <p>No process runs found</p>
+                <td colspan="6" class="px-2 py-8 text-center text-gray-500 bg-gray-900">
+                  <Icon icon="mdi:play-circle-outline" class="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                  No process runs found
                 </td>
               </tr>
-              
+
               <tr
-                v-for="execution in filteredExecutions"
+                v-for="(execution, index) in filteredExecutions"
                 :key="execution.id"
-                class="border-b border-gray-800/50 hover:bg-gray-900/30 transition-colors"
+                class="border-b border-gray-700 hover:bg-gray-800"
+                :class="{ 'bg-gray-900': index % 2 === 0, 'bg-gray-850': index % 2 === 1 }"
               >
-                <td class="p-4">
-                  <input type="checkbox" class="checkbox-input" />
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <input type="checkbox" class="w-3 h-3 bg-gray-700 border-gray-600 rounded" />
                 </td>
-                
-                <td class="p-4">
-                  <div class="font-medium text-white max-w-xs">
-                    <span 
+
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <div class="text-xs text-gray-100 max-w-xs">
+                    <span
                       @click="openExecutionDetails(execution)"
-                      class="truncate block cursor-pointer hover:text-green-400 transition-colors" 
-                      :title="execution.workflow_name"
+                      class="truncate block cursor-pointer hover:text-green-400 transition-colors"
+                      :title="execution.workflow_name || execution.processName"
                     >
-                      {{ execution.workflow_name }}
+                      {{ execution.workflow_name || execution.processName }}
                     </span>
                   </div>
                 </td>
-                
-                <td class="p-4">
+
+                <td class="border-r border-gray-700 px-2 py-1">
+                  <!-- Success Status -->
                   <span
-                    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
-                    :class="getStatusClass(execution.status || 'unknown')"
+                    v-if="execution.status === 'success'"
+                    class="text-xs text-green-300 font-bold"
                   >
-                    <div class="w-1.5 h-1.5 rounded-full" :class="getStatusDot(execution.status || 'unknown')" />
-                    {{ getStatusLabel(execution.status || 'unknown') }}
+                    SUCCESS
+                  </span>
+                  <!-- Error Status -->
+                  <span
+                    v-else-if="execution.status === 'error'"
+                    class="text-xs text-red-300 font-bold"
+                  >
+                    ERROR
+                  </span>
+                  <!-- Canceled Status -->
+                  <span
+                    v-else-if="execution.status === 'canceled'"
+                    class="text-xs text-yellow-300 font-bold"
+                  >
+                    CANCELED
+                  </span>
+                  <!-- Running Status -->
+                  <span
+                    v-else-if="execution.status === 'running'"
+                    class="text-xs text-blue-300 font-bold"
+                  >
+                    RUNNING
+                  </span>
+                  <!-- Waiting Status -->
+                  <span
+                    v-else-if="execution.status === 'waiting'"
+                    class="text-xs text-orange-300 font-bold"
+                  >
+                    WAITING
+                  </span>
+                  <!-- Unknown Status (fallback) -->
+                  <span
+                    v-else
+                    class="text-xs text-white font-bold"
+                  >
+                    {{ (execution.status || 'UNKNOWN').toUpperCase() }}
                   </span>
                 </td>
-                
-                <td class="p-4 text-sm text-gray-300">
+
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
                   {{ formatTime(execution.started_at) }}
                 </td>
-                
-                <td class="p-4 text-sm text-gray-300 font-mono">
+
+                <td class="border-r border-gray-700 px-2 py-1 text-xs text-gray-300">
                   {{ formatDuration(execution.duration_ms) }}
                 </td>
-                
-                <td class="p-4 text-sm text-gray-300 font-mono">
-                  {{ execution.id }}
+
+                <td class="border-gray-700 px-2 py-1 text-xs text-gray-400">
+                  #{{ execution.id || execution.processRunId }}
                 </td>
               </tr>
             </tbody>
@@ -374,6 +318,21 @@ const executionStats = computed(() => {
   }
   console.log('📈 Execution Stats:', stats)
   return stats
+})
+
+const uniqueWorkflows = computed(() => {
+  const workflows = new Map()
+  executions.value.forEach(exec => {
+    const id = exec.workflow_id || exec.processId
+    const name = exec.workflow_name || exec.processName
+    if (id && name) {
+      workflows.set(id, name)
+    }
+  })
+  return Array.from(workflows.entries()).map(([id, name]) => ({
+    id,
+    name
+  }))
 })
 
 const filteredExecutions = computed(() => {
@@ -913,6 +872,11 @@ tr:hover {
   .kpi-card-value {
     font-size: 22px;
   }
+}
+
+/* Excel Table Zebra Stripes */
+.bg-gray-850 {
+  background-color: #111317;
 }
 
 /* Animations */
