@@ -1,14 +1,14 @@
 /**
  * Business API Authentication Middleware
  *
- * Protegge tutte le route /api/business/* con autenticazione JWT
+ * Protegge tutte le route /api/business/* con autenticazione Passport.js
  * e controlli di autorizzazione basati su ruoli
  */
 
-import { getAuthService } from '../auth/jwt-auth.js';
+import { authenticateJWT } from './passport-auth.js';
 import rateLimit from 'express-rate-limit';
 
-const authService = getAuthService();
+// Using Passport.js authentication for all business routes
 
 /**
  * Route pubbliche che NON richiedono autenticazione
@@ -72,7 +72,16 @@ export const standardRateLimiter = rateLimit({
 /**
  * Middleware principale di autenticazione per Business API
  */
-export const businessAuthMiddleware = async (req, res, next) => {
+export const businessAuthMiddleware = (req, res, next) => {
+  // Simply use Passport.js JWT authentication for all business routes
+  return authenticateJWT(req, res, next);
+};
+
+// ============================================================================
+// LEGACY CODE COMPLETELY REMOVED - NO MORE CUSTOM JWT
+// ============================================================================
+
+// export const legacyBusinessAuthMiddleware = async (req, res, next) => {
   try {
     // Extract the actual path from baseUrl and path
     const fullPath = req.baseUrl + (req.path === '/' ? '' : req.path);

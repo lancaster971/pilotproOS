@@ -16,6 +16,11 @@ import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
 import businessLogger from './utils/logger.js';
 
+// Authentication imports
+import passport from './auth/passport-config.js';
+// import session from 'express-session';
+// import { sessionConfig } from './config/session.js';
+
 // Drizzle ORM imports
 import { db } from './db/connection.js';
 import { workflowEntity, executionEntity } from './db/schema.js';
@@ -63,7 +68,7 @@ import passportAuthController from './controllers/passport-auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
-import { businessAuthMiddleware } from './middleware/business-auth.middleware.js';
+import { businessAuthMiddleware } from './middleware/business-auth-clean.js';
 
 // Health Check Controller - TEMPORARILY DISABLED
 // import healthController from './controllers/health.controller.js';
@@ -150,6 +155,13 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
+
+// ============================================================================
+// PASSPORT.JS AUTHENTICATION SYSTEM
+// ============================================================================
+
+// Initialize Passport.js (stateless JWT - no sessions for now)
+app.use(passport.initialize());
 
 // Rate limiting (RELAXED for development)
 app.use(rateLimit({
@@ -364,8 +376,8 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
 // BUSINESS MIDDLEWARE (Applied after icon routes)
 // ============================================================================
 
-// SECURITY: Apply authentication to ALL business routes
-app.use('/api/business/*', businessAuthMiddleware);
+// SECURITY: Apply Passport.js authentication to ALL business routes
+app.use('/api/business/*', authenticateJWT);
 
 // Additional security headers for business routes
 app.use('/api/business/*', (req, res, next) => {
@@ -4432,33 +4444,34 @@ function extractBusinessContext(executionData, timeline) {
 // app.use('/api/health', healthController);
 
 // ============================================================================
-// Basic auth routes (login, logout, etc.) - Using Passport.js
+// Modern Passport.js authentication system
 app.use('/api/auth', passportAuthController);
 
-// Legacy auth routes (for backward compatibility during transition)
+// Legacy auth system (deprecated - for emergency fallback only)
 app.use('/api/auth/legacy', authController);
 
-// Enhanced auth routes (LDAP, MFA, etc.)
-app.use('/api/auth/enhanced', enhancedAuthController);
+// Enhanced auth routes (LDAP, MFA, etc.) - TEMPORARILY DISABLED until Passport.js migration
+// app.use('/api/auth/enhanced', enhancedAuthController);
 
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
 import * as userManagementController from './controllers/user-management.controller.js';
-import { getAuthService } from './auth/jwt-auth.js';
+import { authenticateJWT } from './middleware/passport-auth.js';
+// import { getAuthService } from './auth/jwt-auth.js'; // DEPRECATED - using Passport.js
 
-const authService = getAuthService();
+// const authService = getAuthService(); // DEPRECATED
 
-app.get('/api/users', authService.authenticateToken(), userManagementController.getUsers);
-app.post('/api/users', authService.authenticateToken(), userManagementController.createUser);
-app.put('/api/users/:userId', authService.authenticateToken(), userManagementController.updateUser);
-app.delete('/api/users/:userId', authService.authenticateToken(), userManagementController.deleteUser);
-app.get('/api/roles', authService.authenticateToken(), userManagementController.getRolesAndPermissions);
+app.get('/api/users', authenticateJWT, userManagementController.getUsers);
+app.post('/api/users', authenticateJWT, userManagementController.createUser);
+app.put('/api/users/:userId', authenticateJWT, userManagementController.updateUser);
+app.delete('/api/users/:userId', authenticateJWT, userManagementController.deleteUser);
+app.get('/api/roles', authenticateJWT, userManagementController.getRolesAndPermissions);
 
 // Authentication Configuration Routes
-app.get('/api/auth/configuration', authService.authenticateToken(), authConfigController.getAuthConfig);
-app.post('/api/auth/save-configuration', authService.authenticateToken(), authConfigController.saveAuthConfig);
-app.post('/api/auth/test-configuration', authService.authenticateToken(), authConfigController.testAuthConfig);
+app.get('/api/auth/configuration', authenticateJWT, authConfigController.getAuthConfig);
+app.post('/api/auth/save-configuration', authenticateJWT, authConfigController.saveAuthConfig);
+app.post('/api/auth/test-configuration', authenticateJWT, authConfigController.testAuthConfig);
 
 /**
  * Get complete statistics for a single workflow

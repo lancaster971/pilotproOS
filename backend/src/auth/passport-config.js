@@ -9,7 +9,7 @@ import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcryptjs';
-import { dbPool } from '../db/connection.js';
+import { dbPool } from '../db/pg-pool.js';
 
 /**
  * Local Strategy for username/password authentication
@@ -21,7 +21,7 @@ passport.use(new LocalStrategy({
   try {
     // Query user from database
     const result = await dbPool.query(
-      'SELECT id, email, password_hash, role, permissions, created_at FROM pilotpros.users WHERE email = $1',
+      'SELECT id, email, password_hash, role, created_at FROM pilotpros.users WHERE email = $1 AND is_active = true',
       [email]
     );
 
@@ -39,7 +39,7 @@ passport.use(new LocalStrategy({
 
     // Update last login
     await dbPool.query(
-      'UPDATE pilotpros.users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+      'UPDATE pilotpros.users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
 
@@ -73,7 +73,7 @@ passport.use(new JwtStrategy({
   try {
     // Query user from database to ensure they still exist and are active
     const result = await dbPool.query(
-      'SELECT id, email, role, permissions, created_at FROM pilotpros.users WHERE id = $1',
+      'SELECT id, email, role, created_at FROM pilotpros.users WHERE id = $1 AND is_active = true',
       [payload.userId]
     );
 
@@ -101,7 +101,7 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const result = await dbPool.query(
-      'SELECT id, email, role, permissions, created_at FROM pilotpros.users WHERE id = $1',
+      'SELECT id, email, role, created_at FROM pilotpros.users WHERE id = $1 AND is_active = true',
       [id]
     );
 

@@ -8,7 +8,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { dbPool } from '../db/connection.js';
+// import { dbPool } from '../db/connection.js'; // Using pgPool instead
 import { authenticateLocal } from '../middleware/passport-auth.js';
 import {
   loginRateLimiter,
@@ -18,20 +18,16 @@ import {
   registrationLimiter,
   passwordResetLimiter
 } from '../middleware/auth-rate-limiting.js';
+import { dbPool } from '../db/pg-pool.js';
 
 const router = express.Router();
 
 /**
  * Login endpoint using Passport.js Local Strategy
  */
-router.post('/login', loginRateLimiter, progressiveDelay, (req, res, next) => {
-  authenticateLocal(req, res, async (error) => {
-    if (error) {
-      return next(error);
-    }
-
-    try {
-      const { user } = req;
+router.post('/login', loginRateLimiter, progressiveDelay, authenticateLocal, async (req, res, next) => {
+  try {
+    const user = req.user;
 
       // Clear failed login attempts on successful login
       await clearFailedAttempts(req.ip);
@@ -40,8 +36,7 @@ router.post('/login', loginRateLimiter, progressiveDelay, (req, res, next) => {
       const payload = {
         userId: user.id,
         email: user.email,
-        role: user.role,
-        permissions: user.permissions || []
+        role: user.role
       };
 
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -59,28 +54,24 @@ router.post('/login', loginRateLimiter, progressiveDelay, (req, res, next) => {
       res.json({
         success: true,
         message: 'Login effettuato con successo',
-        data: {
-          user: {
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            permissions: user.permissions
-          },
-          token, // Also send token for Bearer authentication
-          expiresIn: '30m'
-        }
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        },
+        token, // Also send token for Bearer authentication
+        expiresIn: '30m'
       });
 
-    } catch (error) {
-      console.error('❌ Login error:', error);
-      await recordFailedLogin(req.ip);
+  } catch (error) {
+    console.error('❌ Login error:', error);
+    await recordFailedLogin(req.ip);
 
-      res.status(500).json({
-        success: false,
-        message: 'Errore interno durante il login'
-      });
-    }
-  });
+    res.status(500).json({
+      success: false,
+      message: 'Errore interno durante il login'
+    });
+  }
 });
 
 /**
@@ -235,7 +226,7 @@ router.post('/verify', async (req, res) => {
 
     // Check if user still exists and is active
     const result = await dbPool.query(
-      'SELECT id, email, role, permissions FROM pilotpros.users WHERE id = $1 AND is_active = true',
+      'SELECT id, email, role FROM pilotpros.users WHERE id = $1 AND is_active = true',
       [decoded.userId]
     );
 
