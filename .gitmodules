@@ -4,3 +4,6 @@
 [submodule "crewai-examples"]
 	path = crewai-examples
 	url = https://github.com/crewAIInc/crewAI-examples.git
+[submodule "crewai-tools"]
+	path = crewai-tools
+	url = https://github.com/crewAIInc/crewAI-tools.git
