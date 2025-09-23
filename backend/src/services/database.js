@@ -117,8 +117,8 @@ export class DatabaseConnection {
         };
       }
 
-      // Crea il pool di connessioni
-      this.pool = new Pool(poolConfig);
+      // Use shared pool instead of creating new one
+      this.pool = dbPool;
 
       // Gestione eventi del pool
       this.pool.on('error', (err) => {

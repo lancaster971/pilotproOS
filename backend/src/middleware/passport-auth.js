@@ -6,13 +6,25 @@
  */
 
 import passport from '../auth/passport-config.js';
+import { createClient } from 'redis';
+import jwt from 'jsonwebtoken';
+
+// Redis client for token blacklist
+const redisClient = createClient({
+  socket: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379')
+  }
+});
+
+redisClient.connect().catch(console.error);
 
 /**
  * JWT Authentication Middleware
  * Uses Passport.js JWT strategy for API authentication
  */
 export const authenticateJWT = (req, res, next) => {
-  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+  passport.authenticate('jwt', { session: false }, async (err, user, info) => {
     if (err) {
       console.error('❌ JWT Authentication error:', err);
       return res.status(500).json({
@@ -26,6 +38,23 @@ export const authenticateJWT = (req, res, next) => {
         success: false,
         message: info?.message || 'Token di autenticazione non valido'
       });
+    }
+
+    // Check if token is blacklisted
+    const token = req.headers.authorization?.split(' ')[1] || req.cookies?.jwt_token;
+    if (token) {
+      try {
+        const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+        if (isBlacklisted) {
+          return res.status(401).json({
+            success: false,
+            message: 'Token revocato'
+          });
+        }
+      } catch (redisErr) {
+        console.error('Redis blacklist check error:', redisErr);
+        // Continue if Redis fails
+      }
     }
 
     // Add user to request object
@@ -55,7 +84,7 @@ export const authenticateLocal = (req, res, next) => {
       });
     }
 
-    // Add user to request object
+    // Add user to request object (no blacklist check for login)
     req.user = user;
     next();
   })(req, res, next);
@@ -102,3 +131,20 @@ export const requirePermission = (permission) => (req, res, next) => {
 
 // Backward compatibility - keep the old name for existing routes
 export const authenticateToken = authenticateJWT;
+
+// Export function to blacklist a token
+export const blacklistToken = async (token) => {
+  try {
+    // Extract expiry from token
+    const decoded = jwt.decode(token);
+    if (decoded && decoded.exp) {
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+      if (ttl > 0) {
+        await redisClient.setEx(`blacklist:${token}`, ttl, '1');
+        console.log(`Token blacklisted for ${ttl} seconds`);
+      }
+    }
+  } catch (error) {
+    console.error('Error blacklisting token:', error);
+  }
+};

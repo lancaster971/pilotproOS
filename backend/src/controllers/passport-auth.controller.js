@@ -9,7 +9,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 // import { dbPool } from '../db/connection.js'; // Using pgPool instead
-import { authenticateLocal } from '../middleware/passport-auth.js';
+import { authenticateLocal, blacklistToken } from '../middleware/passport-auth.js';
 import {
   loginRateLimiter,
   progressiveDelay,
@@ -19,6 +19,8 @@ import {
   passwordResetLimiter
 } from '../middleware/auth-rate-limiting.js';
 import { dbPool } from '../db/pg-pool.js';
+import { logAuthSuccess, logAuthError, AuthErrorType, createAuthError } from '../middleware/auth-error-handler.js';
+import refreshTokenService from '../services/refresh-token.service.js';
 
 const router = express.Router();
 
@@ -32,6 +34,9 @@ router.post('/login', loginRateLimiter, progressiveDelay, authenticateLocal, asy
       // Clear failed login attempts on successful login
       await clearFailedAttempts(req.ip);
 
+      // Log successful authentication
+      logAuthSuccess(req, user);
+
       // Generate JWT token
       const payload = {
         userId: user.id,
@@ -43,12 +48,23 @@ router.post('/login', loginRateLimiter, progressiveDelay, authenticateLocal, asy
         expiresIn: '30m' // 30 minutes for security
       });
 
+      // Generate refresh token
+      const refreshToken = await refreshTokenService.generateRefreshToken(user.id);
+
       // Set HTTP-only cookie for additional security
       res.cookie('jwt_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 30 * 60 * 1000 // 30 minutes
+      });
+
+      // Set refresh token as HTTP-only cookie
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
       res.json({
@@ -66,11 +82,9 @@ router.post('/login', loginRateLimiter, progressiveDelay, authenticateLocal, asy
   } catch (error) {
     console.error('❌ Login error:', error);
     await recordFailedLogin(req.ip);
+    logAuthError(req, AuthErrorType.INTERNAL_ERROR, { error: error.message });
 
-    res.status(500).json({
-      success: false,
-      message: 'Errore interno durante il login'
-    });
+    res.status(500).json(createAuthError(AuthErrorType.INTERNAL_ERROR));
   }
 });
 
@@ -153,29 +167,59 @@ router.post('/register', registrationLimiter, async (req, res) => {
 });
 
 /**
- * Logout endpoint
+ * Logout endpoint - revokes all tokens
  */
-router.post('/logout', (req, res) => {
-  // Clear the JWT cookie
-  res.clearCookie('jwt_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  });
+router.post('/logout', async (req, res) => {
+  try {
+    // Get user from token if present
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1] || req.cookies.jwt_token;
 
-  // Destroy session if exists
-  if (req.session) {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('❌ Session destruction error:', err);
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Revoke all refresh tokens for this user
+        await refreshTokenService.revokeAllUserTokens(decoded.userId);
+        // Blacklist the access token
+        await blacklistToken(token);
+      } catch (err) {
+        // Token invalid - continue with logout anyway
       }
+    }
+
+    // Clear cookies
+    res.clearCookie('jwt_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    // Destroy session if exists
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('❌ Session destruction error:', err);
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Logout effettuato con successo'
+    });
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante il logout'
     });
   }
-
-  res.json({
-    success: true,
-    message: 'Logout effettuato con successo'
-  });
 });
 
 /**
@@ -265,6 +309,60 @@ router.post('/verify', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella verifica del token'
+    });
+  }
+});
+
+/**
+ * Refresh token endpoint
+ */
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refresh_token || req.body.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token non fornito'
+      });
+    }
+
+    // Rotate refresh token
+    const { accessToken, refreshToken: newRefreshToken } =
+      await refreshTokenService.rotateRefreshToken(refreshToken);
+
+    // Set new tokens
+    res.cookie('jwt_token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000 // 30 minutes
+    });
+
+    res.cookie('refresh_token', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({
+      success: true,
+      message: 'Token rinnovato con successo',
+      token: accessToken,
+      expiresIn: '30m'
+    });
+
+  } catch (error) {
+    console.error('❌ Token refresh error:', error);
+
+    // Clear invalid tokens
+    res.clearCookie('jwt_token');
+    res.clearCookie('refresh_token');
+
+    res.status(401).json({
+      success: false,
+      message: error.message || 'Impossibile rinnovare il token'
     });
   }
 });

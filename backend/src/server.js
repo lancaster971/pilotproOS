@@ -5,7 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
-import { Pool } from 'pg';
+// import { Pool } from 'pg'; // Using shared pg-pool
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,8 +18,9 @@ import businessLogger from './utils/logger.js';
 
 // Authentication imports
 import passport from './auth/passport-config.js';
-// import session from 'express-session';
-// import { sessionConfig } from './config/session.js';
+import session from 'express-session';
+import { RedisStore } from 'connect-redis';
+import { createClient } from 'redis';
 
 // Drizzle ORM imports
 import { db } from './db/connection.js';
@@ -59,16 +60,18 @@ import { DatabaseCompatibilityService } from './services/database-compatibility.
 import { N8nFieldMapper } from './utils/n8n-field-mapper.js';
 import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 
-// Enhanced Authentication System
-import enhancedAuthController from './controllers/enhanced-auth.controller.js';
+// Enhanced Authentication System - REMOVED (using Passport.js only)
+// import enhancedAuthController from './controllers/enhanced-auth.controller.js';
 
-// Basic Authentication Controller (login/logout)
-import authController from './controllers/auth.controller.js';
+// Passport.js Authentication Controller (ONLY authentication system)
 import passportAuthController from './controllers/passport-auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
 import { businessAuthMiddleware } from './middleware/business-auth-clean.js';
+import { authenticateJWT } from './middleware/passport-auth.js';
+import { authErrorHandler } from './middleware/auth-error-handler.js';
+import { createRefreshTokenTable } from './services/refresh-token.service.js';
 
 // Health Check Controller - TEMPORARILY DISABLED
 // import healthController from './controllers/health.controller.js';
@@ -84,18 +87,9 @@ const port = parseInt(process.env.PORT || '3001');
 const host = process.env.HOST || '127.0.0.1';
 
 // ============================================================================
-// DATABASE CONNECTION (PostgreSQL condiviso con n8n)
+// DATABASE CONNECTION - Using shared pg-pool
 // ============================================================================
-const dbPool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER || 'pilotpros_user',
-  password: process.env.DB_PASSWORD || 'pilotpros_password',
-  database: process.env.DB_NAME || 'pilotpros_db',
-  max: parseInt(process.env.DB_POOL_SIZE || '20'),
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000'),
-});
+import { dbPool } from './db/pg-pool.js';
 
 // Test database connection on startup and ensure default users
 dbPool.connect(async (err, client, release) => {
@@ -107,7 +101,10 @@ dbPool.connect(async (err, client, release) => {
     
     // Database connected - users managed via UI only
     console.log('✅ Database ready - users managed via application UI');
-    
+
+    // Create refresh tokens table if needed
+    await createRefreshTokenTable();
+
     release();
   }
 });
@@ -157,11 +154,65 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // ============================================================================
+// REDIS SESSION STORE CONFIGURATION
+// ============================================================================
+
+// Configure Redis client
+const redisClient = createClient({
+  socket: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379')
+  },
+  password: process.env.REDIS_PASSWORD,
+  legacyMode: false // Use modern Redis client
+});
+
+// Handle Redis connection events
+redisClient.on('error', (err) => {
+  console.error('❌ Redis Client Error:', err);
+  // Continue without sessions on Redis error
+});
+
+redisClient.on('connect', () => {
+  console.log('✅ Redis connected successfully');
+});
+
+// Connect to Redis
+redisClient.connect().catch((err) => {
+  console.error('❌ Redis connection failed:', err);
+  // Continue without sessions if Redis fails
+});
+
+// Configure session store
+const sessionStore = new RedisStore({
+  client: redisClient,
+  prefix: 'pilotpros:',
+  ttl: 30 * 60 // 30 minutes
+});
+
+// Configure express-session
+app.use(session({
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET || 'pilotpros-secret-2025-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true, // Reset expiry on activity
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 60 * 1000, // 30 minutes
+    sameSite: 'strict'
+  },
+  name: 'pilotpros.sid'
+}));
+
+// ============================================================================
 // PASSPORT.JS AUTHENTICATION SYSTEM
 // ============================================================================
 
-// Initialize Passport.js (stateless JWT - no sessions for now)
+// Initialize Passport.js with session support
 app.use(passport.initialize());
+app.use(passport.session());
 
 // Rate limiting (RELAXED for development)
 app.use(rateLimit({
@@ -4444,20 +4495,16 @@ function extractBusinessContext(executionData, timeline) {
 // app.use('/api/health', healthController);
 
 // ============================================================================
-// Modern Passport.js authentication system
+// Passport.js authentication system (ONLY authentication system)
 app.use('/api/auth', passportAuthController);
 
-// Legacy auth system (deprecated - for emergency fallback only)
-app.use('/api/auth/legacy', authController);
-
-// Enhanced auth routes (LDAP, MFA, etc.) - TEMPORARILY DISABLED until Passport.js migration
-// app.use('/api/auth/enhanced', enhancedAuthController);
+// ALL legacy auth systems REMOVED - using only Passport.js
 
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
 import * as userManagementController from './controllers/user-management.controller.js';
-import { authenticateJWT } from './middleware/passport-auth.js';
+// authenticateJWT already imported at top of file
 // import { getAuthService } from './auth/jwt-auth.js'; // DEPRECATED - using Passport.js
 
 // const authService = getAuthService(); // DEPRECATED
@@ -4656,6 +4703,23 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown().then(() => process.exit(1));
+});
+
+// ============================================================================
+// GLOBAL ERROR HANDLERS
+// ============================================================================
+
+// Authentication error handler
+app.use(authErrorHandler);
+
+// Generic error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // ============================================================================
