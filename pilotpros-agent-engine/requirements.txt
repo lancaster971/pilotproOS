@@ -7,6 +7,16 @@ pydantic-settings==2.1.0
 # Agent Engine Framework (internal use of CrewAI - rebranded as "Agent Engine")
 crewai==0.28.0
 langchain==0.1.0
+langchain-community==0.0.10
+
+# LLM Providers
+langchain-openai==0.0.5  # OpenAI (GPT-4, GPT-3.5)
+langchain-google-genai==0.0.5  # Google Gemini (FREE!)
+langchain-anthropic==0.0.2  # Anthropic Claude
+langchain-mistralai==0.0.2  # Mistral
+langchain-cohere==0.0.2  # Cohere
+langchain-groq==0.0.1  # Groq (FREE & FAST!)
+langchain-together==0.0.1  # Together AI
 
 # Async Job Queue
 redis==5.0.1
