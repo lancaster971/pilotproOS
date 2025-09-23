@@ -49,9 +49,9 @@ class Settings(BaseSettings):
     JOB_MAX_RETRIES: int = 3
     JOB_RETRY_DELAY: int = 60  # seconds
 
-    # Agent Teams Configuration (our rebrand)
-    AGENT_TEAM_MAX_ITERATIONS: int = 10
-    AGENT_TEAM_TIMEOUT: int = 1800  # 30 minutes
+    # Agent Engine Configuration (our rebrand of CrewAI)
+    AGENT_ENGINE_MAX_ITERATIONS: int = 10
+    AGENT_ENGINE_TIMEOUT: int = 1800  # 30 minutes
     AGENT_VERBOSE: bool = DEBUG  # Verbose only in debug mode
 
     # WebSocket

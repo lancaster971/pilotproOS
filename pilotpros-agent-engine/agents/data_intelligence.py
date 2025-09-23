@@ -1,9 +1,9 @@
 """
-Data Intelligence Agent - Part of PilotProOS Agent Teams
+Data Intelligence Agent - Part of PilotProOS Agent Engine
 Transforms complex data into actionable business insights
 """
 
-from crewai import Agent
+from agent_engine import Agent
 from typing import List, Dict, Any
 
 

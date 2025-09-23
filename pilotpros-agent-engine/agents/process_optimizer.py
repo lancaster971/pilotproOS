@@ -1,9 +1,9 @@
 """
-Process Optimizer Agent - Part of PilotProOS Agent Teams
+Process Optimizer Agent - Part of PilotProOS Agent Engine
 Identifies inefficiencies and recommends process improvements
 """
 
-from crewai import Agent
+from agent_engine import Agent
 from typing import List, Dict, Any
 
 

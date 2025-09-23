@@ -1,9 +1,9 @@
 """
-Business Analyst Agent - Part of PilotProOS Agent Teams
+Business Analyst Agent - Part of PilotProOS Agent Engine
 Analyzes business processes and identifies optimization opportunities
 """
 
-from crewai import Agent
+from agent_engine import Agent
 from typing import List, Dict, Any
 
 
