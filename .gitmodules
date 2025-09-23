@@ -1,3 +1,6 @@
 [submodule "crewai-fork"]
 	path = crewai-fork
 	url = https://github.com/crewAIInc/crewAI.git
+[submodule "crewai-examples"]
+	path = crewai-examples
+	url = https://github.com/crewAIInc/crewAI-examples.git
