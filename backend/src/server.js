@@ -16,11 +16,8 @@ import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
 import businessLogger from './utils/logger.js';
 
-// Authentication imports
-import passport from './auth/passport-config.js';
-import session from 'express-session';
-import { RedisStore } from 'connect-redis';
-import { createClient } from 'redis';
+// Simple Authentication - NO BULLSHIT
+// No passport, no sessions, no redis, just JWT
 
 // Drizzle ORM imports
 import { db } from './db/connection.js';
@@ -63,15 +60,12 @@ import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 // Enhanced Authentication System - REMOVED (using Passport.js only)
 // import enhancedAuthController from './controllers/enhanced-auth.controller.js';
 
-// Passport.js Authentication Controller (ONLY authentication system)
-import passportAuthController from './controllers/passport-auth.controller.js';
+// Simple Auth Controller - JWT only
+import authController from './controllers/auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
-import { businessAuthMiddleware } from './middleware/business-auth-clean.js';
-import { authenticateJWT } from './middleware/passport-auth.js';
-import { authErrorHandler } from './middleware/auth-error-handler.js';
-import { createRefreshTokenTable } from './services/refresh-token.service.js';
+import { authenticate } from './middleware/auth.middleware.js';
 
 // Health Check Controller - TEMPORARILY DISABLED
 // import healthController from './controllers/health.controller.js';
@@ -102,8 +96,7 @@ dbPool.connect(async (err, client, release) => {
     // Database connected - users managed via UI only
     console.log('✅ Database ready - users managed via application UI');
 
-    // Create refresh tokens table if needed
-    await createRefreshTokenTable();
+    // No refresh tokens needed - JWT in localStorage
 
     release();
   }
@@ -154,65 +147,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // ============================================================================
-// REDIS SESSION STORE CONFIGURATION
+// NO MORE REDIS, NO MORE SESSIONS, NO MORE PASSPORT
+// Just simple JWT in localStorage like everyone else
 // ============================================================================
-
-// Configure Redis client
-const redisClient = createClient({
-  socket: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379')
-  },
-  password: process.env.REDIS_PASSWORD,
-  legacyMode: false // Use modern Redis client
-});
-
-// Handle Redis connection events
-redisClient.on('error', (err) => {
-  console.error('❌ Redis Client Error:', err);
-  // Continue without sessions on Redis error
-});
-
-redisClient.on('connect', () => {
-  console.log('✅ Redis connected successfully');
-});
-
-// Connect to Redis
-redisClient.connect().catch((err) => {
-  console.error('❌ Redis connection failed:', err);
-  // Continue without sessions if Redis fails
-});
-
-// Configure session store
-const sessionStore = new RedisStore({
-  client: redisClient,
-  prefix: 'pilotpros:',
-  ttl: 30 * 60 // 30 minutes
-});
-
-// Configure express-session
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'pilotpros-secret-2025-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  rolling: true, // Reset expiry on activity
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
-    sameSite: 'strict'
-  },
-  name: 'pilotpros.sid'
-}));
-
-// ============================================================================
-// PASSPORT.JS AUTHENTICATION SYSTEM
-// ============================================================================
-
-// Initialize Passport.js with session support
-app.use(passport.initialize());
-app.use(passport.session());
 
 // Rate limiting (RELAXED for development)
 app.use(rateLimit({
@@ -428,7 +365,8 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
 // ============================================================================
 
 // SECURITY: Apply Passport.js authentication to ALL business routes
-app.use('/api/business/*', authenticateJWT);
+// Apply simple JWT auth to all business routes
+app.use('/api/business/*', authenticate);
 
 // Additional security headers for business routes
 app.use('/api/business/*', (req, res, next) => {
@@ -4496,7 +4434,8 @@ function extractBusinessContext(executionData, timeline) {
 
 // ============================================================================
 // Passport.js authentication system (ONLY authentication system)
-app.use('/api/auth', passportAuthController);
+// Simple auth routes - JWT only
+app.use('/api/auth', authController);
 
 // ALL legacy auth systems REMOVED - using only Passport.js
 
@@ -4504,21 +4443,21 @@ app.use('/api/auth', passportAuthController);
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
 import * as userManagementController from './controllers/user-management.controller.js';
-// authenticateJWT already imported at top of file
+// authenticate already imported at top of file
 // import { getAuthService } from './auth/jwt-auth.js'; // DEPRECATED - using Passport.js
 
 // const authService = getAuthService(); // DEPRECATED
 
-app.get('/api/users', authenticateJWT, userManagementController.getUsers);
-app.post('/api/users', authenticateJWT, userManagementController.createUser);
-app.put('/api/users/:userId', authenticateJWT, userManagementController.updateUser);
-app.delete('/api/users/:userId', authenticateJWT, userManagementController.deleteUser);
-app.get('/api/roles', authenticateJWT, userManagementController.getRolesAndPermissions);
+app.get('/api/users', authenticate, userManagementController.getUsers);
+app.post('/api/users', authenticate, userManagementController.createUser);
+app.put('/api/users/:userId', authenticate, userManagementController.updateUser);
+app.delete('/api/users/:userId', authenticate, userManagementController.deleteUser);
+app.get('/api/roles', authenticate, userManagementController.getRolesAndPermissions);
 
 // Authentication Configuration Routes
-app.get('/api/auth/configuration', authenticateJWT, authConfigController.getAuthConfig);
-app.post('/api/auth/save-configuration', authenticateJWT, authConfigController.saveAuthConfig);
-app.post('/api/auth/test-configuration', authenticateJWT, authConfigController.testAuthConfig);
+app.get('/api/auth/configuration', authenticate, authConfigController.getAuthConfig);
+app.post('/api/auth/save-configuration', authenticate, authConfigController.saveAuthConfig);
+app.post('/api/auth/test-configuration', authenticate, authConfigController.testAuthConfig);
 
 /**
  * Get complete statistics for a single workflow
@@ -4710,7 +4649,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // ============================================================================
 
 // Authentication error handler
-app.use(authErrorHandler);
+// No more complex error handlers - simple errors in middleware
 
 // Generic error handler
 app.use((err, req, res, next) => {
