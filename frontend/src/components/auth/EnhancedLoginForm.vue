@@ -202,7 +202,7 @@ const handleLogin = async () => {
       headers: {
         'Content-Type': 'application/json'
       },
-      credentials: 'include',
+      // NO credentials: 'include' - usiamo JWT in localStorage ora
       body: JSON.stringify(credentials.value)
     })
 

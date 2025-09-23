@@ -13,8 +13,18 @@ const baseFetch = ofetch.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  // CRITICAL: Include cookies for authentication!
-  credentials: 'include' // This sends HttpOnly cookies with every request
+  // NO credentials: 'include' - we use JWT Bearer tokens now!
+  // Token is automatically added by auth store's fetch interceptor
+  onRequest({ options }) {
+    // Get token from localStorage if available
+    const token = localStorage.getItem('token')
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  }
 })
 
 // Auth API - Clean OFETCH implementation

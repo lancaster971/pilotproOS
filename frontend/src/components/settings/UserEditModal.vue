@@ -282,7 +282,7 @@ const updateUser = async () => {
       headers: {
         'Content-Type': 'application/json'
       },
-      credentials: 'include', // Include HttpOnly cookies
+      // NO credentials: 'include' - JWT in localStorage
       body: JSON.stringify(updateData)
     })
 

@@ -16,7 +16,7 @@ const execAsync = util.promisify(exec);
 const services = {
   '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
   '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
-  '3': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend-dev' },
+  '3': { key: 'portal', name: 'Business Portal (Frontend Interface)', container: 'pilotpros-frontend-dev' },
   '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
   '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };

@@ -3,137 +3,65 @@ import { ref, computed } from 'vue'
 import type { User } from '../types'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
+  // Initialize from localStorage on startup
+  const token = ref<string | null>(localStorage.getItem('token'))
+  const user = ref<User | null>(
+    localStorage.getItem('user')
+      ? JSON.parse(localStorage.getItem('user')!)
+      : null
+  )
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const isInitialized = ref(false)
+  const isInitialized = ref(true) // Always initialized from localStorage
 
-  const tokenRefreshTimer = ref<ReturnType<typeof setTimeout> | null>(null)
-  const inactivityTimer = ref<ReturnType<typeof setTimeout> | null>(null)
-  let initializationPromise: Promise<boolean> | null = null
-
-  const ACCESS_TOKEN_REFRESH_INTERVAL_MS = 13 * 60 * 1000
-  const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000
-
-  const isAuthenticated = computed(() => !!user.value)
+  // Computed
+  const isAuthenticated = computed(() => !!token.value && !!user.value)
   const tenantId = computed(() => user.value?.tenantId || 'client_simulation_a')
 
-  const clearTokenRefreshTimer = () => {
-    if (tokenRefreshTimer.value) {
-      clearTimeout(tokenRefreshTimer.value)
-      tokenRefreshTimer.value = null
-    }
-  }
-
-  const clearInactivityTimer = () => {
-    if (inactivityTimer.value) {
-      clearTimeout(inactivityTimer.value)
-      inactivityTimer.value = null
-    }
-  }
-
-  const clearAutoLogoutTimer = () => {
-    clearTokenRefreshTimer()
-    clearInactivityTimer()
-  }
-
-  const scheduleTokenRefresh = () => {
-    clearTokenRefreshTimer()
-
-    tokenRefreshTimer.value = setTimeout(async () => {
-      console.log('🔄 Auto-refresh: Refreshing token before expiry...')
-
-      try {
-        const response = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include'
-        })
-
-        if (response.ok) {
-          console.log('✅ Token refreshed successfully!')
-          scheduleTokenRefresh()
-        } else {
-          console.log('❌ Token refresh failed, logging out')
-          await logout()
-          error.value = 'Sessione scaduta. Effettua nuovamente il login.'
-        }
-      } catch (err) {
-        console.error('❌ Error refreshing token:', err)
-        scheduleTokenRefresh()
-      }
-    }, ACCESS_TOKEN_REFRESH_INTERVAL_MS)
-  }
-
-  const scheduleInactivityLogout = () => {
-    clearInactivityTimer()
-
-    inactivityTimer.value = setTimeout(async () => {
-      console.log('⏳ Session expired due to inactivity, logging out...')
-      await logout()
-      error.value = 'Sessione scaduta per inattività.'
-    }, INACTIVITY_TIMEOUT_MS)
-  }
-
-  const setAutoLogoutTimer = () => {
-    scheduleTokenRefresh()
-    scheduleInactivityLogout()
-  }
-
-  const markInitialized = () => {
-    if (!isInitialized.value) {
-      isInitialized.value = true
-    }
-  }
-
-  const handleAuthSuccess = (data: { id: string; email: string; role: string; createdAt?: string }) => {
-    user.value = {
-      id: data.id,
-      email: data.email,
-      name: data.email.split('@')[0],
-      role: data.role,
-      tenantId: 'pilotpros_client',
-      createdAt: data.createdAt || new Date().toISOString(),
-    }
-
-    token.value = 'authenticated'
-    setAutoLogoutTimer()
-  }
-
+  // Login function - saves to localStorage
   const login = async (email: string, password: string) => {
     isLoading.value = true
     error.value = null
 
     try {
-      console.log('🌐 Making fetch to /api/auth/login...')
+      console.log('🌐 Logging in with new JWT system...')
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
+        body: JSON.stringify({ email, password })
+        // NO credentials: 'include' - we don't use cookies anymore!
       })
 
-      console.log('📡 Response received:', response.status, response.statusText)
-
-      const data = await response.json()
-      console.log('📄 Response data:', data)
+      console.log('📡 Response:', response.status)
 
       if (!response.ok) {
+        const data = await response.json()
         throw new Error(data.message || 'Login failed')
       }
 
-      handleAuthSuccess({
+      const data = await response.json()
+      console.log('✅ Login successful:', data)
+
+      // Store token and user in memory
+      token.value = data.token
+      user.value = {
         id: data.user.id,
         email: data.user.email,
-        role: data.user.role
-      })
+        name: data.user.email.split('@')[0],
+        role: data.user.role,
+        tenantId: 'pilotpros_client',
+        createdAt: new Date().toISOString()
+      }
 
-      markInitialized()
+      // Persist to localStorage
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(user.value))
 
-      console.log('✅ Login successful with HttpOnly cookies:', user.value)
+      console.log('✅ Token saved to localStorage')
+
     } catch (err: any) {
       error.value = err.message || 'Login failed'
       console.error('❌ Login failed:', err)
@@ -143,106 +71,81 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Logout - clears localStorage
   const logout = async () => {
-    console.log('🚪 Logout initiated...')
+    console.log('🚪 Logging out...')
 
-    clearAutoLogoutTimer()
-
+    // Optional: Call logout endpoint (not really needed)
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include'
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
       })
-      console.log('✅ Server logout successful')
     } catch (err) {
-      console.error('❌ Logout API failed (continuing anyway):', err)
+      // Ignore errors - we're logging out anyway
     }
 
-    user.value = null
+    // Clear memory
     token.value = null
+    user.value = null
     error.value = null
-    isInitialized.value = false
-    initializationPromise = null
 
-    console.log('✅ Logout completed - all state cleared')
+    // Clear localStorage
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
+    console.log('✅ Logged out - localStorage cleared')
   }
 
+  // Initialize auth - just check if token is still valid
   const initializeAuth = async () => {
-    if (isInitialized.value && !initializationPromise) {
-      return !!user.value
+    // If we have a token in localStorage, we're authenticated
+    // Optionally verify with backend if needed
+    if (token.value) {
+      console.log('✅ Auth initialized from localStorage')
+      return true
     }
-
-    if (initializationPromise) {
-      return initializationPromise
-    }
-
-    console.log('🔄 Initializing auth from cookies...')
-
-    initializationPromise = (async () => {
-      try {
-        const response = await fetch('/api/auth/profile', {
-          method: 'GET',
-          credentials: 'include'
-        })
-
-        console.log('📡 Profile response status:', response.status)
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log('✅ Profile data received:', data)
-
-          handleAuthSuccess({
-            id: data.user.id,
-            email: data.user.email,
-            role: data.user.role,
-            createdAt: data.user.createdAt
-          })
-
-          console.log('✅ Auth initialized from HttpOnly cookies:', user.value)
-          return true
-        }
-
-        if (response.status !== 401) {
-          const errorText = await response.text()
-          console.log('❌ Auth check failed:', response.status, errorText)
-        }
-
-        return false
-      } catch (err) {
-        console.error('❌ Auth initialization error:', err)
-        return false
-      } finally {
-        markInitialized()
-        initializationPromise = null
-      }
-    })()
-
-    return initializationPromise
+    return false
   }
 
-  const resetAutoLogoutTimer = () => {
-    if (isAuthenticated.value) {
-      scheduleInactivityLogout()
+  // Add Authorization header to all fetch requests
+  const originalFetch = window.fetch
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // If we have a token, add it to the headers
+    if (token.value) {
+      init = init || {}
+      init.headers = {
+        ...init.headers,
+        'Authorization': `Bearer ${token.value}`
+      }
     }
+    return originalFetch(input, init)
   }
 
   return {
+    // State
     user,
     token,
     isLoading,
     error,
     isInitialized,
+
+    // Computed
     isAuthenticated,
     tenantId,
+
+    // Actions
     login,
     logout,
     initializeAuth,
-    resetAutoLogoutTimer,
-    clearAutoLogoutTimer,
+
+    // Legacy compatibility
+    resetAutoLogoutTimer: () => {}, // Not needed with JWT
+    clearAutoLogoutTimer: () => {}, // Not needed with JWT
     ensureInitialized: async () => {
-      if (!isInitialized.value) {
-        await initializeAuth()
-      }
-    },
+      await initializeAuth()
+    }
   }
 })
