@@ -368,10 +368,10 @@ const loadUsers = async () => {
   try {
     const [usersResponse, rolesResponse] = await Promise.all([
       fetch(`${API_BASE}/api/users`, {
-        credentials: 'include' // Include HttpOnly cookies
+        // NO credentials: 'include' - JWT in localStorage
       }),
       fetch(`${API_BASE}/api/roles`, {
-        credentials: 'include' // Include HttpOnly cookies
+        // NO credentials: 'include' - JWT in localStorage
       })
     ])
 
@@ -400,7 +400,7 @@ const loadUsers = async () => {
 const loadAuthConfig = async () => {
   try {
     const response = await fetch(`${API_BASE}/api/auth/config`, {
-      credentials: 'include' // Include HttpOnly cookies
+      // NO credentials: 'include' - JWT in localStorage
     })
 
     const data = await response.json()
@@ -454,8 +454,8 @@ const deleteUser = async () => {
   
   try {
     const response = await fetch(`${API_BASE}/api/users/${userToDelete.value.id}`, {
-      method: 'DELETE',
-      credentials: 'include' // Include HttpOnly cookies
+      method: 'DELETE'
+      // NO credentials: 'include' - JWT in localStorage
     })
 
     const data = await response.json()

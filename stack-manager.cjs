@@ -15,11 +15,10 @@ const execAsync = util.promisify(exec);
 // Service mappings
 const services = {
   '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
-  '2': { key: 'cache', name: 'Session Cache System', container: 'pilotpros-redis-dev' },
-  '3': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
-  '4': { key: 'portal', name: 'Business Portal', container: 'pilotpros-frontend-dev' },
-  '5': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
-  '6': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
+  '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
+  '3': { key: 'portal', name: 'Business Portal (Frontend Interface)', container: 'pilotpros-frontend-dev' },
+  '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
+  '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };
 
 // Colors
@@ -572,7 +571,7 @@ class StackManager {
     const statuses = await getAllStatus();
     const runningCount = statuses.filter(s => s.status === 'Running').length;
 
-    if (runningCount < Object.keys(services).length) {
+    if (runningCount < 5) {
       console.log(`\n${colors.yellow}⚠️  Stack is not fully running${colors.reset}`);
       console.log(`${colors.cyan}To access the Business Portal, all services must be running.${colors.reset}\n`);
 
@@ -599,7 +598,7 @@ class StackManager {
             }
           } else {
             // Containers exist, start them in order
-            const order = ['postgres', 'redis', 'automation-engine', 'backend', 'frontend', 'nginx'];
+            const order = ['postgres', 'automation-engine', 'backend', 'frontend', 'nginx'];
 
             for (const key of order) {
               const service = Object.values(services).find(s => s.container.includes(key));

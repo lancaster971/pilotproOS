@@ -30,6 +30,14 @@ export default defineConfig({
         target: 'http://pilotpros-backend-dev:3001',
         changeOrigin: true,
         secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Forward all cookies from browser to backend
+            if (req.headers.cookie) {
+              proxyReq.setHeader('cookie', req.headers.cookie);
+            }
+          });
+        }
       }
     },
   },
