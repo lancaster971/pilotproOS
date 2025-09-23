@@ -25,15 +25,16 @@ passport.use(new LocalStrategy({
       [email]
     );
 
-    if (result.rows.length === 0) {
-      return done(null, false, { message: 'Invalid credentials' });
-    }
-
+    // Always run bcrypt compare to prevent timing attacks
     const user = result.rows[0];
+    const dummyHash = '$2a$12$dummyhashfortimingattackprotection';
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
-    if (!isValidPassword) {
+    // Compare with real hash if user exists, dummy hash if not
+    const hashToCheck = user ? user.password_hash : dummyHash;
+    const isValidPassword = await bcrypt.compare(password, hashToCheck);
+
+    // Check both conditions to determine success
+    if (!user || !isValidPassword) {
       return done(null, false, { message: 'Invalid credentials' });
     }
 

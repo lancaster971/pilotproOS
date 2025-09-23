@@ -34,6 +34,16 @@ router.post('/login', loginRateLimiter, progressiveDelay, authenticateLocal, asy
       // Clear failed login attempts on successful login
       await clearFailedAttempts(req.ip);
 
+      // Regenerate session ID to prevent session fixation attacks
+      if (req.session) {
+        await new Promise((resolve, reject) => {
+          req.session.regenerate((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+
       // Log successful authentication
       logAuthSuccess(req, user);
 
