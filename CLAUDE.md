@@ -6,58 +6,65 @@ PilotProOS - Containerized Business Process Operating System
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
-**MANDATORY**: Before answering ANY question about this project, you MUST:
+**MANDATORY**: This file is the DOCUMENTATION INDEX. For specific questions, read the relevant docs below:
 
-1. **Read docs/README.md** - Project overview and structure
-2. **Read docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md** - What actually works now
-3. **If deployment/production question**: Read docs/TODO/P0-PRODUCTION_DEPLOYMENT_TODO.md
-4. **If business/strategy question**: Read docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
+1. **Project overview**: Read README.md
+2. **Technical details**: Read docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md
+3. **Deployment questions**: Read docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md
+4. **Implementation planning**: Read IMPLEMENTATION_PLAN.md
 
 **DO NOT answer project questions from CLAUDE.md alone - always read the specific documentation files above first.**
 
 ## 📋 **IMPLEMENTATION ROADMAP**
 
-**For complete implementation sequence**: Read **[TODO_GERARCHICA_PILOTPROS.md](./TODO_GERARCHICA_PILOTPROS.md)**
+**For complete implementation sequence**: Read **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)**
 
-This document contains the chirurgical TODO list with:
-- Critical path analysis (Production vs Technical Debt tracks)
-- Phase-by-phase implementation sequence
-- Detailed dependencies and effort estimates
-- Complete documentation references for each task
-- Timeline with business impact prioritization
+This document contains the lean execution plan with:
+- Revenue-first 8-week timeline
+- 3-phase implementation (Production → CrewAI → Enterprise)
+- Clear milestones and success metrics
+- Essential documentation structure
+- Immediate actionable next steps
 
 ## 📚 **ORDINE DI LETTURA DOCUMENTAZIONE**
 
-### **🎯 SEQUENCE OBBLIGATORIA (30-40 min)**
+### **🎯 SEQUENCE OBBLIGATORIA (20-30 min)**
 ```
-1. CLAUDE.md (questo file)                    # Regole fondamentali
-2. docs/README.md                             # Struttura documentazione
-3. docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md  # Cosa funziona ORA
-4. TODO_GERARCHICA_PILOTPROS.md              # Piano lavoro chirurgico
-5. docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md   # Blockers P0 revenue
+1. CLAUDE.md (questo file)                    # Documentation index & navigation
+2. README.md                                  # Project overview & product
+3. docs/IMPLEMENTED/CURRENT_ARCHITECTURE.md  # Technical status & architecture
+4. IMPLEMENTATION_PLAN.md                    # Execution roadmap
+5. docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md   # Production deployment checklist
+```
+
+### **🤖 CrewAI/Business Intelligence Documentation**
+```
+pilotpros-business-intelligence/docs/README.md    # AI service overview
+pilotpros-business-intelligence/docs/AgentEngine.md # Multi-agent architecture
+pilotpros-business-intelligence/docs/API.md        # Integration endpoints
 ```
 
 ### **🔧 LETTURA PER RUOLO**
 
 **👨‍💻 DEVELOPER** (implementazione immediata):
 ```
-Sequence obbligatoria + docs/IMPLEMENTED/architecture.md + TECHNICAL_DEBT_PLAN.md
+Sequence obbligatoria solo - tutto in CURRENT_ARCHITECTURE.md
 ```
 
 **🏢 BUSINESS/PRODUCT** (strategy & revenue):
 ```
-Sequence obbligatoria + docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md + docs/STRATEGY/ENTERPRISE_SCRIPTING_STRATEGY.md
+Sequence obbligatoria + IMPLEMENTATION_PLAN.md
 ```
 
 **🔧 DEVOPS** (deployment & operations):
 ```
-Sequence obbligatoria + docs/STRATEGY/REVERSE_PROXY_README.md + docs/TODO/DOCKER_OPTIMIZATION_PLAN.md
+Sequence obbligatoria + docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md
 ```
 
 ### **⚡ QUICK START (per chi ha fretta)**
 ```
 1. CLAUDE.md (5 min)
-2. TODO_GERARCHICA_PILOTPROS.md - solo Timeline (10 min)
+2. IMPLEMENTATION_PLAN.md - solo Executive Summary (10 min)
 3. docs/TODO/PRODUCTION_DEPLOYMENT_TODO.md - solo P0 (15 min)
 ```
 
