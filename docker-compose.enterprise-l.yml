@@ -86,46 +86,6 @@ services:
     networks:
       - pilotpros-network
 
-  # Redis Cluster - Master with sentinel for HA
-  redis-master:
-    image: redis:7
-    container_name: pilotpros-redis-master
-    restart: unless-stopped
-    command: >
-      redis-server
-      --maxmemory 4gb
-      --maxmemory-policy allkeys-lru
-      --save 60 1000
-      --save 300 100
-      --save 900 10
-      --appendonly yes
-      --appendfsync everysec
-      --tcp-backlog 511
-      --tcp-keepalive 300
-      --timeout 0
-    volumes:
-      - redis_master_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 6G
-          cpus: '2'
-        reservations:
-          memory: 4G
-          cpus: '1'
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - pilotpros-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "5"
-
   # n8n Primary - Optimized for 16GB RAM with queue mode
   n8n-main:
     image: n8nio/n8n:latest
@@ -144,11 +104,8 @@ services:
       N8N_PROTOCOL: ${N8N_PROTOCOL:-https}
       WEBHOOK_URL: ${WEBHOOK_URL}
       N8N_BASIC_AUTH_ACTIVE: "false"
-      # Queue mode for scaling
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis-master
-      QUEUE_BULL_REDIS_PORT: 6379
-      QUEUE_HEALTH_CHECK_ACTIVE: "true"
+      # Direct execution mode
+      EXECUTIONS_MODE: regular
       # Performance settings
       N8N_CONCURRENCY_PRODUCTION_LIMIT: 100
       NODE_OPTIONS: "--max-old-space-size=14336"
@@ -173,8 +130,6 @@ services:
           cpus: '4'
     depends_on:
       postgres-primary:
-        condition: service_healthy
-      redis-master:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
@@ -205,10 +160,8 @@ services:
       DB_POSTGRESDB_USER: ${POSTGRES_USER:-pilotpros_user}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_POSTGRESDB_SCHEMA: n8n
-      # Worker mode
-      N8N_COMMAND: worker
-      QUEUE_BULL_REDIS_HOST: redis-master
-      QUEUE_BULL_REDIS_PORT: 6379
+      # Worker mode disabled - using regular mode
+      N8N_COMMAND: start
       NODE_OPTIONS: "--max-old-space-size=4096"
     volumes:
       - n8n_data:/home/node/.n8n
@@ -223,7 +176,6 @@ services:
           cpus: '2'
     depends_on:
       - n8n-main
-      - redis-master
     networks:
       - pilotpros-network
     logging:
@@ -253,8 +205,6 @@ services:
       DB_READ_HOST: postgres-replica
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
-      REDIS_HOST: redis-master
-      REDIS_PORT: 6379
       CORS_ORIGIN: ${FRONTEND_URL:-https://localhost}
       # Performance tuning
       NODE_OPTIONS: "--max-old-space-size=3072"
@@ -270,8 +220,6 @@ services:
           cpus: '2'
     depends_on:
       postgres-primary:
-        condition: service_healthy
-      redis-master:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
@@ -396,7 +344,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_INSTALL_PLUGINS: redis-datasource,postgres-datasource
+      GF_INSTALL_PLUGINS: postgres-datasource,grafana-piechart-panel
       GF_SERVER_ENABLE_GZIP: "true"
     volumes:
       - grafana_data:/var/lib/grafana
@@ -473,8 +421,6 @@ volumes:
   postgres_replica_data:
     driver: local
   postgres_backup:
-    driver: local
-  redis_master_data:
     driver: local
   n8n_data:
     driver: local

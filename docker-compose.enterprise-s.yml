@@ -47,43 +47,6 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  # Redis - Optimized for 1GB RAM with persistence
-  redis:
-    image: redis:7
-    container_name: pilotpros-redis-enterprise
-    restart: unless-stopped
-    command: >
-      redis-server
-      --maxmemory 800mb
-      --maxmemory-policy allkeys-lru
-      --save 60 100
-      --save 300 10
-      --save 900 1
-      --appendonly yes
-      --appendfsync everysec
-    volumes:
-      - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
-        reservations:
-          memory: 512M
-          cpus: '0.25'
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-    networks:
-      - pilotpros-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-
   # n8n - Optimized for 3GB RAM with higher concurrency
   n8n:
     image: n8nio/n8n:latest
@@ -160,8 +123,6 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       CORS_ORIGIN: ${FRONTEND_URL:-https://localhost}
       # Performance tuning
       NODE_OPTIONS: "--max-old-space-size=768"
@@ -177,8 +138,6 @@ services:
           cpus: '0.5'
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
@@ -307,7 +266,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_INSTALL_PLUGINS: redis-datasource
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana:/etc/grafana/provisioning:ro
@@ -326,8 +285,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
   n8n_data:
     driver: local

@@ -16,8 +16,7 @@ import fs from 'fs';
 import { initializeWebSocket } from './websocket.js';
 import businessLogger from './utils/logger.js';
 
-// Simple Authentication - NO BULLSHIT
-// No passport, no sessions, no redis, just JWT
+// Simple JWT Authentication
 
 // Drizzle ORM imports
 import { db } from './db/connection.js';
@@ -57,10 +56,7 @@ import { DatabaseCompatibilityService } from './services/database-compatibility.
 import { N8nFieldMapper } from './utils/n8n-field-mapper.js';
 import { CompatibilityMonitor } from './middleware/compatibility-monitor.js';
 
-// Enhanced Authentication System - REMOVED (using Passport.js only)
-// import enhancedAuthController from './controllers/enhanced-auth.controller.js';
-
-// Simple Auth Controller - JWT only
+// JWT Authentication Controller
 import authController from './controllers/auth.controller.js';
 
 // Authentication Configuration Controller
@@ -147,8 +143,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // ============================================================================
-// NO MORE REDIS, NO MORE SESSIONS, NO MORE PASSPORT
-// Just simple JWT in localStorage like everyone else
+// JWT Authentication - Simple and Battle-tested
 // ============================================================================
 
 // Rate limiting (RELAXED for development)
@@ -364,8 +359,7 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
 // BUSINESS MIDDLEWARE (Applied after icon routes)
 // ============================================================================
 
-// SECURITY: Apply Passport.js authentication to ALL business routes
-// Apply simple JWT auth to all business routes
+// SECURITY: Apply JWT authentication to ALL business routes
 app.use('/api/business/*', authenticate);
 
 // Additional security headers for business routes
@@ -4433,20 +4427,14 @@ function extractBusinessContext(executionData, timeline) {
 // app.use('/api/health', healthController);
 
 // ============================================================================
-// Passport.js authentication system (ONLY authentication system)
-// Simple auth routes - JWT only
+// JWT authentication routes
 app.use('/api/auth', authController);
-
-// ALL legacy auth systems REMOVED - using only Passport.js
 
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
 import * as userManagementController from './controllers/user-management.controller.js';
-// authenticate already imported at top of file
-// import { getAuthService } from './auth/jwt-auth.js'; // DEPRECATED - using Passport.js
-
-// const authService = getAuthService(); // DEPRECATED
+// JWT authentication middleware imported at top of file
 
 app.get('/api/users', authenticate, userManagementController.getUsers);
 app.post('/api/users', authenticate, userManagementController.createUser);

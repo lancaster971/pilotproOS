@@ -186,7 +186,6 @@ generate_env_file() {
     JWT_SECRET=$(openssl rand -base64 64)
     SESSION_SECRET=$(openssl rand -base64 32)
     N8N_PASSWORD=$(openssl rand -base64 20)
-    REDIS_PASSWORD=$(openssl rand -base64 20)
     GRAFANA_PASSWORD=$(openssl rand -base64 20)
     REPLICATION_PASSWORD=$(openssl rand -base64 32)
 
@@ -216,9 +215,6 @@ N8N_PROTOCOL=https
 N8N_USER=admin
 N8N_PASSWORD=${N8N_PASSWORD}
 WEBHOOK_URL=https://\${N8N_HOST}/webhook
-
-# Redis Configuration
-REDIS_PASSWORD=${REDIS_PASSWORD}
 
 # Frontend Configuration
 FRONTEND_URL=https://localhost

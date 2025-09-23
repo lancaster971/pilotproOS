@@ -36,33 +36,6 @@ services:
     networks:
       - pilotpros-network
 
-  # Redis - Optimized for 128MB RAM
-  redis:
-    image: redis:7-alpine
-    container_name: pilotpros-redis-prod
-    restart: unless-stopped
-    command: >
-      redis-server
-      --maxmemory 100mb
-      --maxmemory-policy allkeys-lru
-      --save 60 1
-      --save 300 10
-    volumes:
-      - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    networks:
-      - pilotpros-network
-
   # n8n - Optimized for 768MB RAM
   n8n:
     image: n8nio/n8n:latest
@@ -129,8 +102,6 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       CORS_ORIGIN: ${FRONTEND_URL:-http://localhost}
       # Performance tuning
       NODE_OPTIONS: "--max-old-space-size=200"
@@ -143,8 +114,6 @@ services:
           memory: 128M
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
@@ -222,8 +191,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
   n8n_data:
     driver: local
