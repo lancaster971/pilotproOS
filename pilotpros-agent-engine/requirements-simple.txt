@@ -1,0 +1,37 @@
+# Core
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Agent Framework
+crewai
+
+# Async Job Queue
+redis
+rq
+
+# Database
+asyncpg
+sqlalchemy[asyncio]
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+
+# LLM Providers
+openai
+anthropic
+
+# WebSocket
+python-socketio
+websockets
+
+# Monitoring
+prometheus-client
+
+# Utils
+python-dotenv
+httpx
+tenacity
+aiofiles

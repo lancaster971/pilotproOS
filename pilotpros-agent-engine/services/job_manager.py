@@ -27,42 +27,30 @@ class JobManager:
 
     async def submit_job(
         self,
-        job_type: str,
-        data: Dict[str, Any],
-        priority: str = "normal",
-        callback_url: Optional[str] = None,
-        user_id: Optional[str] = None
+        job_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Submit a new analysis job to the queue
 
         Args:
-            job_type: Type of analysis to perform
-            data: Data to analyze
-            priority: Job priority (high, normal, low)
-            callback_url: Optional webhook for completion notification
-            user_id: User ID for tracking
+            job_data: Job data containing id, type, data, priority, etc.
 
         Returns:
             Job information including ID and status
         """
         try:
-            # Generate job ID
-            job_id = f"job_{uuid.uuid4().hex[:12]}"
+            # Use provided job_id or generate new one
+            job_id = job_data.get("id") or f"job_{uuid.uuid4().hex[:12]}"
+            priority = job_data.get("priority", "normal")
 
-            # Prepare job data
-            job_data = {
+            # Update job data with metadata
+            job_data.update({
                 "id": job_id,
-                "type": job_type,
-                "data": data,
-                "priority": priority,
-                "callback_url": callback_url,
-                "user_id": user_id,
                 "status": "queued",
                 "progress": 0,
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
-            }
+            })
 
             # Store job in Redis
             await self.redis_client.hset(
@@ -282,3 +270,45 @@ class JobManager:
         # TODO: Implement webhook callback
         logger.info(f"Would trigger callback to {callback_url} for job {job_id}")
         pass
+
+    async def wait_for_result(
+        self,
+        job_id: str,
+        timeout: int = 30
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Wait for job result with timeout
+
+        Args:
+            job_id: Job identifier
+            timeout: Maximum wait time in seconds
+
+        Returns:
+            Job result or None if timeout
+        """
+        import asyncio
+
+        try:
+            start_time = datetime.utcnow()
+
+            while (datetime.utcnow() - start_time).total_seconds() < timeout:
+                # Check if result exists
+                result_json = await self.redis_client.get(f"job:result:{job_id}")
+
+                if result_json:
+                    return json.loads(result_json)
+
+                # Check job status
+                status = await self.get_job_status(job_id)
+                if status and status.get("status") in ["completed", "failed"]:
+                    return status.get("result", {})
+
+                # Wait before next check
+                await asyncio.sleep(0.5)
+
+            logger.warning(f"Timeout waiting for job {job_id}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to wait for job result {job_id}: {e}")
+            return None

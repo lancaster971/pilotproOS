@@ -2,11 +2,13 @@
 API Routes for Agent Engine
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import logging
+import json
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -160,4 +162,155 @@ async def cancel_job(job_id: str):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job {job_id} not found or cannot be cancelled"
+        )
+
+
+class AssistantRequest(BaseModel):
+    """Request model for PilotPro Assistant"""
+    question: str
+    context: Optional[Dict[str, Any]] = None
+    language: str = "italian"
+    jwt_token: Optional[str] = None
+
+
+class AssistantResponse(BaseModel):
+    """Response model for PilotPro Assistant"""
+    success: bool
+    answer: str
+    confidence: float
+    sources: Optional[List[str]] = None
+    suggestions: Optional[List[str]] = None
+
+
+@api_router.post("/assistant", response_model=AssistantResponse)
+async def ask_assistant(request: AssistantRequest, req: Request):
+    """
+    Ask a question to the PilotPro Assistant
+
+    The assistant speaks Italian by default and has access to:
+    - Business process data
+    - Performance metrics
+    - Historical analysis
+    - Best practices
+    """
+    try:
+        from main import job_manager, llm_manager
+
+        # Create job for assistant
+        job_id = str(uuid.uuid4())
+        job_data = {
+            "id": job_id,
+            "type": "assistant",
+            "question": request.question,
+            "context": request.context,
+            "jwt_token": request.jwt_token,
+            "priority": "high"
+        }
+
+        # Submit job
+        await job_manager.submit_job(job_data)
+
+        # Wait for quick response (assistant jobs are high priority)
+        result = await job_manager.wait_for_result(job_id, timeout=30)
+
+        if result and result.get("success"):
+            return AssistantResponse(
+                success=True,
+                answer=result.get("answer", "Non ho una risposta al momento."),
+                confidence=result.get("confidence", 0.8),
+                sources=result.get("sources"),
+                suggestions=result.get("suggestions")
+            )
+        else:
+            return AssistantResponse(
+                success=False,
+                answer="Mi dispiace, non sono riuscito a elaborare la tua domanda.",
+                confidence=0.0
+            )
+
+    except Exception as e:
+        logger.error(f"Assistant error: {e}")
+        return AssistantResponse(
+            success=False,
+            answer=f"Errore nell'elaborazione: {str(e)}",
+            confidence=0.0
+        )
+
+
+@api_router.get("/health/llm")
+async def llm_health(req: Request):
+    """
+    Get LLM service health and available models
+    """
+    try:
+        from main import llm_manager
+
+        if not llm_manager:
+            raise Exception("LLM Manager not initialized")
+
+        model_info = llm_manager.get_model_info()
+
+        return {
+            "status": "healthy",
+            "available_models": model_info["available_models"],
+            "models_by_provider": model_info["models_by_provider"],
+            "active_providers": model_info["active_providers"],
+            "free_models": [
+                m for m in model_info["models"]
+                if m.get("tier") == "free"
+            ],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"LLM health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
+@api_router.post("/analyze", response_model=AnalysisResponse)
+async def submit_analysis_v2(request: AnalysisRequest, req: Request):
+    """
+    Submit analysis job with actual JobManager integration
+    """
+    try:
+        from main import job_manager
+
+        if not job_manager:
+            raise Exception("Job Manager not initialized")
+
+        # Create job
+        job_id = str(uuid.uuid4())
+        job_data = {
+            "id": job_id,
+            "type": request.type,
+            "data": request.data,
+            "context": request.context,
+            "priority": request.priority,
+            "callback_url": request.callback_url
+        }
+
+        # Submit to queue
+        await job_manager.submit_job(job_data)
+
+        # Get queue stats
+        stats = await job_manager.get_queue_stats()
+
+        return AnalysisResponse(
+            success=True,
+            job_id=job_id,
+            status="queued",
+            position_in_queue=stats.get("pending", 0),
+            estimated_start=datetime.utcnow(),
+            websocket_channel=f"ws://localhost:8000/ws/jobs/{job_id}",
+            status_url=f"/api/v1/jobs/{job_id}/status"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to submit analysis: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )

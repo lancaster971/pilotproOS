@@ -4431,6 +4431,11 @@ function extractBusinessContext(executionData, timeline) {
 app.use('/api/auth', authController);
 
 // ============================================================================
+// AI Agent Engine routes
+import aiRoutes from './routes/ai.routes.js';
+app.use('/api/ai', aiRoutes);
+
+// ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
 import * as userManagementController from './controllers/user-management.controller.js';

@@ -154,7 +154,11 @@ services:
       JWT_SECRET: pilotpros_dev_jwt_secret_2025_secure
       SESSION_SECRET: pilotpros_dev_session_secret_2025_secure
       BCRYPT_ROUNDS: 4  # Faster in development
-      
+
+      # Agent Engine Integration
+      AGENT_ENGINE_URL: http://agent-engine-dev:8000
+      N8N_WEBHOOK_SECRET: pilotpros_n8n_secret_2025
+
       # Development specific
       DEBUG: "pilotpros:*"
       LOG_LEVEL: debug
@@ -230,6 +234,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:-pilotpros_dev_jwt_secret_2025_secure}
       - DATABASE_URL=postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db
       - REDIS_URL=redis://redis-dev:6379/0
+      - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET:-pilotpros_n8n_secret_2025}
+      - N8N_URL=http://n8n-dev:5678
+      - BACKEND_URL=http://backend-dev:3001
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OLLAMA_HOST=http://host.docker.internal:11434
