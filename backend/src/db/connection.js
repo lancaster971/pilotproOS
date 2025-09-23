@@ -76,7 +76,7 @@ export function startHealthCheck() {
       console.error('❌ Database health check failed:', error.message);
       // Connection will be automatically recreated by postgres.js
     }
-  }, 30000); // Every 30 seconds
+  }, 300000); // Every 5 minutes
 }
 
 // Stop health check (for graceful shutdown)
