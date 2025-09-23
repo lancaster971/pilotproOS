@@ -28,6 +28,11 @@ class Settings(BaseSettings):
         "postgresql://pilotpros_user:pilotpros_secure_pass_2025@localhost:5432/pilotpros_db"
     )
 
+    # n8n Integration
+    N8N_WEBHOOK_SECRET: str = os.getenv("N8N_WEBHOOK_SECRET", "pilotpros_n8n_secret_2025")
+    N8N_URL: str = os.getenv("N8N_URL", "http://n8n-dev:5678")
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://backend-dev:3001")
+
     # JWT Authentication (match Node.js backend)
     JWT_SECRET: str = os.getenv("JWT_SECRET", "pilotpros_dev_jwt_secret_2025_secure")
     JWT_ALGORITHM: str = "HS256"
@@ -37,6 +42,8 @@ class Settings(BaseSettings):
     # LLM Providers
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
+    GOOGLE_API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
+    GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
     # Rate Limiting

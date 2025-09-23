@@ -9,8 +9,6 @@ from typing import Dict, Any, Optional, List
 import uuid
 
 import redis.asyncio as redis
-from rq import Queue, Job
-from rq.job import JobStatus
 
 logger = logging.getLogger(__name__)
 

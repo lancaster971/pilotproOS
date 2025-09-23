@@ -238,10 +238,12 @@ services:
       - N8N_URL=http://n8n-dev:5678
       - BACKEND_URL=http://backend-dev:3001
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OLLAMA_HOST=http://host.docker.internal:11434
     volumes:
-      - ./pilotpros-business-intelligence:/app
+      - ./pilotpros-agent-engine:/app
       - /app/__pycache__
       - /app/.pytest_cache
     ports:
