@@ -8,25 +8,55 @@ import { API_BASE_URL } from '../utils/api-config'
 
 // OFETCH: Modern fetch wrapper with intelligent defaults
 // Use environment variable for API URL, fallback to config for development
+
+// Helper to get JWT token from localStorage
+const getAuthToken = () => {
+  const token = localStorage.getItem('jwt_token')
+  return token ? `Bearer ${token}` : null
+}
+
 const baseFetch = ofetch.create({
   baseURL: import.meta.env.VITE_API_URL || API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   },
   // CRITICAL: Include cookies for authentication!
-  credentials: 'include' // This sends HttpOnly cookies with every request
+  credentials: 'include', // This sends HttpOnly cookies with every request
+  // Add JWT token to all requests if available
+  onRequest({ options }) {
+    const token = getAuthToken()
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        Authorization: token
+      }
+    }
+  }
 })
 
 // Auth API - Clean OFETCH implementation
 export const authAPI = {
-  login: (email: string, password: string) =>
-    baseFetch('/api/auth/login', { 
-      method: 'POST', 
+  login: async (email: string, password: string) => {
+    const response = await baseFetch('/api/auth/login', {
+      method: 'POST',
       body: { email, password }
-    }),
-  
-  logout: () => baseFetch('/api/auth/logout', { method: 'POST' }),
-  
+    })
+
+    // Store JWT token if present in response
+    if (response.token) {
+      localStorage.setItem('jwt_token', response.token)
+    }
+
+    return response
+  },
+
+  logout: async () => {
+    const response = await baseFetch('/api/auth/logout', { method: 'POST' })
+    // Clear token on logout
+    localStorage.removeItem('jwt_token')
+    return response
+  },
+
   getProfile: () => baseFetch('/api/auth/profile'),
 }
 

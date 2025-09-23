@@ -125,6 +125,13 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.message || 'Login failed')
       }
 
+      // Store JWT token if present in response
+      if (data.token) {
+        localStorage.setItem('jwt_token', data.token)
+        token.value = data.token
+        console.log('🔐 JWT token stored for API authentication')
+      }
+
       handleAuthSuccess({
         id: data.user.id,
         email: data.user.email,
@@ -133,7 +140,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       markInitialized()
 
-      console.log('✅ Login successful with HttpOnly cookies:', user.value)
+      console.log('✅ Login successful with JWT token:', user.value)
     } catch (err: any) {
       error.value = err.message || 'Login failed'
       console.error('❌ Login failed:', err)
@@ -158,6 +165,9 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('❌ Logout API failed (continuing anyway):', err)
     }
 
+    // Clear JWT token from localStorage
+    localStorage.removeItem('jwt_token')
+
     user.value = null
     token.value = null
     error.value = null
@@ -176,13 +186,30 @@ export const useAuthStore = defineStore('auth', () => {
       return initializationPromise
     }
 
-    console.log('🔄 Initializing auth from cookies...')
+    console.log('🔄 Initializing auth...')
+
+    // Check for JWT token in localStorage first
+    const storedToken = localStorage.getItem('jwt_token')
+    if (storedToken) {
+      token.value = storedToken
+      console.log('🔐 JWT token found in localStorage')
+    }
 
     initializationPromise = (async () => {
       try {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        }
+
+        // Add JWT token if available
+        if (token.value) {
+          headers['Authorization'] = `Bearer ${token.value}`
+        }
+
         const response = await fetch('/api/auth/profile', {
           method: 'GET',
-          credentials: 'include'
+          credentials: 'include',
+          headers
         })
 
         console.log('📡 Profile response status:', response.status)
