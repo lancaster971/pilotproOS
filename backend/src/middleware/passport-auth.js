@@ -40,11 +40,16 @@ export const authenticateJWT = (req, res, next) => {
       });
     }
 
-    // Check if token is blacklisted
+    // Check if token is blacklisted (with timeout)
     const token = req.headers.authorization?.split(' ')[1] || req.cookies?.jwt_token;
     if (token) {
       try {
-        const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+        const blacklistPromise = redisClient.get(`blacklist:${token}`);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Redis timeout')), 1000)
+        );
+
+        const isBlacklisted = await Promise.race([blacklistPromise, timeoutPromise]);
         if (isBlacklisted) {
           return res.status(401).json({
             success: false,
@@ -52,8 +57,8 @@ export const authenticateJWT = (req, res, next) => {
           });
         }
       } catch (redisErr) {
-        console.error('Redis blacklist check error:', redisErr);
-        // Continue if Redis fails
+        console.error('Redis blacklist check error (continuing):', redisErr.message);
+        // Continue authentication without blacklist check if Redis fails
       }
     }
 

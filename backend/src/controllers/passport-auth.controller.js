@@ -9,7 +9,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 // import { dbPool } from '../db/connection.js'; // Using pgPool instead
-import { authenticateLocal, blacklistToken } from '../middleware/passport-auth.js';
+import { authenticateLocal, authenticateJWT, blacklistToken } from '../middleware/passport-auth.js';
 import {
   loginRateLimiter,
   progressiveDelay,
@@ -235,7 +235,7 @@ router.post('/logout', async (req, res) => {
 /**
  * Get current user profile
  */
-router.get('/profile', async (req, res) => {
+router.get('/profile', authenticateJWT, async (req, res) => {
   try {
     // This would be called after authentication middleware
     if (!req.user) {
