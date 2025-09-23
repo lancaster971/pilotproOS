@@ -22,6 +22,8 @@ from config.settings import Settings
 from api.routes import api_router
 from services.job_manager import JobManager
 from services.monitoring_service import MonitoringService
+from services.llm_manager import LLMManager
+from services.agent_orchestrator import AgentOrchestrator
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +47,8 @@ queue_size = Gauge('agent_engine_queue_size', 'Current queue size', registry=reg
 redis_client: Optional[redis.Redis] = None
 job_manager: Optional[JobManager] = None
 monitoring_service: Optional[MonitoringService] = None
+llm_manager: Optional[LLMManager] = None
+agent_orchestrator: Optional[AgentOrchestrator] = None
 
 
 @asynccontextmanager
@@ -52,7 +56,7 @@ async def lifespan(app: FastAPI):
     """
     Manage application lifecycle - startup and shutdown
     """
-    global redis_client, job_manager, monitoring_service
+    global redis_client, job_manager, monitoring_service, llm_manager, agent_orchestrator
 
     # Startup
     logger.info("Starting Agent Engine Service...")
@@ -67,9 +71,19 @@ async def lifespan(app: FastAPI):
         await redis_client.ping()
         logger.info("✅ Redis connection established")
 
+        # Initialize LLM Manager
+        llm_manager = LLMManager(settings)
+        model_info = llm_manager.get_model_info()
+        logger.info(f"✅ LLM Manager initialized: {model_info['available_models']} models available")
+
+        # Log available providers
+        for provider, models in model_info['models_by_provider'].items():
+            logger.info(f"   {provider}: {len(models)} models")
+
         # Initialize services
         job_manager = JobManager(redis_client, settings)
         monitoring_service = MonitoringService(redis_client, settings)
+        agent_orchestrator = AgentOrchestrator(settings, redis_client)
 
         # Start background tasks
         await monitoring_service.start()
