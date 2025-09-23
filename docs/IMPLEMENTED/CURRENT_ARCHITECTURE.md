@@ -1,7 +1,7 @@
 # ✅ PilotProOS - Current Architecture (IMPLEMENTED)
 
 **Status**: **WORKING & DEPLOYED**
-**Last Updated**: 2025-09-19
+**Last Updated**: 2025-09-23
 **What this covers**: Only features that are currently implemented and working
 
 ---
@@ -15,12 +15,17 @@
 - ✅ **Express.js backend API**
 - ✅ **n8n automation engine** integration
 
-### **Authentication & Security** ✅
-- ✅ **JWT authentication** with HttpOnly cookies
+### **Authentication & Security** ✅ **[REFACTORED 2025-09-23]**
+- ✅ **Passport.js authentication** (JWT + Local strategies)
+- ✅ **Redis session store** for scalability
+- ✅ **Refresh token rotation** with secure storage
+- ✅ **Token blacklisting** on logout
+- ✅ **Rate limiting** on auth endpoints (20 req/min)
 - ✅ **Frontend auth guards** on all routes
-- ✅ **bcrypt password hashing**
+- ✅ **bcrypt password hashing** with timing attack protection
 - ✅ **Session management** (30 min timeout)
 - ✅ **CORS protection**
+- ✅ **Security headers** (helmet.js)
 
 ### **CLI Management** ✅
 - ✅ **Interactive CLI manager** (`./stack`)

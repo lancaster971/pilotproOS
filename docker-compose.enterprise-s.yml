@@ -1,0 +1,350 @@
+# PilotProOS - Enterprise Small Configuration (8-16GB RAM)
+# Optimized for balanced performance on mid-range servers
+
+version: '3.8'
+
+services:
+  # PostgreSQL - Optimized for 4GB RAM
+  postgres:
+    image: postgres:16
+    container_name: pilotpros-postgres-enterprise
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pilotpros_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pilotpros_db
+      # PostgreSQL tuning for enterprise workload
+      POSTGRES_SHARED_BUFFERS: 1GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 3GB
+      POSTGRES_MAINTENANCE_WORK_MEM: 256MB
+      POSTGRES_WORK_MEM: 16MB
+      POSTGRES_MAX_CONNECTIONS: 200
+      POSTGRES_RANDOM_PAGE_COST: 1.1
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: 200
+      POSTGRES_WAL_BUFFERS: 16MB
+      POSTGRES_DEFAULT_STATISTICS_TARGET: 100
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-scripts:/docker-entrypoint-initdb.d
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pilotpros_user}"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Redis - Optimized for 1GB RAM with persistence
+  redis:
+    image: redis:7
+    container_name: pilotpros-redis-enterprise
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 800mb
+      --maxmemory-policy allkeys-lru
+      --save 60 100
+      --save 300 10
+      --save 900 1
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # n8n - Optimized for 3GB RAM with higher concurrency
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: pilotpros-n8n-enterprise
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: pilotpros_db
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-pilotpros_user}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_POSTGRESDB_SCHEMA: n8n
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-https}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 336
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: true
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: true
+      # Performance tuning for enterprise
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 20
+      NODE_OPTIONS: "--max-old-space-size=2560"
+      EXECUTIONS_PROCESS: main
+      N8N_METRICS: "true"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - n8n_files:/files
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2'
+        reservations:
+          memory: 1.5G
+          cpus: '1'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # Backend - Optimized for 1GB RAM with clustering
+  backend:
+    image: pilotproos-backend:production
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    container_name: pilotpros-backend-enterprise
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: pilotpros_db
+      DB_USER: ${POSTGRES_USER:-pilotpros_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ORIGIN: ${FRONTEND_URL:-https://localhost}
+      # Performance tuning
+      NODE_OPTIONS: "--max-old-space-size=768"
+      UV_THREADPOOL_SIZE: 8
+      CLUSTER_WORKERS: 2
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Frontend - Static files with CDN cache headers
+  frontend:
+    image: nginx:stable
+    container_name: pilotpros-frontend-enterprise
+    restart: unless-stopped
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf.enterprise:/etc/nginx/nginx.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Nginx Reverse Proxy with SSL and caching
+  nginx:
+    image: nginx:stable
+    container_name: pilotpros-nginx-enterprise
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf.enterprise:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot_data:/var/www/certbot:ro
+      - nginx_cache:/var/cache/nginx
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    depends_on:
+      - frontend
+      - backend
+      - n8n
+    networks:
+      - pilotpros-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Certbot for SSL certificates
+  certbot:
+    image: certbot/certbot:latest
+    container_name: pilotpros-certbot
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - certbot_data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    networks:
+      - pilotpros-network
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pilotpros-prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    networks:
+      - pilotpros-network
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pilotpros-grafana
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    depends_on:
+      - prometheus
+    networks:
+      - pilotpros-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+  n8n_files:
+    driver: local
+  certbot_data:
+    driver: local
+  nginx_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  pilotpros-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16

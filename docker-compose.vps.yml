@@ -1,0 +1,238 @@
+# PilotProOS - VPS Production Configuration (2-4GB RAM)
+# Optimized for minimum resource usage on budget VPS
+
+version: '3.8'
+
+services:
+  # PostgreSQL - Optimized for 512MB RAM
+  postgres:
+    image: postgres:16-alpine
+    container_name: pilotpros-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pilotpros_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pilotpros_db
+      # PostgreSQL tuning for low memory
+      POSTGRES_SHARED_BUFFERS: 128MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 256MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 32MB
+      POSTGRES_WORK_MEM: 2MB
+      POSTGRES_MAX_CONNECTIONS: 50
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-scripts:/docker-entrypoint-initdb.d
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pilotpros_user}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+
+  # Redis - Optimized for 128MB RAM
+  redis:
+    image: redis:7-alpine
+    container_name: pilotpros-redis-prod
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 100mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --save 300 10
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - pilotpros-network
+
+  # n8n - Optimized for 768MB RAM
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: pilotpros-n8n-prod
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: pilotpros_db
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-pilotpros_user}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_POSTGRESDB_SCHEMA: n8n
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 168
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: false
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: true
+      # Performance tuning
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 5
+      NODE_OPTIONS: "--max-old-space-size=512"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+
+  # Backend - Optimized for 256MB RAM
+  backend:
+    image: pilotproos-backend:production
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    container_name: pilotpros-backend-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: pilotpros_db
+      DB_USER: ${POSTGRES_USER:-pilotpros_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost}
+      # Performance tuning
+      NODE_OPTIONS: "--max-old-space-size=200"
+      UV_THREADPOOL_SIZE: 2
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+
+  # Frontend - Static files served by nginx
+  frontend:
+    image: nginx:alpine
+    container_name: pilotpros-frontend-prod
+    restart: unless-stopped
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf.production:/etc/nginx/nginx.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pilotpros-network
+
+  # Nginx Reverse Proxy with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: pilotpros-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf.production:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot_data:/var/www/certbot:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    depends_on:
+      - frontend
+      - backend
+      - n8n
+    networks:
+      - pilotpros-network
+
+  # Certbot for SSL certificates (runs periodically)
+  certbot:
+    image: certbot/certbot:latest
+    container_name: pilotpros-certbot
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - certbot_data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    networks:
+      - pilotpros-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+  certbot_data:
+    driver: local
+
+networks:
+  pilotpros-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
