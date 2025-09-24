@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY requirements-simple.txt requirements.txt
+COPY requirements-working.txt requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with timeout and retries
+RUN pip install --no-cache-dir --timeout=120 -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -30,5 +30,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run with uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Make start script executable
+COPY start.sh start.sh
+RUN chmod +x start.sh
+
+# Run both worker and API server
+CMD ["sh", "start.sh"]

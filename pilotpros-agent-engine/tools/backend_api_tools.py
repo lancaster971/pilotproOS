@@ -1,16 +1,42 @@
 """
-Backend API Tools - Safe access through PilotPro backend APIs
-Much safer than direct database access
+Backend API Tools - CrewAI Compatible Version
+Following CrewAI BaseTool pattern with args_schema
 """
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Type, Optional
+from pydantic import BaseModel, Field
 from crewai.tools import BaseTool
 import httpx
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+# Input schemas for each tool
+class BackendAPIInput(BaseModel):
+    """Input for backend API calls"""
+    endpoint: str = Field(..., description="API endpoint to call")
+    method: str = Field(default="GET", description="HTTP method")
+    params: Optional[dict] = Field(default=None, description="Query parameters")
+
+
+class WorkflowAPIInput(BaseModel):
+    """Input for workflow operations"""
+    operation: str = Field(..., description="Operation type: list, summary, stats, performance, errors")
+    workflow_id: Optional[str] = Field(default=None, description="Optional workflow ID")
+
+
+class AnalyticsAPIInput(BaseModel):
+    """Input for analytics operations"""
+    metric_type: str = Field(..., description="Metric type: performance, trends, usage, health, kpi")
+    timeframe: str = Field(default="7d", description="Time period: 1d, 7d, 30d")
+
+
+class ProcessInsightInput(BaseModel):
+    """Input for process insights"""
+    insight_type: str = Field(..., description="Insight type: bottlenecks, optimization, automation, risks")
 
 
 class BackendAPITool(BaseTool):
@@ -20,28 +46,9 @@ class BackendAPITool(BaseTool):
 
     name: str = "PilotPro API"
     description: str = "Access PilotPro system data through secure backend APIs"
+    args_schema: Type[BaseModel] = BackendAPIInput
 
-    def __init__(self, backend_url: str = "http://backend-dev:3001", jwt_token: Optional[str] = None):
-        """
-        Initialize backend API tool
-
-        Args:
-            backend_url: Backend service URL
-            jwt_token: JWT token for authentication
-        """
-        super().__init__()
-        self.backend_url = backend_url
-        self.jwt_token = jwt_token
-        self.client = httpx.Client(
-            base_url=backend_url,
-            headers={
-                "Authorization": f"Bearer {jwt_token}" if jwt_token else "",
-                "Content-Type": "application/json"
-            },
-            timeout=10.0
-        )
-
-    def _run(self, endpoint: str, method: str = "GET", params: Optional[Dict] = None) -> str:
+    def _run(self, endpoint: str, method: str = "GET", params: Optional[dict] = None) -> str:
         """
         Call backend API endpoint
 
@@ -53,6 +60,11 @@ class BackendAPITool(BaseTool):
         Returns:
             API response as JSON string
         """
+        # Get backend URL from environment or use default
+        import os
+        backend_url = os.getenv("BACKEND_URL", "http://backend-dev:3001")
+        jwt_token = os.getenv("JWT_TOKEN", "")
+
         try:
             # Safety check - only allow GET requests
             if method.upper() != "GET":
@@ -69,22 +81,31 @@ class BackendAPITool(BaseTool):
                 })
 
             # Make API call
-            response = self.client.get(endpoint, params=params)
+            with httpx.Client(timeout=10.0) as client:
+                headers = {
+                    "Authorization": f"Bearer {jwt_token}" if jwt_token else "",
+                    "Content-Type": "application/json"
+                }
+                response = client.get(
+                    f"{backend_url}{endpoint}",
+                    params=params,
+                    headers=headers
+                )
 
-            if response.status_code == 200:
-                data = response.json()
-                # Sanitize response
-                sanitized = self._sanitize_response(data)
-                return json.dumps({
-                    "success": True,
-                    "data": sanitized,
-                    "timestamp": datetime.utcnow().isoformat()
-                }, indent=2)
-            else:
-                return json.dumps({
-                    "error": f"API returned status {response.status_code}",
-                    "message": response.text[:200]
-                })
+                if response.status_code == 200:
+                    data = response.json()
+                    # Sanitize response
+                    sanitized = self._sanitize_response(data)
+                    return json.dumps({
+                        "success": True,
+                        "data": sanitized,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }, indent=2)
+                else:
+                    return json.dumps({
+                        "error": f"API returned status {response.status_code}",
+                        "message": response.text[:200]
+                    })
 
         except httpx.TimeoutException:
             return json.dumps({
@@ -99,15 +120,7 @@ class BackendAPITool(BaseTool):
             })
 
     def _is_safe_endpoint(self, endpoint: str) -> bool:
-        """
-        Check if endpoint is allowed
-
-        Args:
-            endpoint: Endpoint to check
-
-        Returns:
-            True if safe
-        """
+        """Check if endpoint is allowed"""
         allowed = [
             "/api/workflows",
             "/api/workflows/summary",
@@ -127,7 +140,7 @@ class BackendAPITool(BaseTool):
         endpoint_clean = endpoint.split("?")[0]  # Remove query params
         return any(endpoint_clean.startswith(allowed_path) for allowed_path in allowed)
 
-    def _get_allowed_endpoints(self) -> List[str]:
+    def _get_allowed_endpoints(self) -> list:
         """Get list of allowed endpoints"""
         return [
             "/api/workflows - List workflows",
@@ -137,16 +150,8 @@ class BackendAPITool(BaseTool):
             "/api/system/status - System health"
         ]
 
-    def _sanitize_response(self, data: Any) -> Any:
-        """
-        Sanitize API response
-
-        Args:
-            data: Response data
-
-        Returns:
-            Sanitized data
-        """
+    def _sanitize_response(self, data):
+        """Sanitize API response"""
         if isinstance(data, dict):
             # Remove sensitive fields
             sensitive_fields = [
@@ -171,10 +176,7 @@ class WorkflowAPITool(BaseTool):
 
     name: str = "Workflow API"
     description: str = "Access workflow data and analytics through backend API"
-
-    def __init__(self, backend_url: str = "http://backend-dev:3001", jwt_token: Optional[str] = None):
-        super().__init__()
-        self.api = BackendAPITool(backend_url, jwt_token)
+    args_schema: Type[BaseModel] = WorkflowAPIInput
 
     def _run(self, operation: str, workflow_id: Optional[str] = None) -> str:
         """
@@ -187,43 +189,26 @@ class WorkflowAPITool(BaseTool):
         Returns:
             Operation result
         """
+        # Use BackendAPITool internally
+        api_tool = BackendAPITool()
+
         operations = {
-            "list": self._list_workflows,
-            "summary": self._get_summary,
-            "stats": self._get_stats,
-            "performance": self._get_performance,
-            "errors": self._get_errors
+            "list": lambda: api_tool._run("/api/workflows", params={"limit": 20}),
+            "summary": lambda: api_tool._run("/api/workflows/summary"),
+            "stats": lambda: api_tool._run(
+                f"/api/workflows/{workflow_id}/stats" if workflow_id else "/api/workflows/stats"
+            ),
+            "performance": lambda: api_tool._run("/api/analytics/performance"),
+            "errors": lambda: api_tool._run("/api/executions/errors", params={"limit": 10})
         }
 
         if operation.lower() in operations:
-            return operations[operation.lower()](workflow_id)
+            return operations[operation.lower()]()
         else:
             return json.dumps({
                 "error": f"Unknown operation: {operation}",
                 "available_operations": list(operations.keys())
             })
-
-    def _list_workflows(self, _: Optional[str] = None) -> str:
-        """List all workflows"""
-        return self.api._run("/api/workflows", params={"limit": 20})
-
-    def _get_summary(self, _: Optional[str] = None) -> str:
-        """Get workflow summary"""
-        return self.api._run("/api/workflows/summary")
-
-    def _get_stats(self, workflow_id: Optional[str] = None) -> str:
-        """Get workflow statistics"""
-        if workflow_id:
-            return self.api._run(f"/api/workflows/{workflow_id}/stats")
-        return self.api._run("/api/workflows/stats")
-
-    def _get_performance(self, _: Optional[str] = None) -> str:
-        """Get performance metrics"""
-        return self.api._run("/api/analytics/performance")
-
-    def _get_errors(self, _: Optional[str] = None) -> str:
-        """Get recent errors"""
-        return self.api._run("/api/executions/errors", params={"limit": 10})
 
 
 class AnalyticsAPITool(BaseTool):
@@ -233,10 +218,7 @@ class AnalyticsAPITool(BaseTool):
 
     name: str = "Analytics API"
     description: str = "Access business analytics and insights through backend API"
-
-    def __init__(self, backend_url: str = "http://backend-dev:3001", jwt_token: Optional[str] = None):
-        super().__init__()
-        self.api = BackendAPITool(backend_url, jwt_token)
+    args_schema: Type[BaseModel] = AnalyticsAPIInput
 
     def _run(self, metric_type: str, timeframe: str = "7d") -> str:
         """
@@ -249,41 +231,24 @@ class AnalyticsAPITool(BaseTool):
         Returns:
             Analytics data
         """
+        # Use BackendAPITool internally
+        api_tool = BackendAPITool()
+
         metrics = {
-            "performance": self._get_performance_metrics,
-            "trends": self._get_trends,
-            "usage": self._get_usage_patterns,
-            "health": self._get_system_health,
-            "kpi": self._get_kpis
+            "performance": lambda: api_tool._run("/api/analytics/performance", params={"timeframe": timeframe}),
+            "trends": lambda: api_tool._run("/api/analytics/trends", params={"timeframe": timeframe}),
+            "usage": lambda: api_tool._run("/api/analytics/usage", params={"timeframe": timeframe}),
+            "health": lambda: api_tool._run("/api/health"),
+            "kpi": lambda: api_tool._run("/api/analytics/kpi", params={"timeframe": timeframe})
         }
 
         if metric_type.lower() in metrics:
-            return metrics[metric_type.lower()](timeframe)
+            return metrics[metric_type.lower()]()
         else:
             return json.dumps({
                 "error": f"Unknown metric type: {metric_type}",
                 "available_metrics": list(metrics.keys())
             })
-
-    def _get_performance_metrics(self, timeframe: str) -> str:
-        """Get performance metrics"""
-        return self.api._run("/api/analytics/performance", params={"timeframe": timeframe})
-
-    def _get_trends(self, timeframe: str) -> str:
-        """Get trend analysis"""
-        return self.api._run("/api/analytics/trends", params={"timeframe": timeframe})
-
-    def _get_usage_patterns(self, timeframe: str) -> str:
-        """Get usage patterns"""
-        return self.api._run("/api/analytics/usage", params={"timeframe": timeframe})
-
-    def _get_system_health(self, _: str) -> str:
-        """Get system health"""
-        return self.api._run("/api/health")
-
-    def _get_kpis(self, timeframe: str) -> str:
-        """Get key performance indicators"""
-        return self.api._run("/api/analytics/kpi", params={"timeframe": timeframe})
 
 
 class ProcessInsightTool(BaseTool):
@@ -293,10 +258,7 @@ class ProcessInsightTool(BaseTool):
 
     name: str = "Process Insights"
     description: str = "Get AI-powered insights and recommendations for business processes"
-
-    def __init__(self, backend_url: str = "http://backend-dev:3001", jwt_token: Optional[str] = None):
-        super().__init__()
-        self.api = BackendAPITool(backend_url, jwt_token)
+    args_schema: Type[BaseModel] = ProcessInsightInput
 
     def _run(self, insight_type: str) -> str:
         """
@@ -308,6 +270,9 @@ class ProcessInsightTool(BaseTool):
         Returns:
             Insights and recommendations
         """
+        # Use BackendAPITool internally
+        api_tool = BackendAPITool()
+
         # Call backend's business intelligence endpoints
         insights_map = {
             "bottlenecks": "/api/insights/bottlenecks",
@@ -319,7 +284,7 @@ class ProcessInsightTool(BaseTool):
 
         endpoint = insights_map.get(insight_type.lower())
         if endpoint:
-            return self.api._run(endpoint)
+            return api_tool._run(endpoint)
         else:
             # Provide fallback insights based on patterns
             return json.dumps({
@@ -328,7 +293,7 @@ class ProcessInsightTool(BaseTool):
                 "source": "pattern-based-analysis"
             })
 
-    def _generate_pattern_insights(self, insight_type: str) -> Dict:
+    def _generate_pattern_insights(self, insight_type: str) -> dict:
         """Generate pattern-based insights when API not available"""
         return {
             "type": insight_type,

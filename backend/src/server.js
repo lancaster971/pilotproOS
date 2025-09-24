@@ -4435,6 +4435,10 @@ app.use('/api/auth', authController);
 import aiRoutes from './routes/ai.routes.js';
 app.use('/api/ai', aiRoutes);
 
+// Agent Engine integration routes
+import agentEngineRoutes from './routes/agent-engine.routes.js';
+app.use('/api/agent-engine', agentEngineRoutes);
+
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================

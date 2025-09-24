@@ -3,7 +3,7 @@ API Routes for Agent Engine
 """
 
 from fastapi import APIRouter, HTTPException, Depends, status, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import logging
@@ -48,19 +48,35 @@ async def submit_analysis(request: AnalysisRequest):
     - custom_analysis: Custom analysis with specific agents
     """
     try:
-        # TODO: Implement job submission with JobManager
-        # For now, return mock response
-        job_id = f"job_{datetime.utcnow().timestamp()}"
+        from main import job_manager
+
+        if not job_manager:
+            raise Exception("Job Manager not initialized")
+
+        # Create job
+        job_id = str(uuid.uuid4())
+        job_data = {
+            "id": job_id,
+            "type": request.type,
+            "data": request.data,
+            "context": request.context,
+            "priority": request.priority,
+            "callback_url": request.callback_url
+        }
+
+        # Submit to queue
+        job_info = await job_manager.submit_job(job_data)
 
         return AnalysisResponse(
             success=True,
-            job_id=job_id,
-            status="queued",
-            position_in_queue=1,
-            estimated_start=datetime.utcnow(),
-            websocket_channel=f"ws://localhost:8000/ws/jobs/{job_id}",
-            status_url=f"/api/v1/jobs/{job_id}/status"
+            job_id=job_info["job_id"],
+            status=job_info["status"],
+            position_in_queue=job_info.get("position_in_queue"),
+            estimated_start=job_info.get("estimated_start"),
+            websocket_channel=job_info["websocket_channel"],
+            status_url=job_info["status_url"]
         )
+
     except Exception as e:
         logger.error(f"Failed to submit analysis: {e}")
         raise HTTPException(
@@ -75,21 +91,27 @@ async def get_job_status(job_id: str):
     Get the status of a specific job
     """
     try:
-        # TODO: Implement with JobManager
-        return {
-            "job_id": job_id,
-            "status": "processing",
-            "progress": 50,
-            "current_step": "Analyzing data patterns",
-            "estimated_completion": datetime.utcnow(),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
+        from main import job_manager
+
+        if not job_manager:
+            raise Exception("Job Manager not initialized")
+
+        status = await job_manager.get_job_status(job_id)
+
+        if not status:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Job {job_id} not found"
+            )
+
+        return status
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get job status: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
 
@@ -99,24 +121,40 @@ async def get_job_result(job_id: str):
     Get the result of a completed job
     """
     try:
-        # TODO: Implement with JobManager
+        from main import job_manager
+
+        if not job_manager:
+            raise Exception("Job Manager not initialized")
+
+        status = await job_manager.get_job_status(job_id)
+
+        if not status:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Job {job_id} not found"
+            )
+
+        if status.get("status") not in ["completed", "failed"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Job {job_id} is not completed yet. Status: {status.get('status')}"
+            )
+
         return {
             "job_id": job_id,
-            "status": "completed",
-            "result": {
-                "summary": "Analysis completed successfully",
-                "insights": [],
-                "recommendations": [],
-                "metrics": {}
-            },
-            "completed_at": datetime.utcnow(),
-            "processing_time": 120  # seconds
+            "status": status.get("status"),
+            "result": status.get("result", {}),
+            "completed_at": status.get("completed_at"),
+            "created_at": status.get("created_at"),
+            "processing_time": None  # Calculate from timestamps if needed
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get job result: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} not found or not completed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
 
@@ -237,6 +275,92 @@ async def ask_assistant(request: AssistantRequest, req: Request):
         )
 
 
+class BusinessAnalysisRequest(BaseModel):
+    """Request for business process analysis"""
+    process_description: str = Field(..., description="Description of business process")
+    data_context: Optional[str] = Field(None, description="Additional data context")
+
+
+class QuickInsightsRequest(BaseModel):
+    """Request for quick business insights"""
+    question: str = Field(..., description="Business question")
+    context: Optional[str] = Field(None, description="Additional context")
+
+
+@api_router.post("/business-analysis")
+async def business_analysis_endpoint(request: BusinessAnalysisRequest, req: Request):
+    """
+    Analyze business processes with multi-agent crew
+    """
+    try:
+        from main import job_manager
+
+        job_id = str(uuid.uuid4())
+        job_data = {
+            "id": job_id,
+            "type": "business_analysis",
+            "process_description": request.process_description,
+            "data_context": request.data_context,
+            "priority": "normal"
+        }
+
+        await job_manager.submit_job(job_data)
+        result = await job_manager.wait_for_result(job_id, timeout=60)
+
+        if result:
+            return result
+        else:
+            return {
+                "success": False,
+                "error": "Analysis timeout",
+                "job_id": job_id
+            }
+
+    except Exception as e:
+        logger.error(f"Business analysis error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@api_router.post("/quick-insights")
+async def quick_insights_endpoint(request: QuickInsightsRequest, req: Request):
+    """
+    Get quick business insights with single agent
+    """
+    try:
+        from main import job_manager
+
+        job_id = str(uuid.uuid4())
+        job_data = {
+            "id": job_id,
+            "type": "quick_insights",
+            "question": request.question,
+            "context": request.context,
+            "priority": "high"
+        }
+
+        await job_manager.submit_job(job_data)
+        result = await job_manager.wait_for_result(job_id, timeout=30)
+
+        if result:
+            return result
+        else:
+            return {
+                "success": False,
+                "error": "Insights timeout",
+                "job_id": job_id
+            }
+
+    except Exception as e:
+        logger.error(f"Quick insights error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 @api_router.get("/health/llm")
 async def llm_health(req: Request):
     """
@@ -270,47 +394,3 @@ async def llm_health(req: Request):
         }
 
 
-@api_router.post("/analyze", response_model=AnalysisResponse)
-async def submit_analysis_v2(request: AnalysisRequest, req: Request):
-    """
-    Submit analysis job with actual JobManager integration
-    """
-    try:
-        from main import job_manager
-
-        if not job_manager:
-            raise Exception("Job Manager not initialized")
-
-        # Create job
-        job_id = str(uuid.uuid4())
-        job_data = {
-            "id": job_id,
-            "type": request.type,
-            "data": request.data,
-            "context": request.context,
-            "priority": request.priority,
-            "callback_url": request.callback_url
-        }
-
-        # Submit to queue
-        await job_manager.submit_job(job_data)
-
-        # Get queue stats
-        stats = await job_manager.get_queue_stats()
-
-        return AnalysisResponse(
-            success=True,
-            job_id=job_id,
-            status="queued",
-            position_in_queue=stats.get("pending", 0),
-            estimated_start=datetime.utcnow(),
-            websocket_channel=f"ws://localhost:8000/ws/jobs/{job_id}",
-            status_url=f"/api/v1/jobs/{job_id}/status"
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to submit analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )

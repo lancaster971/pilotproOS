@@ -149,42 +149,6 @@ class LLMManager:
             speed="medium", quality="high", context_window=4096, requires_api_key=True
         ),
 
-        # Ollama Models (LOCAL FREE!)
-        "ollama-llama2": LLMModel(
-            provider="ollama", model="llama2", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE, TaskComplexity.MODERATE],
-            speed="medium", quality="medium", context_window=4096, requires_api_key=False
-        ),
-        "ollama-mistral": LLMModel(
-            provider="ollama", model="mistral", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE, TaskComplexity.MODERATE],
-            speed="fast", quality="medium", context_window=8192, requires_api_key=False
-        ),
-        "ollama-codellama": LLMModel(
-            provider="ollama", model="codellama", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE, TaskComplexity.MODERATE],
-            speed="fast", quality="medium", context_window=4096, requires_api_key=False
-        ),
-        "ollama-phi": LLMModel(
-            provider="ollama", model="phi", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE],
-            speed="very_fast", quality="low", context_window=2048, requires_api_key=False
-        ),
-        "ollama-neural-chat": LLMModel(
-            provider="ollama", model="neural-chat", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE, TaskComplexity.MODERATE],
-            speed="fast", quality="medium", context_window=4096, requires_api_key=False
-        ),
-        "ollama-starling": LLMModel(
-            provider="ollama", model="starling-lm", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE, TaskComplexity.MODERATE],
-            speed="fast", quality="medium", context_window=8192, requires_api_key=False
-        ),
-        "ollama-vicuna": LLMModel(
-            provider="ollama", model="vicuna", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE],
-            speed="fast", quality="medium", context_window=2048, requires_api_key=False
-        ),
 
         # HuggingFace Inference
         "huggingface-zephyr": LLMModel(
@@ -200,12 +164,6 @@ class LLMManager:
             speed="medium", quality="high", context_window=8192, requires_api_key=True
         ),
 
-        # Mock (Always Available)
-        "mock": LLMModel(
-            provider="mock", model="mock", tier="free",
-            cost_per_1k=0.0, capabilities=[TaskComplexity.SIMPLE],
-            speed="instant", quality="low", context_window=1000, requires_api_key=False
-        )
     }
 
     def __init__(self, settings):
@@ -226,7 +184,7 @@ class LLMManager:
         Returns:
             List of available model names
         """
-        available = ["mock"]  # Always available
+        available = []  # Start with no models
 
         # Check API keys
         if os.getenv("OPENAI_API_KEY"):
@@ -262,12 +220,12 @@ class LLMManager:
         if os.getenv("AI21_API_KEY"):
             available.extend(["ai21-j2-ultra"])
 
-        # Check Ollama
-        if self._check_ollama():
-            available.extend([
-                "ollama-llama2", "ollama-mistral", "ollama-codellama",
-                "ollama-phi", "ollama-neural-chat", "ollama-starling", "ollama-vicuna"
-            ])
+        # Check Ollama - DISABLED (not using Ollama)
+        # if self._check_ollama():
+        #     available.extend([
+        #         "ollama-llama2", "ollama-mistral", "ollama-codellama",
+        #         "ollama-phi", "ollama-neural-chat", "ollama-starling", "ollama-vicuna"
+        #     ])
 
         logger.info(f"✅ Available models: {len(available)}")
         return available
@@ -515,5 +473,22 @@ class LLMManager:
 
         if "gemini-pro" not in self.available_models:
             info["recommendations"].append("Get Google API key for free Gemini Pro access")
+
+        # Add active providers list
+        info["active_providers"] = list(info["models_by_provider"].keys())
+
+        # Add models list for compatibility
+        info["models"] = []
+        for model_name in self.available_models:
+            if model_name in self.MODELS:
+                model = self.MODELS[model_name]
+                info["models"].append({
+                    "name": model_name,
+                    "provider": model.provider,
+                    "tier": model.tier,
+                    "cost": model.cost_per_1k,
+                    "quality": model.quality,
+                    "speed": model.speed
+                })
 
         return info

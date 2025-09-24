@@ -59,7 +59,8 @@ class JobManager:
 
             # Add to queue based on priority
             queue_key = self._get_queue_key(priority)
-            await self.redis_client.lpush(queue_key, job_id)
+            # Push the full job data as JSON
+            await self.redis_client.lpush(queue_key, json.dumps(job_data))
 
             # Get queue position
             position = await self._get_queue_position(job_id, priority)

@@ -4,19 +4,21 @@ Processes async jobs from Redis queue
 """
 
 import asyncio
+import json
 import logging
 import signal
 import sys
 from typing import Optional
 import redis.asyncio as redis
-from rq import Worker, Queue, Connection
-from rq.job import Job
+# RQ imports removed - not needed for our async implementation
 
 from config.settings import Settings
 from services.llm_manager import LLMManager, TaskComplexity
 from services.agent_orchestrator import AgentOrchestrator
-from crews.pilotpro_assistant_crew import PilotProAssistantCrew
-from crews.process_analysis_crew import ProcessAnalysisCrew
+from simple_assistant import SimpleAssistant
+from crews.simple_crew import SimpleAssistantCrew
+from crews.business_analysis_crew import BusinessAnalysisCrew, QuickInsightsCrew
+# CrewAI enabled with multiple crews
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,6 +98,10 @@ class AgentEngineWorker:
                 result = await self._process_assistant_job(job_data, llm)
             elif job_type == "analysis":
                 result = await self._process_analysis_job(job_data, llm)
+            elif job_type == "business_analysis":
+                result = await self._process_business_analysis_job(job_data)
+            elif job_type == "quick_insights":
+                result = await self._process_quick_insights_job(job_data)
             elif job_type == "report":
                 result = await self._process_report_job(job_data, llm)
             else:
@@ -117,29 +123,66 @@ class AgentEngineWorker:
 
     async def _process_assistant_job(self, job_data: dict, llm) -> dict:
         """Process PilotPro Assistant job"""
-        crew = PilotProAssistantCrew(
-            jwt_token=job_data.get("jwt_token"),
-            backend_url=self.settings.DATABASE_URL.replace("postgresql", "http").split("@")[1].split("/")[0]
-        )
+        # Try CrewAI first, fallback to SimpleAssistant
+        try:
+            crew_assistant = SimpleAssistantCrew()
+            question = job_data.get("question", "")
+            language = job_data.get("language", "italian")
+            result = crew_assistant.answer_question(question, language)
+            if result.get("success"):
+                return result
+        except Exception as e:
+            logger.warning(f"CrewAI failed, using SimpleAssistant: {e}")
 
+        # Fallback to SimpleAssistant
+        assistant = SimpleAssistant()
         question = job_data.get("question", "")
-        return crew.answer_question(question)
+        language = job_data.get("language", "italian")
+        return assistant.answer_question(question, language)
 
     async def _process_analysis_job(self, job_data: dict, llm) -> dict:
         """Process analysis job"""
-        crew = ProcessAnalysisCrew(llm=llm, verbose=False)
-        process_data = job_data.get("data", {})
-        return crew.analyze(process_data)
+        # Disabled for now - CrewAI Pydantic compatibility issues
+        return {
+            "success": False,
+            "error": "Analysis crew temporarily disabled"
+        }
 
     async def _process_report_job(self, job_data: dict, llm) -> dict:
         """Process report generation job"""
-        crew = PilotProAssistantCrew(
-            jwt_token=job_data.get("jwt_token"),
-            backend_url=self.settings.DATABASE_URL.replace("postgresql", "http").split("@")[1].split("/")[0]
-        )
+        # Disabled for now - CrewAI Pydantic compatibility issues
+        return {
+            "success": False,
+            "error": "Report crew temporarily disabled"
+        }
 
-        report_type = job_data.get("report_type", "daily")
-        return crew.generate_report(report_type)
+    async def _process_business_analysis_job(self, job_data: dict) -> dict:
+        """Process business analysis with multi-agent crew"""
+        try:
+            crew = BusinessAnalysisCrew()
+            process_description = job_data.get("process_description", "")
+            data_context = job_data.get("data_context", "")
+            return crew.analyze_business(process_description, data_context)
+        except Exception as e:
+            logger.error(f"Business analysis failed: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def _process_quick_insights_job(self, job_data: dict) -> dict:
+        """Process quick insights request"""
+        try:
+            crew = QuickInsightsCrew()
+            question = job_data.get("question", "")
+            context = job_data.get("context", "")
+            return crew.get_insights(question, context)
+        except Exception as e:
+            logger.error(f"Quick insights failed: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
     async def run(self):
         """Main worker loop"""
@@ -211,5 +254,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import json
     asyncio.run(main())

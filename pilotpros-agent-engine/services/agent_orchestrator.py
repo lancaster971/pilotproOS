@@ -7,8 +7,9 @@ import logging
 from typing import Dict, Any, Optional
 from services.llm_provider import LLMService
 from services.job_manager import JobManager
-from crews.process_analysis_crew import ProcessAnalysisCrew
-from crews.pilotpro_assistant_crew import PilotProAssistantCrew
+# from crews.process_analysis_crew import ProcessAnalysisCrew
+# from crews.pilotpro_assistant_crew import PilotProAssistantCrew
+# Disabled - Pydantic compatibility issues
 import json
 
 logger = logging.getLogger(__name__)
