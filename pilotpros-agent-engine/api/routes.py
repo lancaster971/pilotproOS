@@ -290,7 +290,7 @@ class QuickInsightsRequest(BaseModel):
 @api_router.post("/business-analysis")
 async def business_analysis_endpoint(request: BusinessAnalysisRequest, req: Request):
     """
-    Analyze business processes with multi-agent crew
+    Analyze business processes with multi-agent system
     """
     try:
         from main import job_manager

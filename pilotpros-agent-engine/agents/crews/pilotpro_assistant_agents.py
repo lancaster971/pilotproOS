@@ -1,5 +1,5 @@
 """
-PilotPro Assistant Crew - Main system assistant with backend API access
+PilotPro Assistant Agent System - Main system assistant with backend API access
 """
 
 from typing import Dict, Any, Optional
@@ -16,14 +16,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PilotProAssistantCrew:
+class PilotProAssistantAgents:
     """
-    PilotPro Assistant Crew - Safe system access through backend APIs
+    PilotPro Assistant Agent System - Safe system access through backend APIs
     """
 
     def __init__(self, jwt_token: Optional[str] = None, backend_url: str = "http://backend-dev:3001"):
         """
-        Initialize PilotPro Assistant Crew
+        Initialize PilotPro Assistant Agents
 
         Args:
             jwt_token: JWT token for backend authentication
@@ -90,7 +90,7 @@ class PilotProAssistantCrew:
                 expected_output="Clear, helpful answer focused on business value"
             )
 
-            # Create single-agent crew
+            # Create single-agent system
             crew = AgentEngine(
                 agents=[self.assistant],
                 tasks=[mission],
@@ -154,7 +154,7 @@ class PilotProAssistantCrew:
                 expected_output=f"Complete {report_type} report with insights"
             )
 
-            # Create crew
+            # Create agent system
             crew = AgentEngine(
                 agents=[self.assistant],
                 tasks=[mission],
@@ -213,7 +213,7 @@ class PilotProAssistantCrew:
                 expected_output="Comprehensive performance analysis with recommendations"
             )
 
-            # Create crew
+            # Create agent system
             crew = AgentEngine(
                 agents=[self.assistant],
                 tasks=[mission],
@@ -262,10 +262,10 @@ class PilotProAssistantCrew:
 # Example usage
 def example_usage():
     """
-    Example of using PilotPro Assistant Crew
+    Example of using PilotPro Assistant Agents
     """
     # Initialize crew (in production, JWT token would come from authenticated user)
-    crew = PilotProAssistantCrew(
+    crew = PilotProAssistantAgents(
         jwt_token="example_jwt_token",
         backend_url="http://localhost:3001"
     )

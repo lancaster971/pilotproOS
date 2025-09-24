@@ -7,8 +7,8 @@ import logging
 from typing import Dict, Any, Optional
 from services.llm_provider import LLMService
 from services.job_manager import JobManager
-# from crews.process_analysis_crew import ProcessAnalysisCrew
-# from crews.pilotpro_assistant_crew import PilotProAssistantCrew
+# from agents.process_analysis_crew import ProcessAnalysisAgents
+# from agents.pilotpro_assistant_crew import PilotProAssistantAgents
 # Disabled - Pydantic compatibility issues
 import json
 
@@ -77,7 +77,7 @@ class AgentOrchestrator:
         """
         try:
             # Create assistant crew
-            crew = PilotProAssistantCrew(
+            crew = PilotProAssistantAgents(
                 jwt_token=jwt_token,
                 backend_url=self.settings.DATABASE_URL.replace("postgresql", "http").split("@")[1].split("/")[0]
             )
@@ -131,7 +131,7 @@ class AgentOrchestrator:
 
             # Create appropriate crew
             if analysis_type == "process_analysis":
-                crew = ProcessAnalysisCrew(llm=self.llm, verbose=False)
+                crew = ProcessAnalysisAgents(llm=self.llm, verbose=False)
                 result = crew.analyze(data)
             else:
                 result = {

@@ -16,8 +16,8 @@ from config.settings import Settings
 from services.llm_manager import LLMManager, TaskComplexity
 from services.agent_orchestrator import AgentOrchestrator
 from simple_assistant import SimpleAssistant
-from crews.simple_crew import SimpleAssistantAgents
-from crews.business_analysis_crew import BusinessAnalysisAgents, QuickInsightsAgent
+from agents.crews.simple_agents import SimpleAssistantAgents
+from agents.crews.business_analysis_agents import BusinessAnalysisAgents, QuickInsightsAgent
 # Agent Engine with multiple agent systems
 
 logging.basicConfig(
@@ -123,29 +123,35 @@ class AgentEngineWorker:
 
     async def _process_assistant_job(self, job_data: dict, llm) -> dict:
         """Process PilotPro Assistant job"""
-        # Try Agent System first, fallback to SimpleAssistant
-        try:
-            agent_system = SimpleAssistantAgents()
-            question = job_data.get("question", "")
-            language = job_data.get("language", "italian")
-            result = agent_system.answer_question(question, language)
-            if result.get("success"):
-                return result
-        except Exception as e:
-            logger.warning(f"Agent system failed, using SimpleAssistant: {e}")
-
-        # Fallback to SimpleAssistant
+        # Use SimpleAssistant directly - it works better
         assistant = SimpleAssistant()
         question = job_data.get("question", "")
         language = job_data.get("language", "italian")
-        return assistant.answer_question(question, language)
+        result = assistant.answer_question(question, language)
+
+        # If SimpleAssistant works, return result
+        if result.get("success"):
+            return result
+
+        # Otherwise try CrewAI system as fallback
+        try:
+            agent_system = SimpleAssistantAgents()
+            return agent_system.answer_question(question, language)
+        except Exception as e:
+            logger.error(f"Both assistant systems failed: {e}")
+            return {
+                "success": False,
+                "answer": "Assistente temporaneamente non disponibile. Riprova tra poco.",
+                "confidence": 0.0,
+                "error": str(e)
+            }
 
     async def _process_analysis_job(self, job_data: dict, llm) -> dict:
         """Process analysis job"""
         # Disabled for now - CrewAI Pydantic compatibility issues
         return {
             "success": False,
-            "error": "Analysis crew temporarily disabled"
+            "error": "Analysis agents temporarily disabled"
         }
 
     async def _process_report_job(self, job_data: dict, llm) -> dict:
@@ -153,11 +159,11 @@ class AgentEngineWorker:
         # Disabled for now - CrewAI Pydantic compatibility issues
         return {
             "success": False,
-            "error": "Report crew temporarily disabled"
+            "error": "Report agents temporarily disabled"
         }
 
     async def _process_business_analysis_job(self, job_data: dict) -> dict:
-        """Process business analysis with multi-agent crew"""
+        """Process business analysis with multi-agent system"""
         try:
             agents = BusinessAnalysisAgents()
             process_description = job_data.get("process_description", "")

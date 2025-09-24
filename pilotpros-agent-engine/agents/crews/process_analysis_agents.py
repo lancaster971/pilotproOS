@@ -1,5 +1,5 @@
 """
-Process Analysis Crew - Specialized team for analyzing business processes
+Process Analysis Agent System - Specialized team for analyzing business processes
 """
 
 from typing import Dict, Any, List, Optional
@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ProcessAnalysisCrew:
+class ProcessAnalysisAgents:
     """
     Specialized crew for comprehensive process analysis
     """

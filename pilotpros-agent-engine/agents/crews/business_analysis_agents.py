@@ -141,7 +141,7 @@ class BusinessAnalysisAgents:
             insights_task = self.extract_insights_task(data_analyst, data_context or process_description)
             strategy_task = self.recommend_strategy_task(strategy_advisor)
 
-            # Create crew
+            # Create agent system
             crew = Crew(
                 agents=[process_analyst, data_analyst, strategy_advisor],
                 tasks=[process_task, insights_task, strategy_task],
