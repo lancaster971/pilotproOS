@@ -1,5 +1,5 @@
 """
-Simple CrewAI Crew - Minimal working example
+Simple Agent System - Minimal working example
 """
 
 from crewai import Agent, Task, Crew, Process
@@ -7,11 +7,11 @@ from langchain_openai import ChatOpenAI
 import os
 
 
-class SimpleAssistantCrew:
-    """Simple assistant using CrewAI"""
+class SimpleAssistantAgents:
+    """Simple assistant using multi-agent system"""
 
     def __init__(self):
-        """Initialize the crew"""
+        """Initialize the agent system"""
         # Use OpenAI if available, otherwise use a mock
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
@@ -38,7 +38,7 @@ class SimpleAssistantCrew:
 
     def answer_question(self, question: str, language: str = "italian") -> dict:
         """
-        Answer a question using CrewAI
+        Answer a question using multi-agent system
 
         Args:
             question: User's question
@@ -77,7 +77,7 @@ class SimpleAssistantCrew:
                 "success": True,
                 "answer": str(result),
                 "confidence": 0.95,
-                "model": "crewai-assistant"
+                "model": "agent-engine-assistant"
             }
 
         except Exception as e:

@@ -1,5 +1,5 @@
 """
-Business Analysis Crew - Based on CrewAI examples
+Business Analysis Agents - Multi-agent system for business analysis
 Analyzes business processes and provides insights for PilotProOS
 """
 
@@ -9,9 +9,9 @@ import os
 from typing import Dict, Any
 
 
-class BusinessAnalysisCrew:
+class BusinessAnalysisAgents:
     """
-    Crew for analyzing business processes in PilotProOS
+    Multi-agent system for analyzing business processes in PilotProOS
     """
 
     def __init__(self):
@@ -155,7 +155,7 @@ class BusinessAnalysisCrew:
             return {
                 "success": True,
                 "analysis": str(result),
-                "crew": "BusinessAnalysisCrew",
+                "system": "BusinessAnalysisAgents",
                 "agents_used": 3,
                 "model": "crewai-multi-agent"
             }
@@ -169,13 +169,13 @@ class BusinessAnalysisCrew:
             }
 
 
-class QuickInsightsCrew:
+class QuickInsightsAgent:
     """
-    Lighter crew for quick insights - single agent
+    Single agent system for quick business insights
     """
 
     def __init__(self):
-        """Initialize the crew"""
+        """Initialize the agent system"""
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
             self.llm = ChatOpenAI(
@@ -243,7 +243,7 @@ class QuickInsightsCrew:
             return {
                 "success": True,
                 "insights": str(result),
-                "crew": "QuickInsightsCrew",
+                "system": "QuickInsightsAgent",
                 "response_type": "quick_analysis"
             }
 

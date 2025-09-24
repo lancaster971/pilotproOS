@@ -16,9 +16,9 @@ from config.settings import Settings
 from services.llm_manager import LLMManager, TaskComplexity
 from services.agent_orchestrator import AgentOrchestrator
 from simple_assistant import SimpleAssistant
-from crews.simple_crew import SimpleAssistantCrew
-from crews.business_analysis_crew import BusinessAnalysisCrew, QuickInsightsCrew
-# CrewAI enabled with multiple crews
+from crews.simple_crew import SimpleAssistantAgents
+from crews.business_analysis_crew import BusinessAnalysisAgents, QuickInsightsAgent
+# Agent Engine with multiple agent systems
 
 logging.basicConfig(
     level=logging.INFO,
@@ -123,16 +123,16 @@ class AgentEngineWorker:
 
     async def _process_assistant_job(self, job_data: dict, llm) -> dict:
         """Process PilotPro Assistant job"""
-        # Try CrewAI first, fallback to SimpleAssistant
+        # Try Agent System first, fallback to SimpleAssistant
         try:
-            crew_assistant = SimpleAssistantCrew()
+            agent_system = SimpleAssistantAgents()
             question = job_data.get("question", "")
             language = job_data.get("language", "italian")
-            result = crew_assistant.answer_question(question, language)
+            result = agent_system.answer_question(question, language)
             if result.get("success"):
                 return result
         except Exception as e:
-            logger.warning(f"CrewAI failed, using SimpleAssistant: {e}")
+            logger.warning(f"Agent system failed, using SimpleAssistant: {e}")
 
         # Fallback to SimpleAssistant
         assistant = SimpleAssistant()
@@ -159,10 +159,10 @@ class AgentEngineWorker:
     async def _process_business_analysis_job(self, job_data: dict) -> dict:
         """Process business analysis with multi-agent crew"""
         try:
-            crew = BusinessAnalysisCrew()
+            agents = BusinessAnalysisAgents()
             process_description = job_data.get("process_description", "")
             data_context = job_data.get("data_context", "")
-            return crew.analyze_business(process_description, data_context)
+            return agents.analyze_business(process_description, data_context)
         except Exception as e:
             logger.error(f"Business analysis failed: {e}")
             return {
@@ -173,10 +173,10 @@ class AgentEngineWorker:
     async def _process_quick_insights_job(self, job_data: dict) -> dict:
         """Process quick insights request"""
         try:
-            crew = QuickInsightsCrew()
+            agent = QuickInsightsAgent()
             question = job_data.get("question", "")
             context = job_data.get("context", "")
-            return crew.get_insights(question, context)
+            return agent.get_insights(question, context)
         except Exception as e:
             logger.error(f"Quick insights failed: {e}")
             return {
