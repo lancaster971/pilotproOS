@@ -16,7 +16,12 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 from rich.markdown import Markdown
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    redis = None
+    REDIS_AVAILABLE = False
 
 console = Console()
 
@@ -33,6 +38,11 @@ class AgentCLI:
 
     async def initialize(self):
         """Initialize connections"""
+        if not REDIS_AVAILABLE:
+            self.console.print("[yellow]Redis non installato - Modalità standalone[/yellow]")
+            self.console.print("[green]✅ Milhena disponibile in modalità standalone[/green]")
+            return True
+
         try:
             for host in [self.redis_host, "redis-dev", "localhost", "127.0.0.1"]:
                 try:
@@ -48,12 +58,13 @@ class AgentCLI:
                 except:
                     continue
 
-            self.console.print("[yellow]Redis non raggiungibile, alcune funzioni limitate[/yellow]")
-            return False
+            self.console.print("[yellow]Redis non raggiungibile - Modalità standalone[/yellow]")
+            self.console.print("[green]✅ Milhena disponibile in modalità standalone[/green]")
+            return True
 
         except Exception as e:
-            self.console.print(f"[red]Errore inizializzazione: {e}[/red]")
-            return False
+            self.console.print(f"[yellow]Errore Redis: {e} - Modalità standalone[/yellow]")
+            return True
 
     def print_header(self):
         """Print CLI header"""
@@ -288,19 +299,19 @@ class AgentCLI:
 
                 # Process with Milhena system
                 try:
-                    from agents.crews.milhena_crew_agents import MilhenaMultiAgentCrew, QuickMilhenaAgent
+                    from agents.crews.milhena_orchestrator_agents import MilhenaOrchestratorCrew, QuickMilhenaAgent
                     from model_selector import ModelSelector
 
                     model_selector = ModelSelector()
 
                     if quick_mode:
-                        # Quick mode
+                        # Quick mode con intelligence
                         quick_milhena = QuickMilhenaAgent(model_selector)
                         result = quick_milhena.quick_answer(question)
                     else:
-                        # Full multi-agent mode
-                        milhena_crew = MilhenaMultiAgentCrew(model_selector)
-                        result = milhena_crew.analyze_business_question(question)
+                        # Orchestrator multi-agent mode
+                        milhena_orchestrator = MilhenaOrchestratorCrew(model_selector)
+                        result = milhena_orchestrator.analyze_business_question_orchestrator(question)
 
                     # Display result
                     if result.get("success"):

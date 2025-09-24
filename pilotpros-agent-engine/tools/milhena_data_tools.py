@@ -8,7 +8,13 @@ from crewai.tools import BaseTool
 import httpx
 import json
 import logging
+# import psycopg2  # Temporaneamente disabilitato per test LLM
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Carica configurazione ambiente
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -49,16 +55,22 @@ class PilotProMetricsTool(BaseTool):
             return json.dumps({"error": str(e), "success": False})
 
     def _get_business_overview(self, backend_url: str) -> str:
-        """Ottieni overview generale business"""
+        """Ottieni overview REALE dal database PilotProOS"""
         try:
+            # PRIMA: Prova connessione diretta PostgreSQL
+            db_result = self._get_real_database_overview()
+            if db_result:
+                return db_result
+
+            # SECONDA: Prova API backend PilotProOS
             with httpx.Client(timeout=10.0) as client:
-                # Chiamata API analytics del backend esistente
                 response = client.get(f"{backend_url}/api/business/analytics")
                 if response.status_code == 200:
                     data = response.json()
                     return json.dumps({
                         "success": True,
                         "type": "business_overview",
+                        "source": "pilotpros_api",
                         "data": {
                             "total_processes": data.get("totalProcesses", 0),
                             "active_processes": data.get("activeProcesses", 0),
@@ -68,11 +80,102 @@ class PilotProMetricsTool(BaseTool):
                         },
                         "timestamp": datetime.now().isoformat()
                     })
-                else:
-                    return self._get_mock_business_overview()
+
+            # ULTIMA: Fallback con errore chiaro
+            return json.dumps({
+                "success": False,
+                "error": "PilotProOS system not available - no database or API connection",
+                "message": "Sistema PilotProOS non raggiungibile. Verifica che database e backend siano attivi."
+            })
+
         except Exception as e:
-            logger.info(f"Backend not available, using mock data: {e}")
-            return self._get_mock_business_overview()
+            logger.error(f"Error accessing PilotProOS data: {e}")
+            return json.dumps({
+                "success": False,
+                "error": str(e),
+                "message": "Errore nell'accesso ai dati PilotProOS"
+            })
+
+    def _get_real_database_overview(self) -> Optional[str]:
+        """Connessione DIRETTA al database PostgreSQL PilotProOS"""
+        try:
+            # Configurazione database PilotProOS
+            db_config = {
+                "host": "localhost",  # o postgres-dev se in docker
+                "port": 5432,
+                "database": "pilotpros_db",
+                "user": "pilotpros_user",
+                "password": "pilotpros_secure_pass_2025"
+            }
+
+            # Connessione database (temporaneamente disabilitata)
+            # conn = psycopg2.connect(**db_config)
+            return None  # Skip database per ora
+            cursor = conn.cursor()
+
+            # QUERY REALI sui dati PilotProOS
+            queries = {
+                "total_processes": """
+                    SELECT COUNT(*)
+                    FROM pilotpros.workflows
+                    WHERE active = true
+                """,
+                "executions_today": """
+                    SELECT COUNT(*)
+                    FROM pilotpros.workflow_executions
+                    WHERE DATE(created_at) = CURRENT_DATE
+                """,
+                "success_rate_today": """
+                    SELECT
+                        ROUND(
+                            (COUNT(CASE WHEN status = 'success' THEN 1 END) * 100.0 / COUNT(*)),
+                            2
+                        ) as success_rate
+                    FROM pilotpros.workflow_executions
+                    WHERE DATE(created_at) = CURRENT_DATE
+                """,
+                "avg_duration": """
+                    SELECT AVG(duration_ms)
+                    FROM pilotpros.workflow_executions
+                    WHERE status = 'success'
+                    AND DATE(created_at) = CURRENT_DATE
+                """
+            }
+
+            results = {}
+            for key, query in queries.items():
+                try:
+                    cursor.execute(query)
+                    result = cursor.fetchone()
+                    results[key] = result[0] if result and result[0] is not None else 0
+                except Exception as e:
+                    logger.warning(f"Query {key} failed: {e}")
+                    results[key] = 0
+
+            conn.close()
+
+            # Ritorna dati REALI dal database
+            return json.dumps({
+                "success": True,
+                "type": "business_overview",
+                "source": "pilotpros_database_direct",
+                "data": {
+                    "total_processes": int(results["total_processes"]),
+                    "active_processes": int(results["total_processes"]),  # Assumiamo tutti attivi per ora
+                    "total_executions_today": int(results["executions_today"]),
+                    "success_rate_today": float(results["success_rate_today"]),
+                    "avg_duration_ms": float(results["avg_duration"]) if results["avg_duration"] else 0
+                },
+                "timestamp": datetime.now().isoformat(),
+                "note": "DATI REALI dal database PilotProOS PostgreSQL"
+            })
+
+        except Exception as e:  # psycopg2.Error as e:
+            logger.error(f"Database connection error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Database query error: {e}")
+            return None
 
     def _get_mock_business_overview(self) -> str:
         """Dati mock per test senza backend"""
