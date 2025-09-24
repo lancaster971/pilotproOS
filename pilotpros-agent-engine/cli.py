@@ -81,8 +81,9 @@ class AgentCLI:
         table.add_row("1", "[bold]Chat Assistant[/bold] - Parla con l'assistente AI")
         table.add_row("2", "[bold]Business Analysis[/bold] - Analisi processo con multi-agent")
         table.add_row("3", "[bold]Quick Insights[/bold] - Insights rapidi su domande business")
-        table.add_row("4", "[bold]Demo[/bold] - Visualizza gli agent al lavoro")
-        table.add_row("5", "[bold]Status[/bold] - Stato del sistema")
+        table.add_row("4", "[bold magenta]🤖 Milhena Assistant[/bold magenta] - Assistente business PilotProOS")
+        table.add_row("5", "[bold]Demo[/bold] - Visualizza gli agent al lavoro")
+        table.add_row("6", "[bold]Status[/bold] - Stato del sistema")
         table.add_row("q", "[bold red]ESCI DAL PROGRAMMA[/bold red]")
 
         self.console.print(Panel(table, title="Menu Principale", border_style="blue"))
@@ -247,6 +248,97 @@ class AgentCLI:
         except Exception as e:
             self.console.print(f"[red]Errore: {e}[/red]")
 
+    async def milhena_assistant(self):
+        """Interactive chat with Milhena Multi-Agent System"""
+        self.console.print("\n[bold magenta]🤖 ======= MILHENA ASSISTANT =======[/bold magenta]")
+        self.console.print("[magenta]Assistente business specializzata per PilotProOS[/magenta]")
+        self.console.print("[bold red]PER USCIRE:[/bold red]")
+        self.console.print("  - Scrivi: exit, quit, q, uscire, stop, basta")
+        self.console.print("  - Premi: CTRL+C")
+        self.console.print("[bold yellow]MODALITÀ:[/bold yellow]")
+        self.console.print("  - Scrivi 'quick:' all'inizio per modalità veloce")
+        self.console.print("  - Altrimenti usa il sistema multi-agent completo")
+        self.console.print("[bold magenta]====================================[/bold magenta]\n")
+
+        while True:
+            try:
+                question = Prompt.ask("\n[bold green]Domanda per Milhena[/bold green]")
+
+                # Check for empty input
+                if not question:
+                    self.console.print("[bold red]Come uscire dalla chat:[/bold red]")
+                    self.console.print("  - exit, quit, q, uscire, stop, basta")
+                    self.console.print("  - CTRL+C")
+                    continue
+
+                # Check for exit commands
+                if question.lower().strip() in ['exit', 'quit', 'q', 'uscire', 'stop', 'basta']:
+                    self.console.print("[bold yellow]Uscita da Milhena. Torno al menu...[/bold yellow]")
+                    break
+
+                # Determine mode
+                quick_mode = question.lower().startswith('quick:')
+                if quick_mode:
+                    question = question[6:].strip()  # Remove 'quick:' prefix
+                    mode_display = "[yellow](Quick Mode)[/yellow]"
+                else:
+                    mode_display = "[cyan](Multi-Agent Mode)[/cyan]"
+
+                self.console.print(f"\n[magenta]🤖 Milhena {mode_display} sta elaborando...[/magenta]")
+
+                # Process with Milhena system
+                try:
+                    from agents.crews.milhena_crew_agents import MilhenaMultiAgentCrew, QuickMilhenaAgent
+                    from model_selector import ModelSelector
+
+                    model_selector = ModelSelector()
+
+                    if quick_mode:
+                        # Quick mode
+                        quick_milhena = QuickMilhenaAgent(model_selector)
+                        result = quick_milhena.quick_answer(question)
+                    else:
+                        # Full multi-agent mode
+                        milhena_crew = MilhenaMultiAgentCrew(model_selector)
+                        result = milhena_crew.analyze_business_question(question)
+
+                    # Display result
+                    if result.get("success"):
+                        response = result.get("response", "Risposta non disponibile")
+                        system = result.get("system", "Milhena")
+                        agents_used = result.get("agents_used", [])
+
+                        self.console.print(f"\n[bold magenta]🤖 {system}:[/bold magenta]")
+                        if agents_used:
+                            agents_str = " → ".join(agents_used)
+                            self.console.print(f"[dim cyan]Agenti usati: {agents_str}[/dim cyan]")
+
+                        # Display response in a nice panel
+                        response_panel = Panel(
+                            response,
+                            title="Risposta Milhena",
+                            border_style="magenta",
+                            padding=(1, 2)
+                        )
+                        self.console.print(response_panel)
+                    else:
+                        error_msg = result.get("error", "Errore sconosciuto")
+                        fallback = result.get("fallback_response", "Mi dispiace, non posso elaborare la richiesta al momento.")
+                        self.console.print(f"[red]❌ Errore: {error_msg}[/red]")
+                        self.console.print(f"[yellow]💬 {fallback}[/yellow]")
+
+                except ImportError as e:
+                    self.console.print(f"[red]❌ Milhena non disponibile: {e}[/red]")
+                    self.console.print("[yellow]Sistema in aggiornamento. Riprova più tardi.[/yellow]")
+                except Exception as e:
+                    self.console.print(f"[red]❌ Errore sistema Milhena: {e}[/red]")
+
+            except KeyboardInterrupt:
+                self.console.print("\n[yellow]Chat con Milhena interrotta con CTRL+C. Torno al menu...[/yellow]")
+                break
+            except Exception as e:
+                self.console.print(f"[red]Errore: {e}[/red]")
+
     async def run_demo(self):
         """Run interactive demo"""
         self.console.print("\n[bold cyan]Demo Agent Engine[/bold cyan]")
@@ -329,8 +421,10 @@ class AgentCLI:
                 elif choice == "3":
                     await self.quick_insights()
                 elif choice == "4":
-                    await self.run_demo()
+                    await self.milhena_assistant()
                 elif choice == "5":
+                    await self.run_demo()
+                elif choice == "6":
                     await self.system_status()
                 elif choice.lower() in ['q', 'quit', 'exit', 'uscire']:
                     self.console.print("\n[bold green]Chiusura programma...[/bold green]")
