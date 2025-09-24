@@ -394,3 +394,91 @@ async def llm_health(req: Request):
         }
 
 
+class MilhenaRequest(BaseModel):
+    """Request model for Milhena Assistant"""
+    question: str = Field(..., description="Domanda business per Milhena")
+    context: Optional[str] = Field(None, description="Contesto aggiuntivo")
+    mode: str = Field("full", description="Modalità risposta: 'full' (multi-agent) o 'quick' (singolo agent)")
+    language: str = Field("italian", description="Lingua della risposta")
+
+
+class MilhenaResponse(BaseModel):
+    """Response model for Milhena Assistant"""
+    success: bool
+    response: str
+    system: str
+    agents_used: Optional[List[str]] = None
+    timestamp: str
+    insights: Optional[List[str]] = None
+
+
+@api_router.post("/milhena", response_model=MilhenaResponse)
+async def milhena_assistant(request: MilhenaRequest, req: Request):
+    """
+    Milhena - Assistente Business PilotProOS
+
+    Sistema multi-agent specializzato per domande business con:
+    - DATA_ANALYST: Raccolta dati precisi dal sistema
+    - SECURITY_FILTER: Filtraggio informazioni tecniche
+    - MILHENA: Interface italiana professionale
+
+    Esempi domande:
+    - "Quante esecuzioni abbiamo avuto oggi?"
+    - "Ci sono errori nel sistema?"
+    - "Come sta andando il workflow email?"
+    - "Mostrami le performance di questa settimana"
+    """
+    try:
+        from agents.crews.milhena_crew_agents import MilhenaMultiAgentCrew, QuickMilhenaAgent
+        from model_selector import ModelSelector
+
+        # Inizializza model selector
+        model_selector = ModelSelector()
+
+        if request.mode == "quick":
+            # Modalità rapida con singolo agent
+            quick_milhena = QuickMilhenaAgent(model_selector)
+            result = quick_milhena.quick_answer(request.question)
+        else:
+            # Modalità completa multi-agent
+            milhena_crew = MilhenaMultiAgentCrew(model_selector)
+            result = milhena_crew.analyze_business_question(
+                question=request.question,
+                context=request.context
+            )
+
+        if result.get("success"):
+            return MilhenaResponse(
+                success=True,
+                response=result.get("response", "Risposta elaborata con successo"),
+                system=result.get("system", "Milhena Assistant"),
+                agents_used=result.get("agents_used"),
+                timestamp=result.get("timestamp", datetime.utcnow().isoformat()),
+                insights=[]  # Future: analisi proattive
+            )
+        else:
+            return MilhenaResponse(
+                success=False,
+                response=result.get("fallback_response", "Mi dispiace, problema temporaneo."),
+                system="Milhena Assistant",
+                timestamp=datetime.utcnow().isoformat()
+            )
+
+    except ImportError as e:
+        logger.error(f"Milhena import error: {e}")
+        return MilhenaResponse(
+            success=False,
+            response="Milhena temporaneamente non disponibile. Sistema in aggiornamento.",
+            system="Milhena Assistant",
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Milhena error: {e}")
+        return MilhenaResponse(
+            success=False,
+            response="Mi dispiace, al momento non posso elaborare la tua richiesta. Riprova tra qualche minuto.",
+            system="Milhena Assistant",
+            timestamp=datetime.utcnow().isoformat()
+        )
+
+
