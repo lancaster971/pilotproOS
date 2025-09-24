@@ -275,8 +275,17 @@ class AgentCLI:
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(f"{self.api_url}/health", timeout=2.0)
-                api_status = "Online" if response.status_code == 200 else "Issues"
+                # Try both possible health endpoints
+                for endpoint in ["/health", "/api/v1/health"]:
+                    try:
+                        response = await client.get(f"http://localhost:8000{endpoint}", timeout=2.0)
+                        if response.status_code == 200:
+                            api_status = "Online"
+                            break
+                    except:
+                        continue
+                else:
+                    api_status = "Issues"
         except:
             api_status = "Offline"
 
