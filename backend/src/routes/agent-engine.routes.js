@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 import agentEngineService from '../services/agent-engine.service.js';
 import businessLogger from '../utils/businessLogger.js';
 
@@ -24,7 +24,7 @@ router.get('/health', async (req, res) => {
 /**
  * LLM health and available models
  */
-router.get('/llm-health', authenticateToken, async (req, res) => {
+router.get('/llm-health', authenticate, async (req, res) => {
   try {
     const llmHealth = await agentEngineService.getLLMHealth();
     res.json(llmHealth);
@@ -40,7 +40,7 @@ router.get('/llm-health', authenticateToken, async (req, res) => {
 /**
  * Ask PilotPro Assistant
  */
-router.post('/assistant', authenticateToken, async (req, res) => {
+router.post('/assistant', authenticate, async (req, res) => {
   try {
     const { question, context } = req.body;
 
@@ -75,7 +75,7 @@ router.post('/assistant', authenticateToken, async (req, res) => {
 /**
  * Analyze business process
  */
-router.post('/analyze-process', authenticateToken, async (req, res) => {
+router.post('/analyze-process', authenticate, async (req, res) => {
   try {
     const { processData } = req.body;
 
@@ -105,7 +105,7 @@ router.post('/analyze-process', authenticateToken, async (req, res) => {
 /**
  * Submit generic analysis job
  */
-router.post('/analyze', authenticateToken, async (req, res) => {
+router.post('/analyze', authenticate, async (req, res) => {
   try {
     const { type, data, priority } = req.body;
 
@@ -136,7 +136,7 @@ router.post('/analyze', authenticateToken, async (req, res) => {
 /**
  * Get job status
  */
-router.get('/jobs/:jobId/status', authenticateToken, async (req, res) => {
+router.get('/jobs/:jobId/status', authenticate, async (req, res) => {
   try {
     const { jobId } = req.params;
     const status = await agentEngineService.getJobStatus(jobId);
@@ -153,7 +153,7 @@ router.get('/jobs/:jobId/status', authenticateToken, async (req, res) => {
 /**
  * Get job result
  */
-router.get('/jobs/:jobId/result', authenticateToken, async (req, res) => {
+router.get('/jobs/:jobId/result', authenticate, async (req, res) => {
   try {
     const { jobId } = req.params;
     const result = await agentEngineService.getJobResult(jobId);
@@ -183,7 +183,7 @@ router.get('/jobs/:jobId/result', authenticateToken, async (req, res) => {
 /**
  * Quick insight from Assistant (with short timeout)
  */
-router.post('/quick-insight', authenticateToken, async (req, res) => {
+router.post('/quick-insight', authenticate, async (req, res) => {
   try {
     const { question, context } = req.body;
 
