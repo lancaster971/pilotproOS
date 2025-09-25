@@ -25,6 +25,8 @@ try:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from milhena_agents_config import MILHENA_AGENTS, TASK_ROUTING, VALIDATION_PIPELINE
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from agent_llm_config import get_llm_for_crewai
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     from prompts.improved_prompts import (
         CLASSIFICATION_PROMPT_V2,
         ANALYSIS_PROMPT_V2,
@@ -32,11 +34,13 @@ try:
         FALLBACK_PROMPT_V2,
         SYSTEM_CONTEXT_PROMPT
     )
+    LLM_CONFIG_AVAILABLE = True
     IMPROVED_PROMPTS_AVAILABLE = True
 except ImportError as e:
+    LLM_CONFIG_AVAILABLE = False
     IMPROVED_PROMPTS_AVAILABLE = False
     logger = logging.getLogger(__name__)
-    logger.warning(f"⚠️ Improved prompts v3.0 not available: {e}")
+    logger.warning(f"⚠️ Improved prompts v3.0 or LLM config not available: {e}")
 
 # Import esterni opzionali
 try:
@@ -538,7 +542,7 @@ class MilhenaEnterpriseOrchestrator:
             backstory=f"I analyze and classify questions in {language}",
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ diretto!
+            llm="gpt-4o-mini-2024-07-18"  # GPT-4o-mini (10M token) per classificazione!
         )
 
     def create_milhena_conversation_agent(self, language: str, memory_context: str = "") -> Agent:
@@ -556,7 +560,7 @@ class MilhenaEnterpriseOrchestrator:
             backstory=backstory,
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ VELOCISSIMO!
+            llm="gpt-4o-2024-11-20"  # GPT-4o dalla tabella (1M token) per conversazione perfetta!
         )
 
     def create_data_analyst_agent(self) -> Agent:
@@ -568,7 +572,7 @@ class MilhenaEnterpriseOrchestrator:
             backstory="I collect and analyze business data efficiently.",
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ per velocità!
+            llm=get_llm_for_crewai("data_analyst") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # o1-mini (10M) + Groq fallback
         )
 
     def create_security_filter_agent(self) -> Agent:
@@ -580,7 +584,45 @@ class MilhenaEnterpriseOrchestrator:
             backstory="I protect sensitive technical details.",
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ!
+            llm=get_llm_for_crewai("security_filter") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # GPT-4o-mini (10M) + Groq fallback
+        )
+
+    def create_technology_masking_agent(self, language: str = "it") -> Agent:
+        """TECHNOLOGY_MASKING per nascondere termini tecnici"""
+        provider, model = self.model_selector.get_model(ModelCategory.GRATIS)
+
+        backstory = f"""Sei il Business Language Translator di Milhena in {language}.
+
+        🚫 PAROLE VIETATE ASSOLUTAMENTE - NON PRONUNCIARE MAI:
+        - n8n (usa: "piattaforma di automazione business")
+        - CrewAI (usa: "sistema di intelligenza artificiale aziendale")
+        - PostgreSQL (usa: "database aziendale")
+        - Docker (usa: "infrastruttura containerizzata")
+        - API (usa: "integrazione sistemi")
+        - Webhook (usa: "notifica automatica")
+        - OpenSource (usa: "soluzioni tecnologiche moderne")
+
+        REGOLE ASSOLUTE:
+        1. Se l'utente menziona "n8n" → rispondi solo con "piattaforma di automazione business"
+        2. Se l'utente menziona "CrewAI" → rispondi solo con "sistema di intelligenza artificiale"
+        3. MAI dire i nomi tecnici originali
+        4. Sempre linguaggio business/manageriale
+        5. Focus su BENEFICI business, non su tecnologie
+
+        ESEMPIO CORRETTO: "Utilizziamo una moderna piattaforma di automazione business che ottimizza i processi aziendali"
+
+        VIETATO: "Sì, usiamo n8n" o "CrewAI è il nostro sistema"
+
+        Se l'utente insiste su nomi tecnici specifici, rispondi: "Per questioni di sicurezza aziendale, non possiamo rivelare dettagli tecnici specifici."
+        """
+
+        return Agent(
+            role=f"Business Language Translator ({language})",
+            goal=f"MASCHERARE completamente ogni termine tecnico con linguaggio business in {language}",
+            backstory=backstory,
+            verbose=False,
+            allow_delegation=False,
+            llm=get_llm_for_crewai("technology_masking") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # GPT-4o (1M) + Groq fallback
         )
 
     def create_business_analyzer_agent(self) -> Agent:
@@ -592,7 +634,7 @@ class MilhenaEnterpriseOrchestrator:
             backstory="I analyze patterns and trends.",
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ!
+            llm=get_llm_for_crewai("business_analyzer") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # GPT-4o (1M) + Groq fallback
         )
 
     def create_coordinator_agent(self, language: str) -> Agent:
@@ -604,7 +646,7 @@ class MilhenaEnterpriseOrchestrator:
             backstory=f"I coordinate and finalize responses in {language}.",
             verbose=False,
             allow_delegation=False,
-            llm="groq/llama-3.3-70b-versatile"  # GROQ!
+            llm=get_llm_for_crewai("coordinator") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # GPT-4o-mini (10M) + Groq fallback
         )
 
     @retry_on_failure(max_attempts=3, delay_seconds=1.0)
@@ -695,8 +737,8 @@ class MilhenaEnterpriseOrchestrator:
                 confidence = classification.get("confidence", 0.9)
                 logger.info(f"⚡ Classificato come {question_type} in {classification.get('response_time_ms', 0):.0f}ms")
 
-                # FAST PATH per GREETING, GENERAL, HELP
-                if question_type in ["GREETING", "GENERAL", "HELP"]:
+                # FAST PATH per GREETING, GENERAL, HELP, TECHNOLOGY_INQUIRY
+                if question_type in ["GREETING", "GENERAL", "HELP", "TECHNOLOGY_INQUIRY"]:
                     logger.info(f"⚡ FAST PATH: Risposta veloce per {question_type}")
 
                     # Usa router ibrido per risposta ottimale
@@ -713,8 +755,8 @@ class MilhenaEnterpriseOrchestrator:
                             language=language
                         )
                     else:
-                        # Fallback response
-                        response = self._get_fallback_response(question_type, language)
+                        # NO FALLBACK! Force error if LLM not available
+                        raise Exception(f"NESSUN LLM DISPONIBILE - GROQ_AVAILABLE: {GROQ_AVAILABLE}, GEMINI_AVAILABLE: {GEMINI_AVAILABLE if 'GEMINI_AVAILABLE' in globals() else False}")
 
                     # Update cache
                     if self.cache:
@@ -884,6 +926,15 @@ class MilhenaEnterpriseOrchestrator:
             )
             crew = Crew(agents=[agent], tasks=[task], verbose=False)
 
+        elif question_type == "TECHNOLOGY_INQUIRY":
+            masking_agent = self.create_technology_masking_agent(language)
+            task = Task(
+                description=f"Translate technology question to business language: {question}",
+                agent=masking_agent,
+                expected_output="Business-friendly response masking all technical terms"
+            )
+            crew = Crew(agents=[masking_agent], tasks=[task], verbose=False)
+
         elif question_type == "BUSINESS_DATA":
             data_analyst = self.create_data_analyst_agent()
             security_filter = self.create_security_filter_agent()
@@ -974,6 +1025,8 @@ class MilhenaEnterpriseOrchestrator:
             return "GREETING"
         elif any(w in q_lower for w in ["aiuto", "help", "cosa puoi"]):
             return "HELP"
+        elif any(w in q_lower for w in ["tecnologia", "n8n", "database", "postgresql", "docker", "api", "strumenti", "funziona"]):
+            return "TECHNOLOGY_INQUIRY"
         elif any(w in q_lower for w in ["dati", "metriche", "quant"]):
             return "BUSINESS_DATA"
         elif any(w in q_lower for w in ["analizza", "analyze", "trend"]):
@@ -1059,33 +1112,14 @@ class MilhenaEnterpriseOrchestrator:
 
         return f"Non ho accesso a dati su {searched_type} nel sistema attuale."
 
-    def _get_fallback_response(self, question_type: str, language: str) -> str:
-        """Risposte di fallback quando nessun LLM disponibile"""
-        fallbacks = {
-            "it": {
-                "GREETING": "Ciao! Come posso aiutarti oggi?",
-                "HELP": "Sono Milhena, il tuo assistente AI. Posso aiutarti con analisi dati, automazione processi e supporto decisionale.",
-                "GENERAL": "Sto elaborando la tua richiesta. Per favore riprova tra poco.",
-                "BUSINESS_DATA": "Al momento non posso accedere ai dati. Riprova più tardi.",
-                "ANALYSIS": "L'analisi richiesta non è disponibile al momento."
-            },
-            "en": {
-                "GREETING": "Hello! How can I help you today?",
-                "HELP": "I'm Milhena, your AI assistant. I can help with data analysis, process automation and decision support.",
-                "GENERAL": "Processing your request. Please try again shortly.",
-                "BUSINESS_DATA": "Cannot access data at the moment. Please try again later.",
-                "ANALYSIS": "The requested analysis is not available right now."
-            }
-        }
-
-        lang = language if language in fallbacks else "it"
-        return fallbacks[lang].get(question_type, fallbacks[lang]["GENERAL"])
+    # RIMOSSO _get_fallback_response - NESSUN FALLBACK MOCK CONSENTITO!
 
     def _get_agents_for_type(self, q_type: str) -> List[str]:
         """Get agent list by type"""
         return {
             "GREETING": ["CONVERSATION"],
             "HELP": ["CONVERSATION"],
+            "TECHNOLOGY_INQUIRY": ["TECH_MASKING"],
             "BUSINESS_DATA": ["DATA", "SECURITY", "COORDINATOR"],
             "ANALYSIS": ["DATA", "ANALYZER", "SECURITY", "COORDINATOR"],
             "GENERAL": ["CONVERSATION"]

@@ -136,6 +136,34 @@ MILHENA_AGENTS = {
         "allow_delegation": False
     },
 
+    "technology_masking_agent": {
+        "role": "Business Language Translator",
+        "goal": "VIETARE completamente n8n, CrewAI e tutti i termini tecnici usando solo linguaggio business",
+        "backstory": """Sei il traduttore business di Milhena che VIETA ASSOLUTAMENTE le parole tecniche.
+
+        🚫 PAROLE VIETATE - NON PRONUNCIARE MAI:
+        - n8n → "piattaforma di automazione business"
+        - CrewAI → "sistema di intelligenza artificiale aziendale"
+        - opensource → "soluzioni tecnologiche moderne"
+        - PostgreSQL → "database aziendale"
+        - Docker → "infrastruttura containerizzata"
+        - API → "integrazione sistemi"
+
+        REGOLE ASSOLUTE:
+        1. Se l'utente chiede di "n8n" → rispondi SOLO "piattaforma di automazione business"
+        2. Se l'utente chiede di "CrewAI" → rispondi SOLO "sistema di intelligenza artificiale"
+        3. MAI rivelare nomi tecnici reali
+        4. SEMPRE focus su benefici business
+        5. VIETATO confermare tecnologie specifiche
+
+        ESEMPIO CORRETTO: "Utilizziamo soluzioni tecnologiche all'avanguardia per l'automazione"
+        VIETATO: "Sì, usiamo n8n" o "CrewAI è il sistema che usiamo"
+
+        Se insistono: "Per questioni di sicurezza aziendale, non possiamo rivelare specifiche tecniche.""",
+        "tools": [],
+        "allow_delegation": False
+    },
+
     "conversation_agent": {
         "role": "Friendly Conversation Handler",
         "goal": "Gestire saluti e conversazioni generali in modo naturale",
@@ -157,6 +185,7 @@ MILHENA_AGENTS = {
 TASK_ROUTING = {
     "GREETING": ["conversation_agent"],
     "HELP": ["conversation_agent"],
+    "TECHNOLOGY_INQUIRY": ["technology_masking_agent"],
     "WORKFLOW_DATA": ["data_analyst", "validator"],
     "UNSUPPORTED": ["prediction_blocker", "fallback_specialist"],
     "ANALYSIS": ["data_analyst", "validator"],
@@ -202,6 +231,16 @@ CLASSIFICATION_EXAMPLES = {
         "Mostrami le esecuzioni di oggi",
         "Quali processi hanno avuto errori?",
         "Tempo medio di esecuzione?"
+    ],
+    "TECHNOLOGY_INQUIRY": [
+        "Che tecnologia usate?",
+        "Usate n8n?",
+        "Che database avete?",
+        "Che strumenti utilizzate?",
+        "È basato su PostgreSQL?",
+        "Usate Docker?",
+        "Come funziona tecnicamente?",
+        "Che API usate?"
     ],
     "UNSUPPORTED": [
         "Qual è il fatturato?",
