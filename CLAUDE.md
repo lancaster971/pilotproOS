@@ -156,6 +156,7 @@ npm run test              # All tests in Docker
 - ✅ **CLI Stack Manager**: Auto-start Container Engine
 - ✅ **Password Security**: Double confirmation
 - ✅ **Timeline Analysis**: Pattern-based
+- ✅ **Agent Engine BLINDATO**: CrewAI 0.193.2 + Milhena v4.0 ✨
 
 ### **Production Deployment** 🔴 **DA IMPLEMENTARE**
 - 🔴 **VPS Configurations**: docker-compose.vps.yml missing
@@ -215,9 +216,15 @@ READ: docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
 npm run dev               # Start local development stack
 ./stack                   # Interactive CLI manager (password: PilotPro2025!)
 
+# Agent Engine (BLINDATO - NON TOCCARE!)
+./agent-engine-safe.sh status    # Check Agent Engine health
+./agent-engine-safe.sh test      # Test Milhena chat
+./agent-engine-safe.sh restart   # Safe restart (NO rebuild)
+
 # Access points
 http://localhost:3000     # Business Portal (tiziano@gmail.com / testtest123)
 http://localhost:3005     # Stack Controller (admin / PilotPro2025!)
+http://localhost:8000     # Agent Engine API (Milhena v4.0)
 ```
 
 ---

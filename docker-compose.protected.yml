@@ -1,0 +1,70 @@
+# 🔒 DOCKER COMPOSE PROTETTO - Agent Engine
+# Questo file impedisce rebuild accidentali del container agent-engine
+
+version: '3.8'
+
+services:
+  # Container BLINDATO - NON RICOSTRUIRE MAI!
+  agent-engine-dev:
+    image: pilotproos-agent-engine-dev:locked-v1.0-crewai-0.193.2
+    container_name: pilotpros-agent-engine-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PRIMARY_LLM=groq
+      - POSTGRES_URL=postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db
+      - REDIS_URL=redis://redis-dev:6379/0
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # ATTENZIONE: Nessun "build" context per evitare rebuild accidentali!
+
+  # Altri servizi rimangono normali
+  postgres-dev:
+    image: postgres:15.8-alpine
+    container_name: pilotpros-postgres-dev
+    environment:
+      POSTGRES_DB: pilotpros_db
+      POSTGRES_USER: pilotpros_user
+      POSTGRES_PASSWORD: pilotpros_secure_pass_2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - pilotpros_postgres_dev_data:/var/lib/postgresql/data
+      - ./database/init/:/docker-entrypoint-initdb.d/
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pilotpros_user -d pilotpros_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-dev:
+    image: redis:7.4.1-alpine
+    container_name: pilotpros-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - pilotpros_redis_dev_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pilotpros_postgres_dev_data:
+    external: false
+  pilotpros_redis_dev_data:
+    external: false
