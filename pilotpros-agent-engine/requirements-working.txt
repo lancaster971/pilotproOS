@@ -10,15 +10,18 @@ anthropic==0.7.0
 google-generativeai==0.3.2
 groq==0.31.1  # Updated for latest Groq client
 
-# LangChain for Agent support
-langchain==0.1.10
-langchain-openai==0.0.5
-langchain-google-genai==0.0.5
-langchain-groq==0.1.0
-langchain-community==0.0.25
+# LangChain - VERSIONI COMPATIBILI
+langchain>=0.3.1,<0.4.0
+langchain-openai>=0.1.7,<0.2.0
+langchain-google-genai>=0.2.0
+langchain-groq>=0.1.0
+langchain-community>=0.3.0
 
-# CrewAI for agents
-crewai==0.28.0
+# CrewAI - VERSIONE STABILE SENZA EMBEDCHAIN
+crewai==0.193.2  # Versione che funziona!
+
+# TOKEN COUNTING ESSENTIALS
+tiktoken==0.8.0  # Per conteggio preciso token OpenAI
 
 # Async Job Queue
 redis==5.0.1
