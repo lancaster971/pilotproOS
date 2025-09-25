@@ -1,0 +1,80 @@
+# DOCKER COMPOSE VELOCE PER SVILUPPO - NO REBUILD!
+version: '3.8'
+
+services:
+  agent-engine-dev-fast:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev  # Usa il dockerfile veloce
+    container_name: pilotpros-agent-engine-dev-fast
+    ports:
+      - "8000:8000"
+    volumes:
+      # CODICE MONTATO COME VOLUME - MODIFICHE ISTANTANEE!
+      - .:/app
+      # Volume per persistenza (evita perdere dati)
+      - agent_data:/app/data
+      - agent_logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      # API Keys (da configurare)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - pilotpros-network
+    depends_on:
+      - redis
+      - postgres
+
+  # Redis per cache (necessario per agenti)
+  redis:
+    image: redis:7-alpine
+    container_name: pilotpros-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - pilotpros-network
+
+  # PostgreSQL per dati (necessario per business data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: pilotpros-postgres-dev
+    environment:
+      POSTGRES_DB: pilotpros_db
+      POSTGRES_USER: pilotpros_user
+      POSTGRES_PASSWORD: pilotpros_secure_pass_2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - pilotpros-network
+
+volumes:
+  agent_data:
+  agent_logs:
+  redis_data:
+  postgres_data:
+
+networks:
+  pilotpros-network:
+    driver: bridge
+
+# UTILIZZO:
+# docker-compose -f docker-compose.dev.yml up --build
+#
+# VANTAGGI:
+# ✅ Build una volta sola
+# ✅ Modifiche codice istantanee (volume mount)
+# ✅ Hot reload automatico (--reload)
+# ✅ Persistenza dati mantenuta
+# ✅ Stack completo (Redis + PostgreSQL)

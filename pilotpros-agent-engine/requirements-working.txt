@@ -4,8 +4,8 @@ uvicorn[standard]==0.24.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# LLM Support
-openai==1.10.0
+# LLM Support - UPDATED per CrewAI
+openai>=1.13.3
 anthropic==0.7.0
 google-generativeai==0.3.2
 groq==0.31.1  # Updated for latest Groq client

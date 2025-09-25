@@ -16,6 +16,15 @@ from pathlib import Path
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Import NEW FAST BYPASS SYSTEM
+try:
+    from fast_bypass import get_token_saver
+    FAST_BYPASS_AVAILABLE = True
+    logger.info("✅ Fast Bypass System con GPT-4o + Token Monitor caricato!")
+except ImportError as e:
+    FAST_BYPASS_AVAILABLE = False
+    logger.warning(f"⚠️ Fast Bypass non disponibile: {e}")
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -99,11 +108,37 @@ def get_milhena():
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """Chat endpoint with REAL CrewAI 0.193.2 - NO MOCK!"""
+    """Chat endpoint con NUOVO SISTEMA GPT-4o + Fast Bypass"""
     try:
-        logger.info(f"CrewAI Chat from {request.user_id}: {request.message}")
+        logger.info(f"📩 Chat request: {request.message[:50]}... (user: {request.user_id})")
 
-        # Usa CrewAI REALE
+        # 🚀 USA FAST BYPASS SYSTEM PRIMA (90% dei casi)
+        if FAST_BYPASS_AVAILABLE:
+            try:
+                logger.info("🚀 Usando Fast Bypass System (GPT-4o + Token Monitor)")
+                token_saver = get_token_saver()
+                result = await token_saver.smart_response(request.message, request.user_id)
+
+                return ChatResponse(
+                    response=result["response"],
+                    status="success",
+                    metadata={
+                        "user_id": request.user_id,
+                        "engine": "fast-bypass-gpt4o",
+                        "question_type": result.get("type", "unknown"),
+                        "language": "it",
+                        "response_time_ms": result.get("processing_time", 0),
+                        "cached": False,
+                        "llm_provider": result.get("provider", "unknown"),
+                        "tokens_saved": result.get("tokens_saved", False),
+                        "bypass_used": True
+                    }
+                )
+            except Exception as bypass_error:
+                logger.warning(f"⚠️ Fast Bypass failed: {bypass_error} - fallback to CrewAI")
+
+        # 🤖 FALLBACK: CrewAI multi-agente (10% casi complessi)
+        logger.info("🤖 Usando CrewAI multi-agente (caso complesso)")
         orchestrator = get_milhena()
 
         # Processa con CrewAI Multi-Agent System
@@ -126,7 +161,7 @@ async def chat(request: ChatRequest):
             status="success" if result.get("success") else "error",
             metadata={
                 "user_id": request.user_id,
-                "engine": "crewai-0.193.2",
+                "engine": "crewai-multi-agent",
                 "question_type": result.get("question_type", "unknown"),
                 "language": result.get("language", "it"),
                 "response_time_ms": result.get("response_time_ms", 0),
