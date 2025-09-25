@@ -14,5 +14,21 @@
     "type": "GENERAL",
     "language": "it",
     "confidence": 0.3
+  },
+  {
+    "timestamp": "2025-09-25T21:11:54.090962",
+    "question": "Ciao Milhena, come stai?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.3
+  },
+  {
+    "timestamp": "2025-09-25T21:17:29.740719",
+    "question": "test",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.3
   }
 ]

@@ -1,10 +1,56 @@
-# 🔒 DOCKER COMPOSE PROTETTO - Agent Engine
-# Questo file impedisce rebuild accidentali del container agent-engine
+# 🔒 DOCKER COMPOSE PROTETTO - STACK BLINDATO
+# Questo file impedisce rebuild accidentali di TUTTI i container custom
 
 version: '3.8'
 
 services:
-  # Container BLINDATO - NON RICOSTRUIRE MAI!
+  # 🔒 CONTAINER BLINDATI - NON RICOSTRUIRE MAI!
+
+  # Frontend BLINDATO (Vue 3 + TypeScript)
+  frontend-dev:
+    image: pilotproos-frontend-dev:locked-v1.0-stable
+    container_name: pilotpros-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - VITE_AGENT_ENGINE_URL=http://localhost:8000
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend BLINDATO (Express + Auth)
+  backend-dev:
+    image: pilotproos-backend-dev:locked-v1.0-stable
+    container_name: pilotpros-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - POSTGRES_URL=postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db
+      - REDIS_URL=redis://redis-dev:6379/0
+      - JWT_SECRET=${JWT_SECRET:-pilotpros_jwt_secret_2025_secure_key}
+      - N8N_API_URL=http://automation-engine-dev:5678
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Agent Engine BLINDATO (CrewAI 0.193.2)
   agent-engine-dev:
     image: pilotproos-agent-engine-dev:locked-v1.0-crewai-0.193.2
     container_name: pilotpros-agent-engine-dev

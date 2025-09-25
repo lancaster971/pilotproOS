@@ -156,7 +156,7 @@ npm run test              # All tests in Docker
 - ✅ **CLI Stack Manager**: Auto-start Container Engine
 - ✅ **Password Security**: Double confirmation
 - ✅ **Timeline Analysis**: Pattern-based
-- ✅ **Agent Engine BLINDATO**: CrewAI 0.193.2 + Milhena v4.0 ✨
+- ✅ **STACK COMPLETAMENTE BLINDATO**: Frontend + Backend + Agent Engine 🔒✨
 
 ### **Production Deployment** 🔴 **DA IMPLEMENTARE**
 - 🔴 **VPS Configurations**: docker-compose.vps.yml missing
@@ -164,6 +164,14 @@ npm run test              # All tests in Docker
 - 🔴 **SSL Automation**: Let's Encrypt integration missing
 - 🔴 **VPS Templates**: Golden image creation needed
 - 🔴 **Enterprise Scripts**: Multi-environment deployment missing
+
+### **🔒 CONTAINER BLINDATI - STACK PROTETTO** ✨
+- **Frontend BLINDATO**: Vue 3 + TypeScript (locked-v1.0-stable)
+- **Backend BLINDATO**: Express + Auth (locked-v1.0-stable)
+- **Agent Engine BLINDATO**: CrewAI 0.193.2 (locked-v1.0-crewai-0.193.2)
+- **Safe Commands**: ./stack-safe.sh (start/stop/test/recovery)
+- **Emergency Recovery**: Automatic da backup images
+- **NO rebuild accidentali**: Protezione completa dependency hell
 
 ### **CLI Stack Manager Features** 🎯
 - Password authentication con asterischi mascherati
@@ -212,14 +220,19 @@ READ: docs/STRATEGY/VPS_TEMPLATE_STRATEGY.md
 
 ### Quick Commands Reference
 ```bash
-# Development
+# Development - STACK BLINDATO 🔒
+./stack-safe.sh start     # Start entire stack (NO rebuild)
+./stack-safe.sh status    # Check all services health
+./stack-safe.sh test      # Test all components
+./stack-safe.sh restart   # Safe restart (NO rebuild)
+
+# Legacy commands (still available)
 npm run dev               # Start local development stack
 ./stack                   # Interactive CLI manager (password: PilotPro2025!)
 
-# Agent Engine (BLINDATO - NON TOCCARE!)
-./agent-engine-safe.sh status    # Check Agent Engine health
-./agent-engine-safe.sh test      # Test Milhena chat
-./agent-engine-safe.sh restart   # Safe restart (NO rebuild)
+# Individual components (BLINDATI)
+./agent-engine-safe.sh status    # Check Agent Engine only
+./agent-engine-safe.sh test      # Test Milhena chat only
 
 # Access points
 http://localhost:3000     # Business Portal (tiziano@gmail.com / testtest123)
