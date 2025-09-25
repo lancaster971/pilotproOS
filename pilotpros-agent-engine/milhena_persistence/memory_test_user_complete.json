@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": "2025-09-25T11:51:45.036384",
+    "question": "Hello",
+    "response": "Hello there, it's wonderful to connect with you. I'm Milhena, your go-to business assistant, and I'm all set to help you with any questions or tasks you may have. How can I assist you today?",
+    "type": "GREETING",
+    "language": "en",
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-09-25T11:51:45.733398",
+    "question": "Hey there!",
+    "response": "Hello. It's lovely to connect with you. Is there something I can help you with or would you like to discuss a potential business opportunity? I'm all ears and looking forward to assisting you in any w",
+    "type": "GREETING",
+    "language": "en",
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-09-25T11:51:47.366554",
+    "question": "Cosa puoi fare?",
+    "response": "Ciao! Sono Milhena, un'intelligenza artificiale progettata per assistere e supportare varie attivit\u00e0, compresi i processi business e analytics. Ecco cosa posso fare per aiutarti:\n\n**Processi Business:",
+    "type": "HELP",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:51:48.601620",
+    "question": "Help me understand your capabilities",
+    "response": "Nice to meet you. As Milhena, I can assist with a wide range of business processes and analytics tasks. My capabilities include:\n\n1. **Data Analysis**: I can help with data interpretation, identifying",
+    "type": "HELP",
+    "language": "en",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:51:50.314527",
+    "question": "Quali sono le tue funzionalit\u00e0?",
+    "response": "Ciao! Sono Milhena, un'intelligenza artificiale progettata per assistere e supportare vari processi di business e analytics. Ecco alcune delle mie funzionalit\u00e0 principali:\n\n1. **Risposta a domande**: ",
+    "type": "HELP",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:51:51.339190",
+    "question": "Cos'\u00e8 PilotProOS?",
+    "response": "Ciao! PilotProOS \u00e8 un sistema operativo progettato per dispositivi embedded e IoT (Internet delle Cose). \u00c8 stato sviluppato per fornire un'architettura leggera e flessibile per dispositivi con risorse",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T11:51:52.641765",
+    "question": "Spiegami l'automazione dei processi",
+    "response": "Ciao! Sono felice di aiutarti.\n\nL'automazione dei processi \u00e8 l'utilizzo di tecnologie e sistemi per automatizzare le attivit\u00e0 ripetitive e manuali all'interno di un'organizzazione, al fine di aumentar",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T11:51:53.418874",
+    "question": "What is business process automation?",
+    "response": "Business process automation (BPA) refers to the use of technology to streamline and automate repetitive, rule-based business tasks, freeing up staff to focus on higher-value activities. It involves id",
+    "type": "GENERAL",
+    "language": "en",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T11:51:54.876760",
+    "question": "Come posso ottimizzare i workflow?",
+    "response": "Ciao! Per ottimizzare i workflow, ti consiglio di seguire questi passaggi:\n\n1. **Analizza i processi esistenti**: identifica i punti di inefficienza e le aree di miglioramento.\n2. **Semplifica e autom",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T11:52:00.180224",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "{\n  \"success\": true, \n  \"type\": \"business_overview\", \n  \"source\": \"pilotpros_database_direct\", \n  \"data\": {\n    \"total_processes\": 3, \n    \"active_processes\": 3, \n    \"total_executions_today\": 0, \n   ",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  }
+]

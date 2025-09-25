@@ -13,9 +13,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Import v3.0 anti-hallucination prompts
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from prompts.improved_prompts import VERBALIZER_TEMPLATES
+    V3_PROMPTS_AVAILABLE = True
+except ImportError:
+    V3_PROMPTS_AVAILABLE = False
+
 # Logger più esplicito
 logger = logging.getLogger("BusinessQueryTool")
 logger.setLevel(logging.INFO)
+if V3_PROMPTS_AVAILABLE:
+    logger.info("✅ V3.0 anti-hallucination prompts attivi")
 
 
 class BusinessIntelligentQueryTool(BaseTool):
@@ -26,11 +37,8 @@ class BusinessIntelligentQueryTool(BaseTool):
 
     def __init__(self):
         super().__init__()
-        try:
-            self.translator = BusinessIntelligentTranslator()
-        except Exception as e:
-            logger.error(f"Impossibile inizializzare il translator: {e}")
-            raise
+        # Note: translator is not a field in CrewAI BaseTool
+        # We'll access it directly when needed
 
     def _connect_db(self):
         """Connessione sicura al database con parametri da environment"""
@@ -88,6 +96,32 @@ class BusinessIntelligentQueryTool(BaseTool):
         """Analizza domanda e genera risposta appropriata"""
         question_lower = question.lower()
 
+        # V3.0: BLOCCO PREVENTIVO per dati che NON abbiamo
+        unsupported_keywords = {
+            "fatturato": "dati di fatturato",
+            "ricavi": "dati finanziari",
+            "vendite": "dati di vendita",
+            "revenue": "dati finanziari",
+            "entrate": "dati finanziari",
+            "clienti": "informazioni clienti",
+            "cliente": "informazioni clienti",
+            "customer": "informazioni clienti",
+            "ordini": "dati ordini",
+            "order": "dati ordini",
+            "transazioni": "dati transazioni",
+            "pagamenti": "dati pagamenti",
+            "prodotti": "catalogo prodotti",
+            "inventario": "dati inventario"
+        }
+
+        for keyword, data_type in unsupported_keywords.items():
+            if keyword in question_lower:
+                if V3_PROMPTS_AVAILABLE:
+                    # Usa template v3.0
+                    return "Non ho accesso a dati su {} nel sistema".format(data_type)
+                else:
+                    return f"❌ Non ho accesso a {data_type} nel sistema attuale. Posso mostrarti solo dati su workflow ed esecuzioni."
+
         # Routing intelligente basato sulla domanda
         if "oggi" in question_lower or "today" in question_lower:
             return self._get_today_story(cursor)
@@ -95,8 +129,7 @@ class BusinessIntelligentQueryTool(BaseTool):
             return self._get_email_story(cursor)
         elif "ultimo" in question_lower or "last" in question_lower:
             return self._get_last_activity(cursor)
-        elif "cliente" in question_lower or "customer" in question_lower:
-            return self._get_customer_story(cursor, question)
+        # V3.0: RIMOSSO gestione clienti - già bloccata sopra
         elif "problema" in question_lower or "error" in question_lower or "errore" in question_lower:
             return self._get_error_analysis(cursor)
         else:
@@ -304,11 +337,6 @@ class BusinessIntelligentQueryTool(BaseTool):
                     COUNT(CASE WHEN status = 'success' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 1
                 ) FROM n8n.execution_entity WHERE \"startedAt\" >= CURRENT_DATE - INTERVAL '7 days'
             """,
-            "unique_customers": """
-                SELECT COUNT(DISTINCT email_sender)
-                FROM pilotpros.business_execution_data
-                WHERE email_sender IS NOT NULL
-            """
         }
 
         stats = {}
@@ -317,10 +345,15 @@ class BusinessIntelligentQueryTool(BaseTool):
             result = cursor.fetchone()
             stats[key] = result[0] if result and result[0] is not None else 0
 
-        response = "📊 **Dashboard Operativo**:\n\n"
-        response += f"**Automazioni**: {stats['active_workflows']} attive su {stats['total_workflows']} totali\n"
-        response += f"**Performance settimana**: {stats['week_executions']} operazioni, {stats['success_rate']}% successo\n"
-        response += f"**Clienti serviti**: {stats['unique_customers']} totali\n\n"
+        # V3.0: Usa verbalizer e mostra SOLO dati reali
+        if V3_PROMPTS_AVAILABLE:
+            response = "Nei dati disponibili posso osservare:\n\n"
+        else:
+            response = "📊 **Dati reali dal sistema**:\n\n"
+
+        response += f"**Workflow**: {stats['active_workflows']} attivi su {stats['total_workflows']} totali\n"
+        response += f"**Esecuzioni (7 giorni)**: {stats['week_executions']} totali, {stats['success_rate']}% successo\n"
+        # V3.0: RIMOSSO "Clienti serviti" - NON abbiamo questi dati!\n"
 
         # Aggiungi top workflow
         cursor.execute("""

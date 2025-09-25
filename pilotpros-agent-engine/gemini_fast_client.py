@@ -15,9 +15,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Try to import improved prompts v3.0
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from prompts.improved_prompts import (
+        CLASSIFICATION_PROMPT_V2,
+        ANALYSIS_PROMPT_V2,
+        SYSTEM_CONTEXT_PROMPT,
+        VERBALIZER_TEMPLATES
+    )
+    IMPROVED_PROMPTS = True
+except ImportError:
+    IMPROVED_PROMPTS = False
+
 # Logger configurato
 logger = logging.getLogger("GeminiClient")
 logger.setLevel(logging.INFO)
+if IMPROVED_PROMPTS:
+    logger.info("✅ Using improved v3.0 anti-hallucination prompts")
 
 
 class GeminiFastClient:
@@ -33,15 +49,27 @@ class GeminiFastClient:
         """Inizializza client Gemini con API key gratuita"""
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
 
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY mancante! Ottieni gratis: https://aistudio.google.com/apikey")
+        # Try to use Groq as primary (14,400 req/day vs 50!)
+        self.groq_client = None
+        try:
+            from groq_fast_client import GroqFastClient
+            self.groq_client = GroqFastClient()
+            logger.info("✅ Groq client attivo (14,400 req/giorno)")
+        except Exception as e:
+            logger.warning(f"Groq non disponibile, uso Gemini: {e}")
 
-        # Configura Gemini
-        genai.configure(api_key=self.api_key)
+        if not self.api_key and not self.groq_client:
+            raise ValueError("Né GROQ_API_KEY né GEMINI_API_KEY configurate!")
 
-        # Modelli disponibili
-        self.flash_model = genai.GenerativeModel('gemini-1.5-flash')
-        self.pro_model = genai.GenerativeModel('gemini-1.5-pro')
+        # Configura Gemini solo se API key presente
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+            # Modelli disponibili
+            self.flash_model = genai.GenerativeModel('gemini-1.5-flash')
+            self.pro_model = genai.GenerativeModel('gemini-1.5-pro')
+        else:
+            self.flash_model = None
+            self.pro_model = None
 
         # Tracking rate limits
         self.last_requests = {
@@ -53,14 +81,48 @@ class GeminiFastClient:
 
     async def classify_question(self, question: str) -> Dict[str, Any]:
         """
-        Classifica domanda usando Gemini Flash (velocissimo)
+        Classifica domanda - USA GROQ PRIMA (14,400 req/day!)
 
         Returns:
             Dict con tipo domanda e confidence
         """
         start_time = time.time()
 
-        prompt = f"""Classifica questa domanda in una categoria.
+        # STRATEGIA v4.0: Groq first, Gemini fallback
+        # Groq: 14,400 req/day vs Gemini: 50 req/day!
+        if self.groq_client:
+            try:
+                logger.info("🚀 Usando Groq (14,400 req/giorno)")
+                result = await self.groq_client.classify_question(question)
+                if result and result.get("confidence", 0) > 0.7:
+                    return result
+            except Exception as e:
+                logger.warning(f"Groq fallito, provo Gemini: {e}")
+
+        # Fallback a Gemini se Groq non disponibile
+        question_lower = question.lower()
+
+        # Usa Flash SOLO per cazzate (saluti, help)
+        is_simple_query = any(word in question_lower for word in [
+            "ciao", "hello", "buongiorno", "salve", "hey",
+            "aiuto", "help", "come funzioni", "cosa fai"
+        ])
+
+        # Usa Pro per TUTTO il resto (dati business critici)
+        use_pro_for_classification = not is_simple_query
+
+        if use_pro_for_classification:
+            logger.debug("🧠 Domanda critica → uso PRO per accuratezza")
+        else:
+            logger.debug("⚡ Domanda semplice → Flash è sufficiente")
+
+        # Use improved prompt v3.0 if available
+        if IMPROVED_PROMPTS:
+            prompt = CLASSIFICATION_PROMPT_V2.format(question=question)
+            logger.debug("Using v3.0 classification prompt with Gemini PRO for accuracy")
+        else:
+            # Legacy prompt
+            prompt = f"""Classifica questa domanda in una categoria.
 
 Domanda: {question}
 
@@ -76,16 +138,32 @@ Rispondi SOLO con la categoria, niente altro.
 """
 
         try:
-            # Controlla rate limit
-            if not self._check_rate_limit("flash"):
-                logger.warning("Rate limit Gemini Flash, attendo...")
-                await asyncio.sleep(2)
+            # v3.1: Usa PRO per accuratezza, Flash come fallback
+            model = None
+            model_name = None
 
-            # Genera classificazione
-            response = self.flash_model.generate_content(
+            # Prova prima Pro (più accurato)
+            if use_pro_for_classification and self._check_rate_limit("pro"):
+                model = self.pro_model
+                model_name = "gemini-1.5-pro"
+                logger.info("🧠 Usando PRO per classificazione accurata")
+            # Fallback a Flash se Pro non disponibile
+            elif self._check_rate_limit("flash"):
+                model = self.flash_model
+                model_name = "gemini-1.5-flash"
+                logger.info("⚡ Usando Flash (fallback)")
+            else:
+                # Entrambi in rate limit, aspetta e usa Flash
+                logger.warning("⚠️ Rate limit su entrambi, attendo...")
+                await asyncio.sleep(2)
+                model = self.flash_model
+                model_name = "gemini-1.5-flash"
+
+            # Genera classificazione con il modello scelto
+            response = model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
-                    temperature=0.1,
+                    temperature=0.1,  # Bassa per consistenza
                     max_output_tokens=20
                 )
             )
@@ -93,12 +171,12 @@ Rispondi SOLO con la categoria, niente altro.
             category = response.text.strip().upper()
             elapsed = (time.time() - start_time) * 1000
 
-            logger.info(f"⚡ Gemini Flash: Classificato come {category} in {elapsed:.0f}ms")
+            logger.info(f"{'🧠' if 'pro' in model_name else '⚡'} {model_name}: Classificato come {category} in {elapsed:.0f}ms")
 
             return {
                 "type": category,
-                "confidence": 0.95,
-                "model": "gemini-flash",
+                "confidence": 0.98 if "pro" in model_name else 0.85,
+                "model": model_name,
                 "latency_ms": elapsed
             }
 

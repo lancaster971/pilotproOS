@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": "2025-09-25T15:08:18.480950",
+    "question": "Qual \u00e8 il fatturato di oggi?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:19.797670",
+    "question": "Chi sono i nostri migliori clienti?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:21.135207",
+    "question": "Quanti ordini abbiamo processato?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:22.470732",
+    "question": "Qual \u00e8 il fatturato?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:23.794072",
+    "question": "Quanti workflow sono attivi?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "en",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:25.133479",
+    "question": "Quante esecuzioni ci sono state?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:26.446586",
+    "question": "Analizza i ricavi del mese",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:27.848596",
+    "question": "Come sta andando il trend clienti?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:29.183357",
+    "question": "Mostrami vendite e workflow",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "en",
+    "confidence": 0.5
+  },
+  {
+    "timestamp": "2025-09-25T15:08:30.716507",
+    "question": "Basandoti sui workflow, quanto abbiamo venduto?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.5
+  }
+]

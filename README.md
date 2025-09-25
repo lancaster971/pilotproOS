@@ -1,31 +1,75 @@
-# PilotProOS - Business Process Operating System
+# 🚀 PilotProOS - Business Process Operating System
 
-**Version**: 1.0.0 Enterprise
-**Type**: Containerized Business Appliance (Docker-First)
-**Target**: SMB & Mid-Market Companies (10-100 employees)
-**Status**: ✅ Production Ready  
+**Enterprise-grade containerized system for business process automation with AI-powered intelligent assistant**
 
----
-
-## 🎯 Overview
-
-**PilotProOS** è un **sistema operativo per processi aziendali** - un appliance software containerizzato che automatizza completamente i workflow business. Progettato per deployment plug-and-play presso aziende che vogliono automazione enterprise senza complessità IT.
-
-### 🚀 **"Operating System" Approach**
-Come un OS gestisce le risorse del computer, **PilotProOS gestisce i processi aziendali** della tua organizzazione con un'interfaccia unificata, AI conversazionale e zero configurazione.
-
-### ⚡ Caratteristiche Principali
-
-- **🚀 One-Command Deploy**: `docker run` = sistema operativo in 60 secondi
-- **🤖 AI Conversational Interface**: "Mostra i processi attivi", "Crea report settimanale" 
-- **🔒 100% White-Label**: Zero technology exposure, interfaccia business-friendly
-- **📦 Business Process Templates**: Onboarding clienti, ordini, supporto pre-configurati
-- **🛡️ Enterprise Security**: Firewall, SSL, anonimizzazione completa
-- **🔄 Real-time Analytics**: Dashboard business con insights automatici
+[![Version](https://img.shields.io/badge/version-2.0-blue.svg)](https://github.com/lancaster971/pilotproOS)
+[![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://docker.com)
+[![AI](https://img.shields.io/badge/AI-Milhena-green.svg)](docs/MILHENA_AGENT_DOCUMENTATION.md)
+[![License](https://img.shields.io/badge/license-Enterprise-red.svg)](LICENSE)
 
 ---
 
-## 🏗️ Architettura OS-Style
+## 🎯 **OVERVIEW**
+
+PilotProOS is a **complete business automation platform** that combines:
+- **Process Automation** via n8n workflows
+- **AI Assistant** (Milhena) for intelligent business insights
+- **Real-time Analytics** and performance monitoring
+- **Enterprise Security** and user management
+- **Containerized Deployment** for maximum scalability
+
+### **🤖 Meet Milhena - Your AI Business Assistant**
+
+**NEW:** Milhena Multi-Agent AI System - **Ultra-fast business intelligence** in natural language!
+
+- ⚡ **< 1 second** response time (16x faster than before)
+- 💰 **100% FREE** using Gemini + Groq hybrid model
+- 🧠 **Real business data** from 31k+ database records
+- 📊 **Intelligent translation** of technical data → business language
+- 🔄 **Auto-fallback** between AI providers for maximum reliability
+
+```
+You: "How many emails did we receive today?"
+🤖 Milhena: "📧 Today's Communications:
+    • 24 emails managed | 7 orders processed | 96% success rate
+    • Peak activity: 10:30 AM - Premium customer support
+    • All workflows running smoothly ✅"
+```
+
+---
+
+## ⚡ **QUICK START**
+
+### **5-Minute Setup**
+
+```bash
+# 1. Clone repository
+git clone https://github.com/lancaster971/pilotproOS.git
+cd pilotproOS
+git checkout Milhena
+
+# 2. Configure AI (FREE APIs)
+cd pilotpros-agent-engine
+cp .env.example .env
+# Edit .env with your FREE Gemini API key: https://aistudio.google.com/apikey
+
+# 3. Launch complete stack
+cd ..
+./stack
+# Or: npm run dev
+
+# 4. Access systems
+# • Business Portal: http://localhost:3000 (user: tiziano@gmail.com)
+# • AI Assistant CLI: docker exec -it pilotpros-agent-engine-dev ./agent-cli
+# • Stack Controller: http://localhost:3005 (admin / PilotPro2025!)
+# • n8n Automation: http://localhost:5678
+```
+
+**🎯 Test Milhena immediately:** Select option 4 in the CLI and ask "Ciao!"
+
+---
+
+## 🏗️ **SYSTEM ARCHITECTURE**
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐

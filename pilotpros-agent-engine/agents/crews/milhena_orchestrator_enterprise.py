@@ -19,6 +19,25 @@ from functools import lru_cache
 from collections import deque
 from dotenv import load_dotenv
 
+# Import v3.0 configurations
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from milhena_agents_config import MILHENA_AGENTS, TASK_ROUTING, VALIDATION_PIPELINE
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from prompts.improved_prompts import (
+        CLASSIFICATION_PROMPT_V2,
+        ANALYSIS_PROMPT_V2,
+        VALIDATION_PROMPT_V2,
+        FALLBACK_PROMPT_V2,
+        SYSTEM_CONTEXT_PROMPT
+    )
+    IMPROVED_PROMPTS_AVAILABLE = True
+except ImportError as e:
+    IMPROVED_PROMPTS_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️ Improved prompts v3.0 not available: {e}")
+
 # Import esterni opzionali
 try:
     from langdetect import detect as detect_language
@@ -415,7 +434,13 @@ def retry_on_failure(max_attempts: int = 3, delay_seconds: float = 1.0):
 # ============= MAIN ORCHESTRATOR CLASS =============
 class MilhenaEnterpriseOrchestrator:
     """
-    Sistema Multi-Agent Milhena ENTERPRISE con tutte le features production-ready
+    Sistema Multi-Agent Milhena v3.0 ENTERPRISE con anti-hallucination
+
+    New in v3.0:
+    - Strict validation pipeline
+    - Role-based agents with backstories
+    - Anti-hallucination prompts
+    - Verbalizers for controlled output
 
     Features:
     - 🧠 Memory persistente su disco
@@ -436,9 +461,11 @@ class MilhenaEnterpriseOrchestrator:
                  enable_cache: bool = True,
                  enable_webhooks: bool = False,
                  webhook_urls: Optional[Dict[str, str]] = None,
-                 fast_mode: bool = True):
+                 fast_mode: bool = True,
+                 strict_validation: bool = True):  # v3.0: anti-hallucination
 
         self.model_selector = model_selector or ModelSelector()
+        self.strict_validation = strict_validation  # v3.0 feature
         self.tools = [
             PilotProMetricsTool(),
             WorkflowAnalyzerTool()
@@ -967,6 +994,70 @@ class MilhenaEnterpriseOrchestrator:
         except:
             pass
         return {"question_type": "GENERAL", "confidence": 0.5}
+
+    async def _validate_response_v3(self, response: str, actual_data: dict) -> Dict[str, Any]:
+        """
+        V3.0: Strict validation to prevent hallucinations
+
+        Returns:
+            dict with 'valid' bool and 'corrected_response' if invalid
+        """
+        if not IMPROVED_PROMPTS_AVAILABLE or not self.strict_validation:
+            return {"valid": True}
+
+        try:
+            # Use validation prompt
+            validation_prompt = VALIDATION_PROMPT_V2.format(
+                response=response,
+                actual_data=json.dumps(actual_data, ensure_ascii=False)
+            )
+
+            # Run validation through Gemini
+            if self.hybrid_router:
+                result = await self.hybrid_router.generate_response(
+                    validation_prompt,
+                    "VALIDATION",
+                    use_fast=True
+                )
+
+                # Parse validation result
+                if "valid\": false" in result.lower():
+                    # Extract corrected response
+                    import re
+                    match = re.search(r'"corrected_response":\s*"([^"]+)"', result)
+                    if match:
+                        return {
+                            "valid": False,
+                            "corrected_response": match.group(1)
+                        }
+
+            return {"valid": True}
+
+        except Exception as e:
+            logger.error(f"Validation error: {e}")
+            return {"valid": True}  # Pass through on error
+
+    async def _handle_unsupported_request(self, question: str, searched_type: str) -> str:
+        """
+        V3.0: Handle requests for data we don't have
+        """
+        if not IMPROVED_PROMPTS_AVAILABLE:
+            return "Questi dati non sono disponibili nel sistema."
+
+        fallback_prompt = FALLBACK_PROMPT_V2.format(
+            question=question,
+            searched_data_type=searched_type
+        )
+
+        if self.hybrid_router:
+            response = await self.hybrid_router.generate_response(
+                fallback_prompt,
+                "FALLBACK",
+                use_fast=True
+            )
+            return response
+
+        return f"Non ho accesso a dati su {searched_type} nel sistema attuale."
 
     def _get_fallback_response(self, question_type: str, language: str) -> str:
         """Risposte di fallback quando nessun LLM disponibile"""

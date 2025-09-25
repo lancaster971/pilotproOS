@@ -1,0 +1,34 @@
+[
+  {
+    "timestamp": "2025-09-25T13:04:38.246571",
+    "question": "Ciao amico!",
+    "response": "Ciao! Sono felice di aiutarti con qualsiasi domanda o problema tu abbia. Come posso aiutarti oggi?",
+    "type": "GREETING",
+    "language": "it",
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-09-25T13:04:39.530600",
+    "question": "Come posso usare il sistema?",
+    "response": "Ciao! Sono Milhena, un'intelligenza artificiale progettata per assisterti in vari aspetti, compresi i processi aziendali e l'analisi dei dati. Posso aiutarti in diversi modi:\n\n1. **Risposte alle doman",
+    "type": "HELP",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T13:04:40.660225",
+    "question": "Mi servono informazioni generali",
+    "response": "Ciao! Sono Milhena, la tua assistente business professionale. Sono qui per aiutarti con informazioni generali su vari argomenti, come gestione aziendale, marketing, finanza, tecnologia e molto altro. ",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T13:04:58.595098",
+    "question": "Quante esecuzioni abbiamo oggi?",
+    "response": "{\"data\": \"None\", \"message\": \"Unable to retrieve data due to connection errors\"}",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  }
+]

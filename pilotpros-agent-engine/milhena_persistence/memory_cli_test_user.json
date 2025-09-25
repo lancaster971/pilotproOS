@@ -1,0 +1,66 @@
+[
+  {
+    "timestamp": "2025-09-25T13:12:21.843304",
+    "question": "Ciao!",
+    "response": "Ciao! Sono felice di aiutarti con qualsiasi necessit\u00e0 o domanda tu abbia. Come posso assisterti oggi?",
+    "type": "GREETING",
+    "language": "it",
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-09-25T13:12:23.347045",
+    "question": "Come funzioni?",
+    "response": "Ciao! Sono Milhena, un'intelligenza artificiale progettata per aiutare con una vasta gamma di attivit\u00e0 relative ai processi business e analytics. Ecco come posso essere di aiuto:\n\n**Processi Business:",
+    "type": "HELP",
+    "language": "it",
+    "confidence": 0.8
+  },
+  {
+    "timestamp": "2025-09-25T13:12:46.323595",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "Non \u00e8 possibile fornire il numero di esecuzioni effettuate oggi a causa di errori di connessione ai tool PilotPro Metrics e Workflow Analyzer",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:31:08.402350",
+    "question": "Ciao!",
+    "response": "Ciao! It's lovely to hear from you. How can I assist you today?",
+    "type": "GREETING",
+    "language": "en",
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-09-25T11:31:29.037040",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "{\"error\": \"Execution metrics error: [Errno 111] Connection refused\", \"success\": false} \n\n{\"error\": \"Execution metrics error: [Errno 111] Connection refused\", \"success\": false}",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:46:42.584129",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "{\"error\": \"Impossibile recuperare i dati richiesti a causa di un errore di connessione\", \"success\": false}",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:47:39.326416",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "{\"success\": true, \"type\": \"business_overview\", \"source\": \"pilotpros_database_direct\", \"data\": {\"total_processes\": 0, \"active_processes\": 0, \"total_executions_today\": 0, \"success_rate_today\": 0.0, \"avg",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-25T11:49:40.773745",
+    "question": "Quante esecuzioni abbiamo fatto oggi?",
+    "response": "{\"data\": \"Number of executions today: Not available due to system errors\"} {\"data\": \"Number of executions today: Not available due to system errors\"}",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  }
+]
