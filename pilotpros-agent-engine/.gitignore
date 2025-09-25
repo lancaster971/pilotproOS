@@ -45,4 +45,5 @@ coverage.xml
 # API Keys and secrets
 *.key
 *.pem
-secrets/
+secrets/.DS_Store
+google-cloud-sdk/
