@@ -4,7 +4,17 @@ Tools specializzati per DATA_ANALYST agent
 """
 
 from typing import Any, Dict, List, Optional, Union
-from crewai.tools import BaseTool
+# Import corretto per CrewAI moderno (0.193+)
+try:
+    from crewai_tools import BaseTool
+except ImportError:
+    # Fallback per versioni precedenti
+    try:
+        from crewai.tools import BaseTool
+    except ImportError:
+        # Ultima chance
+        from crewai import tool
+        BaseTool = object  # Useremo @tool decorator invece
 import httpx
 import json
 import logging

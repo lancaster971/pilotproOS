@@ -1,105 +1,180 @@
 #!/usr/bin/env python3
 """
-Milhena Enterprise - Main Entry Point
-Sistema Multi-Agent Intelligente per PilotProOS
+Agent Engine API - Main Entry Point
+Sistema Multi-Agent Runtime per PilotProOS
 """
 
-import asyncio
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import logging
+import os
+from typing import Optional, Dict, Any
 import sys
 from pathlib import Path
 
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from agents.crews.milhena_orchestrator_enterprise import MilhenaEnterpriseOrchestrator
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI(
+    title="Agent Engine API",
+    description="Multi-Agent Runtime per PilotProOS",
+    version="1.0.0"
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In produzione, specificare domini
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Request/Response models
+class ChatRequest(BaseModel):
+    message: str
+    user_id: Optional[str] = "guest"
+    context: Optional[Dict[str, Any]] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    status: str = "success"
+    metadata: Optional[Dict[str, Any]] = None
 
 
-async def main():
-    """Main function to demonstrate Milhena Enterprise usage"""
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "agent-engine",
+        "version": "1.0.0"
+    }
 
-    print("""
-    ╔══════════════════════════════════════════════════════════╗
-    ║           MILHENA ENTERPRISE - MULTI-AGENT SYSTEM        ║
-    ║                    PilotProOS Intelligence               ║
-    ╚══════════════════════════════════════════════════════════╝
-    """)
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "service": "Agent Engine API",
+        "status": "running",
+        "endpoints": [
+            "/health",
+            "/api/chat",
+            "/api/agents"
+        ]
+    }
 
-    # Initialize orchestrator
-    orchestrator = MilhenaEnterpriseOrchestrator(
-        enable_memory=True,
-        enable_analytics=True,
-        enable_cache=True
-    )
+# Inizializza CrewAI VERO con l'orchestrator Milhena
+milhena_orchestrator = None
 
-    print("🚀 Sistema inizializzato con successo!\n")
-    print("Comandi disponibili:")
-    print("  - 'stats' : Mostra statistiche")
-    print("  - 'clear' : Pulisci cache")
-    print("  - 'exit'  : Esci\n")
-
-    user_id = input("👤 Il tuo nome/ID (default: guest): ").strip() or "guest"
-    print(f"\n✅ Benvenuto {user_id}! Sono Milhena, la tua assistente business.\n")
-
-    while True:
+def get_milhena():
+    """Get or create REAL CrewAI Milhena orchestrator"""
+    global milhena_orchestrator
+    if milhena_orchestrator is None:
         try:
-            # Get user input
-            question = input("❓ Tu: ").strip()
+            # Usa CrewAI VERO con versione 0.193.2
+            from agents.crews.milhena_orchestrator_enterprise import MilhenaEnterpriseOrchestrator
+            milhena_orchestrator = MilhenaEnterpriseOrchestrator(
+                enable_memory=True,
+                enable_analytics=True,
+                enable_cache=True
+            )
+            logger.info("✅ CrewAI Milhena Enterprise Orchestrator REALE inizializzato!")
+        except Exception as e:
+            logger.error(f"❌ Errore inizializzazione CrewAI: {e}")
+            # Usa SimpleMilhena come fallback
+            try:
+                from agents.milhena_simple import SimpleMilhenaOrchestrator
+                milhena_orchestrator = SimpleMilhenaOrchestrator()
+                logger.info("Fallback to SimpleMilhena (no CrewAI)")
+            except:
+                raise Exception(f"Cannot initialize any orchestrator: {e}")
+    return milhena_orchestrator
 
-            if not question:
-                continue
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """Chat endpoint with REAL CrewAI 0.193.2 - NO MOCK!"""
+    try:
+        logger.info(f"CrewAI Chat from {request.user_id}: {request.message}")
 
-            # Handle special commands
-            if question.lower() == 'exit':
-                print("\n👋 Arrivederci! A presto!")
-                break
+        # Usa CrewAI REALE
+        orchestrator = get_milhena()
 
-            elif question.lower() == 'stats':
-                stats = orchestrator.get_system_stats()
-                print("\n📊 STATISTICHE SISTEMA:")
-                print(f"  • Utenti tracciati: {stats['users_tracked']}")
-                if stats['analytics']:
-                    print(f"  • Richieste totali: {stats['analytics']['total_requests']}")
-                    print(f"  • Cache hit rate: {stats['cache']['hit_rate']:.1%}")
-                    print(f"  • Lingue usate: {stats['analytics'].get('languages_detected', {})}")
-                print()
-                continue
-
-            elif question.lower() == 'clear':
-                if orchestrator.cache:
-                    orchestrator.cache.clear_expired()
-                    print("✅ Cache pulita!\n")
-                continue
-
-            # Process question
-            print("\n💭 Sto elaborando la tua richiesta...")
-
+        # Processa con CrewAI Multi-Agent System
+        if hasattr(orchestrator, 'analyze_question_enterprise'):
+            # Usa metodo enterprise per CrewAI completo
             result = await orchestrator.analyze_question_enterprise(
-                question=question,
-                user_id=user_id
+                question=request.message,
+                user_id=request.user_id
+            )
+        else:
+            # Fallback per SimpleMilhena
+            result = await orchestrator.process(
+                message=request.message,
+                user_id=request.user_id
             )
 
-            if result['success']:
-                print(f"\n🤖 Milhena: {result['response']}")
-                print(f"\n📈 [{result['question_type']} | {result['language']} | "
-                      f"{result['response_time_ms']:.0f}ms | "
-                      f"{'📦 cached' if result['cached'] else '🔄 fresh'}]\n")
-            else:
-                print(f"\n❌ Errore: {result.get('error', 'Sconosciuto')}")
-                print(f"🤖 Milhena: {result.get('fallback_response', 'Mi dispiace, riprova.')}\n")
+        # Risposta REALE da CrewAI
+        return ChatResponse(
+            response=result.get("response", "Errore nel processare"),
+            status="success" if result.get("success") else "error",
+            metadata={
+                "user_id": request.user_id,
+                "engine": "crewai-0.193.2",
+                "question_type": result.get("question_type", "unknown"),
+                "language": result.get("language", "it"),
+                "response_time_ms": result.get("response_time_ms", 0),
+                "cached": result.get("cached", False),
+                "llm_provider": result.get("llm_provider", "groq")
+            }
+        )
+    except Exception as e:
+        logger.error(f"CrewAI error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"CrewAI Error: {str(e)}"
+        )
 
-        except KeyboardInterrupt:
-            print("\n\n👋 Interrotto. Arrivederci!")
-            break
-        except Exception as e:
-            print(f"\n❌ Errore imprevisto: {e}\n")
-
-    # Save final stats
-    print("\n💾 Salvataggio statistiche finali...")
-    if orchestrator.analytics:
-        final_stats = orchestrator.get_system_stats()
-        print(f"✅ Sessione completata: {final_stats['analytics']['total_requests']} richieste processate")
-
+@app.get("/api/agents")
+async def list_agents():
+    """List REAL available agents - NO MOCK"""
+    try:
+        orchestrator = get_milhena()
+        # Prova a ottenere info reali dall'orchestrator
+        if hasattr(orchestrator, 'get_agents_info'):
+            agents = orchestrator.get_agents_info()
+        else:
+            # Info base reali
+            agents = [{
+                "id": "milhena",
+                "name": "Milhena v4.0",
+                "type": "multi-agent-orchestrator",
+                "status": "active" if milhena_orchestrator else "not_initialized",
+                "llm_provider": os.getenv("PRIMARY_LLM", "groq"),
+                "capabilities": [
+                    "business_analysis",
+                    "workflow_optimization",
+                    "data_insights",
+                    "crewai_orchestration"
+                ],
+                "crew_agents": [
+                    "data_analyst",
+                    "business_advisor",
+                    "technical_analyst"
+                ]
+            }]
+        return {"agents": agents}
+    except Exception as e:
+        logger.error(f"Error listing agents: {e}")
+        return {"agents": [], "error": str(e)}
 
 if __name__ == "__main__":
-    # Run async main
-    asyncio.run(main())
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

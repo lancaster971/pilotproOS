@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2025-09-25T21:07:21.112472",
+    "question": "Ciao Milhena, puoi presentarti?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.3
+  },
+  {
+    "timestamp": "2025-09-25T21:07:37.267679",
+    "question": "Qual \u00e8 il fatturato di oggi?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.3
+  }
+]

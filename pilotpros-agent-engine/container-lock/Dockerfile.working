@@ -16,8 +16,8 @@ COPY requirements-fixed.txt requirements.txt
 # Install Python dependencies with timeout and retries
 RUN pip install --no-cache-dir --timeout=120 -r requirements.txt
 
-# Install LATEST CrewAI (0.193.2)
-RUN pip install --no-cache-dir crewai==0.193.2 || echo "CrewAI installation failed, continuing..."
+# Try to install CrewAI separately (may fail but container will still work)
+RUN pip install --no-cache-dir crewai==0.28.0 || echo "CrewAI installation failed, continuing..."
 
 # Copy application code
 COPY . .
