@@ -297,32 +297,47 @@ class AgentCLI:
 
                 self.console.print(f"\n[magenta]🤖 Milhena {mode_display} sta elaborando...[/magenta]")
 
-                # Process with Milhena system
+                # Process with NEW ULTRA-FAST Milhena system
                 try:
-                    from agents.crews.milhena_orchestrator_agents import MilhenaOrchestratorCrew, QuickMilhenaAgent
-                    from model_selector import ModelSelector
+                    import os
+                    # Set GROQ API key
+                    os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY', 'your_groq_api_key_here')
 
-                    model_selector = ModelSelector()
+                    from agents.crews.milhena_orchestrator_enterprise import MilhenaEnterpriseOrchestrator
 
-                    if quick_mode:
-                        # Quick mode con intelligence
-                        quick_milhena = QuickMilhenaAgent(model_selector)
-                        result = quick_milhena.quick_answer(question)
-                    else:
-                        # Orchestrator multi-agent mode
-                        milhena_orchestrator = MilhenaOrchestratorCrew(model_selector)
-                        result = milhena_orchestrator.analyze_business_question_orchestrator(question)
+                    orchestrator = MilhenaEnterpriseOrchestrator(
+                        enable_cache=True,  # Cache per velocità
+                        fast_mode=True  # ULTRA FAST MODE!
+                    )
+
+                    # Process question
+                    result = await orchestrator.analyze_question_enterprise(
+                        question=question,
+                        user_id="cli_user"
+                    )
 
                     # Display result
                     if result.get("success"):
                         response = result.get("response", "Risposta non disponibile")
-                        system = result.get("system", "Milhena")
-                        agents_used = result.get("agents_used", [])
+                        response_time = result.get("response_time_ms", 0)
+                        cached = result.get("cached", False)
+                        fast_path = result.get("fast_path", False)
+                        question_type = result.get("question_type", "UNKNOWN")
 
-                        self.console.print(f"\n[bold magenta]🤖 {system}:[/bold magenta]")
-                        if agents_used:
-                            agents_str = " → ".join(agents_used)
-                            self.console.print(f"[dim cyan]Agenti usati: {agents_str}[/dim cyan]")
+                        # Performance indicator
+                        if cached:
+                            perf_icon = "⚡⚡⚡ CACHE HIT"
+                            perf_color = "green"
+                        elif fast_path:
+                            perf_icon = "⚡ FAST PATH"
+                            perf_color = "yellow"
+                        else:
+                            perf_icon = "🔧 CREW FLOW"
+                            perf_color = "cyan"
+
+                        self.console.print(f"\n[bold magenta]🤖 Milhena Enterprise:[/bold magenta]")
+                        self.console.print(f"[{perf_color}]{perf_icon} - {response_time:.0f}ms[/{perf_color}]")
+                        self.console.print(f"[dim]Tipo: {question_type}[/dim]")
 
                         # Display response in a nice panel
                         response_panel = Panel(

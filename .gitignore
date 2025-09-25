@@ -151,3 +151,4 @@ team-export-*.tar.gz
 BU_Hostinger/database.sqlite.gz
 Docker_BU/
 test-sse.html
+pilotpros-agent-engine/.env

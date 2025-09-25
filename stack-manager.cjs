@@ -15,10 +15,12 @@ const execAsync = util.promisify(exec);
 // Service mappings
 const services = {
   '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
-  '2': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
-  '3': { key: 'portal', name: 'Business Portal (Frontend Interface)', container: 'pilotpros-frontend-dev' },
-  '4': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
-  '5': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
+  '2': { key: 'cache', name: 'Redis Cache & Queue', container: 'pilotpros-redis-dev' },
+  '3': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
+  '4': { key: 'portal', name: 'Business Portal (Frontend)', container: 'pilotpros-frontend-dev' },
+  '5': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
+  '6': { key: 'agent', name: 'Agent Engine (Milhena AI)', container: 'pilotpros-agent-engine-dev' },
+  '7': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };
 
 // Colors
@@ -99,7 +101,8 @@ function showMainMenu() {
   console.log(`  ${colors.cyan}5)${colors.reset} Start All Services`);
   console.log(`  ${colors.cyan}6)${colors.reset} Stop All Services`);
   console.log(`  ${colors.cyan}7)${colors.reset} Open Business Portal`);
-  console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status\n`);
+  console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status`);
+  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI (Milhena)\n`);
   console.log(`  ${colors.red}q)${colors.reset} Quit\n`);
 }
 
@@ -339,6 +342,9 @@ class StackManager {
         // Just refresh
         await this.mainLoop();
         break;
+      case '9':
+        await this.openAgentCLI();
+        break;
       case 'q':
         console.log(`\n${colors.green}Goodbye!${colors.reset}\n`);
         this.rl.close();
@@ -566,12 +572,52 @@ class StackManager {
     });
   }
 
+  async openAgentCLI() {
+    // Check if agent-engine container is running
+    const statuses = await getAllStatus();
+    const agentStatus = statuses.find(s => s.name === 'Agent Engine (Multi-Agent AI)');
+
+    if (!agentStatus || agentStatus.status !== 'Running') {
+      console.log(`\n${colors.yellow}⚠️  Agent Engine is not running${colors.reset}`);
+      console.log(`${colors.cyan}Starting Agent Engine container...${colors.reset}\n`);
+
+      // Start the agent-engine container
+      const startResult = await dockerExec('docker start pilotpros-agent-engine-dev');
+      if (!startResult.success) {
+        // Try creating it with docker-compose
+        await dockerExec('docker-compose up -d pilotpros-agent-engine-dev');
+      }
+
+      // Wait for it to be ready
+      await sleep(2000);
+    }
+
+    console.log(`\n${colors.green}Opening Agent Engine CLI (Milhena)...${colors.reset}`);
+    console.log(`${colors.dim}Connecting to container...${colors.reset}\n`);
+
+    // Execute CLI inside the container
+    const { spawn } = require('child_process');
+    const cli = spawn('docker', ['exec', '-it', 'pilotpros-agent-engine-dev', 'python3', 'cli.py'], {
+      stdio: 'inherit'
+    });
+
+    cli.on('close', (code) => {
+      console.log(`\n${colors.cyan}Returned from Agent CLI${colors.reset}`);
+      this.mainLoop();
+    });
+
+    cli.on('error', (err) => {
+      console.log(`${colors.red}Error: ${err.message}${colors.reset}`);
+      this.mainLoop();
+    });
+  }
+
   async openFrontend() {
     // Check if services are running
     const statuses = await getAllStatus();
     const runningCount = statuses.filter(s => s.status === 'Running').length;
 
-    if (runningCount < 5) {
+    if (runningCount < 7) {
       console.log(`\n${colors.yellow}⚠️  Stack is not fully running${colors.reset}`);
       console.log(`${colors.cyan}To access the Business Portal, all services must be running.${colors.reset}\n`);
 

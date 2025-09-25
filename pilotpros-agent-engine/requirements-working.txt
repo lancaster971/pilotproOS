@@ -5,17 +5,17 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 
 # LLM Support
-openai==1.6.1
+openai==1.10.0
 anthropic==0.7.0
 google-generativeai==0.3.2
-groq==0.4.1
+groq==0.31.1  # Updated for latest Groq client
 
 # LangChain for Agent support
 langchain==0.1.10
 langchain-openai==0.0.5
 langchain-google-genai==0.0.5
 langchain-groq==0.1.0
-langchain-community==0.0.10
+langchain-community==0.0.25
 
 # CrewAI for agents
 crewai==0.28.0
@@ -44,3 +44,7 @@ httpx==0.25.2
 tenacity==8.2.0
 aiofiles==23.2.1
 requests==2.31.0
+slowapi==0.1.9  # Rate limiting
+langdetect==1.0.9  # Language detection
+psycopg2-binary==2.9.9  # PostgreSQL client
+rich==13.7.0  # CLI formatting
