@@ -12,14 +12,15 @@ const path = require('path');
 const crypto = require('crypto');
 const execAsync = util.promisify(exec);
 
-// Service mappings - AGENT ENGINE REMOVED (CrewAI eliminated)
+// Service mappings - Updated with Intelligence Engine
 const services = {
   '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
   '2': { key: 'cache', name: 'Redis Cache & Queue', container: 'pilotpros-redis-dev' },
   '3': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
   '4': { key: 'portal', name: 'Business Portal (Frontend)', container: 'pilotpros-frontend-dev' },
-  '5': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
-  '6': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
+  '5': { key: 'intelligence', name: 'Intelligence Engine', container: 'pilotpros-intelligence-engine-dev' },
+  '6': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
+  '7': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };
 
 // Colors
@@ -79,13 +80,12 @@ async function showQuickStatus() {
   const statuses = await getAllStatus();
 
   for (const status of statuses) {
-    const icon = status.status === 'Running' ? `${colors.green}●${colors.reset}` : `${colors.red}●${colors.reset}`;
     const statusText = status.status === 'Running'
       ? `${colors.green}Running${colors.reset}`
       : `${colors.red}Stopped${colors.reset}`;
     const healthInfo = status.health ? ` ${colors.dim}(${status.health})${colors.reset}` : '';
 
-    console.log(`  ${icon} ${status.name.padEnd(25)} ${statusText}${healthInfo}`);
+    console.log(`  ${status.name.padEnd(25)} ${statusText}${healthInfo}`);
   }
   console.log();
 }
@@ -101,7 +101,7 @@ function showMainMenu() {
   console.log(`  ${colors.cyan}6)${colors.reset} Stop All Services`);
   console.log(`  ${colors.cyan}7)${colors.reset} Open Business Portal`);
   console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status`);
-  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI (Milhena)`);
+  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI`);
   console.log(`  ${colors.cyan}t)${colors.reset} ${colors.green}Deep Stack Test${colors.reset} (Complete health check)\n`);
   console.log(`  ${colors.red}q)${colors.reset} Quit\n`);
 }
@@ -143,7 +143,7 @@ class StackManager {
 
         // Session valid for 30 minutes
         if (sessionAge < 30) {
-          console.log(`${colors.green}✓ Authenticated as ${session.user}${colors.reset}`);
+          console.log(`${colors.green}Authenticated as ${session.user}${colors.reset}`);
           return;
         }
       } catch (e) {
@@ -178,7 +178,7 @@ class StackManager {
           timestamp: Date.now()
         };
         fs.writeFileSync(sessionFile, JSON.stringify(session));
-        console.log(`${colors.green}✓ Authentication successful${colors.reset}\n`);
+        console.log(`${colors.green}Authentication successful${colors.reset}\n`);
         await sleep(1000);
         return;
       } else {
@@ -257,7 +257,7 @@ class StackManager {
     const result = await dockerExec('docker version');
     if (!result.success || !result.output.includes('Server')) {
       if (!silent) {
-        console.log(`\n${colors.yellow}⚠️  Container Engine not running${colors.reset}`);
+        console.log(`\n${colors.yellow}WARNING: Container Engine not running${colors.reset}`);
         console.log(`${colors.cyan}Starting Container Engine...${colors.reset}`);
       }
 
@@ -289,7 +289,7 @@ class StackManager {
         }
 
         if (!silent) {
-          console.log(`${colors.green}✓ Container Engine started successfully!${colors.reset}`);
+          console.log(`${colors.green}Container Engine started successfully!${colors.reset}`);
           await sleep(2000);
         }
         return true;
@@ -398,12 +398,12 @@ class StackManager {
       // Stop
       process.stdout.write('  Stopping...');
       await dockerExec(`docker stop ${service.container}`);
-      process.stdout.write(`\r  ${colors.green}✓${colors.reset} Stopped    \n`);
+      process.stdout.write(`\r  [OK] Stopped    \n`);
 
       // Start
       process.stdout.write('  Starting...');
       await dockerExec(`docker start ${service.container}`);
-      process.stdout.write(`\r  ${colors.green}✓${colors.reset} Started    \n`);
+      process.stdout.write(`\r  [OK] Started    \n`);
 
       // Health check
       process.stdout.write('  Health check...');
@@ -411,10 +411,10 @@ class StackManager {
       const result = await dockerExec(`docker ps --filter name=${service.container} --format "{{.Status}}"`);
 
       if (result.output.includes('Up')) {
-        process.stdout.write(`\r  ${colors.green}✓${colors.reset} Healthy    \n`);
+        process.stdout.write(`\r  [OK] Healthy    \n`);
         console.log(`\n${colors.green}Successfully restarted ${service.name}${colors.reset}`);
       } else {
-        process.stdout.write(`\r  ${colors.red}✗${colors.reset} Failed     \n`);
+        process.stdout.write(`\r  [FAIL] Failed     \n`);
         console.log(`\n${colors.red}Failed to restart ${service.name}${colors.reset}`);
       }
 
@@ -437,10 +437,10 @@ class StackManager {
     for (const status of statuses) {
       if (status.status === 'Running') {
         healthy++;
-        process.stdout.write(`${colors.green}✓${colors.reset}`);
+        process.stdout.write(`[OK]`);
       } else {
         unhealthy++;
-        process.stdout.write(`${colors.red}✗${colors.reset}`);
+        process.stdout.write(`[FAIL]`);
       }
     }
 
@@ -518,11 +518,11 @@ class StackManager {
       const composeResult = await dockerExec('docker-compose up -d');
 
       if (composeResult.success) {
-        console.log(` ${colors.green}✓${colors.reset}`);
+        console.log(` [OK]`);
         console.log(`\n${colors.yellow}Waiting for services to be ready...${colors.reset}`);
         await sleep(10000); // Wait for services to initialize
       } else {
-        console.log(` ${colors.red}✗${colors.reset}`);
+        console.log(` [FAIL]`);
         console.log(`${colors.red}Error: ${composeResult.error}${colors.reset}`);
         this.rl.question('\nPress Enter to continue...', () => {
           this.mainLoop();
@@ -538,7 +538,7 @@ class StackManager {
         if (service) {
           process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
           const result = await dockerExec(`docker start ${service.container}`);
-          console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+          console.log(result.success ? `[OK]` : `[FAIL]`);
           await sleep(1000);
         }
       }
@@ -554,7 +554,7 @@ class StackManager {
     // Check Docker before any operation
     await this.checkDocker(true);
     printHeader();
-    this.rl.question(`\n${colors.yellow}⚠️  WARNING: This will stop all services!${colors.reset}\nAre you sure? (y/N): `, async (confirm) => {
+    this.rl.question(`\n${colors.yellow}WARNING: This will stop all services!${colors.reset}\nAre you sure? (y/N): `, async (confirm) => {
       if (confirm.toLowerCase() !== 'y') {
         await this.mainLoop();
         return;
@@ -584,16 +584,54 @@ class StackManager {
     console.log(`${colors.yellow}Running comprehensive stack tests...${colors.reset}\n`);
     console.log(`${colors.dim}This will test all services and communications${colors.reset}\n`);
 
+    const { execSync } = require('child_process');
+    const path = require('path');
+    const fs = require('fs');
+
+    const pythonScriptPath = path.join(__dirname, 'test-stack-deep.py');
+
+    // Check if test script exists
+    if (!fs.existsSync(pythonScriptPath)) {
+      console.log(`${colors.red}ERROR: Test script not found: ${pythonScriptPath}${colors.reset}\n`);
+      this.rl.question('Press Enter to return to menu...', () => {
+        this.mainLoop();
+      });
+      return;
+    }
+
+    console.log(`${colors.dim}Starting test execution...${colors.reset}\n`);
+    console.log(`${colors.dim}═══════════════════════════════════════════════${colors.reset}\n`);
+
     try {
-      const { execSync } = require('child_process');
-      execSync('python3 test-stack-deep.py', {
+      // Use execSync with proper environment for real execution
+      const command = `cd "${__dirname}" && python3 test-stack-deep.py`;
+
+      console.log(`${colors.dim}Executing: ${command}${colors.reset}\n`);
+
+      // Execute the test with real-time output
+      execSync(command, {
         stdio: 'inherit',
-        cwd: __dirname
+        encoding: 'utf-8',
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1',
+          FORCE_COLOR: '1'
+        }
       });
 
-      console.log(`\n${colors.green}✅ Deep stack test completed!${colors.reset}\n`);
+      console.log(`\n${colors.dim}═══════════════════════════════════════════════${colors.reset}\n`);
+      console.log(`${colors.green}Deep stack test completed successfully!${colors.reset}\n`);
+
     } catch (error) {
-      console.log(`\n${colors.yellow}⚠️  Test completed with warnings (code: ${error.status || 'unknown'})${colors.reset}\n`);
+      console.log(`\n${colors.dim}═══════════════════════════════════════════════${colors.reset}\n`);
+
+      if (error.code === 'ENOENT') {
+        console.log(`${colors.red}ERROR: Python3 not found. Please ensure Python 3 is installed.${colors.reset}\n`);
+      } else if (error.status) {
+        console.log(`${colors.yellow}WARNING: Test completed with exit code: ${error.status}${colors.reset}\n`);
+      } else {
+        console.log(`${colors.red}ERROR: Test failed: ${error.message}${colors.reset}\n`);
+      }
     }
 
     this.rl.question('Press Enter to return to menu...', () => {
@@ -607,7 +645,7 @@ class StackManager {
     const agentStatus = statuses.find(s => s.name === 'Agent Engine (Multi-Agent AI)');
 
     if (!agentStatus || agentStatus.status !== 'Running') {
-      console.log(`\n${colors.yellow}⚠️  Agent Engine is not running${colors.reset}`);
+      console.log(`\n${colors.yellow}WARNING: Agent Engine is not running${colors.reset}`);
       console.log(`${colors.cyan}Starting Agent Engine container...${colors.reset}\n`);
 
       // Start the agent-engine container
@@ -621,7 +659,7 @@ class StackManager {
       await sleep(2000);
     }
 
-    console.log(`\n${colors.green}Opening Agent Engine CLI (Milhena)...${colors.reset}`);
+    console.log(`\n${colors.green}Opening Agent Engine CLI...${colors.reset}`);
     console.log(`${colors.dim}Connecting to container...${colors.reset}\n`);
 
     // Execute CLI inside the container
@@ -647,7 +685,7 @@ class StackManager {
     const runningCount = statuses.filter(s => s.status === 'Running').length;
 
     if (runningCount < 7) {
-      console.log(`\n${colors.yellow}⚠️  Stack is not fully running${colors.reset}`);
+      console.log(`\n${colors.yellow}WARNING: Stack is not fully running${colors.reset}`);
       console.log(`${colors.cyan}To access the Business Portal, all services must be running.${colors.reset}\n`);
 
       this.rl.question('Start all services now? (Y/n): ', async (answer) => {
@@ -680,7 +718,7 @@ class StackManager {
               if (service) {
                 process.stdout.write(`  Starting ${service.name.padEnd(25)}`);
                 const result = await dockerExec(`docker start ${service.container}`);
-                console.log(result.success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`);
+                console.log(result.success ? `[OK]` : `[FAIL]`);
                 await sleep(1000);
               }
             }
@@ -731,9 +769,42 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Start the application
-const manager = new StackManager();
-manager.run().catch(error => {
-  console.error(`${colors.red}Fatal error: ${error.message}${colors.reset}`);
-  process.exit(1);
-});
+// Check for direct command line arguments
+const args = process.argv.slice(2);
+
+if (args[0] === 'test') {
+  // Direct test execution without interactive menu
+  console.log(`${colors.cyan}╔══════════════════════════════════════════════╗${colors.reset}`);
+  console.log(`${colors.cyan}║${colors.reset}        ${colors.bright}DEEP STACK TEST SUITE${colors.reset}             ${colors.cyan}║${colors.reset}`);
+  console.log(`${colors.cyan}╚══════════════════════════════════════════════╝${colors.reset}\n`);
+
+  console.log(`${colors.yellow}Running comprehensive stack tests...${colors.reset}\n`);
+
+  const { execSync } = require('child_process');
+
+  try {
+    execSync('python3 test-stack-deep.py', {
+      stdio: 'inherit',
+      encoding: 'utf-8',
+      cwd: __dirname,
+      env: {
+        ...process.env,
+        PYTHONUNBUFFERED: '1',
+        FORCE_COLOR: '1'
+      }
+    });
+
+    console.log(`\n${colors.green}Test completed successfully!${colors.reset}\n`);
+    process.exit(0);
+  } catch (error) {
+    console.log(`\n${colors.red}ERROR: Test failed with exit code: ${error.status || 'unknown'}${colors.reset}\n`);
+    process.exit(1);
+  }
+} else {
+  // Start the application normally
+  const manager = new StackManager();
+  manager.run().catch(error => {
+    console.error(`${colors.red}Fatal error: ${error.message}${colors.reset}`);
+    process.exit(1);
+  });
+}

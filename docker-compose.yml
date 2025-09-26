@@ -218,11 +218,9 @@ services:
 
   # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
   intelligence-engine:
-    # DYNAMIC BUILD with updated dependencies and all OpenAI models
-    build:
-      context: ./intelligence-engine
-      dockerfile: Dockerfile
-    container_name: pilotpros-intelligence-engine
+    # USA IMMAGINE LOCKED ESISTENTE - NO REBUILD!
+    image: pilotpros-intelligence-engine:v1.0-langchain-complete-verified
+    container_name: pilotpros-intelligence-engine-dev
     restart: unless-stopped
     depends_on:
       postgres-dev:

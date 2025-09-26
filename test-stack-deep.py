@@ -64,8 +64,8 @@ class StackDeepTest:
         if self.json_output:
             return
 
-        icons = {"info": "ℹ️", "pass": f"{GREEN}✅{RESET}", "fail": f"{RED}❌{RESET}",
-                "warn": f"{YELLOW}⚠️{RESET}", "test": "🧪"}
+        icons = {"info": "[INFO]", "pass": f"{GREEN}[PASS]{RESET}", "fail": f"{RED}[FAIL]{RESET}",
+                "warn": f"{YELLOW}[WARN]{RESET}", "test": "[TEST]"}
         print(f"{icons.get(level, '')} {message}")
 
     def print_header(self, text: str):
@@ -218,9 +218,9 @@ class StackDeepTest:
         result["container"] = self.test_docker_container("backend")
         result["health"] = self.test_http_endpoint("backend", "/health")
 
-        # Test API endpoints
+        # Test API endpoints (expects 401 without auth token)
         try:
-            response = requests.get("http://localhost:3001/api/users/check", timeout=5)
+            response = requests.get("http://localhost:3001/api/users", timeout=5)
             if response.status_code in [200, 401]:
                 self.log("Backend API endpoints: OK", "pass")
                 result["api_working"] = True
@@ -515,23 +515,23 @@ class StackDeepTest:
         total = self.results["passed"] + self.results["failed"] + self.results["warnings"]
         passed_pct = (self.results["passed"] / total * 100) if total > 0 else 0
 
-        print(f"{GREEN}✅ PASSED:{RESET}    {self.results['passed']}/{total}")
-        print(f"{RED}❌ FAILED:{RESET}    {self.results['failed']}/{total}")
-        print(f"{YELLOW}⚠️  WARNINGS:{RESET} {self.results['warnings']}/{total}")
+        print(f"{GREEN}PASSED:{RESET}      {self.results['passed']}/{total}")
+        print(f"{RED}FAILED:{RESET}      {self.results['failed']}/{total}")
+        print(f"{YELLOW}WARNINGS:{RESET}    {self.results['warnings']}/{total}")
         print(f"\n{BLUE}Success Rate:{RESET} {passed_pct:.1f}%")
         print(f"{BLUE}Total Time:{RESET}   {self.results['total_time']/1000:.2f}s")
 
         if self.results["failed"] == 0 and self.results["warnings"] == 0:
-            print(f"\n{GREEN}{'🎉 PERFECT! ALL TESTS PASSED! 🎉'.center(70)}{RESET}")
+            print(f"\n{GREEN}{'PERFECT! ALL TESTS PASSED!'.center(70)}{RESET}")
             return 0
         elif self.results["failed"] == 0:
-            print(f"\n{YELLOW}{'✅ PASSED WITH WARNINGS'.center(70)}{RESET}")
+            print(f"\n{YELLOW}{'PASSED WITH WARNINGS'.center(70)}{RESET}")
             return 0
         elif self.results["failed"] < 3:
-            print(f"\n{YELLOW}{'⚠️  MINOR ISSUES DETECTED'.center(70)}{RESET}")
+            print(f"\n{YELLOW}{'MINOR ISSUES DETECTED'.center(70)}{RESET}")
             return 1
         else:
-            print(f"\n{RED}{'❌ CRITICAL ISSUES - STACK NOT READY'.center(70)}{RESET}")
+            print(f"\n{RED}{'CRITICAL ISSUES - STACK NOT READY'.center(70)}{RESET}")
             return 2
 
     def run_all_tests(self):
