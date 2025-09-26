@@ -3,7 +3,8 @@
 
 import os
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = "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"
+# Set LANGCHAIN_API_KEY in your environment or .env file
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY", "")
 os.environ["LANGCHAIN_PROJECT"] = "pilotpros-intelligence"
 
 from langchain_openai import ChatOpenAI
