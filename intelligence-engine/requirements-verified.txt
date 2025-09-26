@@ -1,0 +1,43 @@
+# ================================================
+# VERIFIED DEPENDENCIES - TESTED COMPATIBILITY
+# LangChain 0.3.27 + Multi-Provider Support
+# ================================================
+
+# CORE (VERIFIED COMPATIBLE)
+langchain==0.3.27
+langchain-core==0.3.76
+langchain-community==0.3.29
+
+# PROVIDERS (VERIFIED VERSIONS FROM PYPI)
+langchain-openai==0.3.33      # ✅ Compatible with 0.3.x
+langchain-groq==0.3.8          # ✅ Compatible with 0.3.x
+langchain-google-genai>=2.0.0  # ✅ Let pip resolve version
+langchain-anthropic==0.3.20    # ✅ Compatible with 0.3.x
+
+# LLM LIBRARIES (MINIMUM REQUIRED)
+openai>=1.0.0
+anthropic>=0.30.0
+groq>=0.12.0
+# google-generativeai installed by langchain-google-genai
+
+# API FRAMEWORK (MINIMAL)
+fastapi
+uvicorn[standard]
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# DATABASE (ONLY ESSENTIALS)
+redis>=5.0.0
+psycopg2-binary>=2.9.0
+
+# MONITORING (OPTIONAL BUT USEFUL)
+prometheus-client>=0.20.0
+
+# UTILS (BARE MINIMUM)
+python-dotenv>=1.0.0
+httpx>=0.25.0
+loguru>=0.7.0
+
+# DASHBOARD (OPTIONAL)
+# streamlit>=1.30.0
+# plotly>=5.0.0

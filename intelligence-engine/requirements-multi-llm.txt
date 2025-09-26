@@ -1,0 +1,113 @@
+# ============================================
+# MULTI-LLM REQUIREMENTS - TESTED & WORKING
+# LangChain 0.3.27 + Multi-Provider Support
+# ============================================
+
+# -----------------------------
+# CORE LANGCHAIN (Latest Stable)
+# -----------------------------
+langchain==0.3.27
+langchain-core==0.3.76
+langchain-community==0.3.29
+langchain-text-splitters==0.3.11
+langgraph==0.2.61
+langserve==0.3.0
+
+# -----------------------------
+# LLM PROVIDERS (All Compatible)
+# -----------------------------
+# OpenAI (for direct & OpenRouter)
+langchain-openai==0.3.33
+openai>=1.56.0
+
+# Groq (FREE tier)
+langchain-groq==0.3.8
+groq>=0.12.0
+
+# Anthropic (Direct API)
+langchain-anthropic>=0.3.0
+anthropic>=0.40.0
+
+# Google Gemini (FREE tier available!)
+langchain-google-genai>=2.0.0
+google-generativeai>=0.8.0
+google-ai-generativelanguage>=0.6.0
+google-api-core>=2.0.0
+
+# -----------------------------
+# LANGSMITH TRACING
+# -----------------------------
+langsmith>=0.4.0
+
+# -----------------------------
+# FASTAPI & API FRAMEWORK
+# -----------------------------
+fastapi==0.117.1
+uvicorn[standard]==0.37.0
+pydantic==2.11.9
+pydantic-settings==2.11.0
+python-multipart==0.0.18
+
+# -----------------------------
+# DATABASE & CACHE
+# -----------------------------
+# Redis for memory/cache
+redis==6.4.0
+
+# PostgreSQL
+psycopg2-binary==2.9.10
+sqlalchemy==2.0.43
+asyncpg==0.30.0
+
+# Vector Store (optional)
+pgvector==0.3.6
+chromadb>=0.5.0
+
+# -----------------------------
+# UI DASHBOARD (Streamlit)
+# -----------------------------
+streamlit==1.50.0
+plotly==6.3.0
+pandas==2.2.3
+numpy==2.3.3
+
+# -----------------------------
+# MONITORING & OBSERVABILITY
+# -----------------------------
+prometheus-client==0.23.1
+
+# Optional: Alternative to LangSmith
+# phoenix-arize>=5.0.0
+# langfuse>=2.0.0
+
+# -----------------------------
+# UTILITIES
+# -----------------------------
+python-dotenv==1.1.1
+httpx==0.28.1
+tenacity==9.1.2
+loguru==0.7.3
+aiofiles==24.1.0
+rich==13.9.4
+
+# -----------------------------
+# AUTHENTICATION & SECURITY
+# -----------------------------
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# -----------------------------
+# DOCUMENT PROCESSING (Optional)
+# -----------------------------
+pypdf>=5.0.0
+python-docx>=1.1.0
+markdown>=3.7
+beautifulsoup4>=4.12.0
+
+# -----------------------------
+# DEVELOPMENT & TESTING
+# -----------------------------
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+black>=24.0.0
+ruff>=0.8.0

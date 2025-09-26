@@ -151,8 +151,9 @@ npm run test              # All tests in Docker
 2. **Redis** ✅ - Cache ready for LangChain
 3. **Backend API** ✅ - Express with auth
 4. **Frontend** ✅ - Vue 3 business portal
-5. **Automation** ✅ - n8n workflow engine
-6. **Monitor** ✅ - Nginx reverse proxy
+5. **Intelligence Engine** 🔒 - LangChain 0.3.27 LOCKED (locked-v1.0-langchain-0.3.27)
+6. **Automation** ✅ - n8n workflow engine
+7. **Monitor** ✅ - Nginx reverse proxy
 
 ---
 
@@ -167,20 +168,24 @@ npm run test              # All tests in Docker
 
 ### **📋 ESSENTIAL COMMANDS POST-CLEANUP**
 ```bash
-# Stack Management - SIMPLIFIED
-./stack                   # Interactive CLI (6 services only)
-./stack-safe.sh start     # Direct start (no Agent Engine)
+# Stack Management - WITH LOCKED INTELLIGENCE ENGINE
+./stack                   # Interactive CLI (7 services)
+./stack-safe.sh start     # Direct start (NO REBUILD)
 ./stack-safe.sh status    # Health check
 
-# Access Points - CLEANED
+# Intelligence Engine LOCKED Commands 🔒
+./intelligence-engine-safe.sh build-lock  # Build and lock image (ONCE)
+./intelligence-engine-safe.sh start       # Start locked container
+./intelligence-engine-safe.sh dashboard   # Open dashboard
+./intelligence-engine-safe.sh status      # Check health
+
+# Access Points - COMPLETE STACK
 http://localhost:3000     # Business Portal (tiziano@gmail.com / Hamlet@108)
 http://localhost:3001     # Backend API
+http://localhost:8000     # Intelligence Engine API (LangChain)
+http://localhost:8501     # Intelligence Dashboard (Streamlit)
 http://localhost:3005     # Stack Controller (admin / PilotPro2025!)
 http://localhost:5678     # Automation (admin / pilotpros_admin_2025)
-
-# Development - NO CREWAI
-cd agent-engine/          # Direct system (no multi-agent)
-python3 main.py           # Direct FastAPI server
 ```
 
 **🎯 AI AGENTS**: All info is now in this CLAUDE.md file. No external docs to read!

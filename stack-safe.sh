@@ -22,7 +22,11 @@ show_status() {
         echo "  ⏸️  Backend: Stopped"
     fi
 
-    # Agent Engine REMOVED (CrewAI eliminated)
+    if docker ps | grep -q pilotpros-intelligence-engine; then
+        echo "  ✅ Intelligence Engine: Running"
+    else
+        echo "  ⏸️  Intelligence Engine: Stopped"
+    fi
 
     if docker ps | grep -q pilotpros-postgres-dev; then
         echo "  ✅ PostgreSQL: Running"
@@ -52,6 +56,7 @@ show_status() {
     echo "Access Points:"
     echo "  🌐 Frontend:      http://localhost:3000"
     echo "  ⚙️  Backend API:   http://localhost:3001"
+    echo "  🧠 Intelligence:  http://localhost:8000 (API) | http://localhost:8501 (Dashboard)"
     echo "  🔧 Stack Control: http://localhost:3005"
     echo "  🔄 Automation:    http://localhost:5678"
 }
