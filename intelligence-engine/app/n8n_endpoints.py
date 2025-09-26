@@ -23,9 +23,114 @@ from langchain.memory import ConversationBufferWindowMemory
 
 from .llm_manager import get_llm_manager
 from .config import settings
+# Import NEW ReAct Agent instead of old CustomerSupportAgent
+from .langchain_react_agent import get_react_agent
 from loguru import logger
 
 router = APIRouter(prefix="/api/n8n", tags=["n8n-integration"])
+
+# ============================================================================
+# CUSTOMER SUPPORT AGENT ENDPOINT FOR n8n HTTP REQUEST NODE
+# ============================================================================
+
+class CustomerSupportRequest(BaseModel):
+    """Request for customer support agent"""
+    message: str = Field(..., description="Customer question or issue")
+    customer_id: Optional[str] = Field(default=None, description="Customer ID for context")
+    email: Optional[str] = Field(default=None, description="Customer email for lookup")
+    session_id: Optional[str] = Field(default="default", description="Session ID for conversation")
+
+@router.post("/agent/customer-support")
+async def customer_support_chat(request: CustomerSupportRequest):
+    """
+    Customer Support Agent - Called by n8n HTTP Request Node
+
+    n8n HTTP Request Configuration:
+    - Method: POST
+    - URL: http://pilotpros-intelligence-engine:8000/api/n8n/agent/customer-support
+    - Body: {"message": "user question", "customer_id": "123"}
+
+    Returns customer support response with database lookups
+    """
+    try:
+        logger.info(f"🎧 Customer support request: {request.message[:50]}...")
+
+        # Use customer_id or try to extract from email
+        customer_context = request.customer_id or request.email
+
+        # Use NEW ReAct agent instead of old customer support
+        react_agent = get_react_agent()
+
+        # Add customer context to message if provided
+        enhanced_message = request.message
+        if customer_context:
+            enhanced_message = f"[Customer ID: {customer_context}] {request.message}"
+
+        result = await react_agent.chat(
+            message=enhanced_message,
+            session_id=request.session_id
+        )
+
+        if result.get("success"):
+            logger.info(f"✅ Customer support completed in {result.get('response_time', 0):.1f}s")
+
+            return {
+                "success": True,
+                "agent_response": result["response"],
+                "response_time": result.get("processing_time_ms", 0) / 1000,
+                "customer_id": customer_context,
+                "session_id": request.session_id,
+                "agent_type": "customer_support",
+                "database_used": len(result.get("tools_used", [])) > 0,
+                "timestamp": result["timestamp"]
+            }
+        else:
+            logger.error(f"❌ Customer support error: {result.get('error')}")
+            return {
+                "success": False,
+                "error": result.get("error"),
+                "fallback_response": result.get("response"),
+                "agent_type": "customer_support"
+            }
+
+    except Exception as e:
+        logger.error(f"❌ Customer support endpoint error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_response": "I apologize, our support system is temporarily unavailable. Please try again later."
+        }
+
+@router.get("/agent/customer-support")
+async def customer_support_get(message: str, customer_id: Optional[str] = None, session_id: str = "default"):
+    """
+    Customer Support Agent - GET version for simple n8n HTTP Request
+
+    n8n HTTP Request Configuration:
+    - Method: GET
+    - URL: http://pilotpros-intelligence-engine:8000/api/n8n/agent/customer-support
+    - Query Params: message="user question"&customer_id="123"
+
+    Simpler for n8n configuration
+    """
+    try:
+        # Convert GET to POST format
+        request = CustomerSupportRequest(
+            message=message,
+            customer_id=customer_id,
+            session_id=session_id
+        )
+
+        # Use the same logic as POST
+        return await customer_support_chat(request)
+
+    except Exception as e:
+        logger.error(f"❌ Customer support GET error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_response": "Support system error. Please try again."
+        }
 
 # ============================================================================
 # PYDANTIC MODELS FOR n8n COMMUNICATION

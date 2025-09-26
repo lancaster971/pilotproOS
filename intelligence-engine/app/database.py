@@ -29,25 +29,25 @@ async def init_database():
     try:
         # Create pgvector extension
         async with async_engine.begin() as conn:
-            # Enable pgvector extension for embeddings
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-            logger.info("✅ pgvector extension enabled")
+            # Enable pgvector extension for embeddings - DISABLED for now
+            # await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            # logger.info("✅ pgvector extension enabled")
 
             # Create intelligence schema
             await conn.execute(text("CREATE SCHEMA IF NOT EXISTS intelligence"))
             logger.info("✅ Intelligence schema created")
 
-            # Create embeddings table
-            await conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS intelligence.embeddings (
-                    id SERIAL PRIMARY KEY,
-                    document_id VARCHAR(255),
-                    content TEXT,
-                    embedding vector(1536),
-                    metadata JSONB,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
+            # Create embeddings table - DISABLED needs pgvector
+            # await conn.execute(text("""
+            #     CREATE TABLE IF NOT EXISTS intelligence.embeddings (
+            #         id SERIAL PRIMARY KEY,
+            #         document_id VARCHAR(255),
+            #         content TEXT,
+            #         embedding vector(1536),
+            #         metadata JSONB,
+            #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            #     )
+            # """))
 
             # Create conversations table
             await conn.execute(text("""
@@ -73,10 +73,11 @@ async def init_database():
             """))
 
             # Create indexes
-            await conn.execute(text("""
-                CREATE INDEX IF NOT EXISTS idx_embeddings_vector
-                ON intelligence.embeddings USING ivfflat (embedding vector_cosine_ops)
-            """))
+            # DISABLED - needs embeddings table with pgvector
+            # await conn.execute(text("""
+            #     CREATE INDEX IF NOT EXISTS idx_embeddings_vector
+            #     ON intelligence.embeddings USING ivfflat (embedding vector_cosine_ops)
+            # """))
 
             await conn.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_conversations_user

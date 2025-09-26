@@ -20,7 +20,7 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import ChatOllama
 from langchain.memory import ConversationSummaryBufferMemory
-from langchain_redis import RedisCache, RedisSemanticCache
+from langchain_community.cache import RedisCache
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from langserve import add_routes
@@ -33,6 +33,7 @@ from .database import init_database, get_session
 from .monitoring import setup_monitoring, track_request
 from .n8n_endpoints import router as n8n_router
 from .api_models import router as models_router
+from .langchain_react_agent import get_react_agent  # NEW: ReAct Agent
 
 # Logging
 from loguru import logger
@@ -46,14 +47,20 @@ async def lifespan(app: FastAPI):
     # Initialize database
     await init_database()
 
-    # Setup monitoring
-    setup_monitoring(app)
-
     # Initialize LangChain components
     app.state.llm = setup_llm()
     app.state.memory = setup_memory()
-    app.state.cache = setup_cache()
-    app.state.vectorstore = setup_vectorstore()
+    app.state.cache = None  # setup_cache()  # Disabled for now
+    app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
+
+    # Initialize NEW ReAct Agent (replacing CustomerSupportAgent)
+    from .langchain_react_agent import PilotProReActAgent
+    app.state.react_agent = PilotProReActAgent(
+        model_name="gpt-4o-mini",  # Fast model
+        temperature=0.1,  # Low temperature for consistency
+        max_iterations=5,  # Max 5 tool calls to avoid loops
+        use_memory=True
+    )
 
     logger.info("✅ Intelligence Engine ready!")
 
@@ -87,10 +94,8 @@ def setup_memory():
 
 def setup_cache():
     """Initialize Redis cache for responses"""
-    return RedisSemanticCache(
-        redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
-        embedding=OpenAIEmbeddings(),
-        score_threshold=0.95
+    return RedisCache(
+        redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
     )
 
 def setup_vectorstore():
@@ -117,6 +122,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Setup monitoring
+setup_monitoring(app)
 
 # Include routers
 app.include_router(n8n_router)
@@ -162,57 +170,88 @@ async def health_check():
 # Main chat endpoint
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Main chat endpoint with LangChain processing"""
+    """Main chat endpoint with NEW ReAct Agent"""
     try:
         with track_request(request.user_id, "chat"):
-            # Check cache first
-            if request.use_cache:
-                cached = await app.state.cache.get(request.message)
-                if cached:
-                    logger.info(f"Cache hit for: {request.message[:50]}")
-                    return ChatResponse(
-                        response=cached,
-                        status="success",
-                        metadata={"cached": True}
-                    )
+            # Use the NEW ReAct agent
+            agent = app.state.react_agent
 
-            # Create business chain with tools
-            chain = create_business_chain(
-                llm=app.state.llm,
-                memory=app.state.memory,
-                tools=[
-                    BusinessDataTool(),
-                    WorkflowTool(),
-                    MetricsTool()
-                ]
+            # Generate session ID
+            session_id = f"api_{request.user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+            # Process with ReAct agent
+            result = await agent.chat(
+                message=request.message,
+                session_id=session_id,
+                stream=request.stream if hasattr(request, 'stream') else False
             )
 
-            # Process message
-            response = await chain.ainvoke({
-                "input": request.message,
-                "user_id": request.user_id,
-                "context": request.context
-            })
-
-            # Cache response
-            if request.use_cache:
-                await app.state.cache.set(request.message, response["output"])
+            if not result.get("success"):
+                return ChatResponse(
+                    response=result.get("response", "Si è verificato un errore."),
+                    status="error",
+                    metadata={"error": result.get("error")}
+                )
 
             return ChatResponse(
-                response=response["output"],
+                response=result.get("response", ""),
                 status="success",
                 metadata={
-                    "model": response.get("model_used"),
-                    "tools_used": response.get("tools_used", []),
-                    "processing_time_ms": response.get("processing_time")
+                    "model": result.get("model", "react-agent"),
+                    "tools_used": result.get("tools_used", []),
+                    "processing_time_ms": result.get("processing_time_ms", 0)
                 },
-                sources=response.get("sources"),
-                confidence=response.get("confidence")
+                sources=result.get("tools_used", []),
+                confidence=0.95
             )
 
     except Exception as e:
         logger.error(f"Chat error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Webhook endpoint for Frontend Vue widget
+@app.post("/webhook/from-frontend")
+async def webhook_chat(request: ChatRequest):
+    """Webhook endpoint for frontend Vue widget chat"""
+    try:
+        # Use the NEW ReAct agent for frontend queries
+        agent = app.state.react_agent
+
+        # Generate session ID for web
+        session_id = f"web_{request.user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        result = await agent.chat(
+            message=request.message,
+            session_id=session_id,
+            stream=False  # No streaming for webhook
+        )
+
+        if not result.get("success"):
+            return ChatResponse(
+                response=result.get("response", "Mi dispiace, si è verificato un errore."),
+                status="error",
+                metadata={"error": result.get("error")}
+            )
+
+        return ChatResponse(
+            response=result.get("response", ""),
+            status="success",
+            metadata={
+                "model": result.get("model", "react-agent"),
+                "tools_used": result.get("tools_used", []),
+                "processing_time_ms": result.get("processing_time_ms", 0)
+            },
+            sources=result.get("tools_used", []),
+            confidence=0.95
+        )
+
+    except Exception as e:
+        logger.error(f"Webhook chat error: {str(e)}")
+        return ChatResponse(
+            response="Mi dispiace, si è verificato un errore nel sistema di supporto.",
+            status="error",
+            metadata={"error": str(e)}
+        )
 
 # Analysis endpoint
 @app.post("/api/analyze")
@@ -281,17 +320,19 @@ async def websocket_chat(websocket: WebSocket):
         await websocket.close()
 
 # LangServe routes for chain deployment
-add_routes(
-    app,
-    create_business_chain(app.state.llm, app.state.memory),
-    path="/business"
-)
+# NOTE: These are disabled for now as they need app.state initialization
+# TODO: Move to lifespan or create lazy initialization
+# add_routes(
+#     app,
+#     create_business_chain(app.state.llm, app.state.memory),
+#     path="/business"
+# )
 
-add_routes(
-    app,
-    create_analysis_chain(app.state.llm, app.state.vectorstore),
-    path="/analysis"
-)
+# add_routes(
+#     app,
+#     create_analysis_chain(app.state.llm, app.state.vectorstore),
+#     path="/analysis"
+# )
 
 # Statistics endpoint
 @app.get("/api/stats")
@@ -300,9 +341,9 @@ async def get_stats():
     return {
         "system": "intelligence-engine",
         "framework": "langchain",
-        "active_sessions": await app.state.memory.session_count(),
-        "cache_hits": await app.state.cache.stats(),
-        "vector_documents": await app.state.vectorstore.count(),
+        "active_sessions": 0,  # await app.state.memory.session_count(),
+        "cache_hits": 0,  # await app.state.cache.stats(),
+        "vector_documents": 0,  # await app.state.vectorstore.count(),
         "models_available": ["gpt-4o", "claude-3", "llama-3"],
         "tools_available": ["business_data", "workflows", "metrics", "rag"],
         "uptime": datetime.utcnow().isoformat()
