@@ -112,12 +112,13 @@ class MilhenaSimplifiedOrchestrator:
 
         return Agent(
             role="Fact Validator",
-            goal="Verify every single number and claim is real",
-            backstory="""You are the truth guardian. Your job:
-            1. Check EVERY number against the original data
-            2. Remove ANY speculation or assumption
-            3. If something cannot be verified, remove it
-            4. Output only verified facts""",
+            goal="Verify the data analyst's output and ensure accuracy",
+            backstory="""You receive data from the data analyst. Your job:
+            1. Take the input data provided to you
+            2. Check EVERY number is realistic
+            3. Remove ANY speculation or assumption
+            4. Output the SAME data but validated
+            5. If input is empty, say 'No data provided'""",
             verbose=False,
             allow_delegation=False,
             llm=llm
@@ -132,14 +133,15 @@ class MilhenaSimplifiedOrchestrator:
 
         return Agent(
             role="Business Language Translator",
-            goal="Translate all technical terms to business language",
-            backstory="""You are the final filter. Your rules:
-            1. Replace 'workflow' with 'business process'
-            2. Replace 'execution' with 'process run'
-            3. Replace 'node' with 'step'
-            4. Replace 'n8n' with 'automation system'
-            5. Remove ALL technical jargon
-            6. Make it understandable for a CEO""",
+            goal="Translate the validated data into business language",
+            backstory="""You receive validated data from the validator. Your job:
+            1. Take the validated input provided to you
+            2. Replace 'workflow' with 'business process'
+            3. Replace 'execution' with 'process run'
+            4. Replace 'node' with 'step'
+            5. Replace 'n8n' with 'automation system'
+            6. Keep ALL numbers and facts intact
+            7. Make it understandable for a CEO""",
             verbose=False,
             allow_delegation=False,
             llm=llm
@@ -158,45 +160,54 @@ class MilhenaSimplifiedOrchestrator:
         validator = self.create_validator_agent()
         masking_agent = self.create_masking_agent()
 
-        # Create tasks
+        # Create tasks WITH EXPLICIT DATA FLOW
         classification_task = Task(
             description=f"Classify this question: {question}",
             agent=entry_agent,
-            expected_output="One word: BUSINESS_DATA, HELP, GREETING, or TECHNOLOGY"
+            expected_output="One word: BUSINESS_DATA, HELP, GREETING, or TECHNOLOGY",
+            output_key="classification"
         )
 
         analysis_task = Task(
             description=f"Answer using ONLY database data: {question}",
             agent=data_analyst,
-            expected_output="Data-based answer with real numbers"
+            expected_output="Data-based answer with real numbers from tools",
+            output_key="raw_data"
         )
 
         validation_task = Task(
-            description="Verify every number is from real data. Remove all assumptions.",
+            description="Take the output from the data analyst and verify it. Remove all assumptions and speculation.",
             agent=validator,
-            expected_output="Validated facts only"
+            expected_output="Validated version of the data",
+            context=[analysis_task],  # Prende output dal task precedente
+            output_key="validated_data"
         )
 
         masking_task = Task(
-            description="Translate to business language. Remove all technical terms.",
+            description="Take the validated data and translate it to business language. Remove all technical terms.",
             agent=masking_agent,
-            expected_output="Business-friendly response"
+            expected_output="Business-friendly response",
+            context=[validation_task]  # Prende output dal validator
         )
 
-        # Create crew with sequential process
+        # Create crew with sequential process and VERBOSE for debug
         crew = Crew(
             agents=[entry_agent, data_analyst, validator, masking_agent],
             tasks=[classification_task, analysis_task, validation_task, masking_task],
             process=Process.sequential,
-            verbose=False
+            verbose=True  # Temporaneo per debug
         )
 
-        # Execute
+        # Execute with debug logging
         start_time = time.time()
         result = crew.kickoff()
         elapsed = (time.time() - start_time) * 1000
 
+        # Debug: log outputs
         logger.info(f"BUSINESS_DATA: Completed in {elapsed:.0f}ms")
+        logger.debug(f"Raw data: {analysis_task.output if hasattr(analysis_task, 'output') else 'N/A'}")
+        logger.debug(f"Validated: {validation_task.output if hasattr(validation_task, 'output') else 'N/A'}")
+        logger.debug(f"Final: {result}")
 
         return str(result)
 
