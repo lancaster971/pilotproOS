@@ -83,3 +83,4 @@ mypy==1.13.0
 # Data Science (essenziali)
 pandas==2.2.3
 numpy==2.2.0
+matplotlib==3.9.2
