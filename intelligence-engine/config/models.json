@@ -2,6 +2,9 @@
   "default_model": "gpt-5-mini",
   "fallback_chain": [
     "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-4-1-mini",
+    "o1-mini",
     "groq-llama",
     "gemini-free",
     "gpt-4o-mini"
@@ -104,6 +107,105 @@
       "max_tokens": 4096,
       "description": "FREE 1M tokens - O1 reasoning",
       "token_limit": 1000000,
+      "tier": "free"
+    },
+    "gpt-5-chat-latest": {
+      "provider": "openai",
+      "model": "gpt-5-chat-latest",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "description": "FREE 1M tokens - GPT-5 Chat Latest",
+      "token_limit": 1000000,
+      "tier": "free"
+    },
+    "gpt-4-1": {
+      "provider": "openai",
+      "model": "gpt-4.1-2025-04-14",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "description": "FREE 1M tokens - GPT-4.1 Latest",
+      "token_limit": 1000000,
+      "tier": "free"
+    },
+    "gpt-4o-may": {
+      "provider": "openai",
+      "model": "gpt-4o-2024-05-13",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "description": "FREE 1M tokens - GPT-4o May 2024",
+      "token_limit": 1000000,
+      "tier": "free"
+    },
+    "gpt-4o-aug": {
+      "provider": "openai",
+      "model": "gpt-4o-2024-08-06",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "description": "FREE 1M tokens - GPT-4o August 2024",
+      "token_limit": 1000000,
+      "tier": "free"
+    },
+    "o1-preview": {
+      "provider": "openai",
+      "model": "o1-preview-2024-09-12",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "description": "FREE 1M tokens - O1 Preview",
+      "token_limit": 1000000,
+      "tier": "free"
+    },
+    "gpt-4-1-mini": {
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 16384,
+      "description": "FREE 10M tokens - GPT-4.1 Mini",
+      "token_limit": 10000000,
+      "tier": "free"
+    },
+    "gpt-4-1-nano": {
+      "provider": "openai",
+      "model": "gpt-4.1-nano-2025-04-14",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 2048,
+      "description": "FREE 10M tokens - GPT-4.1 Nano",
+      "token_limit": 10000000,
+      "tier": "free"
+    },
+    "o1-mini": {
+      "provider": "openai",
+      "model": "o1-mini-2024-09-12",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "description": "FREE 10M tokens - O1 Mini reasoning",
+      "token_limit": 10000000,
+      "tier": "free"
+    },
+    "codex-mini-latest": {
+      "provider": "openai",
+      "model": "codex-mini-latest",
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 8192,
+      "description": "FREE 10M tokens - Codex Mini Latest",
+      "token_limit": 10000000,
       "tier": "free"
     },
     "groq-llama": {

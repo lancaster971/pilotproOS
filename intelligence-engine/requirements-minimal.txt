@@ -1,0 +1,38 @@
+# MINIMAL REQUIREMENTS - NO VERSION CONFLICTS
+# Core LangChain
+langchain
+langchain-community
+langchain-core
+langchain-openai
+langchain-anthropic
+langchain-groq
+langchain-google-genai
+
+# FastAPI Stack
+fastapi
+uvicorn[standard]
+pydantic>=2.10
+pydantic-settings>=2.10
+
+# LLM Providers
+openai
+anthropic
+groq
+google-generativeai
+
+# Database
+asyncpg
+sqlalchemy
+psycopg2-binary
+redis
+
+# Essential Utils
+httpx
+python-dotenv
+loguru
+aiofiles
+tenacity
+
+# Streamlit (optional)
+streamlit
+plotly

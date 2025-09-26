@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements-multi-llm.txt /tmp/requirements.txt
+COPY requirements-minimal.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip wheel --no-cache-dir --wheel-dir=/tmp/wheels -r /tmp/requirements.txt
 
@@ -30,7 +30,7 @@ RUN useradd -m -u 1000 appuser
 
 # Copy wheels and install
 COPY --from=builder /tmp/wheels /tmp/wheels
-COPY requirements-multi-llm.txt /tmp/requirements.txt
+COPY requirements-minimal.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --find-links=/tmp/wheels -r /tmp/requirements.txt && \
     rm -rf /tmp/wheels /tmp/requirements.txt

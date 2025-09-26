@@ -1,6 +1,6 @@
 # LangChain Core - Latest stable version (January 2025)
 langchain==0.3.27
-langchain-community==0.3.29
+langchain-community==0.3.30
 langchain-core==0.3.76
 langserve==0.3.0
 langgraph==0.2.61
@@ -13,16 +13,19 @@ pgvector==0.3.6
 langchain-chroma==0.1.4
 
 # LLM Providers
-openai==1.56.2
+openai>=1.104.2
 anthropic==0.40.0
 google-generativeai==0.8.3
 groq==0.12.0
+langchain-groq==0.3.8
+langchain-google-genai==2.0.7
+# langchain-redis==0.2.1  # Rimosso per evitare conflitti con LangChain 0.3.27
 
 # FastAPI & Async
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.3
-pydantic-settings==2.6.1
+pydantic-settings==2.11.0
 
 # Redis for Memory & Cache
 redis==5.2.0
@@ -34,24 +37,18 @@ sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 
 # UI Components
-streamlit==1.41.0
+streamlit==1.50.0
 plotly==5.24.1
-langchain-streamlit==0.1.0
 streamlit-chat==0.1.1
 streamlit-aggrid==0.3.5
 
 # Observability & Tracing
-langfuse==2.57.2
-phoenix-arize==5.8.0
 opentelemetry-api==1.29.0
 opentelemetry-sdk==1.29.0
 
-# Document Processing
+# Document Processing (essenziali)
 pypdf==5.1.0
-python-docx==1.1.2
-markdown==3.7
 beautifulsoup4==4.12.3
-unstructured==0.16.11
 
 # WebSocket & Real-time
 python-socketio==5.11.4
@@ -83,9 +80,6 @@ black==24.10.0
 ruff==0.8.3
 mypy==1.13.0
 
-# Data Science (for analysis UI)
+# Data Science (essenziali)
 pandas==2.2.3
 numpy==2.2.0
-scikit-learn==1.5.2
-matplotlib==3.10.0
-seaborn==0.13.2

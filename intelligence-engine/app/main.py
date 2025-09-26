@@ -31,6 +31,8 @@ from .chains import create_business_chain, create_analysis_chain
 from .tools import BusinessDataTool, WorkflowTool, MetricsTool
 from .database import init_database, get_session
 from .monitoring import setup_monitoring, track_request
+from .n8n_endpoints import router as n8n_router
+from .api_models import router as models_router
 
 # Logging
 from loguru import logger
@@ -115,6 +117,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(n8n_router)
+app.include_router(models_router)
 
 # Request/Response models
 class ChatRequest(BaseModel):
