@@ -12,15 +12,14 @@ const path = require('path');
 const crypto = require('crypto');
 const execAsync = util.promisify(exec);
 
-// Service mappings
+// Service mappings - AGENT ENGINE REMOVED (CrewAI eliminated)
 const services = {
   '1': { key: 'data', name: 'Data Management System', container: 'pilotpros-postgres-dev' },
   '2': { key: 'cache', name: 'Redis Cache & Queue', container: 'pilotpros-redis-dev' },
   '3': { key: 'engine', name: 'Backend API', container: 'pilotpros-backend-dev' },
   '4': { key: 'portal', name: 'Business Portal (Frontend)', container: 'pilotpros-frontend-dev' },
   '5': { key: 'ai', name: 'Automation Engine', container: 'pilotpros-automation-engine-dev' },
-  '6': { key: 'agent', name: 'Agent Engine (Milhena AI)', container: 'pilotpros-agent-engine-dev' },
-  '7': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
+  '6': { key: 'monitor', name: 'System Monitor', container: 'pilotpros-nginx-dev' }
 };
 
 // Colors

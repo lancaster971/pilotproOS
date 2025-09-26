@@ -4,7 +4,6 @@ Analizza e traduce in linguaggio naturale eventi, errori e interazioni business.
 """
 
 from typing import Dict, List, Optional
-from crewai.tools import BaseTool
 import json
 import logging
 import os
@@ -51,16 +50,10 @@ if V3_PROMPTS_AVAILABLE:
     logger.info("✅ V3.0 anti-hallucination prompts attivi")
 
 
-class BusinessIntelligentQueryTool(BaseTool):
-    """Tool per query intelligenti business-oriented con traduzione automatica"""
-
-    name: str = "Business Query Intelligente"
-    description: str = "Interroga i dati business e li traduce in linguaggio comprensibile"
+class BusinessIntelligentQueryTool:
+    """Tool per query intelligenti business-oriented - SENZA CREWAI!"""
 
     def __init__(self):
-        super().__init__()
-        # Note: translator is not a field in CrewAI BaseTool
-        # We'll access it directly when needed
         self._cache_timestamp = None
         self._cached_overview = None
         self._cache_ttl = 60  # Cache per 60 secondi
@@ -84,7 +77,7 @@ class BusinessIntelligentQueryTool(BaseTool):
             pool.putconn(conn)
             logger.debug("📌 Connessione restituita al pool")
 
-    def _run(self, question: str = "Cosa è successo oggi?") -> str:
+    def run(self, question: str = "Cosa è successo oggi?") -> str:
         """
         Risponde a domande business con linguaggio naturale
 

@@ -22,11 +22,7 @@ show_status() {
         echo "  ⏸️  Backend: Stopped"
     fi
 
-    if docker ps | grep -q pilotpros-agent-engine-dev; then
-        echo "  ✅ Agent Engine: Running"
-    else
-        echo "  ⏸️  Agent Engine: Stopped"
-    fi
+    # Agent Engine REMOVED (CrewAI eliminated)
 
     if docker ps | grep -q pilotpros-postgres-dev; then
         echo "  ✅ PostgreSQL: Running"
@@ -41,18 +37,17 @@ show_status() {
     fi
 
     if docker ps | grep -q pilotpros-automation-engine-dev; then
-        echo "  ✅ n8n: Running"
+        echo "  ✅ Automation: Running"
     else
-        echo "  ⏸️  n8n: Stopped"
+        echo "  ⏸️  Automation: Stopped"
     fi
 
     echo ""
     echo "Access Points:"
     echo "  🌐 Frontend:      http://localhost:3000"
     echo "  ⚙️  Backend API:   http://localhost:3001"
-    echo "  🤖 Agent Engine:  http://localhost:8000"
     echo "  🔧 Stack Control: http://localhost:3005"
-    echo "  🔄 n8n:           http://localhost:5678"
+    echo "  🔄 Automation:    http://localhost:5678"
 }
 
 case "$1" in
@@ -99,12 +94,7 @@ case "$1" in
             echo "  ❌ Backend API: Not responding"
         fi
 
-        # Agent Engine health
-        if curl -s http://localhost:8000/health >/dev/null 2>&1; then
-            echo "  ✅ Agent Engine: Healthy"
-        else
-            echo "  ❌ Agent Engine: Not responding"
-        fi
+        # Agent Engine REMOVED (CrewAI eliminated)
 
         # Frontend (check if serving)
         if curl -s http://localhost:3000 >/dev/null 2>&1; then
@@ -125,24 +115,7 @@ case "$1" in
             echo "❌ Failed"
         fi
 
-        # Test Agent Engine
-        echo -n "  Agent Engine: "
-        if curl -s http://localhost:8000/health | grep -q "healthy"; then
-            echo "✅ OK"
-        else
-            echo "❌ Failed"
-        fi
-
-        # Test Milhena
-        echo -n "  Milhena Chat: "
-        if curl -X POST http://localhost:8000/api/chat \
-            -H "Content-Type: application/json" \
-            -d '{"message": "test", "user_id": "test"}' \
-            2>/dev/null | grep -q "success"; then
-            echo "✅ OK"
-        else
-            echo "❌ Failed"
-        fi
+        # Agent Engine and Milhena REMOVED (CrewAI eliminated)
         ;;
 
     "backup")
@@ -151,9 +124,7 @@ case "$1" in
             pilotproos-frontend-dev:backup-$(date +%Y%m%d-%H%M%S)
         docker tag pilotproos-backend-dev:latest \
             pilotproos-backend-dev:backup-$(date +%Y%m%d-%H%M%S)
-        docker tag pilotproos-agent-engine-dev:latest \
-            pilotproos-agent-engine-dev:backup-$(date +%Y%m%d-%H%M%S)
-        echo "✅ Backups created"
+        echo "✅ Backups created (Agent Engine REMOVED)"
         ;;
 
     "recovery")
@@ -161,16 +132,15 @@ case "$1" in
         echo "This will restore from locked images:"
         echo "  - Frontend: locked-v1.0-stable"
         echo "  - Backend: locked-v1.0-stable"
-        echo "  - Agent Engine: locked-v1.0-crewai-0.193.2"
+        echo "  - Agent Engine: REMOVED (CrewAI eliminated)"
         echo ""
         echo "Continue? (y/N)"
         read -r confirm
         if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
             docker tag pilotproos-frontend-dev:locked-v1.0-stable pilotproos-frontend-dev:latest
             docker tag pilotproos-backend-dev:locked-v1.0-stable pilotproos-backend-dev:latest
-            docker tag pilotproos-agent-engine-dev:locked-v1.0-crewai-0.193.2 pilotproos-agent-engine-dev:latest
             docker-compose up -d
-            echo "✅ Emergency recovery completed"
+            echo "✅ Emergency recovery completed (Agent Engine excluded)"
         else
             echo "❌ Recovery cancelled"
         fi
@@ -178,18 +148,18 @@ case "$1" in
 
     "DANGER-rebuild")
         echo "⚠️  DANGER ZONE: This will rebuild ALL custom containers!"
-        echo "This will take 10-15 minutes and rebuild:"
+        echo "This will take 5-10 minutes and rebuild:"
         echo "  - Frontend (Vue 3 + TypeScript)"
         echo "  - Backend (Express + Auth)"
-        echo "  - Agent Engine (CrewAI)"
+        echo "  - Agent Engine: REMOVED (CrewAI eliminated)"
         echo ""
         echo "Type 'YES-I-WANT-TO-REBUILD-ALL' to confirm:"
         read -r confirm
         if [ "$confirm" = "YES-I-WANT-TO-REBUILD-ALL" ]; then
             echo "🏗️  Rebuilding all containers..."
-            docker-compose build --no-cache frontend-dev backend-dev agent-engine-dev
+            docker-compose build --no-cache frontend-dev backend-dev
             docker-compose up -d
-            echo "✅ Full rebuild completed"
+            echo "✅ Full rebuild completed (Agent Engine excluded)"
         else
             echo "❌ Rebuild cancelled"
         fi

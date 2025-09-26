@@ -1,9 +1,0 @@
-#!/bin/bash
-# Agent CLI Wrapper Script
-# Launches the PilotProOS Agent Engine CLI with Milhena Orchestrator
-
-echo "🤖 Launching PilotProOS Agent Engine CLI..."
-echo "✨ Milhena Orchestrator Ready!"
-echo ""
-
-python3 cli.py

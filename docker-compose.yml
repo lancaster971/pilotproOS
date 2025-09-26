@@ -155,8 +155,7 @@ services:
       SESSION_SECRET: pilotpros_dev_session_secret_2025_secure
       BCRYPT_ROUNDS: 4  # Faster in development
 
-      # Agent Engine Integration
-      AGENT_ENGINE_URL: http://agent-engine-dev:8000
+      # Agent Engine REMOVED (CrewAI eliminated)
       N8N_WEBHOOK_SECRET: pilotpros_n8n_secret_2025
 
       # Development specific
@@ -199,7 +198,7 @@ services:
     command: npm run dev -- --host 0.0.0.0 --port 3000
 
 
-  # Redis Cache and Job Queue
+  # Redis Cache & Queue - Ready for future LangChain Agent Engine
   redis-dev:
     image: redis:7-alpine
     container_name: pilotpros-redis-dev
@@ -217,44 +216,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # Agent Engine Service - Multi-Agent AI System
-  agent-engine-dev:
-    build:
-      context: ./pilotpros-agent-engine
-      dockerfile: Dockerfile
-    container_name: pilotpros-agent-engine-dev
-    restart: unless-stopped
-    depends_on:
-      postgres-dev:
-        condition: service_healthy
-      redis-dev:
-        condition: service_healthy
-    environment:
-      - ENVIRONMENT=development
-      - JWT_SECRET=${JWT_SECRET:-pilotpros_dev_jwt_secret_2025_secure}
-      - DATABASE_URL=postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db
-      - REDIS_URL=redis://redis-dev:6379/0
-      - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET:-pilotpros_n8n_secret_2025}
-      - N8N_URL=http://n8n-dev:5678
-      - BACKEND_URL=http://backend-dev:3001
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    volumes:
-      - ./pilotpros-agent-engine:/app
-      - /app/__pycache__
-      - /app/.pytest_cache
-    ports:
-      - "8000:8000"
-    networks:
-      - pilotpros-dev
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+  # Agent Engine REMOVED (CrewAI eliminated completely)
 
   # Nginx Reverse Proxy for Webhook Accessibility
   nginx-dev:
