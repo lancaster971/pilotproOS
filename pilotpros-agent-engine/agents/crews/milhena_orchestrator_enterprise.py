@@ -44,6 +44,15 @@ except ImportError as e:
     IMPROVED_PROMPTS_AVAILABLE = False
     logger.warning(f"⚠️ Improved prompts v3.0 or LLM config not available: {e}")
 
+# Import cache optimizer
+try:
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from cache_optimizer import get_semantic_cache, get_timeout_manager, get_llm_tracker
+    CACHE_OPTIMIZER_AVAILABLE = True
+except ImportError as e:
+    CACHE_OPTIMIZER_AVAILABLE = False
+    logger.warning(f"⚠️ Cache optimizer not available: {e}")
+
 # Import esterni opzionali
 try:
     from langdetect import detect as detect_language
@@ -318,7 +327,7 @@ class PersistentAnalyticsTracker:
         self._save_stats()
 
         # Log
-        logger.info(f"📊 Tracked: {question_type} in {response_time*1000:.2f}ms (cache:{cache_hit})")
+        logger.info(f"TRACKED: {question_type} in {response_time*1000:.2f}ms (cache:{cache_hit})")
 
     def get_stats(self) -> Dict[str, Any]:
         """Ottieni statistiche complete"""
@@ -387,7 +396,7 @@ class PersistentResponseCache:
             response, timestamp = self.cache[key]
             if datetime.now() - timestamp < self.ttl:
                 self.hit_count += 1
-                logger.info(f"💾 Cache HIT for: {question[:30]}...")
+                logger.info(f"CACHE HIT for: {question[:30]}...")
                 return response
             else:
                 # Entry scaduta
@@ -404,7 +413,7 @@ class PersistentResponseCache:
             key = self._generate_key(question, question_type, language)
             self.cache[key] = (response, datetime.now())
             self._save_cache()
-            logger.info(f"💾 Cached response for: {question[:30]}...")
+            logger.info(f"CACHED response for: {question[:30]}...")
 
     def clear_expired(self):
         """Rimuovi entries scadute"""
@@ -451,11 +460,11 @@ class MilhenaEnterpriseOrchestrator:
 
     Features:
     - 🧠 Memory persistente su disco
-    - 📊 Analytics con statistiche persistenti
+    - Analytics con statistiche persistenti
     - 🌍 Multi-lingua con auto-detect
-    - 💾 Caching persistente
+    - Caching persistente
     - 🎯 Confidence-based routing
-    - ⚡ Parallelizzazione task
+    - Parallelizzazione task
     - 🔔 Webhook notifications
     - 🔁 Retry logic automatico
     - 💿 Persistenza completa su disco
@@ -485,10 +494,10 @@ class MilhenaEnterpriseOrchestrator:
         if FAST_CLIENTS_AVAILABLE:
             try:
                 self.openai_client = get_openai_client()
-                logger.info("✅ OpenAI client inizializzato")
+                logger.info("OK: OpenAI client inizializzato")
                 try:
                     self.groq_client = get_groq_client()
-                    logger.info("✅ Groq client inizializzato")
+                    logger.info("OK: Groq client inizializzato")
                 except:
                     logger.info("⚠️ Groq non disponibile, solo OpenAI")
             except Exception as e:
@@ -505,7 +514,7 @@ class MilhenaEnterpriseOrchestrator:
         if self.cache:
             asyncio.create_task(self._periodic_cache_cleanup())
 
-        logger.info("🚀 Milhena Enterprise Orchestrator initialized")
+        logger.info("INIT: Milhena Enterprise Orchestrator initialized")
         logger.info(f"   📁 Persistence directory: {PERSISTENCE_DIR}")
 
     def get_or_create_memory(self, user_id: str) -> Optional[PersistentConversationMemory]:
@@ -659,8 +668,30 @@ class MilhenaEnterpriseOrchestrator:
 
     @retry_on_failure(max_attempts=3, delay_seconds=1.0)
     async def _execute_crew_with_retry(self, crew: Crew) -> str:
-        """Esegue crew con retry automatico"""
+        """Esegue crew con retry automatico e logging LLM"""
+        start_time = time.time()
+
+        # Track LLM calls se disponibile
+        if CACHE_OPTIMIZER_AVAILABLE:
+            llm_tracker = get_llm_tracker()
+            # Log inizio crew
+            agents_count = len(crew.agents) if hasattr(crew, 'agents') else 0
+            logger.info(f"CREW: Starting with {agents_count} agents")
+
         result = crew.kickoff()
+
+        # Log tempo totale
+        duration = (time.time() - start_time) * 1000
+        logger.info(f"CREW: Completed in {duration:.0f}ms")
+
+        # Track chiamata aggregata
+        if CACHE_OPTIMIZER_AVAILABLE:
+            llm_tracker.track_call(
+                agent="crew_aggregate",
+                model="mixed",
+                duration_ms=duration
+            )
+
         return str(result)
 
     async def analyze_question_enterprise(self,
@@ -695,7 +726,39 @@ class MilhenaEnterpriseOrchestrator:
                 if memory.is_returning_user():
                     logger.info(f"👤 Returning user: {user_id}")
 
-            # 3. CACHE CHECK AGGRESSIVO - PRIMA DI TUTTO!
+            # 3. CACHE CHECK CON SEMANTIC CACHE
+            if CACHE_OPTIMIZER_AVAILABLE:
+                semantic_cache = get_semantic_cache()
+                # Check cache semantica per BUSINESS_DATA e ANALYSIS
+                for qtype in ["BUSINESS_DATA", "ANALYSIS"]:
+                    cached_response = semantic_cache.get(question, qtype)
+                    if cached_response:
+                        response_time = time.time() - start_time
+                        logger.info(f"SEMANTIC CACHE HIT! Response in {response_time*1000:.0f}ms")
+
+                        if self.analytics:
+                            self.analytics.track_request(
+                                question=question,
+                                question_type=qtype,
+                                response_time=response_time,
+                                agents_used=["SEMANTIC_CACHE"],
+                                language=language,
+                                confidence=1.0,
+                                cache_hit=True
+                            )
+
+                        return {
+                            "success": True,
+                            "response": cached_response,
+                            "cached": True,
+                            "question_type": qtype,
+                            "language": language,
+                            "confidence": 1.0,
+                            "response_time_ms": response_time * 1000,
+                            "user_id": user_id
+                        }
+
+            # 3b. CACHE CHECK NORMALE
             if self.cache:
                 # Check cache SENZA classificazione per velocità massima
                 for qtype in ["GREETING", "HELP", "BUSINESS_DATA", "ANALYSIS", "GENERAL"]:
@@ -861,18 +924,62 @@ class MilhenaEnterpriseOrchestrator:
                     logger.warning(f"⚠️ Low confidence ({confidence:.2f}), routing to GENERAL")
                     question_type = "GENERAL"
 
-            # 6. EXECUTE BY TYPE
-            response = await self._execute_by_type_with_retry(
-                question_type=question_type,
-                question=question,
-                context=context or memory_context,
-                language=language,
-                memory_context=memory_context
-            )
+            # 6. EXECUTE BY TYPE CON TIMEOUT
+            if CACHE_OPTIMIZER_AVAILABLE:
+                timeout_manager = get_timeout_manager(timeout=30)
+                llm_tracker = get_llm_tracker()
 
-            # 7. UPDATE CACHE
+                # Esegui con timeout per query complesse
+                if question_type in ["BUSINESS_DATA", "ANALYSIS"]:
+                    logger.info(f"TIMEOUT: Esecuzione {question_type} con timeout 30s")
+
+                    async def execute_task():
+                        return await self._execute_by_type_with_retry(
+                            question_type=question_type,
+                            question=question,
+                            context=context or memory_context,
+                            language=language,
+                            memory_context=memory_context
+                        )
+
+                    response, timed_out = await timeout_manager.execute_with_timeout(
+                        execute_task(),
+                        partial_message="L'analisi sta richiedendo piu tempo del previsto. "
+                                      "Sto elaborando una risposta dettagliata. "
+                                      "Nel frattempo, prova con una domanda più specifica."
+                    )
+
+                    if timed_out:
+                        logger.warning(f"TIMEOUT: {question_type} dopo 30s")
+                        response_time = 30.0
+                else:
+                    # Query semplici senza timeout
+                    response = await self._execute_by_type_with_retry(
+                        question_type=question_type,
+                        question=question,
+                        context=context or memory_context,
+                        language=language,
+                        memory_context=memory_context
+                    )
+            else:
+                # Fallback normale senza timeout
+                response = await self._execute_by_type_with_retry(
+                    question_type=question_type,
+                    question=question,
+                    context=context or memory_context,
+                    language=language,
+                    memory_context=memory_context
+                )
+
+            # 7. UPDATE CACHE (normale e semantica)
             if self.cache:
                 self.cache.set(question, question_type, language, response)
+
+            # Update semantic cache per business data
+            if CACHE_OPTIMIZER_AVAILABLE and question_type in ["BUSINESS_DATA", "ANALYSIS"]:
+                semantic_cache = get_semantic_cache()
+                semantic_cache.set(question, question_type, response)
+                logger.info(f"CACHE: Salvato in semantic cache: {question_type}")
 
             # 8. UPDATE MEMORY
             if memory:
@@ -963,9 +1070,17 @@ class MilhenaEnterpriseOrchestrator:
             crew = Crew(agents=[masking_agent], tasks=[task], verbose=False)
 
         elif question_type == "BUSINESS_DATA":
+            logger.info("BUSINESS_DATA: Creando crew con 3 agenti")
             data_analyst = self.create_data_analyst_agent()
             security_filter = self.create_security_filter_agent()
             coordinator = self.create_coordinator_agent(language)
+
+            # Log modelli usati
+            if CACHE_OPTIMIZER_AVAILABLE:
+                llm_tracker = get_llm_tracker()
+                llm_tracker.track_call("data_analyst", "gpt-4o-mini", 0, 0, 0)
+                llm_tracker.track_call("security_filter", "gpt-4o-mini", 0, 0, 0)
+                llm_tracker.track_call("coordinator", "gpt-4o-mini", 0, 0, 0)
 
             tasks = [
                 Task(

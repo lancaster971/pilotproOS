@@ -44,11 +44,18 @@ AGENT_LLM_MAPPING = {
         "reason": "Coordinamento semplice tra agenti"
     },
     
-    # 📊 AGENTE RAGIONAMENTO - o1-mini (10M token, ragionamento matematico)
+    # 📊 AGENTE RAGIONAMENTO - gpt-4o-mini (veloce e efficiente)
     "data_analyst": {
-        "primary": "o1-mini-2024-09-12",  # Ragionamento e analisi dati
+        "primary": "gpt-4o-mini-2024-07-18",  # Analisi dati veloce
         "fallback": "groq/llama-3.3-70b-versatile",
-        "reason": "Analisi dati complesse richiedono ragionamento matematico avanzato"
+        "reason": "Analisi dati con modello veloce ed efficiente"
+    },
+
+    # 🎯 MANAGER - gpt-4o-mini per coordinamento gerarchico
+    "manager": {
+        "primary": "gpt-4o-mini-2024-07-18",  # Manager gerarchico veloce
+        "fallback": "groq/llama-3.3-70b-versatile",
+        "reason": "Coordinamento gerarchico veloce senza context switch"
     }
 }
 
@@ -90,12 +97,13 @@ def get_agent_llm(agent_type: str, task_complexity: str = "normal") -> dict:
     # Mappa agent names alle configurazioni
     agent_mapping = {
         "question_analyzer": "classifier",
-        "milhena_conversation": "conversation", 
+        "milhena_conversation": "conversation",
         "data_analyst": "data_analyst",
         "security_filter": "security_filter",
         "technology_masking": "technology_masking",
         "business_analyzer": "business_analyzer",
-        "coordinator": "coordinator"
+        "coordinator": "coordinator",
+        "manager": "manager"  # Manager gerarchico
     }
     
     # Risolvi il nome agente

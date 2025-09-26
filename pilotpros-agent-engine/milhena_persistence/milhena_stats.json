@@ -1,21 +1,21 @@
 {
-  "total_requests": 128,
+  "total_requests": 130,
   "question_types_count": {
     "GENERAL": 71,
     "GREETING": 16,
     "HELP": 11,
-    "BUSINESS_DATA": 16,
+    "BUSINESS_DATA": 17,
     "ERROR": 13,
-    "ANALYSIS": 1
+    "ANALYSIS": 2
   },
   "languages_detected": {
-    "it": 93,
+    "it": 95,
     "unknown": 13,
     "en": 22
   },
-  "total_response_time_ms": 675034.5644950867,
+  "total_response_time_ms": 832397.7782726288,
   "cache_hits": 23,
-  "cache_misses": 105,
+  "cache_misses": 107,
   "errors_count": 13,
   "daily_stats": {
     "2025-09-25": {
@@ -24,8 +24,8 @@
       "errors": 11
     },
     "2025-09-26": {
-      "requests": 10,
-      "avg_response_time_ms": 23804.22661304474,
+      "requests": 12,
+      "avg_response_time_ms": 32950.45665899912,
       "errors": 2
     }
   }

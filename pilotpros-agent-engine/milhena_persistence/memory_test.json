@@ -1,21 +1,5 @@
 [
   {
-    "timestamp": "2025-09-25T21:07:37.267679",
-    "question": "Qual \u00e8 il fatturato di oggi?",
-    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
-    "type": "GENERAL",
-    "language": "it",
-    "confidence": 0.3
-  },
-  {
-    "timestamp": "2025-09-25T21:11:54.090962",
-    "question": "Ciao Milhena, come stai?",
-    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
-    "type": "GENERAL",
-    "language": "it",
-    "confidence": 0.3
-  },
-  {
     "timestamp": "2025-09-25T21:17:29.740719",
     "question": "test",
     "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
@@ -78,5 +62,21 @@
     "type": "BUSINESS_DATA",
     "language": "it",
     "confidence": 0.95
+  },
+  {
+    "timestamp": "2025-09-26T06:47:58.683295",
+    "question": "Quanti workflow attivi abbiamo nel database?",
+    "response": "Abbiamo 42 workflow attivi nel database.",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.95
+  },
+  {
+    "timestamp": "2025-09-26T06:50:58.738300",
+    "question": "Analizza le performance del sistema negli ultimi 7 giorni",
+    "response": "**Detailed Report on System Performance Metrics (Last Week)**  \n\n**1. Uptime Percentage**  \n- **Metric**: The system maintained an uptime percentage of **99.87%** over the past week. \n- **Analysis**: ",
+    "type": "ANALYSIS",
+    "language": "it",
+    "confidence": 0.9
   }
 ]
