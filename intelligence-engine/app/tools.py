@@ -18,8 +18,8 @@ class BusinessDataInput(BaseModel):
 class BusinessDataTool(BaseTool):
     """Tool for querying business data from PostgreSQL"""
 
-    name = "business_data_query"
-    description = """Query business process data including:
+    name: str = "business_data_query"
+    description: str = """Query business process data including:
     - Process execution statistics
     - Performance metrics
     - Error rates and issues
@@ -80,8 +80,8 @@ class WorkflowInput(BaseModel):
 class WorkflowTool(BaseTool):
     """Tool for interacting with n8n workflows"""
 
-    name = "workflow_management"
-    description = """Manage and interact with business process workflows:
+    name: str = "workflow_management"
+    description: str = """Manage and interact with business process workflows:
     - List available workflows
     - Check workflow status
     - Trigger workflow execution
@@ -155,8 +155,8 @@ class MetricsInput(BaseModel):
 class MetricsTool(BaseTool):
     """Tool for business metrics calculation"""
 
-    name = "metrics_calculator"
-    description = """Calculate and analyze business metrics:
+    name: str = "metrics_calculator"
+    description: str = """Calculate and analyze business metrics:
     - Performance metrics (response time, throughput)
     - Cost analysis
     - Efficiency ratios
