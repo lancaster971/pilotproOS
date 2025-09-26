@@ -152,3 +152,16 @@ BU_Hostinger/database.sqlite.gz
 Docker_BU/
 test-sse.html
 pilotpros-agent-engine/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Session files
+.session
