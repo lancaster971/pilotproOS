@@ -27,7 +27,17 @@ class LightQueryHandler:
             "stato sistema",
             "system status",
             "workflow totali",
-            "total workflows"
+            "total workflows",
+            "ultima esecuzione",
+            "ultimo workflow",
+            "last execution",
+            "last workflow",
+            "ultima attività",
+            "last activity",
+            "cosa è successo oggi",
+            "what happened today",
+            "attività di oggi",
+            "today activity"
         ]
 
         # Query che richiedono analisi complessa (NON light path)

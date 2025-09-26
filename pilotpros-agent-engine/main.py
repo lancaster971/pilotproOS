@@ -87,14 +87,10 @@ def get_milhena():
     global milhena_orchestrator
     if milhena_orchestrator is None:
         try:
-            # Usa CrewAI VERO con versione 0.193.2
-            from agents.crews.milhena_orchestrator_enterprise import MilhenaEnterpriseOrchestrator
-            milhena_orchestrator = MilhenaEnterpriseOrchestrator(
-                enable_memory=True,
-                enable_analytics=True,
-                enable_cache=True
-            )
-            logger.info("✅ CrewAI Milhena Enterprise Orchestrator REALE inizializzato!")
+            # Usa orchestrator SEMPLIFICATO
+            from agents.crews.milhena_orchestrator_simplified import MilhenaSimplifiedOrchestrator
+            milhena_orchestrator = MilhenaSimplifiedOrchestrator()
+            logger.info("OK: Milhena Simplified Orchestrator inizializzato!")
         except Exception as e:
             logger.error(f"❌ Errore inizializzazione CrewAI: {e}")
             # Usa SimpleMilhena come fallback
@@ -119,10 +115,10 @@ async def chat(request: ChatRequest):
                 token_saver = get_token_saver()
                 result = await token_saver.smart_response(request.message, request.user_id)
 
-                # Se Fast Bypass ritorna None, passa al multi-agent
+                # Se Fast Bypass ritorna None, passa all'orchestrator
                 if result.get("response") is None:
-                    logger.info(f"📊 Fast Bypass richiede multi-agent per {result.get('type')}")
-                    # Non fare return, continua al multi-agent sotto
+                    logger.info(f"ORCHESTRATOR: Fast Bypass requires orchestrator for {result.get('type')}")
+                    # Non fare return, continua all'orchestrator sotto
                 else:
                     return ChatResponse(
                         response=result["response"],
@@ -142,14 +138,14 @@ async def chat(request: ChatRequest):
             except Exception as bypass_error:
                 logger.warning(f"⚠️ Fast Bypass failed: {bypass_error} - fallback to CrewAI")
 
-        # 🤖 FALLBACK: CrewAI multi-agente (10% casi complessi)
-        logger.info("🤖 Usando CrewAI multi-agente (caso complesso)")
+        # ORCHESTRATOR: Simplified 4-agent flow
+        logger.info("ORCHESTRATOR: Using simplified 4-agent flow")
         orchestrator = get_milhena()
 
-        # Processa con CrewAI Multi-Agent System
-        if hasattr(orchestrator, 'analyze_question_enterprise'):
-            # Usa metodo enterprise per CrewAI completo
-            result = await orchestrator.analyze_question_enterprise(
+        # Processa con Orchestrator Semplificato
+        if hasattr(orchestrator, 'analyze_question'):
+            # Usa metodo semplificato
+            result = await orchestrator.analyze_question(
                 question=request.message,
                 user_id=request.user_id
             )
@@ -166,7 +162,7 @@ async def chat(request: ChatRequest):
             status="success" if result.get("success") else "error",
             metadata={
                 "user_id": request.user_id,
-                "engine": "crewai-multi-agent",
+                "engine": "simplified-4-agents",
                 "question_type": result.get("question_type", "unknown"),
                 "language": result.get("language", "it"),
                 "response_time_ms": result.get("response_time_ms", 0),

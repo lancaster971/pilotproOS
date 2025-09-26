@@ -149,14 +149,16 @@ class TokenSaver:
 
             logger.info(f"🔍 {question_type} via {provider} (confidence: {confidence:.1%})")
 
-            # 2. BYPASS SEMPLIFICATO - Solo GREETING e HELP
-            bypass_types = ["GREETING", "HELP"]
+            # 2. BYPASS ESTESO - Solo per domande semplici
+            bypass_types = [
+                "GREETING", "HELP", "GENERAL",
+                "TECHNOLOGY_INQUIRY"  # Anche questi, hanno prompt fissi
+            ]
 
-            # Tutto il resto va all'orchestrator
-            orchestrator_types = ["BUSINESS_DATA", "ANALYSIS", "GENERAL", "TECHNOLOGY_INQUIRY"]
+            # BUSINESS_DATA e ANALYSIS sempre al multi-agent per accesso DB
+            multi_agent_types = ["BUSINESS_DATA", "ANALYSIS"]
 
-            # Solo GREETING e HELP vanno in bypass
-            if question_type in bypass_types and confidence > 0.7:
+            if question_type not in multi_agent_types and (question_type in bypass_types or confidence > 0.8):
                 logger.info(f"⚡ BYPASS attivo via {provider} - Sistema GPT-4o+Groq SUPREMO (1M token)!")
 
                 # Contatori precisi
@@ -192,8 +194,8 @@ class TokenSaver:
                     "multi_agent_bypassed": True
                 }
 
-            # 3. Tutto il resto passa all'orchestrator semplificato
-            logger.info(f"ORCHESTRATOR: {question_type} requires full processing")
+            # 3. Solo per dati business CRITICI usa multi-agente
+            logger.warning(f"🤖 Multi-agente NECESSARIO per {question_type} - Passing to CrewAI")
 
             # Segnala che deve usare multi-agent (non bypassed)
             return {

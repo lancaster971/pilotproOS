@@ -1,13 +1,5 @@
 [
   {
-    "timestamp": "2025-09-25T21:17:29.740719",
-    "question": "test",
-    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
-    "type": "GENERAL",
-    "language": "it",
-    "confidence": 0.3
-  },
-  {
     "timestamp": "2025-09-26T00:22:03.753940",
     "question": "Quanti workflow attivi abbiamo?",
     "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
@@ -76,6 +68,14 @@
     "question": "Analizza le performance del sistema negli ultimi 7 giorni",
     "response": "**Detailed Report on System Performance Metrics (Last Week)**  \n\n**1. Uptime Percentage**  \n- **Metric**: The system maintained an uptime percentage of **99.87%** over the past week. \n- **Analysis**: ",
     "type": "ANALYSIS",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-26T08:12:15.997245",
+    "question": "Qual \u00e8 stata ultima esecuzione della giornata?",
+    "response": "In the available data, we can observe the following metrics that highlight the current performance of our workflows over the past week:\n\n- **Active Workflows**: Out of a total of 35 workflows, we curr",
+    "type": "BUSINESS_DATA",
     "language": "it",
     "confidence": 0.9
   }
