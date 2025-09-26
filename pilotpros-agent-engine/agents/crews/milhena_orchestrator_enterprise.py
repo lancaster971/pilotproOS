@@ -19,6 +19,9 @@ from functools import lru_cache
 from collections import deque
 from dotenv import load_dotenv
 
+# Setup logger immediately
+logger = logging.getLogger(__name__)
+
 # Import v3.0 configurations
 try:
     import sys
@@ -39,7 +42,6 @@ try:
 except ImportError as e:
     LLM_CONFIG_AVAILABLE = False
     IMPROVED_PROMPTS_AVAILABLE = False
-    logger = logging.getLogger(__name__)
     logger.warning(f"⚠️ Improved prompts v3.0 or LLM config not available: {e}")
 
 # Import esterni opzionali
@@ -71,11 +73,12 @@ except ImportError:
     logger.warning("Groq non disponibile, userò solo Gemini")
 
 try:
-    from gemini_fast_client import GeminiFastClient, HybridModelRouter
-    GEMINI_AVAILABLE = True
+    from openai_fast_client import get_openai_client, openai_classify, openai_fast_response
+    from groq_fast_client import get_groq_client, groq_classify, groq_fast_response
+    FAST_CLIENTS_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
-    logger.warning("Gemini non disponibile")
+    FAST_CLIENTS_AVAILABLE = False
+    logger.warning("OpenAI/Groq fast clients non disponibili")
 
 # Directory per persistenza
 PERSISTENCE_DIR = Path("milhena_persistence")
@@ -90,7 +93,6 @@ logging.basicConfig(
         logging.FileHandler(PERSISTENCE_DIR / 'milhena_analytics.log')
     ]
 )
-logger = logging.getLogger(__name__)
 
 QuestionType = Literal["GREETING", "BUSINESS_DATA", "TECHNOLOGY_INQUIRY", "HELP", "ANALYSIS", "GENERAL"]
 Language = Literal["it", "en", "fr", "es", "de"]
@@ -476,16 +478,19 @@ class MilhenaEnterpriseOrchestrator:
         ]
 
         # Inizializza router ibrido Gemini+Groq se disponibile
-        self.hybrid_router = None
-        if GEMINI_AVAILABLE or GROQ_AVAILABLE:
+        self.openai_client = None
+        self.groq_client = None
+        if FAST_CLIENTS_AVAILABLE:
             try:
-                if GEMINI_AVAILABLE:
-                    self.hybrid_router = HybridModelRouter()
-                    logger.info("✅ Router ibrido Gemini+Groq inizializzato")
-                else:
-                    logger.info("⚡ Solo Groq disponibile, no hybrid routing")
+                self.openai_client = get_openai_client()
+                logger.info("✅ OpenAI client inizializzato")
+                try:
+                    self.groq_client = get_groq_client()
+                    logger.info("✅ Groq client inizializzato")
+                except:
+                    logger.info("⚠️ Groq non disponibile, solo OpenAI")
             except Exception as e:
-                logger.error(f"Errore inizializzazione router: {e}")
+                logger.error(f"Errore inizializzazione fast clients: {e}")
 
         # Sistemi persistenti
         self.memory_store: Dict[str, PersistentConversationMemory] = {}
@@ -568,8 +573,9 @@ class MilhenaEnterpriseOrchestrator:
         provider, model = self.model_selector.get_model(ModelCategory.POTENTE)
         return Agent(
             role="Data Analyst",
-            goal="Retrieve accurate business data",
-            backstory="I collect and analyze business data efficiently.",
+            goal="Retrieve accurate business data from database",
+            backstory="I collect and analyze business data efficiently using database tools.",
+            tools=self.tools,  # Pass the tools!
             verbose=False,
             allow_delegation=False,
             llm=get_llm_for_crewai("data_analyst") if LLM_CONFIG_AVAILABLE else "groq/llama-3.3-70b-versatile"  # o1-mini (10M) + Groq fallback
@@ -721,11 +727,19 @@ class MilhenaEnterpriseOrchestrator:
 
             # 4. ULTRA FAST MODE: Router ibrido Gemini+Groq per classificazione
             if self.fast_mode:
-                # Usa il router ibrido per massima affidabilità
-                if hasattr(self, 'hybrid_router'):
-                    logger.info("🚀 HYBRID: Classificazione con router Gemini+Groq...")
-                    classification = await self.hybrid_router.classify_with_best_model(question)
-                elif GROQ_AVAILABLE:
+                # Usa OpenAI primario, Groq fallback
+                if self.openai_client:
+                    try:
+                        logger.info("🚀 OpenAI: Classificazione con GPT-4o...")
+                        classification = await openai_classify(question)
+                    except Exception as e:
+                        logger.warning(f"OpenAI fallito: {e}")
+                        if self.groq_client:
+                            logger.info("⚡ Fallback a Groq...")
+                            classification = await groq_classify(question)
+                        else:
+                            classification = {"question_type": "GENERAL", "confidence": 0.5}
+                elif self.groq_client:
                     logger.info("⚡ ULTRA FAST: Classificazione diretta Groq...")
                     classification = await groq_classify(question)
                 else:
@@ -741,14 +755,25 @@ class MilhenaEnterpriseOrchestrator:
                 if question_type in ["GREETING", "GENERAL", "HELP", "TECHNOLOGY_INQUIRY"]:
                     logger.info(f"⚡ FAST PATH: Risposta veloce per {question_type}")
 
-                    # Usa router ibrido per risposta ottimale
-                    if hasattr(self, 'hybrid_router'):
-                        response = await self.hybrid_router.generate_response(
-                            question=question,
-                            question_type=question_type,
-                            use_fast=True
-                        )
-                    elif GROQ_AVAILABLE:
+                    # Usa OpenAI primario, Groq fallback
+                    if self.openai_client:
+                        try:
+                            response = await openai_fast_response(
+                                question=question,
+                                question_type=question_type,
+                                language=language
+                            )
+                        except Exception as e:
+                            logger.warning(f"OpenAI fallito: {e}")
+                            if self.groq_client:
+                                response = await groq_fast_response(
+                                    question=question,
+                                    question_type=question_type,
+                                    language=language
+                                )
+                            else:
+                                response = "Mi dispiace, il servizio è temporaneamente non disponibile."
+                    elif self.groq_client:
                         response = await groq_fast_response(
                             question=question,
                             question_type=question_type,
@@ -997,10 +1022,14 @@ class MilhenaEnterpriseOrchestrator:
                 )
             ]
 
+            # Get LLM for manager
+            manager_llm = get_llm_for_crewai("manager") if LLM_CONFIG_AVAILABLE else None
+
             crew = Crew(
                 agents=[data_analyst, business_analyzer, security_filter, coordinator],
                 tasks=tasks,
                 process=Process.hierarchical,  # Enable parallelization
+                manager_llm=manager_llm,  # Required for hierarchical
                 verbose=False
             )
             logger.info("⚡ Running ANALYSIS with parallel tasks")
@@ -1066,11 +1095,27 @@ class MilhenaEnterpriseOrchestrator:
             )
 
             # Run validation through Gemini
-            if self.hybrid_router:
-                result = await self.hybrid_router.generate_response(
+            if self.openai_client:
+                try:
+                    result = await openai_fast_response(
+                        validation_prompt,
+                        "VALIDATION",
+                        "en"
+                    )
+                except:
+                    if self.groq_client:
+                        result = await groq_fast_response(
+                            validation_prompt,
+                            "VALIDATION",
+                            "en"
+                        )
+                    else:
+                        result = None
+            elif self.groq_client:
+                result = await groq_fast_response(
                     validation_prompt,
                     "VALIDATION",
-                    use_fast=True
+                    "en"
                 )
 
                 # Parse validation result
@@ -1102,11 +1147,27 @@ class MilhenaEnterpriseOrchestrator:
             searched_data_type=searched_type
         )
 
-        if self.hybrid_router:
-            response = await self.hybrid_router.generate_response(
+        if self.openai_client:
+            try:
+                response = await openai_fast_response(
+                    fallback_prompt,
+                    "FALLBACK",
+                    language
+                )
+            except:
+                if self.groq_client:
+                    response = await groq_fast_response(
+                        fallback_prompt,
+                        "FALLBACK",
+                        language
+                    )
+                else:
+                    response = self._get_default_response("GENERAL", language)
+        elif self.groq_client:
+            response = await groq_fast_response(
                 fallback_prompt,
                 "FALLBACK",
-                use_fast=True
+                language
             )
             return response
 

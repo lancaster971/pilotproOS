@@ -150,6 +150,9 @@ def get_fast_client() -> GroqFastClient:
         _fast_client = GroqFastClient()
     return _fast_client
 
+# Alias per compatibilità
+get_groq_client = get_fast_client
+
 
 async def groq_classify(question: str) -> Dict[str, Any]:
     """Funzione helper per classificazione veloce"""

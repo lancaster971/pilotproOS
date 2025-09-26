@@ -16,6 +16,10 @@ from pathlib import Path
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Setup logging PRIMA
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Import NEW FAST BYPASS SYSTEM
 try:
     from fast_bypass import get_token_saver
@@ -24,10 +28,6 @@ try:
 except ImportError as e:
     FAST_BYPASS_AVAILABLE = False
     logger.warning(f"⚠️ Fast Bypass non disponibile: {e}")
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -119,21 +119,26 @@ async def chat(request: ChatRequest):
                 token_saver = get_token_saver()
                 result = await token_saver.smart_response(request.message, request.user_id)
 
-                return ChatResponse(
-                    response=result["response"],
-                    status="success",
-                    metadata={
-                        "user_id": request.user_id,
-                        "engine": "fast-bypass-gpt4o",
-                        "question_type": result.get("type", "unknown"),
-                        "language": "it",
-                        "response_time_ms": result.get("processing_time", 0),
-                        "cached": False,
-                        "llm_provider": result.get("provider", "unknown"),
-                        "tokens_saved": result.get("tokens_saved", False),
-                        "bypass_used": True
-                    }
-                )
+                # Se Fast Bypass ritorna None, passa al multi-agent
+                if result.get("response") is None:
+                    logger.info(f"📊 Fast Bypass richiede multi-agent per {result.get('type')}")
+                    # Non fare return, continua al multi-agent sotto
+                else:
+                    return ChatResponse(
+                        response=result["response"],
+                        status="success",
+                        metadata={
+                            "user_id": request.user_id,
+                            "engine": "fast-bypass-gpt4o",
+                            "question_type": result.get("type", "unknown"),
+                            "language": "it",
+                            "response_time_ms": result.get("processing_time", 0),
+                            "cached": False,
+                            "llm_provider": result.get("provider", "unknown"),
+                            "tokens_saved": result.get("tokens_saved", False),
+                            "bypass_used": True
+                        }
+                    )
             except Exception as bypass_error:
                 logger.warning(f"⚠️ Fast Bypass failed: {bypass_error} - fallback to CrewAI")
 

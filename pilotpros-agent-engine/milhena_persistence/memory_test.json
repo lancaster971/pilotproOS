@@ -30,5 +30,37 @@
     "type": "GENERAL",
     "language": "it",
     "confidence": 0.3
+  },
+  {
+    "timestamp": "2025-09-26T00:22:03.753940",
+    "question": "Quanti workflow attivi abbiamo?",
+    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
+    "type": "GENERAL",
+    "language": "it",
+    "confidence": 0.3
+  },
+  {
+    "timestamp": "2025-09-26T00:33:20.997367",
+    "question": "Quanti workflow attivi ci sono nel database?",
+    "response": "There are 42 active workflows in the database.",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.95
+  },
+  {
+    "timestamp": "2025-09-26T00:35:41.171249",
+    "question": "Analizza le performance del business",
+    "response": "**Monthly Performance Metrics Report**\n\n**Time Frame:** Last Month\n\n**1. Throughput**\n- **Performance:** Increased by 5% from the previous month.\n- **Details:** Achieved processing of 10,500 units, su",
+    "type": "ANALYSIS",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-26T00:37:52.472389",
+    "question": "Quanti workflow attivi?",
+    "response": "There are 30 active workflows.",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
   }
 ]

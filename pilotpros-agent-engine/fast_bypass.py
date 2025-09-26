@@ -52,7 +52,7 @@ class TokenSaver:
         # Scegli MIGLIORE provider disponibile
         best_provider = self.token_monitor.get_best_provider(estimated_tokens)
 
-        if best_provider == "openai":
+        if best_provider in ["openai", "openai_premium", "openai_mini"]:
             try:
                 # 1. GPT-4o PRIMARIO (qualità suprema)
                 classification = await openai_classify(message)
@@ -60,7 +60,7 @@ class TokenSaver:
                 self.bypass_stats["openai_requests"] += 1
 
                 # Registra uso REALE
-                self.token_monitor.record_usage("openai", estimated_tokens-100, 100, True)
+                self.token_monitor.record_usage(best_provider, estimated_tokens-100, 100, True)
 
                 logger.info(f"🚀 GPT-4o classification: {classification.get('question_type')}")
                 return classification
@@ -72,7 +72,7 @@ class TokenSaver:
         try:
             classification = await groq_classify(message)
             classification["provider"] = "groq"
-            if best_provider == "openai":
+            if best_provider in ["openai", "openai_premium", "openai_mini"]:
                 classification["openai_error"] = "API failed, used fallback"
 
             self.bypass_stats["groq_fallbacks"] += 1
@@ -104,14 +104,14 @@ class TokenSaver:
         # Scegli MIGLIORE provider disponibile
         best_provider = self.token_monitor.get_best_provider(estimated_tokens)
 
-        if best_provider == "openai":
+        if best_provider in ["openai", "openai_premium", "openai_mini"]:
             try:
                 # 1. GPT-4o PRIMARIO (qualità suprema)
                 response = await openai_fast_response(message, question_type, language)
 
                 # Registra uso REALE (stima output)
                 output_tokens = self.token_monitor.count_tokens(response)
-                self.token_monitor.record_usage("openai", estimated_tokens-500, output_tokens, True)
+                self.token_monitor.record_usage(best_provider, estimated_tokens-500, output_tokens, True)
 
                 logger.info(f"🚀 GPT-4o response generated")
                 return response
@@ -149,13 +149,16 @@ class TokenSaver:
 
             logger.info(f"🔍 {question_type} via {provider} (confidence: {confidence:.1%})")
 
-            # 2. BYPASS ESTESO - Copre 90% dei casi
+            # 2. BYPASS ESTESO - Solo per domande semplici
             bypass_types = [
                 "GREETING", "HELP", "GENERAL",
                 "TECHNOLOGY_INQUIRY"  # Anche questi, hanno prompt fissi
             ]
 
-            if question_type in bypass_types or confidence > 0.8:
+            # BUSINESS_DATA e ANALYSIS sempre al multi-agent per accesso DB
+            multi_agent_types = ["BUSINESS_DATA", "ANALYSIS"]
+
+            if question_type not in multi_agent_types and (question_type in bypass_types or confidence > 0.8):
                 logger.info(f"⚡ BYPASS attivo via {provider} - Sistema GPT-4o+Groq SUPREMO (1M token)!")
 
                 # Contatori precisi
@@ -192,11 +195,11 @@ class TokenSaver:
                 }
 
             # 3. Solo per dati business CRITICI usa multi-agente
-            logger.warning(f"🤖 Multi-agente NECESSARIO per {question_type}")
+            logger.warning(f"🤖 Multi-agente NECESSARIO per {question_type} - Passing to CrewAI")
 
-            # Fallback response per ora
+            # Segnala che deve usare multi-agent (non bypassed)
             return {
-                "response": f"Per domande di tipo {question_type} il sistema multi-agente è temporaneamente disabilitato per risparmiare token. Riprova con una domanda più semplice.",
+                "response": None,  # Nessuna risposta, passa al multi-agent
                 "type": question_type,
                 "confidence": confidence,
                 "processing_time": (time.time() - start_time) * 1000,
