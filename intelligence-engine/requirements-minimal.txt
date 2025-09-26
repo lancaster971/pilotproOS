@@ -1,5 +1,4 @@
-# MINIMAL REQUIREMENTS - NO VERSION CONFLICTS
-# Core LangChain
+# COMPLETE LANGCHAIN REQUIREMENTS - ALL DEPENDENCIES
 langchain
 langchain-community
 langchain-core
@@ -7,12 +6,14 @@ langchain-openai
 langchain-anthropic
 langchain-groq
 langchain-google-genai
+langchain-postgres
+langchain-text-splitters
+langgraph
+langserve
 
-# FastAPI Stack
-fastapi
-uvicorn[standard]
-pydantic>=2.10
-pydantic-settings>=2.10
+# Vector/Embeddings
+pgvector
+chromadb
 
 # LLM Providers
 openai
@@ -20,10 +21,17 @@ anthropic
 groq
 google-generativeai
 
+# FastAPI Stack
+fastapi
+uvicorn[standard]
+pydantic>=2.10
+pydantic-settings>=2.10
+
 # Database
 asyncpg
 sqlalchemy
 psycopg2-binary
+psycopg[binary]
 redis
 
 # Essential Utils
@@ -32,7 +40,16 @@ python-dotenv
 loguru
 aiofiles
 tenacity
+requests
 
-# Streamlit (optional)
+# Streamlit
 streamlit
 plotly
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Monitoring
+prometheus-client
