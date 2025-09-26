@@ -44,14 +44,17 @@ except ImportError as e:
     IMPROVED_PROMPTS_AVAILABLE = False
     logger.warning(f"⚠️ Improved prompts v3.0 or LLM config not available: {e}")
 
-# Import cache optimizer
+# Import cache optimizer e light handler
 try:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     from cache_optimizer import get_semantic_cache, get_timeout_manager, get_llm_tracker
+    from light_query_handler import get_light_handler, get_snapshot_agent
     CACHE_OPTIMIZER_AVAILABLE = True
+    LIGHT_HANDLER_AVAILABLE = True
 except ImportError as e:
     CACHE_OPTIMIZER_AVAILABLE = False
-    logger.warning(f"⚠️ Cache optimizer not available: {e}")
+    LIGHT_HANDLER_AVAILABLE = False
+    logger.warning(f"WARNING: Cache optimizer/light handler not available: {e}")
 
 # Import esterni opzionali
 try:
@@ -892,8 +895,49 @@ class MilhenaEnterpriseOrchestrator:
                         "fast_path": True
                     }
 
-                # Per BUSINESS_DATA e ANALYSIS, continua con CrewAI
-                logger.info(f"📊 Tipo {question_type} richiede CrewAI flow completo")
+                # ROUTING INTELLIGENTE per BUSINESS_DATA
+                if question_type == "BUSINESS_DATA" and LIGHT_HANDLER_AVAILABLE:
+                    light_handler = get_light_handler()
+                    if light_handler.is_simple_query(question):
+                        logger.info("LIGHT PATH: Query semplice, bypass CrewAI")
+
+                        # Usa light handler per query semplici
+                        light_result = light_handler.handle_simple_query(question)
+                        if light_result and light_result.get("success"):
+                            # Update cache e memory
+                            if self.cache:
+                                self.cache.set(question, question_type, language, light_result["response"])
+                            if CACHE_OPTIMIZER_AVAILABLE:
+                                semantic_cache = get_semantic_cache()
+                                semantic_cache.set(question, question_type, light_result["response"])
+
+                            # Track analytics
+                            if self.analytics:
+                                self.analytics.track_request(
+                                    question=question,
+                                    question_type=question_type,
+                                    response_time=light_result["response_time_ms"] / 1000,
+                                    agents_used=light_result["agents_used"],
+                                    language=language,
+                                    confidence=confidence,
+                                    cache_hit=False
+                                )
+
+                            return {
+                                "success": True,
+                                "response": light_result["response"],
+                                "cached": False,
+                                "question_type": question_type,
+                                "language": language,
+                                "confidence": confidence,
+                                "response_time_ms": light_result["response_time_ms"],
+                                "user_id": user_id,
+                                "light_path": True,
+                                "crew_bypassed": True
+                            }
+
+                # Per BUSINESS_DATA complesse e ANALYSIS, continua con CrewAI
+                logger.info(f"CREW PATH: {question_type} richiede multi-agent")
 
             else:
                 # SLOW MODE: Full classification
@@ -1070,42 +1114,74 @@ class MilhenaEnterpriseOrchestrator:
             crew = Crew(agents=[masking_agent], tasks=[task], verbose=False)
 
         elif question_type == "BUSINESS_DATA":
-            logger.info("BUSINESS_DATA: Creando crew con 3 agenti")
-            data_analyst = self.create_data_analyst_agent()
-            security_filter = self.create_security_filter_agent()
-            coordinator = self.create_coordinator_agent(language)
+            # OTTIMIZZAZIONE: Check se possiamo usare crew ridotta
+            question_lower = question.lower()
+            needs_validation = any(word in question_lower for word in ["sensibile", "privato", "confidenziale", "password", "secret"])
+
+            if needs_validation:
+                # Crew completa con validazione
+                logger.info("BUSINESS_DATA: Crew completa con validazione (3 agenti)")
+                data_analyst = self.create_data_analyst_agent()
+                security_filter = self.create_security_filter_agent()
+                coordinator = self.create_coordinator_agent(language)
+
+                tasks = [
+                    Task(
+                        description=f"Collect data for: {question}",
+                        agent=data_analyst,
+                        tools=self.tools,
+                        expected_output="Data"
+                    ),
+                    Task(
+                        description="Filter sensitive info",
+                        agent=security_filter,
+                        expected_output="Filtered data"
+                    ),
+                    Task(
+                        description="Create final response",
+                        agent=coordinator,
+                        expected_output="Response"
+                    )
+                ]
+
+                crew = Crew(
+                    agents=[data_analyst, security_filter, coordinator],
+                    tasks=tasks,
+                    verbose=False
+                )
+            else:
+                # CREW LIGHT: Solo data_analyst + coordinator (skip validation)
+                logger.info("BUSINESS_DATA: Crew light senza validazione (2 agenti)")
+                data_analyst = self.create_data_analyst_agent()
+                coordinator = self.create_coordinator_agent(language)
+
+                tasks = [
+                    Task(
+                        description=f"Collect and analyze data for: {question}",
+                        agent=data_analyst,
+                        tools=self.tools,
+                        expected_output="Analyzed data"
+                    ),
+                    Task(
+                        description="Format response in business language",
+                        agent=coordinator,
+                        expected_output="Business-friendly response"
+                    )
+                ]
+
+                crew = Crew(
+                    agents=[data_analyst, coordinator],
+                    tasks=tasks,
+                    verbose=False
+                )
 
             # Log modelli usati
             if CACHE_OPTIMIZER_AVAILABLE:
                 llm_tracker = get_llm_tracker()
                 llm_tracker.track_call("data_analyst", "gpt-4o-mini", 0, 0, 0)
-                llm_tracker.track_call("security_filter", "gpt-4o-mini", 0, 0, 0)
+                if needs_validation:
+                    llm_tracker.track_call("security_filter", "gpt-4o-mini", 0, 0, 0)
                 llm_tracker.track_call("coordinator", "gpt-4o-mini", 0, 0, 0)
-
-            tasks = [
-                Task(
-                    description=f"Collect data for: {question}",
-                    agent=data_analyst,
-                    tools=self.tools,
-                    expected_output="Data"
-                ),
-                Task(
-                    description="Filter sensitive info",
-                    agent=security_filter,
-                    expected_output="Filtered data"
-                ),
-                Task(
-                    description="Create final response",
-                    agent=coordinator,
-                    expected_output="Response"
-                )
-            ]
-
-            crew = Crew(
-                agents=[data_analyst, security_filter, coordinator],
-                tasks=tasks,
-                verbose=False
-            )
 
         elif question_type == "ANALYSIS":
             # Parallel execution for analysis
