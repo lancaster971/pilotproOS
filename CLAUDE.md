@@ -8,30 +8,24 @@ PilotProOS - Containerized Business Process Operating System
 
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
-**PROJECT STATUS POST-CLEANUP:**
-- ✅ **CrewAI COMPLETELY REMOVED** from project
-- ✅ **agent-engine/** folder cleaned and converted to direct system
-- ✅ **All documentation purged** (docs/, README.md, etc.)
-- ✅ **Stack simplified** to 6 essential services
-- ✅ **Redis maintained** for future LangChain integration
+**PROJECT STATUS:**
+- ✅ **LangGraph Intelligence Engine** - ReAct Agent with visualization
+- ✅ **Stack Services** - 7 core services fully integrated
+- ✅ **Graph Visualization** - Professional PNG & interactive D3.js views
+- ✅ **LangGraph Studio** - Desktop debugging interface ready
 
 ## 🏗️ **CLEANED ARCHITECTURE**
 
-**STACK PURGED AND SIMPLIFIED:**
+**ARCHITECTURE:**
 - **PostgreSQL** - Database (dual schema: n8n + pilotpros)
-- **Redis** - Cache & Queue (ready for LangChain)
+- **Redis** - Cache & Queue for session management
 - **Backend** - Express API (business terminology)
-- **Frontend** - Vue 3 Business Portal
+- **Frontend** - Vue 3 Business Portal with graph visualization
+- **Intelligence Engine** - LangGraph ReAct Agent
 - **Automation** - n8n Workflow Engine
 - **Monitor** - Nginx Reverse Proxy
 
-**AGENT ENGINE STATUS:**
-- ❌ **CrewAI eliminated** - Was unreliable multi-agent framework
-- ✅ **Direct system** - Simple tool calls without agent bullshit
-- ✅ **Fast Bypass** - GPT-4o + Groq fallback for 90% queries
-- 🚀 **Future ready** - Redis cache prepared for LangChain
-
-### **⚡ QUICK START POST-CLEANUP**
+### **⚡ QUICK START**
 
 **START STACK:**
 ```bash
@@ -42,6 +36,9 @@ PilotProOS - Containerized Business Process Operating System
 **ACCESS POINTS:**
 - 🌐 Frontend: http://localhost:3000 (tiziano@gmail.com / Hamlet@108)
 - ⚙️ Backend API: http://localhost:3001
+- 🤖 Intelligence Engine: http://localhost:8000
+- 📊 Graph Visualization: http://localhost:8000/graph/visualize
+- 🎨 LangGraph Studio: http://localhost:2024
 - 🔧 Stack Control: http://localhost:3005 (admin / PilotPro2025!)
 - 🔄 Automation: http://localhost:5678 (admin / pilotpros_admin_2025)
 
@@ -128,23 +125,15 @@ npm run test              # All tests in Docker
 
 ---
 
-## 🚀 **CURRENT STATUS POST-CLEANUP**
+## 🚀 **CURRENT STATUS**
 
-### **✅ CLEANED AND WORKING**
-- ✅ **Stack Completely Purged** - CrewAI eliminated, docs removed
-- ✅ **6 Essential Services** - PostgreSQL, Redis, Backend, Frontend, n8n, Nginx
-- ✅ **Agent Engine Cleaned** - Direct system, no multi-agent framework
-- ✅ **CLI Stack Manager** - Updated without obsolete Agent Engine
-- ✅ **Authentication System** - Full working with business portal
-- ✅ **Business Data Tools** - BusinessIntelligentQueryTool working directly
-- ✅ **Fast Bypass System** - GPT-4o + Groq fallback operational
-
-### **🚀 READY FOR DEVELOPMENT**
-- 🚀 **LangChain Integration** - Redis cache prepared
-- 🚀 **Direct Tool Calls** - No unreliable agent framework
-- 🚀 **Performance** - 10x faster without CrewAI overhead
-- 🚀 **Clean Architecture** - No technical debt from multi-agent
-- 🚀 **Simplified Maintenance** - Single direct system to manage
+### **✅ WORKING FEATURES**
+- ✅ **LangGraph ReAct Agent** - GPT-4o-mini with tool execution
+- ✅ **Graph Visualization** - Professional PNG (4700x2745px) with 3D effects
+- ✅ **Interactive D3.js** - Force-directed graph in frontend
+- ✅ **LangGraph Studio** - Desktop debugging interface
+- ✅ **Authentication System** - JWT with HttpOnly cookies
+- ✅ **n8n Integration** - Full workflow automation support
 
 ### **📦 STACK SERVICES STATUS**
 1. **PostgreSQL** ✅ - Database ready
@@ -157,65 +146,55 @@ npm run test              # All tests in Docker
 
 ---
 
-## 📚 **DOCUMENTATION STATUS**
+## 📚 **DOCUMENTATION**
 
-**POST-CLEANUP DOCUMENTATION:**
-- ❌ **docs/ eliminated** - All documentation folders removed
-- ❌ **README.md purged** - Main README removed
-- ✅ **CLAUDE.md updated** - This file contains all essential info
+- ✅ **CLAUDE.md** - This file contains all essential info
 - ✅ **Inline code comments** - Documentation in code where needed
-- 🚀 **Future**: Documentation will be minimal and code-focused
 
-### **📋 ESSENTIAL COMMANDS POST-CLEANUP**
+### **📋 ESSENTIAL COMMANDS**
 ```bash
-# Stack Management - WITH INTELLIGENCE ENGINE
+# Stack Management
 ./stack                   # Interactive CLI (7 services)
 ./stack-safe.sh start     # Direct start
 ./stack-safe.sh status    # Health check
 
-# Intelligence Engine Commands
-./intelligence-engine-safe.sh start       # Start container
-./intelligence-engine-safe.sh dashboard   # Open dashboard
-./intelligence-engine-safe.sh status      # Check health
-./intelligence-engine-safe.sh restart     # Restart service
-
-# Access Points - COMPLETE STACK
-http://localhost:3000     # Business Portal (tiziano@gmail.com / Hamlet@108)
-http://localhost:3001     # Backend API
-http://localhost:8000     # Intelligence Engine API (LangChain ReAct Agent)
-http://localhost:8501     # Intelligence Dashboard (Streamlit)
-http://localhost:3005     # Stack Controller (admin / PilotPro2025!)
-http://localhost:5678     # n8n Automation (admin / pilotpros_admin_2025)
+# LangGraph Studio (Desktop Interface)
+cd intelligence-engine
+langgraph dev --port 2024    # Start LangGraph Studio server
+# Then open: http://localhost:2024
 
 # Test Intelligence Engine
 curl http://localhost:8000/api/n8n/agent/customer-support?message=test
-python3 test-customer-support-agent.py  # Full test suite
+curl http://localhost:8000/graph/visualize --output graph.png  # Get graph PNG
 ```
 
-### **🚀 NEW: Intelligence Engine Features**
+## **🤖 INTELLIGENCE ENGINE**
 
-#### **LangChain ReAct Agent**
+### **LangGraph ReAct Agent**
 - **Framework**: LangGraph 0.6.7 with ReAct pattern
 - **Model**: GPT-4o-mini (fast) with GPT-4o fallback
 - **Tools**: 6 database query tools
 - **Memory**: Session-based conversation history
 - **Integration**: Full n8n workflow support
 
-#### **Available API Endpoints**
+### **API Endpoints**
 - `POST /api/chat` - Main chat interface
 - `GET/POST /api/n8n/agent/customer-support` - n8n integration
 - `POST /webhook/from-frontend` - Vue widget webhook
 - `GET /health` - Service health check
 - `GET /api/stats` - System statistics
+- `GET /graph/visualize` - Professional PNG graph (4700x2745px)
+- `GET /graph/mermaid` - Mermaid diagram format
+- `GET /graph/data` - Raw graph data JSON
 
-#### **n8n Workflow Integration**
+### **n8n Workflow Integration**
 **Workflow ID**: `dBFVzxfHl4UfaYCa`
 **HTTP Request Node Configuration**:
 - URL: `http://pilotpros-intelligence-engine-dev:8000/api/n8n/agent/customer-support`
 - Method: POST
 - Body: `{"message": "{{ $json.chatInput }}", "session_id": "{{ $json.sessionId }}"}`
 
-#### **Database Tools**
+### **Database Tools**
 1. `get_database_schema_tool` - Get table schemas
 2. `query_users_tool` - Query user data
 3. `query_sessions_tool` - Active sessions info
@@ -223,11 +202,40 @@ python3 test-customer-support-agent.py  # Full test suite
 5. `query_system_status_tool` - System health
 6. `execute_sql_query_tool` - Custom SQL (SELECT only)
 
-#### **Documentation**
-- **API Documentation**: See `API_DOCUMENTATION.md`
-- **Test Script**: `test-customer-support-agent.py`
+---
 
-**🎯 AI AGENTS**: All info is now in this CLAUDE.md file. No external docs to read!
+## **📊 GRAPH VISUALIZATION**
+
+### **Professional PNG Export**
+- **Resolution**: 4700x2745px ultra-high definition
+- **Style**: Dark theme with hexagonal nodes and 3D effects
+- **Colors**: Gradient fills with glow effects
+- **Layout**: Hierarchical with curved connections
+- **Metrics**: Performance wave chart and status indicators
+
+### **Frontend Component**
+- **Location**: `frontend/src/components/GraphVisualization.vue`
+- **Tabs**: Live PNG | Interactive D3.js | Mermaid Diagram
+- **D3.js**: Force-directed graph with zoom/pan
+- **Auto-refresh**: Live updates every 5 seconds
+
+### **LangGraph Studio Setup**
+```bash
+# Install CLI (requires Python 3.11+)
+pip install langgraph-cli
+
+# Start development server
+cd intelligence-engine
+langgraph dev --port 2024
+
+# Access Studio
+open http://localhost:2024
+```
+
+### **Configuration Files**
+- `intelligence-engine/langgraph.json` - Studio configuration
+- `intelligence-engine/app/graph.py` - Graph definition
+- `intelligence-engine/.env` - Environment variables
 
 ---
 
