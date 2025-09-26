@@ -4,13 +4,13 @@
 Test approfondito di tutti i servizi e comunicazioni dello stack
 
 Services tested:
-- PostgreSQL Database
-- Redis Cache
+- Data Management System
+- Cache Service
 - Backend API
-- Frontend Portal
-- Intelligence Engine (LangChain)
-- Automation Engine (n8n)
-- System Monitor (Nginx)
+- Business Portal
+- AI Intelligence Engine
+- Process Automation
+- System Monitor
 
 Usage:
     python3 test-stack-deep.py
@@ -28,11 +28,11 @@ from typing import Dict, Any, List, Optional
 
 # Configuration
 SERVICES = {
-    "postgres": {"name": "PostgreSQL", "url": "localhost:5432", "container": "pilotpros-postgres-dev"},
-    "redis": {"name": "Redis", "url": "localhost:6379", "container": "pilotpros-redis-dev"},
+    "postgres": {"name": "Data Management", "url": "localhost:5432", "container": "pilotpros-postgres-dev"},
+    "redis": {"name": "Cache Service", "url": "localhost:6379", "container": "pilotpros-redis-dev"},
     "backend": {"name": "Backend API", "url": "http://localhost:3001", "container": "pilotpros-backend-dev"},
-    "frontend": {"name": "Frontend Portal", "url": "http://localhost:3000", "container": "pilotpros-frontend-dev"},
-    "intelligence": {"name": "Intelligence Engine", "url": "http://localhost:8000", "container": "pilotpros-intelligence-engine-dev"},
+    "frontend": {"name": "Business Portal", "url": "http://localhost:3000", "container": "pilotpros-frontend-dev"},
+    "intelligence": {"name": "AI Intelligence", "url": "http://localhost:8000", "container": "pilotpros-intelligence-engine-dev"},
     "automation": {"name": "Process Automation", "url": "http://localhost:5678", "container": "pilotpros-automation-engine-dev"},
     "nginx": {"name": "System Monitor", "url": "http://localhost:80", "container": "pilotpros-nginx-dev"}
 }
@@ -148,8 +148,8 @@ class StackDeepTest:
         return result
 
     def test_database_connection(self) -> Dict[str, Any]:
-        """Test PostgreSQL database"""
-        self.print_header("DATABASE: PostgreSQL")
+        """Test database system"""
+        self.print_header("DATA MANAGEMENT SYSTEM")
         result = {}
 
         # Container status
@@ -184,8 +184,8 @@ class StackDeepTest:
         return result
 
     def test_redis_connection(self) -> Dict[str, Any]:
-        """Test Redis cache"""
-        self.print_header("CACHE: Redis")
+        """Test cache service"""
+        self.print_header("CACHE SERVICE")
         result = {}
 
         result["container"] = self.test_docker_container("redis")
@@ -236,8 +236,8 @@ class StackDeepTest:
         return result
 
     def test_frontend_portal(self) -> Dict[str, Any]:
-        """Test Frontend Portal"""
-        self.print_header("FRONTEND: Vue 3 Portal")
+        """Test Business Portal"""
+        self.print_header("BUSINESS PORTAL")
         result = {}
 
         result["container"] = self.test_docker_container("frontend")
@@ -249,9 +249,9 @@ class StackDeepTest:
                 result["reachable"] = True
                 self.results["passed"] += 1
 
-                # Check if it's Vue app
-                if "vue" in response.text.lower() or "app" in response.text.lower():
-                    self.log("Vue application: Detected", "pass")
+                # Check if it's web app
+                if "app" in response.text.lower() or "html" in response.text.lower():
+                    self.log("Web application: Detected", "pass")
                     self.results["passed"] += 1
             else:
                 self.log(f"Frontend: Status {response.status_code}", "warn")
@@ -264,8 +264,8 @@ class StackDeepTest:
         return result
 
     def test_intelligence_engine(self) -> Dict[str, Any]:
-        """Test Intelligence Engine (LangChain)"""
-        self.print_header("INTELLIGENCE: LangChain Engine")
+        """Test Intelligence Engine"""
+        self.print_header("INTELLIGENCE: AI Engine")
         result = {}
 
         result["container"] = self.test_docker_container("intelligence")
@@ -276,9 +276,10 @@ class StackDeepTest:
             response = requests.get("http://localhost:8000/api/stats", timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                self.log(f"Framework: {data.get('framework', 'unknown')}", "pass")
-                self.log(f"Models: {len(data.get('models_available', []))} available", "pass")
-                self.log(f"Tools: {len(data.get('tools_available', []))} available", "pass")
+                framework = data.get('framework', 'unknown')
+                self.log(f"AI Framework: Active", "pass")
+                self.log(f"AI Models: {len(data.get('models_available', []))} available", "pass")
+                self.log(f"AI Tools: {len(data.get('tools_available', []))} available", "pass")
                 result["stats"] = data
                 self.results["passed"] += 3
         except Exception as e:
@@ -335,8 +336,8 @@ class StackDeepTest:
         return result
 
     def test_nginx_monitor(self) -> Dict[str, Any]:
-        """Test Nginx Monitor"""
-        self.print_header("MONITOR: Nginx Reverse Proxy")
+        """Test System Monitor"""
+        self.print_header("SYSTEM MONITOR")
         result = {}
 
         result["container"] = self.test_docker_container("nginx")
@@ -344,15 +345,15 @@ class StackDeepTest:
         try:
             response = requests.get("http://localhost:80", timeout=5, allow_redirects=False)
             if response.status_code in [200, 301, 302, 307, 308]:
-                self.log("Nginx proxy: OK", "pass")
+                self.log("System proxy: OK", "pass")
                 result["working"] = True
                 self.results["passed"] += 1
             else:
-                self.log(f"Nginx: Status {response.status_code}", "warn")
+                self.log(f"Monitor: Status {response.status_code}", "warn")
                 self.results["warnings"] += 1
 
         except Exception as e:
-            self.log(f"Nginx test: {str(e)}", "warn")
+            self.log(f"Monitor test: {str(e)}", "warn")
             self.results["warnings"] += 1
 
         return result
@@ -380,38 +381,38 @@ class StackDeepTest:
             result["automation_to_intelligence"] = False
             self.results["failed"] += 1
 
-        # Test: Intelligence Engine → PostgreSQL
+        # Test: Intelligence Engine → Data Management
         try:
             cmd = 'docker exec pilotpros-intelligence-engine-dev python3 -c "import asyncpg; import asyncio; asyncio.run(asyncpg.connect(\\"postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db\\"))" 2>&1'
             output = subprocess.check_output(cmd, shell=True, text=True, timeout=5)
 
             if "error" not in output.lower() and "exception" not in output.lower():
-                self.log("Intelligence Engine → PostgreSQL: OK", "pass")
+                self.log("Intelligence Engine → Data Management: OK", "pass")
                 result["intelligence_to_db"] = True
                 self.results["passed"] += 1
             else:
-                self.log("Intelligence Engine → PostgreSQL: Failed", "fail")
+                self.log("Intelligence Engine → Data Management: Failed", "fail")
                 self.results["failed"] += 1
 
         except Exception as e:
-            self.log(f"Intelligence Engine → PostgreSQL: {str(e)}", "warn")
+            self.log(f"Intelligence Engine → Data Management: {str(e)}", "warn")
             self.results["warnings"] += 1
 
-        # Test: Backend → PostgreSQL
+        # Test: Backend → Data Management
         try:
             response = requests.get("http://localhost:3001/health", timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 if data.get("database") == "connected":
-                    self.log("Backend → PostgreSQL: OK", "pass")
+                    self.log("Backend → Data Management: OK", "pass")
                     result["backend_to_db"] = True
                     self.results["passed"] += 1
                 else:
-                    self.log("Backend → PostgreSQL: Disconnected", "fail")
+                    self.log("Backend → Data Management: Disconnected", "fail")
                     self.results["failed"] += 1
 
         except Exception as e:
-            self.log(f"Backend → PostgreSQL: {str(e)}", "fail")
+            self.log(f"Backend → Data Management: {str(e)}", "fail")
             self.results["failed"] += 1
 
         # Test: Intelligence Engine → Redis
