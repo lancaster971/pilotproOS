@@ -101,7 +101,8 @@ function showMainMenu() {
   console.log(`  ${colors.cyan}6)${colors.reset} Stop All Services`);
   console.log(`  ${colors.cyan}7)${colors.reset} Open Business Portal`);
   console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status`);
-  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI (Milhena)\n`);
+  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI (Milhena)`);
+  console.log(`  ${colors.cyan}t)${colors.reset} ${colors.green}Deep Stack Test${colors.reset} (Complete health check)\n`);
   console.log(`  ${colors.red}q)${colors.reset} Quit\n`);
 }
 
@@ -344,6 +345,9 @@ class StackManager {
       case '9':
         await this.openAgentCLI();
         break;
+      case 't':
+        await this.runDeepTest();
+        break;
       case 'q':
         console.log(`\n${colors.green}Goodbye!${colors.reset}\n`);
         this.rl.close();
@@ -566,6 +570,41 @@ class StackManager {
 
       console.log(`\n${colors.green}All services stopped${colors.reset}`);
       this.rl.question('\nPress Enter to continue...', () => {
+        this.mainLoop();
+      });
+    });
+  }
+
+  async runDeepTest() {
+    printHeader();
+    console.log(`\n${colors.cyan}╔══════════════════════════════════════════════╗${colors.reset}`);
+    console.log(`${colors.cyan}║${colors.reset}        ${colors.bright}DEEP STACK TEST SUITE${colors.reset}             ${colors.cyan}║${colors.reset}`);
+    console.log(`${colors.cyan}╚══════════════════════════════════════════════╝${colors.reset}\n`);
+
+    console.log(`${colors.yellow}Running comprehensive stack tests...${colors.reset}\n`);
+    console.log(`${colors.dim}This will test all services and communications${colors.reset}\n`);
+
+    const { spawn } = require('child_process');
+    const testProcess = spawn('python3', ['test-stack-deep.py'], {
+      stdio: 'inherit'
+    });
+
+    testProcess.on('close', async (code) => {
+      console.log();
+      if (code === 0) {
+        console.log(`${colors.green}✅ Deep stack test completed successfully!${colors.reset}\n`);
+      } else {
+        console.log(`${colors.yellow}⚠️  Some issues detected (exit code: ${code})${colors.reset}\n`);
+      }
+
+      this.rl.question('Press Enter to return to menu...', () => {
+        this.mainLoop();
+      });
+    });
+
+    testProcess.on('error', async (err) => {
+      console.log(`${colors.red}❌ Test failed: ${err.message}${colors.reset}\n`);
+      this.rl.question('Press Enter to return to menu...', () => {
         this.mainLoop();
       });
     });
