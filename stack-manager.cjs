@@ -584,29 +584,20 @@ class StackManager {
     console.log(`${colors.yellow}Running comprehensive stack tests...${colors.reset}\n`);
     console.log(`${colors.dim}This will test all services and communications${colors.reset}\n`);
 
-    const { spawn } = require('child_process');
-    const testProcess = spawn('python3', ['test-stack-deep.py'], {
-      stdio: 'inherit'
-    });
-
-    testProcess.on('close', async (code) => {
-      console.log();
-      if (code === 0) {
-        console.log(`${colors.green}✅ Deep stack test completed successfully!${colors.reset}\n`);
-      } else {
-        console.log(`${colors.yellow}⚠️  Some issues detected (exit code: ${code})${colors.reset}\n`);
-      }
-
-      this.rl.question('Press Enter to return to menu...', () => {
-        this.mainLoop();
+    try {
+      const { execSync } = require('child_process');
+      execSync('python3 test-stack-deep.py', {
+        stdio: 'inherit',
+        cwd: __dirname
       });
-    });
 
-    testProcess.on('error', async (err) => {
-      console.log(`${colors.red}❌ Test failed: ${err.message}${colors.reset}\n`);
-      this.rl.question('Press Enter to return to menu...', () => {
-        this.mainLoop();
-      });
+      console.log(`\n${colors.green}✅ Deep stack test completed!${colors.reset}\n`);
+    } catch (error) {
+      console.log(`\n${colors.yellow}⚠️  Test completed with warnings (code: ${error.status || 'unknown'})${colors.reset}\n`);
+    }
+
+    this.rl.question('Press Enter to return to menu...', () => {
+      this.mainLoop();
     });
   }
 
