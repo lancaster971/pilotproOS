@@ -42,6 +42,12 @@ show_status() {
         echo "  ⏸️  Automation: Stopped"
     fi
 
+    if docker ps | grep -q pilotpros-nginx-dev; then
+        echo "  ✅ System Monitor: Running"
+    else
+        echo "  ⏸️  System Monitor: Stopped"
+    fi
+
     echo ""
     echo "Access Points:"
     echo "  🌐 Frontend:      http://localhost:3000"
