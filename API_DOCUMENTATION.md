@@ -73,11 +73,11 @@ Primary chat interface with the ReAct agent.
 
 ---
 
-### 3. n8n Integration Endpoint
+### 3. Process Automation Integration Endpoint
 
 **GET/POST** `/api/n8n/agent/customer-support`
 
-Specialized endpoint for n8n workflow integration.
+Specialized endpoint for Process Automation workflow integration.
 
 #### GET Method
 
@@ -263,9 +263,11 @@ Execute custom SQL queries (SELECT only):
 
 ---
 
-## 🔄 n8n Workflow Configuration
+## 🔄 Process Automation Integration
 
-### HTTP Request Node Setup
+**Note**: Internal endpoint paths reference technical implementation details (`/api/n8n/`) but this is backend infrastructure. Frontend and business users interact only through business terminology.
+
+### HTTP Request Integration Setup
 
 **Method**: POST or GET
 **URL**: `http://pilotpros-intelligence-engine-dev:8000/api/n8n/agent/customer-support`

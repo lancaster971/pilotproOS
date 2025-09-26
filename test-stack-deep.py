@@ -33,7 +33,7 @@ SERVICES = {
     "backend": {"name": "Backend API", "url": "http://localhost:3001", "container": "pilotpros-backend-dev"},
     "frontend": {"name": "Frontend Portal", "url": "http://localhost:3000", "container": "pilotpros-frontend-dev"},
     "intelligence": {"name": "Intelligence Engine", "url": "http://localhost:8000", "container": "pilotpros-intelligence-engine-dev"},
-    "automation": {"name": "Automation (n8n)", "url": "http://localhost:5678", "container": "pilotpros-automation-engine-dev"},
+    "automation": {"name": "Process Automation", "url": "http://localhost:5678", "container": "pilotpros-automation-engine-dev"},
     "nginx": {"name": "System Monitor", "url": "http://localhost:80", "container": "pilotpros-nginx-dev"}
 }
 
@@ -313,7 +313,7 @@ class StackDeepTest:
 
     def test_automation_engine(self) -> Dict[str, Any]:
         """Test Automation Engine (n8n)"""
-        self.print_header("AUTOMATION: n8n Workflow Engine")
+        self.print_header("AUTOMATION: Process Engine")
         result = {}
 
         result["container"] = self.test_docker_container("automation")
@@ -321,15 +321,15 @@ class StackDeepTest:
         try:
             response = requests.get("http://localhost:5678/healthz", timeout=5)
             if response.status_code == 200:
-                self.log("n8n health: OK", "pass")
+                self.log("Automation health: OK", "pass")
                 result["health"] = True
                 self.results["passed"] += 1
             else:
-                self.log(f"n8n health: Status {response.status_code}", "warn")
+                self.log(f"Automation health: Status {response.status_code}", "warn")
                 self.results["warnings"] += 1
 
         except Exception as e:
-            self.log(f"n8n test: {str(e)}", "warn")
+            self.log(f"Automation test: {str(e)}", "warn")
             self.results["warnings"] += 1
 
         return result
@@ -362,22 +362,22 @@ class StackDeepTest:
         self.print_header("INTER-SERVICE COMMUNICATION")
         result = {}
 
-        # Test: n8n → Intelligence Engine
+        # Test: Automation Engine → Intelligence Engine
         try:
             cmd = 'docker exec pilotpros-automation-engine-dev wget -qO- http://pilotpros-intelligence-engine-dev:8000/health'
             output = subprocess.check_output(cmd, shell=True, text=True, timeout=5)
 
             if "healthy" in output:
-                self.log("n8n → Intelligence Engine: OK", "pass")
-                result["n8n_to_intelligence"] = True
+                self.log("Automation → Intelligence Engine: OK", "pass")
+                result["automation_to_intelligence"] = True
                 self.results["passed"] += 1
             else:
-                self.log("n8n → Intelligence Engine: Failed", "fail")
+                self.log("Automation → Intelligence Engine: Failed", "fail")
                 self.results["failed"] += 1
 
         except Exception as e:
-            self.log(f"n8n → Intelligence Engine: {str(e)}", "fail")
-            result["n8n_to_intelligence"] = False
+            self.log(f"Automation → Intelligence Engine: {str(e)}", "fail")
+            result["automation_to_intelligence"] = False
             self.results["failed"] += 1
 
         # Test: Intelligence Engine → PostgreSQL
@@ -442,7 +442,7 @@ class StackDeepTest:
         result = {}
 
         try:
-            # Simulate n8n → Intelligence Engine → Database → Response
+            # Simulate Automation → Intelligence Engine → Database → Response
             start = time.time()
 
             # Step 1: Send message to Intelligence Engine
