@@ -62,5 +62,13 @@
     "type": "BUSINESS_DATA",
     "language": "it",
     "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-26T06:32:40.670212",
+    "question": "Dimmi esattamente quanti workflow attivi ci sono nel database",
+    "response": "Nei dati disponibili posso osservare:\n\n**Workflow**: 3 attivi su 35 totali  \n**Esecuzioni (7 giorni)**: 26 totali, 100.0% successo  \n**Processi pi\u00f9 attivi**:\n- Grab_Track_Simple: 27 esecuzioni\n- CHATB",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.95
   }
 ]

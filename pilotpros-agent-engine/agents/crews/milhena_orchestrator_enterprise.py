@@ -62,6 +62,7 @@ load_dotenv()
 
 # Import tools
 from tools.milhena_data_tools import PilotProMetricsTool, WorkflowAnalyzerTool
+from tools.business_intelligent_query_tool import BusinessIntelligentQueryTool
 from model_selector import ModelSelector, ModelCategory
 
 # Import sia Groq che Gemini per configurazione ibrida
@@ -474,7 +475,8 @@ class MilhenaEnterpriseOrchestrator:
         self.strict_validation = strict_validation  # v3.0 feature
         self.tools = [
             PilotProMetricsTool(),
-            WorkflowAnalyzerTool()
+            WorkflowAnalyzerTool(),
+            BusinessIntelligentQueryTool()  # Aggiungiamo il tool BI!
         ]
 
         # Inizializza router ibrido Gemini+Groq se disponibile
