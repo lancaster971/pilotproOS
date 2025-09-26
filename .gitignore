@@ -165,3 +165,6 @@ venv/
 
 # Session files
 .session
+
+# LangGraph temporary files
+intelligence-engine/.langgraph_api/
