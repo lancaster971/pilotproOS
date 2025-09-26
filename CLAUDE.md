@@ -151,8 +151,8 @@ npm run test              # All tests in Docker
 2. **Redis** ✅ - Cache ready for LangChain
 3. **Backend API** ✅ - Express with auth
 4. **Frontend** ✅ - Vue 3 business portal
-5. **Intelligence Engine** 🔒 - LangChain 0.3.27 LOCKED (locked-v1.0-langchain-0.3.27)
-6. **Automation** ✅ - n8n workflow engine
+5. **Intelligence Engine** ✅ - LangChain ReAct Agent with LangGraph 0.6.7
+6. **Automation** ✅ - n8n workflow engine (integrated with Intelligence Engine)
 7. **Monitor** ✅ - Nginx reverse proxy
 
 ---
@@ -168,25 +168,64 @@ npm run test              # All tests in Docker
 
 ### **📋 ESSENTIAL COMMANDS POST-CLEANUP**
 ```bash
-# Stack Management - WITH LOCKED INTELLIGENCE ENGINE
+# Stack Management - WITH INTELLIGENCE ENGINE
 ./stack                   # Interactive CLI (7 services)
-./stack-safe.sh start     # Direct start (NO REBUILD)
+./stack-safe.sh start     # Direct start
 ./stack-safe.sh status    # Health check
 
-# Intelligence Engine LOCKED Commands 🔒
-./intelligence-engine-safe.sh build-lock  # Build and lock image (ONCE)
-./intelligence-engine-safe.sh start       # Start locked container
+# Intelligence Engine Commands
+./intelligence-engine-safe.sh start       # Start container
 ./intelligence-engine-safe.sh dashboard   # Open dashboard
 ./intelligence-engine-safe.sh status      # Check health
+./intelligence-engine-safe.sh restart     # Restart service
 
 # Access Points - COMPLETE STACK
 http://localhost:3000     # Business Portal (tiziano@gmail.com / Hamlet@108)
 http://localhost:3001     # Backend API
-http://localhost:8000     # Intelligence Engine API (LangChain)
+http://localhost:8000     # Intelligence Engine API (LangChain ReAct Agent)
 http://localhost:8501     # Intelligence Dashboard (Streamlit)
 http://localhost:3005     # Stack Controller (admin / PilotPro2025!)
-http://localhost:5678     # Automation (admin / pilotpros_admin_2025)
+http://localhost:5678     # n8n Automation (admin / pilotpros_admin_2025)
+
+# Test Intelligence Engine
+curl http://localhost:8000/api/n8n/agent/customer-support?message=test
+python3 test-customer-support-agent.py  # Full test suite
 ```
+
+### **🚀 NEW: Intelligence Engine Features**
+
+#### **LangChain ReAct Agent**
+- **Framework**: LangGraph 0.6.7 with ReAct pattern
+- **Model**: GPT-4o-mini (fast) with GPT-4o fallback
+- **Tools**: 6 database query tools
+- **Memory**: Session-based conversation history
+- **Integration**: Full n8n workflow support
+
+#### **Available API Endpoints**
+- `POST /api/chat` - Main chat interface
+- `GET/POST /api/n8n/agent/customer-support` - n8n integration
+- `POST /webhook/from-frontend` - Vue widget webhook
+- `GET /health` - Service health check
+- `GET /api/stats` - System statistics
+
+#### **n8n Workflow Integration**
+**Workflow ID**: `dBFVzxfHl4UfaYCa`
+**HTTP Request Node Configuration**:
+- URL: `http://pilotpros-intelligence-engine-dev:8000/api/n8n/agent/customer-support`
+- Method: POST
+- Body: `{"message": "{{ $json.chatInput }}", "session_id": "{{ $json.sessionId }}"}`
+
+#### **Database Tools**
+1. `get_database_schema_tool` - Get table schemas
+2. `query_users_tool` - Query user data
+3. `query_sessions_tool` - Active sessions info
+4. `query_business_data_tool` - Business metrics
+5. `query_system_status_tool` - System health
+6. `execute_sql_query_tool` - Custom SQL (SELECT only)
+
+#### **Documentation**
+- **API Documentation**: See `API_DOCUMENTATION.md`
+- **Test Script**: `test-customer-support-agent.py`
 
 **🎯 AI AGENTS**: All info is now in this CLAUDE.md file. No external docs to read!
 
