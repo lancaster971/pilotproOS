@@ -1,0 +1,38 @@
+# =============================================
+# MINIMAL CLEAN REQUIREMENTS - ONLY ESSENTIALS
+# =============================================
+
+# Core LangChain
+langchain==0.3.27
+langchain-core==0.3.76
+langchain-community==0.3.29
+
+# LLM Providers (ONLY what we use)
+langchain-openai==0.3.33      # For OpenAI + OpenRouter
+langchain-groq==0.3.8          # For Groq
+langchain-google-genai==2.0.10 # For Gemini
+openai>=1.50.0
+groq>=0.12.0
+google-generativeai>=0.8.0
+
+# API Framework
+fastapi==0.117.1
+uvicorn[standard]==0.37.0
+pydantic==2.11.9
+pydantic-settings==2.11.0
+
+# Database essentials
+redis==6.4.0
+psycopg2-binary==2.9.10
+
+# Dashboard
+streamlit==1.50.0
+plotly==6.3.0
+
+# Essential utils ONLY
+python-dotenv==1.1.1
+httpx==0.28.1
+loguru==0.7.3
+
+# Monitoring
+prometheus-client==0.23.1

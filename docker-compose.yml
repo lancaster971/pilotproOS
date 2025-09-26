@@ -216,7 +216,80 @@ services:
       timeout: 3s
       retries: 5
 
-  # Agent Engine REMOVED (CrewAI eliminated completely)
+  # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
+  intelligence-engine:
+    # DYNAMIC BUILD with updated dependencies and all OpenAI models
+    build:
+      context: ./intelligence-engine
+      dockerfile: Dockerfile
+    container_name: pilotpros-intelligence-engine
+    restart: unless-stopped
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    environment:
+      # Service Configuration
+      SERVICE_MODE: all  # all | api | ui
+
+      # Database
+      DB_HOST: postgres-dev
+      DB_PORT: 5432
+      DB_NAME: pilotpros_db
+      DB_USER: pilotpros_user
+      DB_PASSWORD: pilotpros_secure_pass_2025
+      DATABASE_URL: postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db
+
+      # Redis
+      REDIS_HOST: redis-dev
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis-dev:6379
+
+      # LangChain Configuration
+      LANGCHAIN_TRACING_V2: "true"
+      LANGCHAIN_PROJECT: pilotpros-intelligence
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
+
+      # LLM API Keys - All Providers
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+      # n8n Integration
+      N8N_URL: http://automation-engine-dev:5678
+      N8N_API_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlODkxMDgwOC0xODQxLTRiM2UtYWJmOC0xZDllYWI4OGU5NDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU1NzI4NTc1fQ.PVJjopivarCkKARjxDcRI2HvKDw8okwu3t1_7yJvM18
+
+      # Monitoring
+      ENABLE_MONITORING: "true"
+      LOG_LEVEL: debug
+
+      # Development
+      PYTHONUNBUFFERED: 1
+      PYTHONDONTWRITEBYTECODE: 1
+
+    volumes:
+      - ./intelligence-engine:/app
+      - intelligence_engine_data:/app/data
+      - intelligence_engine_cache:/app/cache
+      - ./logs/intelligence-engine:/app/logs
+    ports:
+      - "8000:8000"  # FastAPI server
+      - "8501:8501"  # Streamlit dashboard
+      - "6006:6006"  # TensorBoard (optional)
+    networks:
+      - pilotpros-dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.pilotpros.service=intelligence"
+      - "com.pilotpros.framework=langchain"
+      - "com.pilotpros.ui=streamlit"
 
   # Nginx Reverse Proxy for Webhook Accessibility
   nginx-dev:
@@ -274,3 +347,7 @@ volumes:
     name: pilotpros_pgadmin_dev_data
   redis_dev_data:
     name: pilotpros_redis_dev_data
+  intelligence_engine_data:
+    name: pilotpros_intelligence_engine_data
+  intelligence_engine_cache:
+    name: pilotpros_intelligence_engine_cache

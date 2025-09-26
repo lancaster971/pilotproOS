@@ -1,0 +1,19 @@
+# FAST BUILD - Minimal setup for rapid testing
+FROM python:3.11-slim
+
+# Install only essential packages
+RUN pip install --no-cache-dir \
+    fastapi==0.117.1 \
+    uvicorn==0.37.0 \
+    streamlit==1.50.0 \
+    langchain==0.3.27 \
+    openai>=1.0.0
+
+WORKDIR /app
+
+# Copy minimal files
+COPY test-fast.py /app/main.py
+COPY app/ui/dashboard.py /app/dashboard.py
+
+# Simple startup
+CMD ["python", "main.py"]

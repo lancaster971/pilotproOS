@@ -1,0 +1,70 @@
+# Multi-stage build for optimized container
+FROM python:3.11-slim as builder
+
+# Build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements-minimal.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip wheel --no-cache-dir --wheel-dir=/tmp/wheels -r /tmp/requirements.txt
+
+# Final stage
+FROM python:3.11-slim
+
+# Runtime dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    netcat-openbsd \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd -m -u 1000 appuser
+
+# Copy wheels and install
+COPY --from=builder /tmp/wheels /tmp/wheels
+COPY requirements-minimal.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --find-links=/tmp/wheels -r /tmp/requirements.txt && \
+    rm -rf /tmp/wheels /tmp/requirements.txt
+
+# Create app directory
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appuser . /app/
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/cache && \
+    chown -R appuser:appuser /app
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LANGCHAIN_TRACING_V2=true \
+    LANGCHAIN_PROJECT=intelligence-engine \
+    STREAMLIT_SERVER_PORT=8501 \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose ports
+EXPOSE 8000 8501 6006
+
+# Start script
+COPY --chown=appuser:appuser docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
