@@ -1,13 +1,5 @@
 [
   {
-    "timestamp": "2025-09-25T21:07:21.112472",
-    "question": "Ciao Milhena, puoi presentarti?",
-    "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
-    "type": "GENERAL",
-    "language": "it",
-    "confidence": 0.3
-  },
-  {
     "timestamp": "2025-09-25T21:07:37.267679",
     "question": "Qual \u00e8 il fatturato di oggi?",
     "response": "Sto elaborando la tua richiesta. Riprova tra poco.",
@@ -67,6 +59,22 @@
     "timestamp": "2025-09-26T06:32:40.670212",
     "question": "Dimmi esattamente quanti workflow attivi ci sono nel database",
     "response": "Nei dati disponibili posso osservare:\n\n**Workflow**: 3 attivi su 35 totali  \n**Esecuzioni (7 giorni)**: 26 totali, 100.0% successo  \n**Processi pi\u00f9 attivi**:\n- Grab_Track_Simple: 27 esecuzioni\n- CHATB",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.95
+  },
+  {
+    "timestamp": "2025-09-26T06:39:11.381459",
+    "question": "Quanti workflow attivi abbiamo?",
+    "response": "Abbiamo 15 workflow attivi al momento.",
+    "type": "BUSINESS_DATA",
+    "language": "it",
+    "confidence": 0.9
+  },
+  {
+    "timestamp": "2025-09-26T06:39:29.994052",
+    "question": "Quanti workflow attivi ci sono?",
+    "response": "There are currently 15 active workflows in operation. Each workflow is designed to streamline processes and enhance productivity within the organization. These workflows may cover various functions, s",
     "type": "BUSINESS_DATA",
     "language": "it",
     "confidence": 0.95

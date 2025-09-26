@@ -10,8 +10,30 @@ import logging
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from psycopg2 import pool
+from functools import lru_cache
+import time
 
 load_dotenv()
+
+# Connection pool globale per riutilizzo connessioni
+_connection_pool = None
+
+def get_connection_pool():
+    """Get or create connection pool singleton"""
+    global _connection_pool
+    if _connection_pool is None:
+        db_host = os.getenv("DB_HOST", "postgres-dev" if os.path.exists("/.dockerenv") else "localhost")
+        _connection_pool = pool.SimpleConnectionPool(
+            1, 5,  # min 1, max 5 connections
+            host=db_host,
+            port=int(os.getenv("DB_PORT", 5432)),
+            database=os.getenv("DB_NAME", "pilotpros_db"),
+            user=os.getenv("DB_USER", "pilotpros_user"),
+            password=os.getenv("DB_PASSWORD", "pilotpros_secure_pass_2025")
+        )
+        logger.info("✅ Connection pool inizializzato (1-5 connections)")
+    return _connection_pool
 
 # Import v3.0 anti-hallucination prompts
 try:
@@ -39,23 +61,28 @@ class BusinessIntelligentQueryTool(BaseTool):
         super().__init__()
         # Note: translator is not a field in CrewAI BaseTool
         # We'll access it directly when needed
+        self._cache_timestamp = None
+        self._cached_overview = None
+        self._cache_ttl = 60  # Cache per 60 secondi
 
     def _connect_db(self):
-        """Connessione sicura al database con parametri da environment"""
-        db_host = os.getenv("DB_HOST", "postgres-dev" if os.path.exists("/.dockerenv") else "localhost")
-
+        """Ottieni connessione dal pool invece di crearne una nuova"""
         try:
             import psycopg2
         except ImportError:
             raise ImportError("psycopg2 non installato. Installa con: pip install psycopg2-binary")
 
-        return psycopg2.connect(
-            host=db_host,
-            port=int(os.getenv("DB_PORT", 5432)),
-            database=os.getenv("DB_NAME", "pilotpros_db"),
-            user=os.getenv("DB_USER", "pilotpros_user"),
-            password=os.getenv("DB_PASSWORD", "pilotpros_secure_pass_2025")
-        )
+        pool = get_connection_pool()
+        conn = pool.getconn()
+        logger.debug("📌 Connessione ottenuta dal pool")
+        return conn
+
+    def _return_connection(self, conn):
+        """Restituisci connessione al pool invece di chiuderla"""
+        if conn:
+            pool = get_connection_pool()
+            pool.putconn(conn)
+            logger.debug("📌 Connessione restituita al pool")
 
     def _run(self, question: str = "Cosa è successo oggi?") -> str:
         """
@@ -67,16 +94,29 @@ class BusinessIntelligentQueryTool(BaseTool):
         Returns:
             Risposta in linguaggio business comprensibile
         """
+        import time
+        start = time.time()
         conn = None
         cursor = None
 
         try:
+            logger.info(f"⏳ START: Analisi domanda '{question[:50]}...'")
+
             # Connessione database refactored
+            conn_start = time.time()
             conn = self._connect_db()
             cursor = conn.cursor()
+            conn_time = time.time() - conn_start
+            logger.info(f"✅ Connessione DB in {conn_time:.2f}s")
 
             # Analizza la domanda e rispondi
+            analysis_start = time.time()
             response = self._analyze_and_respond(question, cursor)
+            analysis_time = time.time() - analysis_start
+            logger.info(f"📊 Analisi completata in {analysis_time:.2f}s")
+
+            total_time = time.time() - start
+            logger.info(f"🏁 TOTALE: {total_time:.2f}s")
 
             return response
 
@@ -90,7 +130,7 @@ class BusinessIntelligentQueryTool(BaseTool):
             if cursor:
                 cursor.close()
             if conn:
-                conn.close()
+                self._return_connection(conn)  # Restituisce al pool invece di chiudere
 
     def _analyze_and_respond(self, question: str, cursor) -> str:
         """Analizza domanda e genera risposta appropriata"""
@@ -326,24 +366,61 @@ class BusinessIntelligentQueryTool(BaseTool):
 
         return response
 
+    @lru_cache(maxsize=32)
+    def _get_cached_query_result(self, query_hash: str, ttl: int = 60):
+        """Cache helper con TTL per query ripetute"""
+        # Nota: in produzione usare Redis o memcached
+        return None  # Placeholder per cache
+
     def _get_smart_overview(self, cursor) -> str:
-        """Overview intelligente generale"""
-        queries = {
-            "active_workflows": "SELECT COUNT(*) FROM n8n.workflow_entity WHERE active = true",
-            "total_workflows": "SELECT COUNT(*) FROM n8n.workflow_entity",
-            "week_executions": "SELECT COUNT(*) FROM n8n.execution_entity WHERE \"startedAt\" >= CURRENT_DATE - INTERVAL '7 days'",
-            "success_rate": """
-                SELECT ROUND(
-                    COUNT(CASE WHEN status = 'success' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 1
-                ) FROM n8n.execution_entity WHERE \"startedAt\" >= CURRENT_DATE - INTERVAL '7 days'
-            """,
+        """Overview intelligente generale - OTTIMIZZATA con CTE e CACHE"""
+        import time
+
+        # Controlla cache prima di eseguire query
+        current_time = time.time()
+        if (self._cache_timestamp and
+            self._cached_overview and
+            (current_time - self._cache_timestamp) < self._cache_ttl):
+            logger.info(f"✨ Cache HIT! Risparmio query DB (TTL: {self._cache_ttl}s)")
+            return self._cached_overview
+
+        query_start = time.time()
+
+        # SINGOLA QUERY OTTIMIZZATA con CTE invece di 5 query separate
+        optimized_query = """
+        WITH summary AS (
+            SELECT
+                COUNT(*) FILTER (WHERE active = true) AS active_workflows,
+                COUNT(*) AS total_workflows
+            FROM n8n.workflow_entity
+        ),
+        executions AS (
+            SELECT
+                COUNT(*) AS week_executions,
+                ROUND(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate
+            FROM n8n.execution_entity
+            WHERE "startedAt" >= CURRENT_DATE - INTERVAL '7 days'
+        )
+        SELECT
+            s.active_workflows,
+            s.total_workflows,
+            e.week_executions,
+            e.success_rate
+        FROM summary s, executions e
+        """
+
+        cursor.execute(optimized_query)
+        result = cursor.fetchone()
+
+        stats = {
+            "active_workflows": result[0] if result[0] is not None else 0,
+            "total_workflows": result[1] if result[1] is not None else 0,
+            "week_executions": result[2] if result[2] is not None else 0,
+            "success_rate": result[3] if result[3] is not None else 0
         }
 
-        stats = {}
-        for key, query in queries.items():
-            cursor.execute(query)
-            result = cursor.fetchone()
-            stats[key] = result[0] if result and result[0] is not None else 0
+        query_time = time.time() - query_start
+        logger.info(f"⚡ Query CTE ottimizzata in {query_time:.3f}s (vs 5 query separate)")
 
         # V3.0: Usa verbalizer e mostra SOLO dati reali
         if V3_PROMPTS_AVAILABLE:
@@ -371,6 +448,11 @@ class BusinessIntelligentQueryTool(BaseTool):
             response += "**Processi più attivi**:\n"
             for wf in top_workflows:
                 response += f"• {wf[0]}: {wf[1]} esecuzioni\n"
+
+        # Salva in cache prima di restituire
+        self._cached_overview = response
+        self._cache_timestamp = time.time()
+        logger.info(f"💾 Response salvata in cache per {self._cache_ttl}s")
 
         return response
 
