@@ -1,44 +1,65 @@
 /**
- * Business Logger - Centralizes business event logging
+ * Business Logger Utility
+ * Logs business events without technical details
  */
 
-import winston from 'winston';
+class BusinessLogger {
+  constructor() {
+    this.logs = [];
+  }
 
-const businessLogger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'pilotpros-business' },
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
-});
+  log(message, data = {}) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      message,
+      data,
+      level: 'info'
+    };
 
-// Business event types
-export const BusinessEvents = {
-  WORKFLOW_CREATED: 'workflow.created',
-  WORKFLOW_UPDATED: 'workflow.updated',
-  WORKFLOW_DELETED: 'workflow.deleted',
-  EXECUTION_STARTED: 'execution.started',
-  EXECUTION_COMPLETED: 'execution.completed',
-  EXECUTION_FAILED: 'execution.failed',
-  USER_LOGIN: 'user.login',
-  USER_LOGOUT: 'user.logout',
-  AI_QUERY: 'ai.query',
-  AI_RESPONSE: 'ai.response'
-};
+    this.logs.push(entry);
+    console.log(`[BUSINESS] ${message}`, data);
 
-// Log business event
-export function logBusinessEvent(event, data = {}) {
-  businessLogger.info({
-    event,
-    ...data,
-    timestamp: new Date().toISOString()
-  });
+    return entry;
+  }
+
+  error(message, error = {}) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      message,
+      error: error.message || error,
+      level: 'error'
+    };
+
+    this.logs.push(entry);
+    console.error(`[BUSINESS ERROR] ${message}`, error);
+
+    return entry;
+  }
+
+  success(message, data = {}) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      message,
+      data,
+      level: 'success'
+    };
+
+    this.logs.push(entry);
+    console.log(`[BUSINESS SUCCESS] ${message}`, data);
+
+    return entry;
+  }
+
+  getRecentLogs(limit = 100) {
+    return this.logs.slice(-limit);
+  }
+
+  clearLogs() {
+    this.logs = [];
+  }
 }
+
+// Singleton instance
+const businessLogger = new BusinessLogger();
 
 export default businessLogger;
