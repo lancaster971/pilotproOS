@@ -178,8 +178,9 @@ async def chat(request: ChatRequest):
             # Use the NEW ReAct agent
             agent = app.state.react_agent
 
-            # Generate session ID
-            session_id = f"api_{request.user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            # Generate session ID (UUID format for LangSmith)
+            import uuid
+            session_id = str(uuid.uuid4())
 
             # Process with ReAct agent
             result = await agent.chat(
@@ -219,8 +220,9 @@ async def webhook_chat(request: ChatRequest):
         # Use the NEW ReAct agent for frontend queries
         agent = app.state.react_agent
 
-        # Generate session ID for web
-        session_id = f"web_{request.user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        # Generate session ID for web (UUID format for LangSmith)
+        import uuid
+        session_id = str(uuid.uuid4())
 
         result = await agent.chat(
             message=request.message,

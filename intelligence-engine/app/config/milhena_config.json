@@ -1,0 +1,401 @@
+{
+  "version": "2.1.0",
+  "last_updated": "2025-01-27",
+  "description": "Configuration for Milhena Multi-Agent Orchestrator",
+
+  "classifier": {
+    "categories": [
+      "BUSINESS_DATA",
+      "HELP",
+      "GREETING",
+      "TECHNOLOGY",
+      "UNKNOWN",
+      "CLARIFICATION",
+      "MULTI_INTENT"
+    ],
+
+    "patterns": {
+      "GREETING": [
+        "^(hi|hello|hey|good morning|good afternoon|good evening)\\b",
+        "^greetings?\\b",
+        "^(ciao|salve|buongiorno|buonasera|buon pomeriggio)\\b",
+        "^(saluti|benvenuto)\\b"
+      ],
+
+      "BUSINESS_DATA": [
+        "\\b(how many|count|total|number of|quanti|numero di|totale)\\s+(users?|utenti|sessions?|sessioni|executions?|esecuzioni|records?|record)\\b",
+        "\\b(show|get|list|display|retrieve|mostra|visualizza|elenca)\\s+(me\\s+|mi\\s+)?(the\\s+|il\\s+|la\\s+|i\\s+|gli\\s+)?(user|utenti|data|dati|metrics?|metriche|statistics?|statistiche)\\b",
+        "\\b(show me|give me|display|mostrami|dammi)\\s+(user\\s+count|conteggio\\s+utenti|session\\s+count|statistics?|statistiche)\\b",
+        "\\b(statistics?|statistiche|metrics?|metriche|analytics?|analisi|reports?|report|dashboard|cruscotto)\\b",
+        "\\b(active|attiv[io]|inactive|inattiv[io]|online|offline)\\s+(users?|utenti|sessions?|sessioni)\\b",
+        "\\b(data|dati)\\s+(analysis|analisi|query|request|richiesta)\\b",
+        "\\b(user|utenti|session|sessioni|execution|esecuzioni)\\s+(count|conteggio|total|totale|number|numero)\\b"
+      ],
+
+      "HELP": [
+        "\\b(help|assist|support|guide|how to|can you|aiuto|assistenza|supporto|guida|come|puoi)\\b",
+        "\\b(what can you do|cosa puoi fare|cosa sai fare)\\b",
+        "\\b(explain|clarify|describe|spiega|chiarisci|descrivi)\\s+(how|come)\\b",
+        "\\b(i need|ho bisogno di)\\s+(help|assistance|support|aiuto|assistenza|supporto)\\b",
+        "\\b(tutorial|documentation|manual|documentazione|manuale)\\b"
+      ],
+
+      "TECHNOLOGY": [
+        "\\b(what is|explain|describe)\\s+(docker|kubernetes|postgres|postgresql|redis|nginx|n8n|api|webhook)\\b",
+        "\\b(technical|system|infrastructure|architecture)\\s+(details?|info|information)\\b",
+        "\\bhow does\\s+\\w+\\s+work\\b",
+        "\\b(configuration|setup|install)\\s+(guide|tutorial)\\b"
+      ]
+    },
+
+    "confidence_threshold": 0.7,
+    "max_tokens": 50
+  },
+
+  "masking": {
+    "tech_to_business": {
+      "workflow": "Business Process",
+      "workflows": "Business Processes",
+      "execution": "Process Run",
+      "executions": "Process Runs",
+      "n8n": "Automation Platform",
+      "node": "Process Step",
+      "nodes": "Process Steps",
+      "webhook": "Integration Endpoint",
+      "webhooks": "Integration Endpoints",
+      "api": "Integration Interface",
+      "apis": "Integration Interfaces",
+      "postgres": "Database",
+      "postgresql": "Database",
+      "mysql": "Database",
+      "database": "Database",
+      "redis": "Cache System",
+      "cache": "Cache System",
+      "docker": "Container Platform",
+      "container": "Container Platform",
+      "nginx": "Web Server",
+      "proxy": "Web Server",
+      "failed": "Requires Attention",
+      "error": "Issue Detected",
+      "errors": "Issues Detected",
+      "success": "Completed Successfully",
+      "successful": "Completed Successfully",
+      "pending": "In Progress",
+      "running": "Currently Active",
+      "stopped": "Not Active",
+      "healthy": "Operating Normally",
+      "unhealthy": "Requires Attention",
+      "connected": "Connection Established",
+      "disconnected": "Connection Lost",
+      "timeout": "Response Delayed",
+      "sql": "Query Language",
+      "nosql": "Document Store",
+      "crud": "Data Operations",
+      "rest": "Web Service",
+      "graphql": "Query Service",
+      "json": "Data Format",
+      "xml": "Data Format",
+      "yaml": "Configuration Format",
+      "env": "Environment Settings",
+      "variable": "Configuration Value",
+      "parameter": "Setting",
+      "argument": "Input Value",
+      "function": "Operation",
+      "method": "Action",
+      "class": "Component",
+      "module": "System Module",
+      "package": "Software Component",
+      "library": "Code Library",
+      "framework": "Development Framework",
+      "stack": "Technology Set",
+      "backend": "Server System",
+      "frontend": "User Interface",
+      "fullstack": "Complete System",
+      "devops": "Operations Management",
+      "ci/cd": "Automated Deployment",
+      "pipeline": "Process Flow",
+      "deployment": "System Release",
+      "staging": "Test Environment",
+      "production": "Live Environment",
+      "localhost": "Local System",
+      "port": "Connection Point",
+      "ip": "Network Address",
+      "url": "Web Address",
+      "endpoint": "Service Access Point",
+      "route": "Path",
+      "middleware": "Processing Layer",
+      "plugin": "Extension",
+      "extension": "Add-on Feature",
+      "authentication": "User Verification",
+      "authorization": "Access Control",
+      "token": "Access Key",
+      "jwt": "Security Token",
+      "oauth": "Authorization Protocol",
+      "ssl": "Security Layer",
+      "https": "Secure Connection",
+      "encryption": "Data Protection",
+      "hash": "Security Code",
+      "password": "Access Credential",
+      "username": "User Identifier",
+      "login": "System Access",
+      "logout": "Exit System",
+      "session": "User Connection",
+      "cookie": "Session Data",
+      "header": "Request Information",
+      "payload": "Data Content",
+      "response": "System Reply",
+      "request": "Data Request",
+      "query": "Information Request",
+      "mutation": "Data Change",
+      "subscription": "Update Stream",
+      "websocket": "Real-time Connection",
+      "polling": "Regular Checking",
+      "cron": "Scheduled Task",
+      "scheduler": "Task Manager",
+      "queue": "Task List",
+      "worker": "Background Processor",
+      "thread": "Processing Unit",
+      "daemon": "Background Service",
+      "service": "System Component",
+      "microservice": "Small Service",
+      "monolith": "Single Application",
+      "cluster": "Server Group",
+      "node_modules": "Dependencies",
+      "dependencies": "Required Components",
+      "devDependencies": "Development Tools",
+      "npm": "Package Manager",
+      "yarn": "Package Manager",
+      "pip": "Python Packages",
+      "git": "Version Control",
+      "github": "Code Repository",
+      "commit": "Code Save",
+      "branch": "Code Version",
+      "merge": "Code Combination",
+      "pull request": "Code Review Request",
+      "issue": "Task Item",
+      "bug": "System Issue",
+      "feature": "New Capability",
+      "hotfix": "Urgent Fix",
+      "patch": "Small Update",
+      "release": "Version Release",
+      "version": "Software Version",
+      "upgrade": "System Update",
+      "rollback": "Revert Changes",
+      "backup": "Data Copy",
+      "restore": "Data Recovery",
+      "log": "System Record",
+      "debug": "Problem Analysis",
+      "trace": "Execution Path",
+      "metric": "Performance Measure",
+      "monitoring": "System Observation",
+      "alert": "System Warning",
+      "notification": "System Message",
+      "event": "System Occurrence",
+      "trigger": "Action Starter",
+      "handler": "Event Processor",
+      "listener": "Event Monitor",
+      "emitter": "Event Sender",
+      "broadcast": "Wide Message",
+      "publish": "Make Available",
+      "subscribe": "Receive Updates",
+      "topic": "Message Category",
+      "partition": "Data Division",
+      "replica": "Data Copy",
+      "shard": "Data Fragment",
+      "index": "Data Locator",
+      "query optimization": "Performance Improvement",
+      "cache invalidation": "Cache Refresh",
+      "load balancer": "Traffic Distributor",
+      "reverse proxy": "Request Router",
+      "cdn": "Content Network",
+      "firewall": "Security Barrier",
+      "vpn": "Secure Connection",
+      "ssh": "Secure Access",
+      "ftp": "File Transfer",
+      "smtp": "Email Protocol",
+      "dns": "Name Resolution",
+      "tcp": "Network Protocol",
+      "udp": "Fast Protocol",
+      "http": "Web Protocol",
+      "grpc": "Service Protocol",
+      "mqtt": "Message Protocol",
+      "amqp": "Queue Protocol",
+      "kafka": "Event Stream",
+      "rabbitmq": "Message Queue",
+      "elasticsearch": "Search Engine",
+      "kibana": "Data Viewer",
+      "grafana": "Metrics Dashboard",
+      "prometheus": "Metrics Collector",
+      "kubernetes": "Container Orchestrator",
+      "helm": "Package Manager",
+      "terraform": "Infrastructure Tool",
+      "ansible": "Configuration Tool",
+      "jenkins": "Automation Server",
+      "gitlab": "Code Platform",
+      "bitbucket": "Code Repository",
+      "jira": "Task Tracker",
+      "confluence": "Documentation Platform",
+      "slack": "Team Communication",
+      "teams": "Collaboration Tool"
+    },
+
+    "pattern_rules": [
+      {
+        "pattern": "\\bworkflow\\s+execution\\b",
+        "replacement": "Business Process Run"
+      },
+      {
+        "pattern": "\\bexecution\\s+of\\s+workflow\\b",
+        "replacement": "Run of Business Process"
+      },
+      {
+        "pattern": "\\bapi\\s+endpoint\\b",
+        "replacement": "Integration Interface Access Point"
+      },
+      {
+        "pattern": "\\bwebhook\\s+trigger\\b",
+        "replacement": "Integration Endpoint Activation"
+      },
+      {
+        "pattern": "\\bdatabase\\s+connection\\b",
+        "replacement": "Database Link"
+      },
+      {
+        "pattern": "\\bcache\\s+hit\\b",
+        "replacement": "Cache Success"
+      },
+      {
+        "pattern": "\\bcache\\s+miss\\b",
+        "replacement": "Cache Not Found"
+      }
+    ],
+
+    "forbidden_keywords": [
+      "postgres",
+      "postgresql",
+      "redis",
+      "docker",
+      "nginx",
+      "n8n",
+      "kubernetes",
+      "mysql",
+      "mongodb",
+      "elasticsearch",
+      "rabbitmq",
+      "kafka",
+      "jenkins",
+      "gitlab",
+      "github",
+      "bitbucket"
+    ]
+  },
+
+  "validator": {
+    "forbidden_terms": {
+      "speculation": ["might be", "could be", "probably", "maybe", "perhaps", "possibly", "likely", "unlikely"],
+      "fake_data": ["John Doe", "Jane Smith", "test@example", "Lorem ipsum", "foo", "bar", "test@test"],
+      "technical": ["postgres", "n8n", "docker", "redis", "nginx", "api", "sql", "nosql"],
+      "unverified": ["I think", "I believe", "It seems", "apparently", "supposedly", "allegedly"]
+    },
+
+    "validation_rules": {
+      "check_consistency": true,
+      "check_bounds": true,
+      "check_speculation": true,
+      "check_fake_data": true,
+      "check_tech_terms": true
+    },
+
+    "numerical_bounds": {
+      "users_min": 0,
+      "users_max": 1000000,
+      "sessions_min": 0,
+      "sessions_max": 100000,
+      "percentage_min": 0,
+      "percentage_max": 100
+    }
+  },
+
+  "audit": {
+    "enabled": true,
+    "log_level": "INFO",
+    "log_format": "json",
+    "log_file": "logs/milhena_audit.jsonl",
+    "rotation_policy": "daily",
+    "retention_days": 30,
+
+    "event_types": [
+      "CLASSIFICATION",
+      "DB_QUERY",
+      "VALIDATION",
+      "MASKING",
+      "CACHE_HIT",
+      "CACHE_MISS",
+      "LLM_CALL",
+      "LLM_FALLBACK",
+      "ERROR",
+      "SECURITY",
+      "PERFORMANCE"
+    ]
+  },
+
+  "performance": {
+    "cache_ttl": 60,
+    "connection_pool_size": 5,
+    "query_timeout": 5000,
+    "max_retries": 3,
+    "retry_delay": 1000,
+    "circuit_breaker_threshold": 3,
+    "circuit_breaker_timeout": 30000
+  },
+
+  "security": {
+    "sanitize_input": true,
+    "max_input_length": 500,
+    "rate_limit": 100,
+    "rate_limit_window": 60,
+    "blocked_patterns": [
+      "'; DROP TABLE",
+      "1' OR '1'='1",
+      "<script>",
+      "javascript:",
+      "{{system}}",
+      "ignore instructions",
+      "admin mode"
+    ]
+  },
+
+  "models": {
+    "primary": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "temperature": 0,
+      "max_tokens": 50,
+      "cost_per_1k": 0.00015
+    },
+
+    "fallback": [
+      {
+        "provider": "anthropic",
+        "model": "claude-3-haiku-20240307",
+        "temperature": 0,
+        "max_tokens": 50,
+        "cost_per_1k": 0.00025
+      },
+      {
+        "provider": "groq",
+        "model": "mixtral-8x7b-32768",
+        "temperature": 0,
+        "max_tokens": 50,
+        "cost_per_1k": 0.00027
+      },
+      {
+        "provider": "local",
+        "model": "mistral:7b",
+        "temperature": 0,
+        "max_tokens": 50,
+        "cost_per_1k": 0
+      }
+    ]
+  }
+}

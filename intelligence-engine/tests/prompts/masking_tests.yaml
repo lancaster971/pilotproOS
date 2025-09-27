@@ -1,0 +1,298 @@
+# Masking Coverage Test Suite for Milhena
+# Version: 2.1.0
+# Purpose: Comprehensive testing of tech term masking with 50+ edge cases
+
+description: "Technical Term Masking Coverage Tests"
+
+# Provider for masking tests
+provider: milhena-masking
+
+# Test configuration
+config:
+  parallel: true
+  max_workers: 5
+  timeout_per_test: 1000  # ms
+
+# Comprehensive masking test cases
+test_cases:
+
+  # ==========================================
+  # BASIC TERM REPLACEMENTS
+  # ==========================================
+
+  - category: "Database Terms"
+    tests:
+      - input: "The postgres database is running"
+        expected: "The Database is running"
+
+      - input: "PostgreSQL performance is optimal"
+        expected: "Database performance is optimal"
+
+      - input: "Connect to postgresql server"
+        expected: "Connect to Database server"
+
+      - input: "mysql and postgres are both databases"
+        expected: "Database and Database are both databases"
+
+  - category: "Automation Platform"
+    tests:
+      - input: "n8n workflow is executing"
+        expected: "Automation Platform Business Process is executing"
+
+      - input: "The n8n instance is healthy"
+        expected: "The Automation Platform instance is healthy"
+
+      - input: "Configure n8n webhook endpoint"
+        expected: "Configure Automation Platform Integration Endpoint endpoint"
+
+  - category: "Cache System"
+    tests:
+      - input: "redis cache hit ratio is 85%"
+        expected: "Cache System cache hit ratio is 85%"
+
+      - input: "Redis cluster is scaled"
+        expected: "Cache System cluster is scaled"
+
+      - input: "Clear the redis cache"
+        expected: "Clear the Cache System cache"
+
+  - category: "Container Platform"
+    tests:
+      - input: "docker container is healthy"
+        expected: "Container Platform container is healthy"
+
+      - input: "Docker image built successfully"
+        expected: "Container Platform image built successfully"
+
+      - input: "docker-compose up -d"
+        expected: "Container Platform-compose up -d"
+
+  - category: "Web Server"
+    tests:
+      - input: "nginx reverse proxy configured"
+        expected: "Web Server reverse proxy configured"
+
+      - input: "NGINX load balancer active"
+        expected: "Web Server load balancer active"
+
+  # ==========================================
+  # COMPOUND TERMS & PHRASES
+  # ==========================================
+
+  - category: "Compound Technical Terms"
+    tests:
+      - input: "workflow execution in the database"
+        expected: "Business Process Process Run in the Database"
+
+      - input: "The execution of the workflow failed"
+        expected: "The Process Run of the Business Process failed"
+
+      - input: "webhook triggered workflow execution"
+        expected: "Integration Endpoint triggered Business Process Process Run"
+
+      - input: "api endpoint returns json"
+        expected: "Integration Interface endpoint returns json"
+
+  # ==========================================
+  # CASE SENSITIVITY TESTS
+  # ==========================================
+
+  - category: "Case Variations"
+    tests:
+      - input: "POSTGRES database"
+        expected: "Database database"
+
+      - input: "Redis REDIS redis"
+        expected: "Cache System Cache System Cache System"
+
+      - input: "WORKFLOW workflow WorkFlow"
+        expected: "Business Process Business Process Business Process"
+
+      - input: "N8N n8n N8n"
+        expected: "Automation Platform Automation Platform Automation Platform"
+
+  # ==========================================
+  # OVERLAPPING & NESTED TERMS
+  # ==========================================
+
+  - category: "Overlapping Patterns"
+    tests:
+      - input: "postgresql postgres pg database"
+        expected: "Database Database pg Database"
+
+      - input: "redis-cache redis cache"
+        expected: "Cache System-cache Cache System cache"
+
+      - input: "docker container in docker"
+        expected: "Container Platform container in Container Platform"
+
+  # ==========================================
+  # PARTIAL MATCHES (Should NOT replace)
+  # ==========================================
+
+  - category: "Partial Match Prevention"
+    tests:
+      - input: "workflowing is not workflow"
+        expected: "workflowing is not Business Process"
+
+      - input: "apikey is not api"
+        expected: "apikey is not Integration Interface"
+
+      - input: "redistribution not redis"
+        expected: "redistribution not Cache System"
+
+      - input: "dockyard not docker"
+        expected: "dockyard not Container Platform"
+
+  # ==========================================
+  # SPECIAL CHARACTERS & PUNCTUATION
+  # ==========================================
+
+  - category: "Special Characters"
+    tests:
+      - input: "postgres-db connection"
+        expected: "Database-db connection"
+
+      - input: "n8n_workflow_execution"
+        expected: "Automation Platform_Business Process_Process Run"
+
+      - input: "redis.cache.hit"
+        expected: "Cache System.cache.hit"
+
+      - input: "[postgres] (redis) {docker}"
+        expected: "[Database] (Cache System) {Container Platform}"
+
+      - input: "postgres, redis, and docker"
+        expected: "Database, Cache System, and Container Platform"
+
+  # ==========================================
+  # COMPLEX SENTENCES
+  # ==========================================
+
+  - category: "Full Sentences"
+    tests:
+      - input: "The n8n workflow connects to postgres database via nginx proxy"
+        expected: "The Automation Platform Business Process connects to Database database via Web Server proxy"
+
+      - input: "Redis cache stores workflow execution results from n8n"
+        expected: "Cache System cache stores Business Process Process Run results from Automation Platform"
+
+      - input: "Docker containers run postgres, redis, nginx, and n8n services"
+        expected: "Container Platform containers run Database, Cache System, Web Server, and Automation Platform services"
+
+      - input: "API calls trigger webhook which starts workflow execution in n8n"
+        expected: "Integration Interface calls trigger Integration Endpoint which starts Business Process Process Run in Automation Platform"
+
+  # ==========================================
+  # TECHNICAL JARGON
+  # ==========================================
+
+  - category: "Technical Jargon"
+    tests:
+      - input: "SQL query on postgres"
+        expected: "SQL query on Database"
+
+      - input: "NoSQL operations in redis"
+        expected: "NoSQL operations in Cache System"
+
+      - input: "REST API endpoint"
+        expected: "REST Integration Interface endpoint"
+
+      - input: "GraphQL API schema"
+        expected: "GraphQL Integration Interface schema"
+
+      - input: "CRUD operations on database"
+        expected: "CRUD operations on Database"
+
+  # ==========================================
+  # ERROR MESSAGES
+  # ==========================================
+
+  - category: "Error Messages"
+    tests:
+      - input: "Error: postgres connection failed"
+        expected: "Error: Database connection failed"
+
+      - input: "Warning: redis memory limit exceeded"
+        expected: "Warning: Cache System memory limit exceeded"
+
+      - input: "Failed to start docker container"
+        expected: "Failed to start Container Platform container"
+
+      - input: "n8n webhook timeout error"
+        expected: "Automation Platform Integration Endpoint timeout error"
+
+  # ==========================================
+  # CONFIGURATION STRINGS
+  # ==========================================
+
+  - category: "Configuration"
+    tests:
+      - input: "postgres://localhost:5432/db"
+        expected: "Database://localhost:5432/db"
+
+      - input: "redis://cache:6379"
+        expected: "Cache System://cache:6379"
+
+      - input: "docker.io/library/nginx"
+        expected: "Container Platform.io/library/Web Server"
+
+  # ==========================================
+  # EDGE CASES
+  # ==========================================
+
+  - category: "Edge Cases"
+    tests:
+      - input: ""
+        expected: ""
+
+      - input: "postgrespostgrespostgres"
+        expected: "DatabaseDatabaseDatabase"
+
+      - input: "pre-postgres-post"
+        expected: "pre-Database-post"
+
+      - input: "🚀 postgres 🎯 redis 📦 docker"
+        expected: "🚀 Database 🎯 Cache System 📦 Container Platform"
+
+      - input: "postgres\nredis\ndocker"
+        expected: "Database\nCache System\nContainer Platform"
+
+      - input: "postgres\tredis\tdocker"
+        expected: "Database\tCache System\tContainer Platform"
+
+# Assertions for masking tests
+assertions:
+  # No tech terms should remain
+  - type: not-contains
+    values: ["postgres", "postgresql", "redis", "docker", "nginx", "n8n", "workflow", "execution", "webhook", "api"]
+    case_sensitive: false
+
+  # Business terms should be present
+  - type: contains-any
+    values: ["Database", "Cache System", "Container Platform", "Web Server", "Automation Platform", "Business Process", "Process Run", "Integration Endpoint", "Integration Interface"]
+
+  # Performance check
+  - type: javascript
+    value: |
+      // Masking should be fast
+      const startTime = Date.now();
+      const result = mask(input);
+      const duration = Date.now() - startTime;
+      return duration < 10; // Should complete in <10ms
+
+# Performance benchmarks
+benchmarks:
+  - name: "Large text masking"
+    input_size: 10000  # characters
+    expected_time: 100  # ms
+
+  - name: "Many replacements"
+    replacements_count: 100
+    expected_time: 50  # ms
+
+# Coverage metrics
+coverage:
+  minimum_coverage: 99  # %
+  tech_terms_covered: 50  # count
+  test_cases_required: 100  # count

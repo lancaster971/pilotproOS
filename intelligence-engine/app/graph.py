@@ -1,6 +1,6 @@
 """
 LangGraph Studio - Graph definition for PilotProOS Intelligence Engine
-PRODUCTION-READY with REAL DATABASE TOOLS
+PRODUCTION-READY with REAL DATABASE TOOLS + MILHENA COMPONENTS
 Following LangGraph best practices and official documentation
 """
 
@@ -13,6 +13,42 @@ from langchain_core.tools import tool
 from langgraph.graph.message import add_messages
 import os
 from datetime import datetime
+
+# Import Milhena components
+from app.core.hybrid_classifier import HybridClassifier, IntentCategory
+from app.core.hybrid_masking import HybridMaskingLibrary
+from app.core.hybrid_validator import HybridValidator, ValidationResult
+from app.core.simple_audit_logger import SimpleAuditLogger
+from app.system_agents.milhena.data_analyst_agent import DataAnalystAgent
+
+# Configure LangSmith tracing for Milhena
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = "milhena-pipeline"
+
+# Initialize Milhena components with tracing
+from langsmith import traceable
+
+@traceable(name="MilhenaClassifier", run_type="tool")
+def traced_classify(text):
+    """Traced classification for LangSmith visibility"""
+    return classifier.classify(text, use_llm_fallback=False)
+
+@traceable(name="MilhenaMasking", run_type="tool")
+def traced_mask(text):
+    """Traced masking for LangSmith visibility"""
+    return masking.mask(text)
+
+@traceable(name="MilhenaValidator", run_type="tool")
+def traced_validate(text):
+    """Traced validation for LangSmith visibility"""
+    return validator.validate(text, use_llm_fallback=False)
+
+# Initialize components
+classifier = HybridClassifier()
+masking = HybridMaskingLibrary()
+validator = HybridValidator()
+audit = SimpleAuditLogger()
+data_analyst = DataAnalystAgent()
 
 # Import configuration
 try:
@@ -67,11 +103,11 @@ def query_users(query_type: str = "all") -> str:
     try:
         # Connect to the real database
         conn = psycopg2.connect(
-            host="localhost",
-            port=5432,
-            dbname="pilotpros_db",
-            user="pilotpros_user",
-            password="pilotpros_secure_pass_2025"
+            host=os.getenv("DB_HOST", "postgres-dev"),
+            port=int(os.getenv("DB_PORT", "5432")),
+            dbname=os.getenv("DB_NAME", "pilotpros_db"),
+            user=os.getenv("DB_USER", "pilotpros_user"),
+            password=os.getenv("DB_PASSWORD", "pilotpros_secure_pass_2025")
         )
         cur = conn.cursor()
 
@@ -124,7 +160,7 @@ def query_sessions() -> str:
 
     try:
         conn = psycopg2.connect(
-            host="localhost",
+            host=os.getenv("DB_HOST", "postgres-dev"),
             port=5432,
             dbname="pilotpros_db",
             user="pilotpros_user",
@@ -156,7 +192,7 @@ def get_system_status() -> str:
 
     try:
         conn = psycopg2.connect(
-            host="localhost",
+            host=os.getenv("DB_HOST", "postgres-dev"),
             port=5432,
             dbname="pilotpros_db",
             user="pilotpros_user",
@@ -217,7 +253,7 @@ def execute_business_query(query: str) -> str:
 
     try:
         conn = psycopg2.connect(
-            host="localhost",
+            host=os.getenv("DB_HOST", "postgres-dev"),
             port=5432,
             dbname="pilotpros_db",
             user="pilotpros_user",
@@ -240,7 +276,13 @@ def execute_business_query(query: str) -> str:
 
         conn.close()
 
-        return json.dumps(data, indent=2) if data else "Query returned no results"
+        # MASKING OBBLIGATORIO prima di restituire i dati!
+        raw_json = json.dumps(data, indent=2) if data else "Query returned no results"
+
+        # Applica masking per nascondere termini tecnici
+        masked_result = masking.mask(raw_json)
+
+        return masked_result
 
     except Exception as e:
         return f"Query error: {str(e)}"
@@ -259,39 +301,103 @@ llm = ChatOpenAI(
 )
 
 # ============================================================================
-# TOOLS LIST - All real database tools
+# MILHENA-ENHANCED TOOL
+# ============================================================================
+
+@tool
+def milhena_query_processor(user_query: str) -> str:
+    """
+    Process user queries through Milhena pipeline for classification,
+    validation, and masking before executing database queries.
+
+    Args:
+        user_query: Natural language query from user
+
+    Returns:
+        Masked and validated response
+    """
+    import json
+
+    # Step 1: Classify intent (with tracing)
+    category, confidence, reasoning = traced_classify(user_query)
+    audit.log_classification(user_query, category.value, confidence)
+
+    # Step 2: Route based on category
+    if category == IntentCategory.GREETING:
+        response = "Ciao! Come posso aiutarti con i dati aziendali?"
+
+    elif category == IntentCategory.BUSINESS_DATA:
+        # Step 2a: Query database per dati RAW
+        if "utenti" in user_query.lower():
+            raw_data = query_users.invoke({"query_type": "count"})
+        elif "sessioni" in user_query.lower():
+            raw_data = query_sessions.invoke({"query_type": "active"})
+        elif "nod" in user_query.lower() or "process" in user_query.lower() or "workflow" in user_query.lower():
+            raw_data = execute_business_query.invoke({"query": "SELECT COUNT(*) as total FROM pilotpros.business_execution_data LIMIT 1"})
+        else:
+            raw_data = get_system_status.invoke({})
+
+        # Step 2b: Data Analyst elabora risposta business (USA LLM!)
+        business_response = data_analyst.analyze(user_query, raw_data)
+
+        # Step 3: Masking termini tecnici residui
+        masked_response = traced_mask(business_response)
+        audit.log_masking(business_response[:50], 1)
+
+        # Step 4: Validazione finale
+        validation_report = traced_validate(masked_response)
+        audit.log_validation(masked_response[:100], validation_report.result.value, len(validation_report.issues))
+
+        if validation_report.result == ValidationResult.VALID:
+            response = masked_response
+        else:
+            response = f"Dati richiedono revisione."
+
+    elif category == IntentCategory.HELP:
+        response = "Posso aiutarti a consultare: numero utenti, sessioni attive, stato del sistema. Come posso assisterti?"
+
+    else:
+        response = "Mi dispiace, non ho compreso la richiesta. Puoi riformulare?"
+
+    return response
+
+# ============================================================================
+# TOOLS LIST - All real database tools + Milhena
 # ============================================================================
 
 tools = [
-    get_database_info,    # Schema information
-    query_users,          # User queries
-    query_sessions,       # Session queries
-    get_system_status,    # System health
-    execute_business_query # Custom SQL queries
+    milhena_query_processor   # ONLY Milhena - all queries go through security pipeline
 ]
 
 # ============================================================================
 # SYSTEM PROMPT - Professional agent instructions
 # ============================================================================
 
-system_prompt = """You are PilotProOS Intelligence Assistant, a professional database query agent.
+system_prompt = """Sei l'Assistente Intelligente PilotProOS protetto da Milhena Security Pipeline.
 
-You have access to a PostgreSQL database with real business data.
-Your tools connect to the actual database and return real information, not fake data.
+🔒 REGOLA DI SICUREZZA ASSOLUTA:
+Hai UN SOLO TOOL: milhena_query_processor
+USA SEMPRE E SOLO questo tool per QUALSIASI richiesta utente.
 
-Available tables:
-- pilotpros.users: User accounts
-- pilotpros.active_sessions: Active sessions
-- pilotpros.business_execution_data: Process execution data
-- pilotpros.system_settings: System configuration
+Il tool milhena_query_processor applica automaticamente:
+✅ Classificazione intent
+✅ Mascheramento termini tecnici
+✅ Validazione risposte
+✅ Audit logging
 
-When users ask questions:
-1. Use the appropriate tool to query the database
-2. Provide accurate information based on real data
-3. If you need to explore the schema, use get_database_info first
-4. For custom queries, use execute_business_query with proper SQL
+🚫 VIETATO ASSOLUTAMENTE mostrare:
+- Termini tecnici raw: workflow_id, node_id, execution_id, postgres, docker, redis, n8n
+- Nomi colonne database: id, email, created_at
+- Dati non mascherati dal database
 
-Remember: All your responses are based on REAL DATA from the PostgreSQL database, not fake or mocked data.
+✅ USA SOLO linguaggio business:
+- "Business Process" invece di "workflow"
+- "Process Run" invece di "execution"
+- "Process Step" invece di "node"
+- "Database" invece di "postgres"
+
+Rispondi SEMPRE in italiano usando SOLO il tool milhena_query_processor.
+
 Current time: {current_time}
 """.format(current_time=datetime.now().isoformat())
 

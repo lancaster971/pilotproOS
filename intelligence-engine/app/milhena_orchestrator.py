@@ -14,7 +14,13 @@ from langchain_core.tools import tool
 from datetime import datetime
 import json
 import psycopg2
+import psycopg2.pool
 import re
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ============================================================================
 # STATE DEFINITION - Following LangGraph best practices
@@ -33,44 +39,67 @@ class MilhenaState(TypedDict):
     current_agent: str  # Agente attualmente in esecuzione
 
 # ============================================================================
-# DATABASE CONNECTION
+# DATABASE CONNECTION POOL - Enterprise-grade with security
 # ============================================================================
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "pilotpros_db",
-    "user": "pilotpros_user",
-    "password": "pilotpros_secure_pass_2025"
-}
+# Create connection pool for better performance
+try:
+    DB_POOL = psycopg2.pool.ThreadedConnectionPool(
+        minconn=1,
+        maxconn=5,
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        dbname=os.getenv("DB_NAME", "pilotpros_db"),
+        user=os.getenv("DB_USER", "pilotpros_user"),
+        password=os.getenv("DB_PASSWORD"),
+        connect_timeout=5,  # 5 second timeout
+        options='-c statement_timeout=5000'  # 5 second query timeout
+    )
+except psycopg2.Error as e:
+    print(f"Error creating connection pool: {e}")
+    DB_POOL = None
 
 def execute_safe_query(query: str, params=None) -> List[Dict]:
-    """Esegue query sicure sul database"""
+    """Esegue query sicure sul database usando connection pool"""
+    if not DB_POOL:
+        return [{"error": "Database connection pool not available"}]
+
+    conn = None
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        # Get connection from pool
+        conn = DB_POOL.getconn()
         cur = conn.cursor()
 
+        # Execute query with prepared statement
         if params:
             cur.execute(query, params)
         else:
             cur.execute(query)
 
-        # Ottieni nomi colonne
+        # Get column names
         columns = [desc[0] for desc in cur.description] if cur.description else []
 
-        # Fetch risultati
+        # Fetch results
         results = cur.fetchall()
 
-        # Converti in lista di dizionari
+        # Convert to list of dictionaries
         data = []
         for row in results:
             data.append(dict(zip(columns, row)))
 
-        conn.close()
+        conn.commit()
         return data
 
+    except psycopg2.Error as e:
+        if conn:
+            conn.rollback()
+        return [{"error": f"Database error: {str(e)}"}]
     except Exception as e:
-        return [{"error": str(e)}]
+        return [{"error": f"Unexpected error: {str(e)}"}]
+    finally:
+        # Return connection to pool
+        if conn:
+            DB_POOL.putconn(conn)
 
 # ============================================================================
 # CLASSIFIER AGENT - Determina il tipo di richiesta
