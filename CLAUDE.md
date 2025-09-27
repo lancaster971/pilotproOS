@@ -9,7 +9,8 @@ PilotProOS - Containerized Business Process Operating System
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
 **PROJECT STATUS:**
-- ✅ **LangGraph Intelligence Engine** - ReAct Agent with visualization
+- ✅ **LangGraph Intelligence Engine** - Universal platform for system & customer agents
+- 🟡 **Milhena System Agent** - In planning (see TODO-MILHENA.md)
 - ✅ **Stack Services** - 7 core services fully integrated
 - ✅ **Graph Visualization** - Professional PNG & interactive D3.js views
 - ✅ **LangGraph Studio** - Desktop debugging interface ready
