@@ -4,9 +4,11 @@ Milhena Custom Graph - Multi-Node Security Pipeline
 Grafo LangGraph con nodi separati visibili in Studio
 """
 
-from typing import TypedDict, Annotated
+from typing_extensions import TypedDict
+from typing import Annotated
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.graph.message import add_messages
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 
 # Import Milhena components
 from app.core.hybrid_classifier import HybridClassifier, IntentCategory
@@ -24,20 +26,22 @@ data_analyst = DataAnalystAgent()
 
 
 class MilhenaState(TypedDict):
-    """State per il grafo Milhena"""
-    query: str
+    """State per il grafo Milhena - compatibile con LangSmith"""
+    messages: Annotated[list[BaseMessage], add_messages]
     category: str
     confidence: float
     raw_response: str
     masked_response: str
     validation_result: str
     final_response: str
-    messages: Annotated[list, "messages"]
 
 
 def classify_node(state: MilhenaState) -> MilhenaState:
     """Node 1: Classify user intent"""
-    query = state["query"]
+    # Estrai query dall'ultimo messaggio
+    last_message = state["messages"][-1]
+    query = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
     category, confidence, reasoning = classifier.classify(query, use_llm_fallback=False)
 
     audit.log_classification(query, category.value, confidence)
@@ -53,7 +57,12 @@ def query_database_node(state: MilhenaState) -> MilhenaState:
     from app.graph import query_users, query_sessions, get_system_status, execute_business_query
 
     category = state["category"]
-    query = state["query"]
+    last_message = state["messages"][-1]
+    query = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
+    # Converti in stringa se è una lista
+    if isinstance(query, list):
+        query = str(query)
 
     if category == "GREETING":
         raw_response = "Greeting request"
@@ -79,7 +88,13 @@ def query_database_node(state: MilhenaState) -> MilhenaState:
 def data_analyst_node(state: MilhenaState) -> MilhenaState:
     """Node 3: Data Analyst elabora dati RAW in risposta business"""
     category = state["category"]
-    query = state["query"]
+    last_message = state["messages"][-1]
+    query = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
+    # Converti in stringa se è una lista
+    if isinstance(query, list):
+        query = str(query)
+
     raw_data = state["raw_response"]
 
     if category == "GREETING":
@@ -97,13 +112,17 @@ def data_analyst_node(state: MilhenaState) -> MilhenaState:
 
 
 def masking_node(state: MilhenaState) -> MilhenaState:
-    """Node 3: Mask technical terms"""
+    """Node 5: Mask technical terms and return final AIMessage"""
     raw = state["raw_response"]
     masked = masking.mask(raw)
 
     audit.log_masking(raw[:50], 1)
 
+    # IMPORTANTE: Restituisci AIMessage per LangSmith chat
     state["masked_response"] = masked
+    state["final_response"] = masked
+    state["messages"].append(AIMessage(content=masked))
+
     return state
 
 
@@ -189,3 +208,29 @@ workflow.add_edge("masking", END)
 # Compile graph
 graph = workflow.compile()
 graph.name = "Milhena Security Pipeline"
+
+
+# Export also as invokable function for ReAct agent
+def invoke_milhena(query: str) -> str:
+    """
+    Invoke Milhena pipeline with a user query
+
+    Args:
+        query: User query string
+
+    Returns:
+        Final response after Milhena pipeline
+    """
+    initial_state = {
+        "query": query,
+        "category": "",
+        "confidence": 0.0,
+        "raw_response": "",
+        "masked_response": "",
+        "validation_result": "",
+        "final_response": "",
+        "messages": [HumanMessage(content=query)]
+    }
+
+    result = graph.invoke(initial_state)
+    return result.get("final_response", "Errore nel processamento")

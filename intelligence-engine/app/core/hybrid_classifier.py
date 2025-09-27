@@ -153,6 +153,10 @@ class HybridClassifier:
         Returns:
             Sanitized text
         """
+        # Convert to string if needed
+        if not isinstance(text, str):
+            text = str(text)
+
         # Limit length
         max_length = self.config.get("security", {}).get("max_input_length", 500)
         if len(text) > max_length:

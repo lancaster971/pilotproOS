@@ -286,7 +286,10 @@
       "jenkins",
       "gitlab",
       "github",
-      "bitbucket"
+      "bitbucket",
+      "pilotpros_db",
+      "pilotpros",
+      "_db"
     ]
   },
 
