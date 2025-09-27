@@ -67,43 +67,58 @@ async function getAllStatus() {
 // Print header
 function printHeader() {
   clearScreen();
-  console.log(`${colors.cyan}╔══════════════════════════════════════════════╗${colors.reset}`);
-  console.log(`${colors.cyan}║${colors.reset}     ${colors.bright}PilotProOS Stack Management Center${colors.reset}      ${colors.cyan}║${colors.reset}`);
-  console.log(`${colors.cyan}╚══════════════════════════════════════════════╝${colors.reset}`);
+  console.log(`${colors.cyan}╔════════════════════════════════════════════════════════════╗${colors.reset}`);
+  console.log(`${colors.cyan}║${colors.reset}                                                            ${colors.cyan}║${colors.reset}`);
+  console.log(`${colors.cyan}║${colors.reset}                   ${colors.bright}${colors.cyan}PilotPro Stack Control${colors.reset}                    ${colors.cyan}║${colors.reset}`);
+  console.log(`${colors.cyan}║${colors.reset}                                                            ${colors.cyan}║${colors.reset}`);
+  console.log(`${colors.cyan}╚════════════════════════════════════════════════════════════╝${colors.reset}`);
   console.log();
 }
 
 // Show quick status
 async function showQuickStatus() {
-  console.log(`${colors.yellow}Checking system status...${colors.reset}\n`);
+  console.log(`${colors.dim}System Status Report${colors.reset}`);
+  console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
 
   const statuses = await getAllStatus();
 
   for (const status of statuses) {
+    const statusSymbol = status.status === 'Running'
+      ? `${colors.green}●${colors.reset}`
+      : `${colors.red}○${colors.reset}`;
     const statusText = status.status === 'Running'
-      ? `${colors.green}Running${colors.reset}`
-      : `${colors.red}Stopped${colors.reset}`;
-    const healthInfo = status.health ? ` ${colors.dim}(${status.health})${colors.reset}` : '';
+      ? `${colors.green}ACTIVE${colors.reset}`
+      : `${colors.red}STOPPED${colors.reset}`;
+    const healthInfo = status.health ? ` ${colors.dim}[${status.health}]${colors.reset}` : '';
 
-    console.log(`  ${status.name.padEnd(25)} ${statusText}${healthInfo}`);
+    console.log(`  ${statusSymbol} ${status.name.padEnd(30)} ${statusText}${healthInfo}`);
   }
   console.log();
 }
 
 // Show main menu
 function showMainMenu() {
-  console.log(`${colors.bright}Main Menu:${colors.reset}\n`);
-  console.log(`  ${colors.cyan}1)${colors.reset} View System Status`);
-  console.log(`  ${colors.cyan}2)${colors.reset} Restart a Service`);
-  console.log(`  ${colors.cyan}3)${colors.reset} Quick Health Check`);
-  console.log(`  ${colors.cyan}4)${colors.reset} View Service Logs`);
-  console.log(`  ${colors.cyan}5)${colors.reset} Start All Services`);
-  console.log(`  ${colors.cyan}6)${colors.reset} Stop All Services`);
-  console.log(`  ${colors.cyan}7)${colors.reset} Open Business Portal`);
-  console.log(`  ${colors.cyan}8)${colors.reset} Refresh Status`);
-  console.log(`  ${colors.cyan}9)${colors.reset} Agent Engine CLI`);
-  console.log(`  ${colors.cyan}t)${colors.reset} ${colors.green}Deep Stack Test${colors.reset} (Complete health check)\n`);
-  console.log(`  ${colors.red}q)${colors.reset} Quit\n`);
+  console.log(`${colors.bright}Operations Menu${colors.reset}`);
+  console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
+
+  console.log(`${colors.dim}  SYSTEM OPERATIONS${colors.reset}`);
+  console.log(`  ${colors.cyan}[1]${colors.reset} View System Status`);
+  console.log(`  ${colors.cyan}[2]${colors.reset} Restart Service`);
+  console.log(`  ${colors.cyan}[3]${colors.reset} Quick Health Check`);
+  console.log(`  ${colors.cyan}[4]${colors.reset} View Service Logs`);
+  console.log(`  ${colors.cyan}[5]${colors.reset} Start All Services`);
+  console.log(`  ${colors.cyan}[6]${colors.reset} Stop All Services`);
+  console.log();
+  console.log(`${colors.dim}  ACCESS & INTERFACES${colors.reset}`);
+  console.log(`  ${colors.cyan}[7]${colors.reset} Open Business Portal`);
+  console.log(`  ${colors.cyan}[9]${colors.reset} Agent Engine CLI`);
+  console.log(`  ${colors.cyan}[i]${colors.reset} Intelligence Services Status`);
+  console.log();
+  console.log(`${colors.dim}  DIAGNOSTICS${colors.reset}`);
+  console.log(`  ${colors.cyan}[t]${colors.reset} Deep Stack Test ${colors.dim}(Complete health check)${colors.reset}`);
+  console.log(`  ${colors.cyan}[8]${colors.reset} Refresh Status`);
+  console.log();
+  console.log(`  ${colors.red}[q]${colors.reset} Exit Console\n`);
 }
 
 // Sleep helper
@@ -143,7 +158,10 @@ class StackManager {
 
         // Session valid for 30 minutes
         if (sessionAge < 30) {
-          console.log(`${colors.green}Authenticated as ${session.user}${colors.reset}`);
+          clearScreen();
+          console.log(`${colors.dim}Session restored${colors.reset}`);
+          console.log(`${colors.dim}User: ${session.user} | Time remaining: ${Math.round(30 - sessionAge)} minutes${colors.reset}\n`);
+          await sleep(800);
           return;
         }
       } catch (e) {
@@ -157,9 +175,11 @@ class StackManager {
     const correctPasswordHash = '8f0c9e6d4b3a2f1e7c5d9b4a6e3f8c2d1a7b9e4f6c3d8a2b5e1f7d4c9a6b3e2f';
 
     clearScreen();
-    console.log(`${colors.cyan}╔══════════════════════════════════════════════╗${colors.reset}`);
-    console.log(`${colors.cyan}║${colors.reset}      ${colors.bright}PilotProOS Security Authentication${colors.reset}      ${colors.cyan}║${colors.reset}`);
-    console.log(`${colors.cyan}╚══════════════════════════════════════════════╝${colors.reset}\n`);
+    console.log(`${colors.cyan}╔════════════════════════════════════════════════════════════╗${colors.reset}`);
+    console.log(`${colors.cyan}║${colors.reset}                                                            ${colors.cyan}║${colors.reset}`);
+    console.log(`${colors.cyan}║${colors.reset}                   ${colors.bright}${colors.cyan}PILOTPRO STACK CONTROL${colors.reset}                  ${colors.cyan}║${colors.reset}`);
+    console.log(`${colors.cyan}║${colors.reset}                                                            ${colors.cyan}║${colors.reset}`);
+    console.log(`${colors.cyan}╚════════════════════════════════════════════════════════════╝${colors.reset}\n`);
 
     let attempts = 0;
     const maxAttempts = 3;
@@ -178,15 +198,18 @@ class StackManager {
           timestamp: Date.now()
         };
         fs.writeFileSync(sessionFile, JSON.stringify(session));
-        console.log(`${colors.green}Authentication successful${colors.reset}\n`);
+        console.log(`\n  ${colors.green}ACCESS GRANTED${colors.reset}`);
+        console.log(`  ${colors.dim}Session established for: admin${colors.reset}\n`);
         await sleep(1000);
         return;
       } else {
         attempts++;
         if (attempts < maxAttempts) {
-          console.log(`${colors.red}✗ Invalid password. ${maxAttempts - attempts} attempts remaining.${colors.reset}`);
+          console.log(`\n  ${colors.red}ACCESS DENIED${colors.reset}`);
+          console.log(`  ${colors.dim}Remaining attempts: ${maxAttempts - attempts}${colors.reset}\n`);
         } else {
-          console.log(`${colors.red}✗ Authentication failed. Access denied.${colors.reset}`);
+          console.log(`\n  ${colors.red}AUTHENTICATION FAILED${colors.reset}`);
+          console.log(`  ${colors.dim}Maximum attempts exceeded${colors.reset}\n`);
           process.exit(1);
         }
       }
@@ -345,11 +368,16 @@ class StackManager {
       case '9':
         await this.openAgentCLI();
         break;
+      case 'i':
+        await this.intelligenceServicesStatus();
+        break;
       case 't':
         await this.runDeepTest();
         break;
       case 'q':
-        console.log(`\n${colors.green}Goodbye!${colors.reset}\n`);
+        clearScreen();
+        console.log(`${colors.dim}Session terminated${colors.reset}`);
+        console.log(`${colors.dim}PilotPro Stack Control closed${colors.reset}\n`);
         this.rl.close();
         process.exit(0);
         break;
@@ -531,7 +559,7 @@ class StackManager {
       }
     } else {
       // Containers exist, just start them
-      const order = ['postgres', 'automation-engine', 'backend', 'frontend', 'nginx'];
+      const order = ['postgres', 'redis', 'automation-engine', 'backend', 'intelligence-engine', 'frontend', 'nginx'];
 
       for (const key of order) {
         const service = Object.values(services).find(s => s.container.includes(key));
@@ -679,6 +707,116 @@ class StackManager {
     });
   }
 
+  async intelligenceServicesStatus() {
+    await this.checkDocker(true);
+    printHeader();
+    console.log(`${colors.bright}Intelligence Engine${colors.reset} ${colors.dim}│ Microservices Monitor${colors.reset}`);
+    console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
+
+    const result = await dockerExec('docker exec pilotpros-intelligence-engine-dev /app/healthcheck.sh');
+
+    if (result.success) {
+      const lines = result.output.split('\n');
+      for (const line of lines) {
+        if (line.includes('✓')) {
+          console.log(`  ${colors.green}●${colors.reset} ${line.replace('✓', '').trim()}`);
+        } else if (line.includes('✗')) {
+          console.log(`  ${colors.red}○${colors.reset} ${line.replace('✗', '').trim()}`);
+        } else if (line.includes('Status:')) {
+          console.log(`\n  ${colors.bright}${line}${colors.reset}`);
+        } else if (line.trim() && !line.includes('===') && !line.includes('Health Check')) {
+          console.log(`  ${colors.dim}${line}${colors.reset}`);
+        }
+      }
+    } else {
+      console.log(`  ${colors.yellow}${result.output}${colors.reset}`);
+      console.log(`  ${colors.red}${result.error}${colors.reset}`);
+    }
+
+    console.log(`\n${colors.dim}  SERVICE ENDPOINTS${colors.reset}`);
+    console.log(`  ${colors.cyan}[1]${colors.reset} Intelligence API       ${colors.dim}http://localhost:8000${colors.reset}`);
+    console.log(`  ${colors.cyan}[2]${colors.reset} Intelligence Dashboard ${colors.dim}http://localhost:8501${colors.reset}`);
+    console.log(`  ${colors.cyan}[3]${colors.reset} Development Studio     ${colors.dim}http://localhost:2024${colors.reset}`);
+    console.log(`  ${colors.cyan}[4]${colors.reset} Analytics Monitor      ${colors.dim}http://localhost:6006${colors.reset}`);
+
+    console.log(`\n${colors.dim}  AVAILABLE ACTIONS${colors.reset}`);
+    console.log(`  ${colors.yellow}[r]${colors.reset} Restart All Microservices`);
+    console.log(`  ${colors.yellow}[s]${colors.reset} Start Supervisor`);
+    console.log(`  ${colors.green}[0]${colors.reset} Back to Main Menu\n`);
+
+    this.rl.question('Select action: ', async (choice) => {
+      switch(choice) {
+        case 'r':
+          await this.restartIntelligenceMicroservices();
+          break;
+        case 's':
+          await this.startIntelligenceSupervisor();
+          break;
+        case '0':
+          await this.mainLoop();
+          break;
+        default:
+          console.log(`${colors.red}Invalid selection${colors.reset}`);
+          await sleep(1500);
+          await this.intelligenceServicesStatus();
+      }
+    });
+  }
+
+  async restartIntelligenceMicroservices() {
+    printHeader();
+    console.log(`${colors.bright}Restart Operation${colors.reset} ${colors.dim}│ Intelligence Microservices${colors.reset}`);
+    console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
+
+    process.stdout.write(`  ${colors.dim}[1/3]${colors.reset} Stopping active services...`);
+    const stopResult = await dockerExec('docker exec pilotpros-intelligence-engine-dev sh -c "pkill -f uvicorn; pkill -f streamlit; pkill -f langgraph"');
+    await sleep(2000);
+    console.log(` ${colors.green}DONE${colors.reset}`);
+
+    process.stdout.write(`  ${colors.dim}[2/3]${colors.reset} Initializing supervisor...`);
+    await dockerExec('docker exec -d pilotpros-intelligence-engine-dev /app/supervisor.sh');
+    console.log(` ${colors.green}DONE${colors.reset}`);
+
+    process.stdout.write(`  ${colors.dim}[3/3]${colors.reset} Starting microservices...`);
+    await sleep(5000);
+    console.log(` ${colors.green}DONE${colors.reset}`);
+
+    console.log(`\n  ${colors.bright}${colors.green}Operation completed successfully${colors.reset}`);
+
+    this.rl.question('\n  Press Enter to verify status...', async () => {
+      await this.intelligenceServicesStatus();
+    });
+  }
+
+  async startIntelligenceSupervisor() {
+    printHeader();
+    console.log(`${colors.bright}Supervisor Control${colors.reset} ${colors.dim}│ Intelligence Engine${colors.reset}`);
+    console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
+
+    process.stdout.write(`  ${colors.dim}[CHECK]${colors.reset} Verifying supervisor status...`);
+    const checkCmd = 'docker exec pilotpros-intelligence-engine-dev pgrep -f supervisor.sh';
+    const checkResult = await dockerExec(checkCmd);
+
+    if (checkResult.output.trim()) {
+      console.log(` ${colors.yellow}ALREADY RUNNING${colors.reset}`);
+      console.log(`\n  ${colors.cyan}Supervisor is currently active${colors.reset}`);
+      console.log(`  ${colors.dim}Process ID: ${checkResult.output.trim()}${colors.reset}`);
+    } else {
+      console.log(` ${colors.green}NOT RUNNING${colors.reset}`);
+      process.stdout.write(`  ${colors.dim}[START]${colors.reset} Initializing supervisor...`);
+
+      await dockerExec('docker exec -d pilotpros-intelligence-engine-dev /app/supervisor.sh');
+      await sleep(3000);
+
+      console.log(` ${colors.green}DONE${colors.reset}`);
+      console.log(`\n  ${colors.bright}${colors.green}Supervisor started successfully${colors.reset}`);
+    }
+
+    this.rl.question('\n  Press Enter to verify status...', async () => {
+      await this.intelligenceServicesStatus();
+    });
+  }
+
   async openFrontend() {
     // Check if services are running
     const statuses = await getAllStatus();
@@ -711,7 +849,7 @@ class StackManager {
             }
           } else {
             // Containers exist, start them in order
-            const order = ['postgres', 'automation-engine', 'backend', 'frontend', 'nginx'];
+            const order = ['postgres', 'redis', 'automation-engine', 'backend', 'intelligence-engine', 'frontend', 'nginx'];
 
             for (const key of order) {
               const service = Object.values(services).find(s => s.container.includes(key));

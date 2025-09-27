@@ -36,9 +36,10 @@ PilotProOS - Containerized Business Process Operating System
 **ACCESS POINTS:**
 - 🌐 Frontend: http://localhost:3000 (tiziano@gmail.com / Hamlet@108)
 - ⚙️ Backend API: http://localhost:3001
-- 🤖 Intelligence Engine: http://localhost:8000
-- 📊 Graph Visualization: http://localhost:8000/graph/visualize
-- 🎨 LangGraph Studio: http://localhost:2024
+- 🤖 Intelligence API: http://localhost:8000
+- 📊 Intelligence Dashboard: http://localhost:8501
+- 🎨 Development Studio: http://localhost:2024
+- 📈 Analytics Monitor: http://localhost:6006
 - 🔧 Stack Control: http://localhost:3005 (admin / PilotPro2025!)
 - 🔄 Automation: http://localhost:5678 (admin / pilotpros_admin_2025)
 
@@ -169,6 +170,38 @@ curl http://localhost:8000/graph/visualize --output graph.png  # Get graph PNG
 ```
 
 ## **🤖 INTELLIGENCE ENGINE**
+
+### **Microservices Architecture**
+Il container Intelligence Engine esegue 4 microservizi gestiti automaticamente:
+
+1. **Intelligence API** (porta 8000)
+   - FastAPI server principale
+   - LangGraph ReAct Agent
+   - Endpoints REST
+
+2. **Intelligence Dashboard** (porta 8501)
+   - Streamlit UI interattiva
+   - Visualizzazione conversazioni
+   - Monitoring in tempo reale
+
+3. **Development Studio** (porta 2024)
+   - LangGraph Studio UI
+   - Debugging grafi
+   - Test agent interattivi
+
+4. **Analytics Monitor** (porta 6006)
+   - TensorBoard (opzionale)
+   - Metriche performance
+
+**Gestione Microservizi:**
+- Auto-start con supervisor script
+- Auto-restart in caso di crash
+- Healthcheck completo multi-servizio
+- CLI Stack opzione 'i':
+  - Status dettagliato tutti i microservizi
+  - Restart selettivo (opzione 'r')
+  - Start supervisor (opzione 's')
+  - Controllo completo senza riavvio container
 
 ### **LangGraph ReAct Agent**
 - **Framework**: LangGraph 0.6.7 with ReAct pattern

@@ -274,16 +274,18 @@ services:
       - intelligence_engine_cache:/app/cache
       - ./logs/intelligence-engine:/app/logs
     ports:
-      - "8000:8000"  # FastAPI server
-      - "8501:8501"  # Streamlit dashboard
-      - "6006:6006"  # TensorBoard (optional)
+      - "8000:8000"  # Intelligence API
+      - "8501:8501"  # Intelligence Dashboard
+      - "6006:6006"  # Analytics Monitor
+      - "2024:2024"  # Development Studio
     networks:
       - pilotpros-dev
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "/app/healthcheck.sh || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     labels:
       - "com.pilotpros.service=intelligence"
       - "com.pilotpros.framework=langchain"
