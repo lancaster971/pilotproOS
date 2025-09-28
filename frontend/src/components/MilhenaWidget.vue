@@ -19,30 +19,32 @@
         <!-- Header -->
         <div class="chat-header">
           <div class="header-left">
-            <Icon icon="mdi:robot-happy" class="header-icon" />
+            <Icon icon="mdi:robot" class="header-icon" />
             <div>
-              <h3>Milhena AI</h3>
+              <h3>PilotPro Assistant</h3>
               <p class="status-text">
-                <span v-if="isLearning" class="learning-status">
-                  🧠 Learning...
-                </span>
-                <span v-else class="online-status">
-                  ● Online - {{ accuracy }}% accuracy
+                <span class="online-status">
+                  ● Online
                 </span>
               </p>
             </div>
           </div>
-          <button @click="toggleChat" class="close-btn">
-            <Icon icon="mdi:close" />
-          </button>
+          <div class="header-actions">
+            <button @click="clearChat" class="action-btn" title="Clear chat">
+              <Icon icon="mdi:delete-outline" />
+            </button>
+            <button @click="toggleChat" class="close-btn">
+              <Icon icon="mdi:close" />
+            </button>
+          </div>
         </div>
 
         <!-- Messages Area -->
         <div class="messages-area" ref="messagesContainer">
           <!-- Welcome message -->
           <div v-if="messages.length === 0" class="welcome-message">
-            <p>👋 Ciao! Sono Milhena v3.0</p>
-            <p>Come posso aiutarti con i tuoi processi?</p>
+            <p>Benvenuto in PilotPro Assistant</p>
+            <p>Come posso aiutarti oggi?</p>
             <div class="quick-actions">
               <button
                 v-for="action in quickActions"
@@ -59,51 +61,15 @@
           <div v-for="(msg, index) in messages" :key="index"
                :class="['message', msg.role]">
             <div class="message-bubble">
-              <div class="message-text">{{ msg.content }}</div>
+              <div class="message-text" v-html="formatMessage(msg.content)"></div>
 
-              <!-- Confidence indicator -->
-              <div v-if="msg.confidence && msg.role === 'assistant'" class="confidence-indicator">
-                <div class="confidence-bar">
-                  <div class="confidence-fill"
-                       :style="{width: (msg.confidence * 100) + '%'}"
-                       :class="getConfidenceClass(msg.confidence)">
-                  </div>
-                </div>
-                <span class="confidence-text">{{ Math.round(msg.confidence * 100) }}%</span>
-              </div>
 
-              <!-- Feedback buttons -->
-              <div v-if="msg.role === 'assistant' && !msg.feedback" class="feedback-buttons">
-                <button @click="sendFeedback(index, 'positive')"
-                        class="feedback-btn" title="Utile">
-                  <Icon icon="mdi:thumb-up-outline" />
-                </button>
-                <button @click="sendFeedback(index, 'negative')"
-                        class="feedback-btn" title="Non utile">
-                  <Icon icon="mdi:thumb-down-outline" />
-                </button>
-              </div>
-
-              <!-- Feedback confirmation -->
-              <div v-if="msg.feedback" class="feedback-status">
-                <Icon :icon="msg.feedback === 'positive' ? 'mdi:check' : 'mdi:lightbulb'" />
-                {{ msg.feedback === 'positive' ? 'Grazie!' : 'Sto imparando...' }}
+              <!-- Timestamp -->
+              <div class="message-time">
+                {{ formatTime(msg.timestamp) }}
               </div>
             </div>
 
-            <!-- Reformulation suggestion -->
-            <div v-if="msg.feedback === 'negative' && !msg.reformulated"
-                 class="reformulation-hint">
-              <p>Prova a riformulare per aiutarmi:</p>
-              <div class="suggestions">
-                <button v-for="sugg in getReformulationSuggestions()"
-                        :key="sugg"
-                        @click="sendMessage(sugg)"
-                        class="suggestion-chip">
-                  {{ sugg }}
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- Typing indicator -->
@@ -116,49 +82,30 @@
           </div>
         </div>
 
-        <!-- Learning Stats Bar -->
-        <div v-if="showStats" class="learning-stats-bar">
-          <div class="stat-item">
-            <span class="stat-value">{{ todayStats.queries }}</span>
-            <span class="stat-label">queries</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ todayStats.patterns }}</span>
-            <span class="stat-label">learned</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">+{{ todayStats.improvement }}%</span>
-            <span class="stat-label">better</span>
-          </div>
-        </div>
 
         <!-- Input Area -->
         <div class="input-area">
           <input
             v-model="inputMessage"
-            @keyup.enter="sendMessage"
+            @keyup.enter="sendMessage()"
             :disabled="isLoading"
-            placeholder="Chiedi qualsiasi cosa..."
+            placeholder="Scrivi un messaggio..."
             class="message-input"
           />
-          <button @click="sendMessage" :disabled="!inputMessage.trim() || isLoading"
+          <button @click="sendMessage()" :disabled="!inputMessage.trim() || isLoading"
                   class="send-btn">
             <Icon v-if="isLoading" icon="mdi:loading" class="animate-spin" />
             <Icon v-else icon="mdi:send" />
           </button>
         </div>
 
-        <!-- Reformulation indicator -->
-        <div v-if="isReformulating" class="reformulation-indicator">
-          🔄 Sto imparando dalla tua correzione...
-        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useToast } from 'vue-toastification'
 // Try importing as a named export and create a wrapper
@@ -176,26 +123,21 @@ const messages = ref([])
 const inputMessage = ref('')
 const isLoading = ref(false)
 const isTyping = ref(false)
-const isLearning = ref(false)
-const isReformulating = ref(false)
-const showStats = ref(false)
 
-// Learning metrics
-const accuracy = ref(92)
-const todayStats = ref({
-  queries: 0,
-  patterns: 0,
-  improvement: 0
-})
+// Clear chat function
+const clearChat = () => {
+  messages.value = []
+  sessionId.value = generateSessionId()
+}
 
 // Session management
 const sessionId = ref(generateSessionId())
 
 // Quick actions
 const quickActions = [
-  { label: '📊 Status sistema', text: 'Qual è lo stato del sistema?' },
-  { label: '🔴 Ultimi errori', text: 'Ci sono errori critici?' },
-  { label: '📈 Performance', text: 'Come sono le performance oggi?' }
+  { label: 'Status sistema', text: 'Qual è lo stato del sistema?' },
+  { label: 'Ultimi errori', text: 'Ci sono errori critici?' },
+  { label: 'Performance', text: 'Come sono le performance oggi?' }
 ]
 
 // Generate session ID
@@ -213,26 +155,45 @@ const toggleChat = () => {
   }
 }
 
-// Get confidence class
-const getConfidenceClass = (confidence) => {
-  if (confidence > 0.8) return 'high'
-  if (confidence > 0.6) return 'medium'
-  return 'low'
+
+// Format time
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
-// Get reformulation suggestions
-const getReformulationSuggestions = () => {
-  return [
-    'Mostra più dettagli',
-    'Spiega in modo diverso',
-    'Dammi esempi specifici'
-  ]
+// Format message (handle markdown)
+const formatMessage = (content) => {
+  if (!content) return ''
+
+  // Remove markdown formatting
+  let formatted = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+    .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+    .replace(/\n\n/g, '<br><br>') // Paragraphs
+    .replace(/\n/g, '<br>') // Line breaks
+
+  return formatted
 }
 
 // Send quick message
 const sendQuickMessage = (text) => {
   inputMessage.value = text
   sendMessage()
+}
+
+
+const messagesContainer = ref(null)
+
+// Scroll to bottom
+const scrollToBottom = () => {
+  nextTick(() => {
+    const container = messagesContainer.value
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  })
 }
 
 // Send message
@@ -253,120 +214,40 @@ const sendMessage = async (text) => {
   scrollToBottom()
 
   try {
-    // Call Milhena API via n8n endpoint (actual working endpoint)
-    const response = await apiClient.post('/api/n8n/agent/customer-support', {
-      message: messageText,
-      session_id: sessionId.value,
-      context: {
-        is_reformulation: isReformulating.value,
-        widget: true
-      }
+    // Call Intelligence Engine directly
+    const response = await fetch('http://localhost:8000/api/n8n/agent/customer-support', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: messageText,
+        session_id: sessionId.value
+      })
     })
+
+    const data = await response.json()
 
     // Add response
     messages.value.push({
       role: 'assistant',
-      content: response.data.response || response.data.message,
-      confidence: response.data.confidence,
+      content: data.response || data.message || 'Nessuna risposta ricevuta',
       timestamp: new Date()
     })
 
-    // Update stats
-    if (response.data.system_accuracy) {
-      accuracy.value = Math.round(response.data.system_accuracy * 100)
-    }
-
-    // Check if learned something
-    if (response.data.learned) {
-      showLearningAnimation()
-    }
-
-    isReformulating.value = false
-
   } catch (error) {
+    console.error('Errore chiamata Intelligence Engine:', error)
     messages.value.push({
       role: 'assistant',
-      content: 'Mi dispiace, c\'è stato un problema. Riprova tra poco.',
+      content: 'Errore di connessione all\'Intelligence Engine. Verifica che sia attivo su porta 8000.',
+      error: true,
       timestamp: new Date()
     })
   } finally {
     isLoading.value = false
     isTyping.value = false
     scrollToBottom()
-    todayStats.value.queries++
   }
-}
-
-// Send feedback
-const sendFeedback = async (messageIndex, type) => {
-  const message = messages.value[messageIndex]
-  if (!message || message.feedback) return
-
-  message.feedback = type
-
-  if (type === 'negative') {
-    isReformulating.value = true
-    setTimeout(() => {
-      isReformulating.value = false
-    }, 30000)
-  }
-
-  // Show learning animation
-  isLearning.value = true
-  setTimeout(() => {
-    isLearning.value = false
-  }, 3000)
-
-  try {
-    // For now, just log feedback locally since backend doesn't have this endpoint yet
-    console.log('Feedback recorded:', {
-      session_id: sessionId.value,
-      message_id: messageIndex,
-      feedback_type: type,
-      query: messages.value[messageIndex - 1]?.content || '',
-      response: message.content,
-      confidence: message.confidence
-    })
-
-    if (type === 'negative') {
-      toast.info('Grazie! Usa una formulazione diversa per aiutarmi a imparare')
-    }
-  } catch (error) {
-    console.error('Feedback error:', error)
-  }
-}
-
-// Show learning animation
-const showLearningAnimation = () => {
-  isLearning.value = true
-  todayStats.value.patterns++
-  setTimeout(() => {
-    isLearning.value = false
-  }, 2000)
-}
-
-// Scroll to bottom
-const scrollToBottom = () => {
-  nextTick(() => {
-    const container = messagesContainer.value
-    if (container) {
-      container.scrollTop = container.scrollHeight
-    }
-  })
-}
-
-const messagesContainer = ref(null)
-
-// Load stats on mount
-const loadStats = async () => {
-  // For now, use mock stats until backend endpoint is ready
-  todayStats.value = {
-    queries: 12,
-    patterns: 3,
-    improvement: 5
-  }
-  // Stats endpoint not yet implemented in backend
-  console.log('Using mock stats for demo')
 }
 
 // Keyboard shortcut
@@ -378,14 +259,7 @@ const handleKeyboard = (e) => {
 }
 
 onMounted(() => {
-  loadStats()
   document.addEventListener('keydown', handleKeyboard)
-
-  // Show welcome animation after 3 seconds
-  setTimeout(() => {
-    hasNewMessage.value = true
-    unreadCount.value = 1
-  }, 3000)
 })
 
 onBeforeUnmount(() => {
@@ -466,9 +340,9 @@ onBeforeUnmount(() => {
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: 380px;
+  width: 450px;
   height: 600px;
-  background: white;
+  background: #1e293b;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -553,8 +427,12 @@ onBeforeUnmount(() => {
 .messages-area {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
-  background: #f8f9fa;
+  overflow-x: hidden;
+  padding: 20px;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .welcome-message {
@@ -576,24 +454,25 @@ onBeforeUnmount(() => {
 
 .quick-action-btn {
   padding: 8px 12px;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: #1e293b;
+  border: 1px solid #475569;
   border-radius: 20px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  color: #cbd5e1;
 }
 
 .quick-action-btn:hover {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   border-color: transparent;
 }
 
 /* Messages */
 .message {
-  margin-bottom: 12px;
   display: flex;
+  width: 100%;
 }
 
 .message.user {
@@ -605,28 +484,50 @@ onBeforeUnmount(() => {
 }
 
 .message-bubble {
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 12px;
   word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  min-width: 100px;
 }
 
 .message.user .message-bubble {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   border-bottom-right-radius: 4px;
 }
 
 .message.assistant .message-bubble {
-  background: white;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  background: #334155;
+  color: #f1f5f9;
+  border: 1px solid #475569;
   border-bottom-left-radius: 4px;
+  max-width: 90%;
 }
 
 .message-text {
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.6;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  display: block;
+  width: 100%;
+}
+
+.message-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+  text-align: right;
+}
+
+.message.assistant .message-time {
+  color: #94a3b8;
 }
 
 /* Confidence Indicator */
@@ -716,7 +617,7 @@ onBeforeUnmount(() => {
 
 .suggestion-chip {
   padding: 4px 8px;
-  background: white;
+  background: #1e293b;
   border: 1px solid #ff9800;
   border-radius: 12px;
   font-size: 11px;
@@ -788,7 +689,7 @@ onBeforeUnmount(() => {
 /* Input Area */
 .input-area {
   padding: 12px;
-  background: white;
+  background: #1e293b;
   border-top: 1px solid #e0e0e0;
   display: flex;
   gap: 8px;
@@ -894,15 +795,15 @@ onBeforeUnmount(() => {
 }
 
 .messages-area::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: #1e293b;
 }
 
 .messages-area::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: #475569;
   border-radius: 3px;
 }
 
 .messages-area::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: #64748b;
 }
 </style>

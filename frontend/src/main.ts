@@ -17,6 +17,9 @@ import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import { toastOptions } from './config/toast-config'
 
+// Vue3 Beautiful Chat
+import Chat from 'vue3-beautiful-chat'
+
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
 import Nora from '@primevue/themes/nora'
@@ -127,6 +130,7 @@ app.use(PrimeVue, {
 
 app.use(pinia)
 app.use(router)
+app.use(Chat) // Register Beautiful Chat
 
 // Vue Toastification configuration - Insights theme
 app.use(Toast, toastOptions)

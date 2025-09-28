@@ -7,8 +7,8 @@
     </router-view>
     <!-- Custom notification system -->
     <NotificationContainer />
-    <!-- Milhena Floating Widget - Always available -->
-    <MilhenaWidget v-if="isAuthenticated" />
+    <!-- PilotPro Chat Widget - Always available -->
+    <PilotProChat v-if="isAuthenticated" />
   </div>
 </template>
 
@@ -16,7 +16,7 @@
 import { onMounted, onUnmounted, computed } from 'vue'
 import webSocketService from './services/websocket'
 import NotificationContainer from './components/NotificationContainer.vue'
-import MilhenaWidget from './components/MilhenaWidget.vue'
+import PilotProChat from './components/PilotProChat.vue'
 import { useAuthStore } from './stores/auth'
 
 // Initialize Design System theme globally

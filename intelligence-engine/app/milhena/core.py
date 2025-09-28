@@ -20,7 +20,7 @@ class MilhenaConfig:
     langchain_project: str = os.getenv("LANGCHAIN_PROJECT", "milhena-production")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    max_response_length: int = 200
+    max_response_length: int = 2000  # Increased for complete responses
     cache_ttl: int = 300  # 5 minutes
     rate_limit_per_minute: int = 30
     budget_limit_per_day: float = 10.0  # $10 per day
