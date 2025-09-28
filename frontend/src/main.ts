@@ -58,6 +58,7 @@ const WorkflowCommandCenter = () => import('./pages/WorkflowCommandCenter.vue')
 const ExecutionsPage = () => import('./pages/ExecutionsPage.vue')
 const SettingsPage = () => import('./pages/SettingsPage.vue')
 const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
+const MilhenaChat = () => import('./pages/MilhenaChat.vue')
 
 // Router configuration - same as n8n approach
 const routes = [
@@ -70,6 +71,7 @@ const routes = [
   { path: '/workflows/visual', redirect: '/command-center' },
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPage, name: 'executions', meta: { requiresAuth: true } },
+  { path: '/milhena', component: MilhenaChat, name: 'milhena', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },
   { path: '/agents', redirect: '/command-center' }, // Agents functionality integrated into command-center
   { path: '/security', redirect: '/command-center' }, // Security functionality not needed

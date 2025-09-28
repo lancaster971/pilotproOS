@@ -7,7 +7,7 @@
           <Icon icon="mdi:robot-happy" class="header-icon" />
           <div>
             <h1>Milhena Assistant</h1>
-            <p class="subtitle">v4.0 - Powered by Groq (60ms response)</p>
+            <p class="subtitle">v3.0 Learning Edition - Self-Improving AI</p>
           </div>
         </div>
         <div class="header-stats">
@@ -16,8 +16,12 @@
             <span class="stat-label">Latency</span>
           </div>
           <div class="stat">
-            <span class="stat-value">{{ messages.length }}</span>
-            <span class="stat-label">Messages</span>
+            <span class="stat-value">{{ accuracy }}%</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+          <div class="stat" v-if="isLearning">
+            <Icon icon="mdi:brain" class="learning-icon animate-pulse" />
+            <span class="stat-label">Learning...</span>
           </div>
         </div>
       </div>
@@ -64,11 +68,57 @@
             <span v-if="message.latency" class="message-latency">{{ message.latency }}ms</span>
           </div>
           <div class="message-text" v-html="formatMessage(message.content)"></div>
+
+          <!-- Confidence Indicator -->
           <div v-if="message.confidence" class="message-confidence">
             <div class="confidence-bar">
-              <div class="confidence-fill" :style="{width: (message.confidence * 100) + '%'}"></div>
+              <div class="confidence-fill"
+                   :style="{width: (message.confidence * 100) + '%'}"
+                   :class="{
+                     'high': message.confidence > 0.8,
+                     'medium': message.confidence > 0.6 && message.confidence <= 0.8,
+                     'low': message.confidence <= 0.6
+                   }">
+              </div>
             </div>
             <span class="confidence-text">Confidence: {{ (message.confidence * 100).toFixed(0) }}%</span>
+          </div>
+
+          <!-- Feedback Buttons for Assistant Messages -->
+          <div v-if="message.role === 'assistant' && !message.feedback" class="feedback-buttons">
+            <button @click="sendFeedback(index, 'positive')"
+                    class="feedback-btn positive"
+                    title="Risposta utile">
+              <Icon icon="mdi:thumb-up-outline" />
+            </button>
+            <button @click="sendFeedback(index, 'negative')"
+                    class="feedback-btn negative"
+                    title="Risposta non utile">
+              <Icon icon="mdi:thumb-down-outline" />
+            </button>
+          </div>
+
+          <!-- Feedback Confirmation -->
+          <div v-if="message.feedback" class="feedback-confirmed">
+            <span v-if="message.feedback === 'positive'" class="positive">
+              <Icon icon="mdi:check-circle" /> Grazie per il feedback!
+            </span>
+            <span v-else class="negative">
+              <Icon icon="mdi:alert-circle" /> Grazie, sto imparando...
+            </span>
+          </div>
+
+          <!-- Reformulation Helper -->
+          <div v-if="message.feedback === 'negative' && !message.reformulated" class="reformulation-helper">
+            <p>Puoi riformulare la domanda per aiutarmi a capire meglio?</p>
+            <div class="suggestions">
+              <button v-for="suggestion in getReformulationSuggestions(message)"
+                      :key="suggestion"
+                      @click="sendQuickMessage(suggestion)"
+                      class="suggestion-btn">
+                {{ suggestion }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -109,14 +159,37 @@
       </div>
       <div class="input-hint">
         <Icon icon="mdi:information" />
-        <span>Milhena usa Groq con zero allucinazioni. Non inventa mai dati.</span>
+        <span v-if="isReformulating" class="reformulation-alert">
+          🔄 Sto imparando dalla tua correzione...
+        </span>
+        <span v-else>Milhena impara dai tuoi feedback per migliorare continuamente.</span>
+      </div>
+    </div>
+
+    <!-- Learning Stats Footer -->
+    <div class="learning-stats">
+      <div class="stat-item">
+        <span class="stat-label">Oggi:</span>
+        <span class="stat-value">{{ todayStats.queries }} queries</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Patterns appresi:</span>
+        <span class="stat-value">{{ todayStats.patterns }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Miglioramento:</span>
+        <span class="stat-value">+{{ todayStats.improvement }}%</span>
+      </div>
+      <div class="stat-item" v-if="todayStats.cache_hit_rate">
+        <span class="stat-label">Cache Hit:</span>
+        <span class="stat-value">{{ todayStats.cache_hit_rate }}%</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useToast } from 'vue-toastification'
 import apiClient from '@/services/api-client'
@@ -128,8 +201,23 @@ const messages = ref([])
 const inputMessage = ref('')
 const isLoading = ref(false)
 const isTyping = ref(false)
+const isLearning = ref(false)
+const isReformulating = ref(false)
 const responseTime = ref(0)
+const accuracy = ref(92) // Will be updated from API
 const messagesContainer = ref(null)
+const sessionId = ref(generateSessionId())
+const todayStats = ref({
+  queries: 0,
+  patterns: 0,
+  improvement: 0,
+  cache_hit_rate: 0
+})
+
+// Generate session ID
+function generateSessionId() {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+}
 
 // Format time
 const formatTime = (timestamp) => {
@@ -170,6 +258,67 @@ const sendQuickMessage = (text) => {
   sendMessage()
 }
 
+// Send feedback
+const sendFeedback = async (messageIndex, feedbackType) => {
+  const message = messages.value[messageIndex]
+  if (!message || message.feedback) return
+
+  // Mark message with feedback
+  message.feedback = feedbackType
+
+  // If negative, prepare for reformulation detection
+  if (feedbackType === 'negative') {
+    isReformulating.value = true
+    setTimeout(() => {
+      isReformulating.value = false
+    }, 30000) // 30 seconds window for reformulation
+  }
+
+  // Show learning indicator
+  isLearning.value = true
+  setTimeout(() => {
+    isLearning.value = false
+  }, 3000)
+
+  try {
+    // Send feedback to API
+    await apiClient.post('/api/milhena/feedback', {
+      session_id: sessionId.value,
+      message_id: message.id || messageIndex,
+      query: messages.value[messageIndex - 1]?.content || '',
+      response: message.content,
+      feedback_type: feedbackType,
+      confidence: message.confidence,
+      timestamp: message.timestamp
+    })
+
+    toast.success(feedbackType === 'positive' ?
+                  'Grazie per il feedback positivo!' :
+                  'Grazie, userò questo feedback per migliorare')
+  } catch (error) {
+    console.error('Feedback error:', error)
+  }
+}
+
+// Get reformulation suggestions
+const getReformulationSuggestions = (message) => {
+  const suggestions = []
+
+  // Generate contextual suggestions based on the query
+  if (message.intent === 'ERRORS' || message.content.includes('error')) {
+    suggestions.push('Mostra solo gli errori critici di oggi')
+    suggestions.push('Quali processi hanno avuto problemi nelle ultime 24 ore?')
+  } else if (message.intent === 'METRICS' || message.content.includes('metric')) {
+    suggestions.push('Quante fatture sono state elaborate oggi?')
+    suggestions.push('Dammi le statistiche complete del sistema')
+  } else {
+    suggestions.push('Mostra lo stato generale del sistema')
+    suggestions.push('Ci sono problemi urgenti da risolvere?')
+  }
+
+  return suggestions
+}
+
 // Send message
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isLoading.value) return
@@ -177,12 +326,29 @@ const sendMessage = async () => {
   const userMessage = {
     role: 'user',
     content: inputMessage.value,
-    timestamp: new Date()
+    timestamp: new Date(),
+    isReformulation: isReformulating.value
   }
 
   messages.value.push(userMessage)
   const question = inputMessage.value
   inputMessage.value = ''
+
+  // Check if this is a reformulation
+  let contextData = {
+    conversation_history: messages.value.slice(-10), // Last 10 messages
+    is_reformulation: isReformulating.value
+  }
+
+  if (isReformulating.value) {
+    // Find the last negative feedback message
+    const lastNegativeIndex = messages.value.findLastIndex(m => m.feedback === 'negative')
+    if (lastNegativeIndex >= 0) {
+      contextData.original_query = messages.value[lastNegativeIndex - 1]?.content || ''
+      contextData.failed_response = messages.value[lastNegativeIndex]?.content || ''
+    }
+    isReformulating.value = false
+  }
 
   isLoading.value = true
   isTyping.value = true
@@ -191,26 +357,38 @@ const sendMessage = async () => {
   const startTime = Date.now()
 
   try {
-    // Call Milhena API
+    // Call Milhena API with session support
     const response = await apiClient.post('/api/milhena/query', {
       question: question,
-      context: {
-        conversation_history: messages.value.slice(-10) // Last 10 messages
-      },
+      session_id: sessionId.value,
+      context: contextData,
       user_id: 'frontend_user'
     })
 
     const latency = Date.now() - startTime
     responseTime.value = latency
 
-    // Add assistant response
+    // Update accuracy if provided
+    if (response.data.system_accuracy) {
+      accuracy.value = Math.round(response.data.system_accuracy * 100)
+    }
+
+    // Add assistant response with all metadata
     messages.value.push({
       role: 'assistant',
       content: response.data.response || response.data.message,
       timestamp: new Date(),
       confidence: response.data.confidence,
-      latency: latency
+      intent: response.data.intent,
+      latency: latency,
+      cached: response.data.cached || false,
+      learned: response.data.learned || false
     })
+
+    // Update stats if learned something
+    if (response.data.learned) {
+      todayStats.value.patterns++
+    }
 
   } catch (error) {
     console.error('Chat error:', error)
@@ -229,20 +407,47 @@ const sendMessage = async () => {
     isLoading.value = false
     isTyping.value = false
     scrollToBottom()
+    todayStats.value.queries++
+  }
+}
+
+// Load learning stats
+const loadLearningStats = async () => {
+  try {
+    const response = await apiClient.get('/api/milhena/learning/stats/today')
+    todayStats.value = response.data
+
+    // Update accuracy from stats
+    if (response.data.accuracy) {
+      accuracy.value = Math.round(response.data.accuracy * 100)
+    }
+  } catch (error) {
+    console.error('Failed to load learning stats:', error)
   }
 }
 
 // Welcome message on mount
 onMounted(() => {
+  // Load learning stats
+  loadLearningStats()
+
+  // Refresh stats every 60 seconds
+  const statsInterval = setInterval(loadLearningStats, 60000)
+
   // Optional: Add initial greeting
   setTimeout(() => {
     messages.value.push({
       role: 'assistant',
-      content: 'Ciao! Sono Milhena v4.0, il tuo assistente AI per PilotProOS. Come posso aiutarti oggi?',
+      content: 'Ciao! Sono Milhena v3.0 Learning Edition. Imparo dai tuoi feedback per migliorare continuamente. Come posso aiutarti oggi?',
       timestamp: new Date(),
       confidence: 1.0
     })
   }, 500)
+
+  // Cleanup on unmount
+  onBeforeUnmount(() => {
+    clearInterval(statsInterval)
+  })
 })
 </script>
 
@@ -606,5 +811,158 @@ onMounted(() => {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* Feedback Buttons */
+.feedback-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.feedback-btn {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.feedback-btn:hover {
+  transform: scale(1.1);
+}
+
+.feedback-btn.positive:hover {
+  background: #e8f5e9;
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.feedback-btn.negative:hover {
+  background: #ffebee;
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.feedback-confirmed {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feedback-confirmed.positive {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.feedback-confirmed.negative {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Reformulation Helper */
+.reformulation-helper {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff3e0;
+  border-radius: 0.5rem;
+  border-left: 3px solid #ff9800;
+}
+
+.reformulation-helper p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suggestion-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ff9800;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-btn:hover {
+  background: #ff9800;
+  color: white;
+}
+
+/* Confidence Styles */
+.confidence-fill.high {
+  background: linear-gradient(90deg, #4caf50, #66bb6a);
+}
+
+.confidence-fill.medium {
+  background: linear-gradient(90deg, #ff9800, #ffa726);
+}
+
+.confidence-fill.low {
+  background: linear-gradient(90deg, #f44336, #ef5350);
+}
+
+/* Learning Indicator */
+.learning-icon {
+  color: #9c27b0;
+  font-size: 1.5rem;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Learning Stats Footer */
+.learning-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.learning-stats .stat-label {
+  color: #666;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.learning-stats .stat-value {
+  font-weight: 600;
+  color: #667eea;
+  font-size: 1rem;
+}
+
+.reformulation-alert {
+  color: #ff9800;
+  font-weight: 500;
 }
 </style>

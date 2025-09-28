@@ -204,6 +204,15 @@ const allNavigationItems = [
     roles: ['admin', 'viewer']
   },
   {
+    name: 'milhena',
+    path: '/milhena',
+    label: 'Milhena AI',
+    description: 'Self-improving AI assistant',
+    icon: Brain,
+    badge: { text: 'NEW', type: 'new' },
+    roles: ['admin', 'viewer']
+  },
+  {
     name: 'command-center',
     path: '/command-center',
     label: 'AI Automation',

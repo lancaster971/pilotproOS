@@ -7,17 +7,25 @@
     </router-view>
     <!-- Custom notification system -->
     <NotificationContainer />
+    <!-- Milhena Floating Widget - Always available -->
+    <MilhenaWidget v-if="isAuthenticated" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import webSocketService from './services/websocket'
 import NotificationContainer from './components/NotificationContainer.vue'
+import MilhenaWidget from './components/MilhenaWidget.vue'
+import { useAuthStore } from './stores/auth'
 
 // Initialize Design System theme globally
 import { initializeDesignSystem } from './design-system'
 initializeDesignSystem()
+
+// Check authentication for widget
+const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 // Initialize WebSocket connection when app mounts
 onMounted(() => {
