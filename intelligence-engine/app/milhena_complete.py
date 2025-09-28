@@ -188,9 +188,29 @@ class MilhenaCompleteGraph:
     @traceable(name="MilhenaCheckCache")
     async def check_cache(self, state: MilhenaState) -> MilhenaState:
         """Check if response is cached"""
+
+        # Extract query from messages if not present
+        if "query" not in state or not state.get("query"):
+            messages = state.get("messages", [])
+            if messages:
+                last_msg = messages[-1]
+                state["query"] = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+            else:
+                state["query"] = ""
+
+        # Initialize missing fields with defaults
+        if "session_id" not in state:
+            state["session_id"] = f"session-{datetime.now().timestamp()}"
+        if "context" not in state:
+            state["context"] = {}
+        if "disambiguated" not in state:
+            state["disambiguated"] = False
+        if "token_count" not in state:
+            state["token_count"] = 0
+
         # For demo, always return not cached
         state["cached"] = False
-        logger.info(f"Cache check for query: {state['query'][:50]}...")
+        logger.info(f"Cache check for query: {state.get('query', '')[:50]}...")
         return state
 
     @traceable(name="MilhenaDisambiguate")
