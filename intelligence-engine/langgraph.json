@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./app/milhena_graph.py:graph"
+    "milhena": "./app/milhena_studio.py:graph",
+    "react_agent": "./app/graph.py:graph"
   },
   "env": ".env"
 }

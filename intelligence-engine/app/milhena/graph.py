@@ -464,11 +464,19 @@ class MilhenaGraph:
 # ============================================================================
 
 # Create a singleton instance
-milhena_graph = None
+_milhena_instance = None
 
 def get_milhena_graph() -> MilhenaGraph:
     """Get or create the Milhena graph singleton"""
-    global milhena_graph
-    if milhena_graph is None:
-        milhena_graph = MilhenaGraph()
-    return milhena_graph
+    global _milhena_instance
+    if _milhena_instance is None:
+        _milhena_instance = MilhenaGraph()
+    return _milhena_instance
+
+# ============================================================================
+# LANGGRAPH STUDIO EXPORT
+# ============================================================================
+
+# Export the compiled graph for LangGraph Studio
+# This is what langgraph.json references
+milhena_graph = get_milhena_graph().compiled_graph
