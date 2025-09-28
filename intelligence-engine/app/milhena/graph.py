@@ -19,15 +19,15 @@ from datetime import datetime
 import asyncio
 import uuid
 
-# Import Milhena components
-from .core import MilhenaCore, MilhenaConfig
-from .llm_disambiguator import LLMDisambiguator
-from .intent_analyzer import IntentAnalyzer
-from .response_generator import ResponseGenerator
-from .learning import LearningSystem
-from .token_manager import TokenManager
-from .cache_manager import CacheManager
-from .masking import TechnicalMaskingEngine
+# Import Milhena components (using ABSOLUTE imports for LangGraph Studio compatibility)
+from app.milhena.core import MilhenaCore, MilhenaConfig
+from app.milhena.llm_disambiguator import LLMDisambiguator
+from app.milhena.intent_analyzer import IntentAnalyzer
+from app.milhena.response_generator import ResponseGenerator
+from app.milhena.learning import LearningSystem
+from app.milhena.token_manager import TokenManager
+from app.milhena.cache_manager import CacheManager
+from app.milhena.masking import TechnicalMaskingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -160,43 +160,43 @@ class MilhenaGraph:
         # Create the graph
         graph = StateGraph(MilhenaState)
 
-        # Add nodes
-        graph.add_node("check_cache", self.check_cache)
-        graph.add_node("disambiguate", self.disambiguate_query)
-        graph.add_node("analyze_intent", self.analyze_intent)
-        graph.add_node("generate_response", self.generate_response)
-        graph.add_node("mask_response", self.mask_response)
-        graph.add_node("record_feedback", self.record_feedback)
-        graph.add_node("handle_error", self.handle_error)
+        # Add nodes with CLEAR PREFIXES
+        graph.add_node("[CODE] Check Cache", self.check_cache)
+        graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
+        graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
+        graph.add_node("[AGENT] Generate Response", self.generate_response)
+        graph.add_node("[LIB] Mask Response", self.mask_response)
+        graph.add_node("[CODE] Record Feedback", self.record_feedback)
+        graph.add_node("[CODE] Handle Error", self.handle_error)
 
         # Set entry point
-        graph.set_entry_point("check_cache")
+        graph.set_entry_point("[CODE] Check Cache")
 
         # Add edges
         graph.add_conditional_edges(
-            "check_cache",
+            "[CODE] Check Cache",
             self.route_from_cache,
             {
-                "cached": "mask_response",
-                "not_cached": "disambiguate"
+                "cached": "[LIB] Mask Response",
+                "not_cached": "[AGENT] Disambiguate"
             }
         )
 
-        graph.add_edge("disambiguate", "analyze_intent")
+        graph.add_edge("[AGENT] Disambiguate", "[AGENT] Analyze Intent")
 
         graph.add_conditional_edges(
-            "analyze_intent",
+            "[AGENT] Analyze Intent",
             self.route_from_intent,
             {
-                "technical": "handle_error",
-                "business": "generate_response"
+                "technical": "[CODE] Handle Error",
+                "business": "[AGENT] Generate Response"
             }
         )
 
-        graph.add_edge("generate_response", "mask_response")
-        graph.add_edge("mask_response", "record_feedback")
-        graph.add_edge("record_feedback", END)
-        graph.add_edge("handle_error", END)
+        graph.add_edge("[AGENT] Generate Response", "[LIB] Mask Response")
+        graph.add_edge("[LIB] Mask Response", "[CODE] Record Feedback")
+        graph.add_edge("[CODE] Record Feedback", END)
+        graph.add_edge("[CODE] Handle Error", END)
 
         # Compile the graph
         self.compiled_graph = graph.compile()
