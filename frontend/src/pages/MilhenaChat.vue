@@ -357,12 +357,11 @@ const sendMessage = async () => {
   const startTime = Date.now()
 
   try {
-    // Call Milhena API with session support
-    const response = await apiClient.post('/api/milhena/query', {
-      question: question,
+    // Call Milhena API via n8n endpoint (actual working endpoint)
+    const response = await apiClient.post('/api/n8n/agent/customer-support', {
+      message: question,
       session_id: sessionId.value,
-      context: contextData,
-      user_id: 'frontend_user'
+      context: contextData
     })
 
     const latency = Date.now() - startTime
