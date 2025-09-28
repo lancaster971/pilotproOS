@@ -130,7 +130,8 @@ class LLMDisambiguator:
                 try:
                     logger.info("Disambiguating with GROQ (free tier)")
                     response = await self.groq_llm.ainvoke(formatted)
-                    result = self.parser.parse(response.content)
+                    result_dict = self.parser.parse(response.content)
+                    result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"GROQ disambiguation successful: {result.clarified_intent}")
                     return result
                 except Exception as e:
@@ -141,7 +142,8 @@ class LLMDisambiguator:
                 try:
                     logger.info("Fallback to OpenAI Nano")
                     response = await self.openai_nano.ainvoke(formatted)
-                    result = self.parser.parse(response.content)
+                    result_dict = self.parser.parse(response.content)
+                    result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"OpenAI Nano disambiguation successful: {result.clarified_intent}")
                     return result
                 except Exception as e:
@@ -151,7 +153,8 @@ class LLMDisambiguator:
             if self.openai_mini:
                 logger.info("Final fallback to OpenAI Mini")
                 response = await self.openai_mini.ainvoke(formatted)
-                result = self.parser.parse(response.content)
+                result_dict = self.parser.parse(response.content)
+                result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                 return result
 
             # If all LLMs fail, return basic disambiguation

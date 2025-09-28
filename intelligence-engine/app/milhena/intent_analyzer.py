@@ -112,11 +112,19 @@ class IntentAnalyzer:
             # Step 2: Check for ambiguity and disambiguate
             disambiguation_result = await self.disambiguator.disambiguate(query, context)
 
-            if not disambiguation_result.is_ambiguous and disambiguation_result.confidence > 0.7:
+            # Handle both object and dict
+            if isinstance(disambiguation_result, dict):
+                is_ambiguous = disambiguation_result.get("is_ambiguous", False)
+                confidence = disambiguation_result.get("confidence", 0.0)
+                suggested_response_type = disambiguation_result.get("suggested_response_type", "general")
+            else:
+                is_ambiguous = disambiguation_result.is_ambiguous
+                confidence = disambiguation_result.confidence
+                suggested_response_type = disambiguation_result.suggested_response_type
+
+            if not is_ambiguous and confidence > 0.7:
                 # Map disambiguation result to intent
-                intent = self._map_response_type_to_intent(
-                    disambiguation_result.suggested_response_type
-                )
+                intent = self._map_response_type_to_intent(suggested_response_type)
                 logger.info(f"Disambiguated to intent: {intent}")
                 return intent
 

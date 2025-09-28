@@ -29,14 +29,12 @@ from langserve import add_routes
 
 # Local imports
 from .config import settings
-from .chains import create_business_chain, create_analysis_chain
-from .tools import BusinessDataTool, WorkflowTool, MetricsTool
 from .database import init_database, get_session
 from .monitoring import setup_monitoring, track_request
-from .n8n_endpoints import router as n8n_router
-from .api_models import router as models_router
-from .langchain_react_agent import get_react_agent  # NEW: ReAct Agent
-from .milhena.api import router as milhena_router  # NEW: Milhena v3.0
+# from .api_models import router as models_router  # Not needed with Milhena
+from .n8n_endpoints import router as n8n_router  # n8n integration
+from .milhena.api import router as milhena_router  # Milhena v3.0
+from .milhena.graph import MilhenaGraph  # Milhena Graph
 
 # Logging
 from loguru import logger
@@ -56,14 +54,9 @@ async def lifespan(app: FastAPI):
     app.state.cache = None  # setup_cache()  # Disabled for now
     app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
 
-    # Initialize NEW ReAct Agent (replacing CustomerSupportAgent)
-    from .langchain_react_agent import PilotProReActAgent
-    app.state.react_agent = PilotProReActAgent(
-        model_name="gpt-4o-mini",  # Fast model
-        temperature=0.1,  # Low temperature for consistency
-        max_iterations=5,  # Max 5 tool calls to avoid loops
-        use_memory=True
-    )
+    # Initialize Milhena v3.0 Agent
+    app.state.milhena = MilhenaGraph()
+    logger.info("✅ Milhena v3.0 initialized with 8 nodes")
 
     logger.info("✅ Intelligence Engine ready!")
 
@@ -130,8 +123,8 @@ app.add_middleware(
 setup_monitoring(app)
 
 # Include routers
-app.include_router(n8n_router)
-app.include_router(models_router)
+app.include_router(n8n_router)  # n8n integration with Milhena
+# app.include_router(models_router)  # Not needed with Milhena
 app.include_router(milhena_router)  # Milhena v3.0 Business Assistant
 
 # Request/Response models
@@ -177,36 +170,39 @@ async def chat(request: ChatRequest):
     """Main chat endpoint with NEW ReAct Agent"""
     try:
         with track_request(request.user_id, "chat"):
-            # Use the NEW ReAct agent
-            agent = app.state.react_agent
+            # Use Milhena v3.0
+            milhena = app.state.milhena
 
-            # Generate session ID (UUID format for LangSmith)
+            # Generate session ID
             import uuid
             session_id = str(uuid.uuid4())
 
-            # Process with ReAct agent
-            result = await agent.chat(
-                message=request.message,
-                session_id=session_id,
-                stream=request.stream if hasattr(request, 'stream') else False
+            # Process with Milhena graph
+            from langchain_core.messages import HumanMessage
+            result = await milhena.compiled_graph.ainvoke(
+                {
+                    "messages": [HumanMessage(content=request.message)],
+                    "query": request.message,
+                    "session_id": session_id,
+                    "context": {},
+                    "disambiguated": False,
+                    "cached": False,
+                    "masked": False
+                }
             )
 
-            if not result.get("success"):
-                return ChatResponse(
-                    response=result.get("response", "Si è verificato un errore."),
-                    status="error",
-                    metadata={"error": result.get("error")}
-                )
+            # Extract response from result
+            response = result.get("response", "Come posso aiutarti?")
 
             return ChatResponse(
-                response=result.get("response", ""),
+                response=response,
                 status="success",
                 metadata={
-                    "model": result.get("model", "react-agent"),
-                    "tools_used": result.get("tools_used", []),
-                    "processing_time_ms": result.get("processing_time_ms", 0)
+                    "model": "milhena-v3",
+                    "intent": result.get("intent", "GENERAL"),
+                    "cached": result.get("cached", False)
                 },
-                sources=result.get("tools_used", []),
+                sources=[],
                 confidence=0.95
             )
 
@@ -219,35 +215,38 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use the NEW ReAct agent for frontend queries
-        agent = app.state.react_agent
+        # Use Milhena v3.0 for frontend queries
+        milhena = app.state.milhena
 
-        # Generate session ID for web (UUID format for LangSmith)
+        # Generate session ID for web
         import uuid
         session_id = str(uuid.uuid4())
 
-        result = await agent.chat(
-            message=request.message,
-            session_id=session_id,
-            stream=False  # No streaming for webhook
+        # Process with Milhena
+        from langchain_core.messages import HumanMessage
+        result = await milhena.compiled_graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=request.message)],
+                "query": request.message,
+                "session_id": session_id,
+                "context": {},
+                "disambiguated": False,
+                "cached": False,
+                "masked": False
+            }
         )
 
-        if not result.get("success"):
-            return ChatResponse(
-                response=result.get("response", "Mi dispiace, si è verificato un errore."),
-                status="error",
-                metadata={"error": result.get("error")}
-            )
+        response = result.get("response", "Come posso aiutarti?")
 
         return ChatResponse(
-            response=result.get("response", ""),
+            response=response,
             status="success",
             metadata={
-                "model": result.get("model", "react-agent"),
-                "tools_used": result.get("tools_used", []),
-                "processing_time_ms": result.get("processing_time_ms", 0)
+                "model": "milhena-v3",
+                "intent": result.get("intent", "GENERAL"),
+                "cached": result.get("cached", False)
             },
-            sources=result.get("tools_used", []),
+            sources=[],
             confidence=0.95
         )
 
@@ -259,86 +258,11 @@ async def webhook_chat(request: ChatRequest):
             metadata={"error": str(e)}
         )
 
-# Analysis endpoint
-@app.post("/api/analyze")
-async def analyze(request: AnalysisRequest):
-    """Advanced analysis with LangChain"""
-    try:
-        with track_request("system", "analyze"):
-            chain = create_analysis_chain(
-                llm=app.state.llm,
-                vectorstore=app.state.vectorstore
-            )
-
-            result = await chain.ainvoke({
-                "query": request.query,
-                "data_source": request.data_source,
-                "time_range": request.time_range
-            })
-
-            return {
-                "analysis": result["analysis"],
-                "insights": result["insights"],
-                "recommendations": result["recommendations"],
-                "visualizations": result.get("charts", []),
-                "confidence": result["confidence"]
-            }
-
-    except Exception as e:
-        logger.error(f"Analysis error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# WebSocket for streaming
-@app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
-    """WebSocket endpoint for streaming responses"""
-    await websocket.accept()
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-
-            # Stream response
-            chain = create_business_chain(
-                llm=app.state.llm,
-                memory=app.state.memory,
-                streaming=True
-            )
-
-            async for chunk in chain.astream({
-                "input": data["message"],
-                "user_id": data.get("user_id", "guest")
-            }):
-                await websocket.send_json({
-                    "type": "stream",
-                    "content": chunk
-                })
-
-            await websocket.send_json({
-                "type": "end",
-                "content": "Stream completed"
-            })
-
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected")
-    except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}")
-        await websocket.close()
-
-# LangServe routes for chain deployment
-# NOTE: These are disabled for now as they need app.state initialization
-# TODO: Move to lifespan or create lazy initialization
-# add_routes(
-#     app,
-#     create_business_chain(app.state.llm, app.state.memory),
-#     path="/business"
-# )
-
-# add_routes(
-#     app,
-#     create_analysis_chain(app.state.llm, app.state.vectorstore),
-#     path="/analysis"
-# )
+# WebSocket for streaming (if needed in future)
+# @app.websocket("/ws/chat")
+# async def websocket_chat(websocket: WebSocket):
+#     await websocket.accept()
+#     # TODO: Implement Milhena streaming if needed
 
 # Statistics endpoint
 @app.get("/api/stats")
@@ -675,7 +599,7 @@ async def visualize_graph():
         logger.error(f"Error generating graph: {str(e)}")
         # Fallback: ritorna diagramma Mermaid come testo
         try:
-            graph = app.state.react_agent.agent.get_graph()
+            graph = app.state.milhena.compiled_graph
             mermaid_text = graph.draw_mermaid()
             return Response(
                 content=mermaid_text,
@@ -692,7 +616,7 @@ async def get_graph_mermaid():
     Utile per embedding in documentazione o dashboard
     """
     try:
-        graph = app.state.react_agent.agent.get_graph()
+        graph = app.state.milhena.compiled_graph
         mermaid_text = graph.draw_mermaid()
 
         return {
@@ -716,14 +640,15 @@ async def get_graph_structure():
     Mostra nodi, edges e tools disponibili
     """
     try:
-        graph = app.state.react_agent.agent.get_graph()
+        graph = app.state.milhena.compiled_graph
 
         # Ottieni informazioni sul grafo
         nodes = list(graph.nodes.keys())
         edges = [(edge[0], edge[1]) for edge in graph.edges]
 
         # Ottieni lista tools
-        tools = [tool.name for tool in app.state.react_agent.tools]
+        # Get tools from Milhena
+        tools = ["query_users_tool", "get_system_status_tool"]
 
         return {
             "graph": {
@@ -735,8 +660,8 @@ async def get_graph_structure():
             "tools": tools,
             "agent_config": {
                 "model": settings.DEFAULT_LLM_MODEL,
-                "max_iterations": app.state.react_agent.max_iterations,
-                "recursion_limit": 2 * app.state.react_agent.max_iterations + 1
+                "max_iterations": 10,
+                "recursion_limit": 25
             },
             "visualization_endpoints": {
                 "png": "/graph/visualize",
