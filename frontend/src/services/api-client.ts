@@ -134,18 +134,29 @@ export const businessAPI = {
 
 // Tenant API - Same interface as Axios version
 export const tenantAPI = {
-  dashboard: (tenantId: string) => 
+  dashboard: (tenantId: string) =>
     baseFetch(`/api/tenant/${tenantId}/dashboard`),
-  
-  workflows: (tenantId: string) => 
+
+  workflows: (tenantId: string) =>
     baseFetch(`/api/tenant/${tenantId}/workflows`),
-  
-  executions: (tenantId: string, params?: any) => 
+
+  executions: (tenantId: string, params?: any) =>
     baseFetch(`/api/tenant/${tenantId}/executions`, { query: params }),
-  
-  stats: (tenantId: string) => 
+
+  stats: (tenantId: string) =>
     baseFetch(`/api/tenant/${tenantId}/stats`),
 }
+
+// Generic API client for custom endpoints (like Milhena)
+export const apiClient = {
+  get: (url: string) => baseFetch(url),
+  post: (url: string, body?: any) => baseFetch(url, { method: 'POST', body }),
+  put: (url: string, body?: any) => baseFetch(url, { method: 'PUT', body }),
+  delete: (url: string) => baseFetch(url, { method: 'DELETE' }),
+}
+
+// Default export for compatibility
+export default apiClient
 
 // Security API - Same interface as Axios version
 export const securityAPI = {
