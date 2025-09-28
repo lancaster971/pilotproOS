@@ -161,7 +161,8 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useToast } from 'vue-toastification'
-import apiClient from '@/services/api-client'
+// Try importing as a named export and create a wrapper
+import { apiClient } from '@/services/api-client'
 
 const toast = useToast()
 
