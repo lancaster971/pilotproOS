@@ -10,7 +10,10 @@ from datetime import datetime, timedelta
 import redis
 import asyncio
 import numpy as np
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +41,15 @@ class CacheManager:
             self.memory_cache: Dict[str, Any] = {}
 
         # Sentence transformer for semantic similarity
-        try:
-            self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
-            logger.info("Semantic encoder initialized")
-        except Exception as e:
-            logger.warning(f"Semantic encoder failed: {e}. Using exact matching only.")
+        if SentenceTransformer:
+            try:
+                self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+                logger.info("Semantic encoder initialized")
+            except Exception as e:
+                logger.warning(f"Semantic encoder failed: {e}. Using exact matching only.")
+                self.encoder = None
+        else:
+            logger.warning("sentence-transformers not installed. Using exact matching only.")
             self.encoder = None
 
         # Cache statistics

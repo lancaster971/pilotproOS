@@ -244,10 +244,15 @@ services:
       REDIS_PORT: 6379
       REDIS_URL: redis://redis-dev:6379
 
-      # LangChain Configuration
+      # LangChain/LangSmith Configuration (2025 OFFICIAL)
       LANGCHAIN_TRACING_V2: "true"
-      LANGCHAIN_PROJECT: pilotpros-intelligence
+      LANGCHAIN_PROJECT: milhena-v3-production
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
+      # LangSmith Official Variables (2025 Documentation)
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_TRACING: "true"
+      LANGSMITH_PROJECT: milhena-v3-production
+      LANGSMITH_ENDPOINT: https://api.smith.langchain.com
 
       # LLM API Keys - All Providers
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

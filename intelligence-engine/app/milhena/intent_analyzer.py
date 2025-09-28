@@ -2,7 +2,7 @@
 IntentAnalyzer - LLM-powered intent classification with learning
 Uses hybrid approach: learned patterns + LLM disambiguation
 """
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 import logging
 import os
 from langchain_groq import ChatGroq
