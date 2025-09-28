@@ -36,6 +36,7 @@ from .monitoring import setup_monitoring, track_request
 from .n8n_endpoints import router as n8n_router
 from .api_models import router as models_router
 from .langchain_react_agent import get_react_agent  # NEW: ReAct Agent
+from .milhena.api import router as milhena_router  # NEW: Milhena v3.0
 
 # Logging
 from loguru import logger
@@ -131,6 +132,7 @@ setup_monitoring(app)
 # Include routers
 app.include_router(n8n_router)
 app.include_router(models_router)
+app.include_router(milhena_router)  # Milhena v3.0 Business Assistant
 
 # Request/Response models
 class ChatRequest(BaseModel):
