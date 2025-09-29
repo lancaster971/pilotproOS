@@ -130,6 +130,13 @@ app.use(PrimeVue, {
   // NO MORE PT STYLES! Design system handles everything
 })
 
+// PrimeVue Services for RAG components
+import ConfirmationService from 'primevue/confirmationservice'
+import ToastService from 'primevue/toastservice'
+
+app.use(ConfirmationService)
+app.use(ToastService)
+
 app.use(pinia)
 app.use(router)
 registerAdvancedChat() // Register Advanced Chat
