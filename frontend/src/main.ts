@@ -17,8 +17,8 @@ import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import { toastOptions } from './config/toast-config'
 
-// Vue3 Beautiful Chat
-import Chat from 'vue3-beautiful-chat'
+// Vue Advanced Chat
+import { register as registerAdvancedChat } from 'vue-advanced-chat'
 
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
@@ -130,7 +130,7 @@ app.use(PrimeVue, {
 
 app.use(pinia)
 app.use(router)
-app.use(Chat) // Register Beautiful Chat
+registerAdvancedChat() // Register Advanced Chat
 
 // Vue Toastification configuration - Insights theme
 app.use(Toast, toastOptions)

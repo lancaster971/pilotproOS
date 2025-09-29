@@ -12,100 +12,90 @@
       </button>
     </transition>
 
-    <!-- Beautiful Chat Widget -->
-    <beautiful-chat
-      :participants="participants"
-      :on-message-was-sent="onMessageWasSent"
-      :message-list="messageList"
-      :new-messages-count="newMessagesCount"
-      :is-open="isChatOpen"
-      :close="closeChat"
-      :open="openChat"
-      :show-emoji="false"
-      :show-file="false"
-      :show-edition="false"
-      :show-deletion="false"
-      :show-typing-indicator="showTypingIndicator"
-      :show-launcher="false"
-      :show-close-button="true"
-      :colors="colors"
-      :always-scroll-to-bottom="true"
-      :disable-user-list-toggle="true"
-      :message-styling="true"
-      placeholder="Type a message..."
-      @onType="handleOnType"
-      @edit="editMessage"
-    >
-      <template v-slot:header>
-        <div class="custom-header">
-          <div class="header-info">
-            <div>
-              <h4>System Assistant</h4>
-              <p class="status">
-                <span class="status-dot"></span>
-                Active
-              </p>
-            </div>
-          </div>
-          <button @click="closeChat" class="close-button">
-            <Icon icon="mdi:close" width="20" height="20" />
-          </button>
-        </div>
-      </template>
-    </beautiful-chat>
+    <!-- Advanced Chat Widget -->
+    <div v-if="isChatOpen" class="chat-container">
+      <vue-advanced-chat
+        :current-user-id="currentUserId"
+        :rooms="rooms"
+        :messages="messages"
+        :room-id="currentRoomId"
+        :show-emoji="false"
+        :show-files="false"
+        :show-audio="false"
+        :show-reaction-emojis="false"
+        :text-messages="textMessages"
+        :theme="'dark'"
+        @send-message="onMessageWasSent"
+        @typing-message="handleOnType"
+      />
+      <button @click="closeChat" class="close-button-overlay">
+        <Icon icon="mdi:close" width="20" height="20" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import Chat from 'vue3-beautiful-chat'
 
 // Chat state
 const isChatOpen = ref(false)
-const messageList = ref([])
-const newMessagesCount = ref(0)
-const showTypingIndicator = ref(false)
 const sessionId = ref(generateSessionId())
+const currentUserId = ref('user-1')
+const currentRoomId = ref('room-1')
 
-// Participants
-const participants = ref([
+// Vue-advanced-chat data structure
+const rooms = ref([
   {
-    id: 'assistant',
-    name: 'System Assistant',
-    imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%233b82f6"/%3E%3Ctext x="50" y="50" font-family="Arial, sans-serif" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle"%3ESA%3C/text%3E%3C/svg%3E'
+    roomId: 'room-1',
+    roomName: 'PilotPro Support',
+    users: [
+      {
+        _id: 'user-1',
+        username: 'You',
+        avatar: ''
+      },
+      {
+        _id: 'assistant-1',
+        username: 'System Assistant',
+        avatar: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%233b82f6"/%3E%3Ctext x="50" y="50" font-family="Arial, sans-serif" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle"%3ESA%3C/text%3E%3C/svg%3E'
+      }
+    ]
   }
 ])
 
-// Enterprise theme colors - consistent with app
-const colors = {
-  header: {
-    bg: '#0f172a',
-    text: '#f1f5f9'
-  },
-  launcher: {
-    bg: '#3b82f6'
-  },
-  messageList: {
-    bg: '#0f172a'
-  },
-  sentMessage: {
-    bg: '#2563eb',
-    text: '#ffffff'
-  },
-  receivedMessage: {
-    bg: '#1e293b',
-    text: '#cbd5e1'
-  },
-  userInput: {
-    bg: '#1e293b',
-    text: '#f1f5f9'
-  }
-}
+const messages = ref([])
+
+// Text messages configuration
+const textMessages = ref({
+  ROOMS_EMPTY: 'No conversations',
+  ROOM_EMPTY: 'No messages yet',
+  NEW_MESSAGES: 'New Messages',
+  MESSAGE_DELETED: 'Message deleted',
+  MESSAGE_EDITED: 'Message edited',
+  MESSAGES_LOADED: 'Messages loaded',
+  CONVERSATION_STARTED: 'Conversation started',
+  TYPING: 'typing...',
+  IS_TYPING: 'is typing...',
+  CANCEL_SELECT_MESSAGE: 'Cancel',
+  BUTTON_SEND: 'Send',
+  MESSAGE_REPLY: 'Reply',
+  MESSAGE_EDIT: 'Edit',
+  MESSAGE_DELETE: 'Delete',
+  SEND_MESSAGE_PLACEHOLDER: 'Type a message...'
+})
 
 
 // Computed
-const unreadCount = computed(() => newMessagesCount.value)
+const unreadCount = computed(() => {
+  // Count unread messages for current room
+  return messages.value.filter(msg =>
+    msg.roomId === currentRoomId.value &&
+    msg.senderId !== currentUserId.value &&
+    !msg.seen
+  ).length
+})
 
 // Methods
 function generateSessionId() {
@@ -114,7 +104,12 @@ function generateSessionId() {
 
 function openChat() {
   isChatOpen.value = true
-  newMessagesCount.value = 0
+  // Mark messages as seen
+  messages.value.forEach(msg => {
+    if (msg.roomId === currentRoomId.value && msg.senderId !== currentUserId.value) {
+      msg.seen = true
+    }
+  })
 }
 
 function closeChat() {
@@ -122,16 +117,18 @@ function closeChat() {
 }
 
 async function onMessageWasSent(message) {
-  // Add user message to list
-  messageList.value.push({
-    ...message,
-    author: 'me',
-    type: 'text',
-    id: Math.random().toString(36)
-  })
+  // Add user message
+  const userMessage = {
+    _id: Date.now().toString(),
+    roomId: currentRoomId.value,
+    content: message.content,
+    senderId: currentUserId.value,
+    username: 'You',
+    timestamp: new Date().toISOString(),
+    seen: true
+  }
 
-  // Show typing indicator
-  showTypingIndicator.value = true
+  messages.value.push(userMessage)
 
   try {
     // Call Intelligence Engine API
@@ -141,7 +138,7 @@ async function onMessageWasSent(message) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: message.data.text || message.data,
+        message: message.content,
         session_id: sessionId.value
       })
     })
@@ -149,32 +146,31 @@ async function onMessageWasSent(message) {
     const data = await response.json()
 
     // Add assistant response
-    messageList.value.push({
-      type: 'text',
-      author: 'assistant',
-      id: Math.random().toString(36),
-      data: {
-        text: data.response || data.message || 'No response received.'
-      }
-    })
-
-    // Increment unread count if chat is closed
-    if (!isChatOpen.value) {
-      newMessagesCount.value++
+    const assistantMessage = {
+      _id: (Date.now() + 1).toString(),
+      roomId: currentRoomId.value,
+      content: data.response || data.message || 'No response received.',
+      senderId: 'assistant-1',
+      username: 'System Assistant',
+      timestamp: new Date().toISOString(),
+      seen: isChatOpen.value
     }
+
+    messages.value.push(assistantMessage)
 
   } catch (error) {
     console.error('Error calling Intelligence Engine:', error)
-    messageList.value.push({
-      type: 'text',
-      author: 'assistant',
-      id: Math.random().toString(36),
-      data: {
-        text: 'Connection error. Please verify the Intelligence Engine is active.'
-      }
-    })
-  } finally {
-    showTypingIndicator.value = false
+    const errorMessage = {
+      _id: (Date.now() + 2).toString(),
+      roomId: currentRoomId.value,
+      content: 'Connection error. Please verify the Intelligence Engine is active.',
+      senderId: 'assistant-1',
+      username: 'System Assistant',
+      timestamp: new Date().toISOString(),
+      seen: isChatOpen.value
+    }
+
+    messages.value.push(errorMessage)
   }
 }
 
@@ -183,28 +179,20 @@ function handleOnType() {
   console.log('User is typing...')
 }
 
-function editMessage(message) {
-  const idx = messageList.value.findIndex(m => m.id === message.id)
-  if (idx > -1) {
-    messageList.value[idx] = message
-  }
-}
-
 // Welcome message on mount
 onMounted(() => {
   setTimeout(() => {
-    messageList.value.push({
-      type: 'text',
-      author: 'assistant',
-      id: 'welcome',
-      data: {
-        text: 'Welcome to PilotPro. How can I assist you today?'
-      }
-    })
-
-    if (!isChatOpen.value) {
-      newMessagesCount.value = 1
+    const welcomeMessage = {
+      _id: 'welcome',
+      roomId: currentRoomId.value,
+      content: 'Welcome to PilotPro. How can I assist you today?',
+      senderId: 'assistant-1',
+      username: 'System Assistant',
+      timestamp: new Date().toISOString(),
+      seen: false
     }
+
+    messages.value.push(welcomeMessage)
   }, 2000)
 })
 </script>
@@ -257,62 +245,39 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* Custom header */
-.custom-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
+/* Chat container */
+.chat-container {
+  position: relative;
+  width: 480px;
+  height: 650px;
+  max-height: calc(100vh - 100px);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   background: #0f172a;
-  border-bottom: 1px solid #334155;
-  color: #f1f5f9;
 }
 
-.header-info {
-  display: flex;
-  align-items: center;
-}
-
-.custom-header h4 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: #f1f5f9;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  background: #06b6d4;
-  border-radius: 50%;
-}
-
-
-.close-button {
-  background: none;
+.close-button-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: #94a3b8;
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
   opacity: 0.8;
   transition: all 0.2s;
+  z-index: 10;
 }
 
-
-.close-button:hover {
+.close-button-overlay:hover {
   opacity: 1;
+  background: rgba(0, 0, 0, 0.7);
 }
 
 /* Transitions */
@@ -324,81 +289,53 @@ onMounted(() => {
   opacity: 0;
 }
 
-/* Override some default styles */
-:deep(.sc-launcher) {
-  display: none !important;
-}
-
-:deep(.sc-chat-window) {
-  width: 480px !important;
-  height: 650px !important;
-  max-height: calc(100vh - 100px);
-  border-radius: 12px !important;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+/* Advanced Chat styles override */
+:deep(.vac-chat-container) {
+  height: 100% !important;
   font-family: 'DM Sans', sans-serif !important;
 }
 
-:deep(.sc-header) {
-  padding: 0 !important;
-  border-radius: 12px 12px 0 0 !important;
-  font-family: 'DM Sans', sans-serif !important;
+:deep(.vac-room-header) {
+  background: #0f172a !important;
+  border-bottom: 1px solid #334155 !important;
+  color: #f1f5f9 !important;
+  padding: 14px 16px !important;
 }
 
-:deep(.sc-message-list) {
+:deep(.vac-messages-container) {
   background: #0f172a !important;
   padding: 20px !important;
-  overflow-y: auto !important;
 }
 
-:deep(.sc-message) {
+:deep(.vac-message-box) {
   margin-bottom: 12px !important;
 }
 
-:deep(.sc-message--text) {
-  word-wrap: break-word !important;
-  word-break: break-word !important;
-  white-space: pre-wrap !important;
-  overflow-wrap: break-word !important;
-  max-width: 100% !important;
-  display: block !important;
-}
-
-:deep(.sc-message--content.sent) {
+:deep(.vac-message-box-me .vac-message-bubble) {
   background: #2563eb !important;
   color: white !important;
   border-radius: 12px 12px 4px 12px !important;
-  font-family: 'DM Sans', sans-serif !important;
+  padding: 12px 16px !important;
   font-size: 14px !important;
   line-height: 1.6 !important;
-  padding: 12px 16px !important;
-  max-width: 85% !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
-  white-space: pre-wrap !important;
 }
 
-:deep(.sc-message--content.received) {
+:deep(.vac-message-box-other .vac-message-bubble) {
   background: #1e293b !important;
   color: #cbd5e1 !important;
   border: 1px solid #334155 !important;
   border-radius: 12px 12px 12px 4px !important;
-  font-family: 'DM Sans', sans-serif !important;
+  padding: 12px 16px !important;
   font-size: 14px !important;
   line-height: 1.6 !important;
-  padding: 12px 16px !important;
-  max-width: 90% !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
-  white-space: pre-wrap !important;
 }
 
-:deep(.sc-user-input) {
+:deep(.vac-box-footer) {
   background: #1e293b !important;
   border-top: 1px solid #475569 !important;
 }
 
-:deep(.sc-user-input--text) {
+:deep(.vac-textarea) {
   background: #0f172a !important;
   color: #f1f5f9 !important;
   border: 1px solid #334155 !important;
@@ -408,65 +345,25 @@ onMounted(() => {
   font-size: 14px !important;
 }
 
-:deep(.sc-user-input--text::placeholder) {
+:deep(.vac-textarea::placeholder) {
   color: #94a3b8 !important;
 }
 
-:deep(.sc-user-input--button) {
+:deep(.vac-icon-send) {
   background: #2563eb !important;
-  width: 36px !important;
-  height: 36px !important;
   border-radius: 8px !important;
   transition: background 0.2s !important;
 }
 
-:deep(.sc-user-input--button:hover) {
+:deep(.vac-icon-send:hover) {
   background: #3b82f6 !important;
-}
-
-:deep(.sc-user-input--button:hover) {
-  transform: scale(1.1);
 }
 
 /* Responsive */
 @media (max-width: 520px) {
-  :deep(.sc-chat-window) {
+  .chat-container {
     width: calc(100vw - 40px) !important;
     height: calc(100vh - 100px) !important;
   }
-}
-
-/* Force full text display - no truncation */
-:deep(.sc-message--text-wrapper) {
-  overflow: visible !important;
-  text-overflow: unset !important;
-  max-height: none !important;
-  height: auto !important;
-}
-
-:deep(.sc-message--text-content) {
-  overflow: visible !important;
-  text-overflow: unset !important;
-  display: block !important;
-  height: auto !important;
-  max-height: none !important;
-  -webkit-line-clamp: unset !important;
-  line-clamp: unset !important;
-}
-
-:deep(.sc-message p) {
-  overflow: visible !important;
-  text-overflow: unset !important;
-  white-space: pre-wrap !important;
-  word-break: break-word !important;
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-:deep(.sc-message--content-wrapper) {
-  overflow: visible !important;
-  max-height: none !important;
-  height: auto !important;
 }
 </style>
