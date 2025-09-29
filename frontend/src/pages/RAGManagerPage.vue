@@ -1,17 +1,10 @@
 <template>
-  <div class="rag-manager-page">
+  <MainLayout>
     <RAGManager />
-  </div>
+  </MainLayout>
 </template>
 
 <script setup>
+import MainLayout from '@/components/layout/MainLayout.vue'
 import RAGManager from '@/components/rag/RAGManager.vue'
 </script>
-
-<style scoped>
-.rag-manager-page {
-  width: 100%;
-  height: 100%;
-  background: #f5f6fa;
-}
-</style>
