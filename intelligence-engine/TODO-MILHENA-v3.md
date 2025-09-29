@@ -1338,8 +1338,362 @@ class LearningMilestones:
 
 ---
 
+---
+
+## 🎓 10. ADDESTRAMENTO MILHENA SU N8N
+
+### **10.1 Il Problema**
+Milhena non comprende correttamente le domande specifiche su n8n perché:
+- Non conosce la struttura dei workflow
+- Non sa interpretare termini come "ultimo messaggio del workflow X"
+- Non ha accesso diretto ai dati delle executions
+- Usa risposte generiche invece di query specifiche
+
+### **10.2 Piano di Addestramento**
+
+#### **Fase 1: Knowledge Base (30 min)**
+
+**1. Creare Vector Database con documentazione n8n:**
+```python
+# intelligence-engine/app/milhena/knowledge_base.py
+class N8nKnowledgeBase:
+    """
+    Knowledge base vettoriale per n8n
+    """
+    def __init__(self):
+        self.vectorstore = ChromaDB()
+        self.embeddings = OpenAIEmbeddings()
+
+    async def initialize(self):
+        # Indicizza documentazione n8n
+        docs = [
+            "Workflow = sequenza di nodi che processano dati",
+            "Execution = singola esecuzione di un workflow",
+            "Node = singolo step di elaborazione",
+            "Webhook = endpoint per trigger esterni",
+            "Message nodes = inviano/ricevono messaggi"
+        ]
+
+        # Indicizza workflow esistenti
+        workflows = await self.get_all_workflows()
+        for wf in workflows:
+            doc = f"Workflow '{wf.name}' (ID: {wf.id}): {wf.description}"
+            self.vectorstore.add(doc)
+```
+
+**2. Indicizzare tutti i workflow esistenti con metadati:**
+```python
+async def index_workflows(self):
+    """
+    Indicizza workflow con struttura e nodi
+    """
+    workflows = await db.query("SELECT * FROM workflow_entity")
+
+    for workflow in workflows:
+        # Estrai informazioni chiave
+        nodes = json.loads(workflow.nodes)
+
+        # Crea documento searchable
+        doc = {
+            "workflow_id": workflow.id,
+            "workflow_name": workflow.name,
+            "nodes": [n["type"] for n in nodes],
+            "has_webhook": any(n["type"] == "webhook" for n in nodes),
+            "has_message_node": any("message" in n["type"] for n in nodes),
+            "description": f"Workflow {workflow.name} con {len(nodes)} nodi"
+        }
+
+        await self.vectorstore.add_document(doc)
+```
+
+#### **Fase 2: Tools Specifici per n8n (45 min)**
+
+**1. Tool per Query Executions:**
+```python
+# intelligence-engine/app/milhena/tools/n8n_tools.py
+class N8nExecutionTool(BaseTool):
+    """
+    Tool per query executions n8n
+    """
+    name = "get_workflow_executions"
+    description = "Ottiene le executions di un workflow"
+
+    async def _arun(self, workflow_name: str) -> str:
+        # Trova workflow ID dal nome
+        workflow = await db.query(
+            "SELECT id FROM workflow_entity WHERE name ILIKE %s",
+            f"%{workflow_name}%"
+        )
+
+        if not workflow:
+            return f"Workflow '{workflow_name}' non trovato"
+
+        # Query ultime executions
+        executions = await db.query("""
+            SELECT
+                id,
+                startedAt,
+                stoppedAt,
+                status,
+                data
+            FROM execution_entity
+            WHERE workflowId = %s
+            ORDER BY startedAt DESC
+            LIMIT 10
+        """, workflow[0].id)
+
+        return self.format_executions(executions)
+```
+
+**2. Tool per Messaggi:**
+```python
+class N8nMessageTool(BaseTool):
+    """
+    Tool per estrarre messaggi dai workflow
+    """
+    name = "get_last_message_from_workflow"
+    description = "Ottiene l'ultimo messaggio inviato da un workflow"
+
+    async def _arun(self, workflow_name: str) -> str:
+        # Query per ultimo messaggio
+        result = await db.query("""
+            SELECT
+                e.data,
+                e.startedAt
+            FROM execution_entity e
+            JOIN workflow_entity w ON e.workflowId = w.id
+            WHERE w.name ILIKE %s
+            AND e.data::text LIKE '%message%'
+            ORDER BY e.startedAt DESC
+            LIMIT 1
+        """, f"%{workflow_name}%")
+
+        if result:
+            data = json.loads(result[0].data)
+            # Estrai messaggio dai node data
+            message = self.extract_message_from_nodes(data)
+            return f"Ultimo messaggio: {message}"
+
+        return f"Nessun messaggio trovato per workflow {workflow_name}"
+```
+
+**3. Registrazione Tools nel Graph:**
+```python
+# intelligence-engine/app/milhena/graph.py
+def create_milhena_graph():
+    # Aggiungi n8n tools
+    tools = [
+        N8nExecutionTool(),
+        N8nMessageTool(),
+        N8nWorkflowStatusTool(),
+        N8nErrorsTool()
+    ]
+
+    # Crea agent con tools
+    agent = create_react_agent(
+        llm=llm,
+        tools=tools,
+        prompt=N8N_EXPERT_PROMPT
+    )
+```
+
+#### **Fase 3: System Prompts Esperti (15 min)**
+
+**1. Prompt con expertise n8n:**
+```python
+# intelligence-engine/app/milhena/prompts.py
+N8N_EXPERT_PROMPT = """
+Sei Milhena, esperto assistente per n8n workflow automation.
+
+CONOSCENZA N8N:
+- Workflow = processo automatizzato con nodi
+- Execution = esecuzione singola di un workflow
+- Node = step di elaborazione (webhook, http, database, etc)
+- Message = dati passati tra nodi o inviati/ricevuti
+
+QUANDO L'UTENTE CHIEDE:
+
+"ultimo messaggio del workflow X":
+1. USA: get_last_message_from_workflow(workflow_name="X")
+2. Se non trova, USA: get_workflow_executions(workflow_name="X")
+3. Analizza l'ultima execution per trovare messaggi
+
+"stato del workflow Y":
+1. USA: get_workflow_status(workflow_name="Y")
+2. Mostra: attivo/inattivo, ultime esecuzioni, success rate
+
+"errori di Z":
+1. USA: get_workflow_errors(workflow_name="Z")
+2. Mostra errori recenti con dettagli
+
+MAPPATURA TERMINI:
+- "WF" = Workflow
+- "messaggio inviato dal" = cerca nei node output
+- "processo Milena" = workflow chiamato Milena
+- "ultimi dati" = ultima execution
+
+IMPORTANTE:
+- Usa SEMPRE i tools per dati reali
+- Non inventare risposte generiche
+- Se non trovi, spiega cosa hai cercato
+"""
+```
+
+**2. Few-shot examples:**
+```python
+FEW_SHOT_EXAMPLES = [
+    {
+        "user": "dimmi l'ultimo messaggio del workflow Milena",
+        "assistant_thought": "Devo usare get_last_message_from_workflow",
+        "tool_call": "get_last_message_from_workflow(workflow_name='Milena')",
+        "response": "L'ultimo messaggio inviato dal workflow Milena è: [contenuto reale]"
+    },
+    {
+        "user": "voglio sapere l'ultimo messaggio inviato dal WF milena",
+        "assistant_thought": "WF = workflow, stesso di prima",
+        "tool_call": "get_last_message_from_workflow(workflow_name='milena')",
+        "response": "Ho trovato l'ultimo messaggio del workflow Milena: [contenuto]"
+    }
+]
+```
+
+#### **Fase 4: RAG System (30 min)**
+
+**1. Retrieval Augmented Generation:**
+```python
+class N8nRAG:
+    """
+    Sistema RAG per n8n context
+    """
+    async def get_context(self, query: str) -> str:
+        # 1. Cerca workflow rilevanti
+        relevant_workflows = await self.knowledge_base.search(query, k=3)
+
+        # 2. Recupera executions recenti
+        recent_data = []
+        for wf in relevant_workflows:
+            executions = await self.get_recent_executions(wf.id, limit=5)
+            recent_data.append({
+                "workflow": wf.name,
+                "recent_executions": executions
+            })
+
+        # 3. Costruisci contesto
+        context = f"""
+        CONTESTO N8N:
+        Workflow rilevanti trovati: {[w.name for w in relevant_workflows]}
+
+        Dati recenti:
+        {json.dumps(recent_data, indent=2)}
+
+        Usa questi dati per rispondere alla query.
+        """
+
+        return context
+```
+
+**2. Integrazione nel Graph:**
+```python
+async def analyze_with_rag(self, query: str) -> Dict:
+    # Ottieni contesto RAG
+    context = await self.rag.get_context(query)
+
+    # Aggiungi al prompt
+    enhanced_prompt = f"""
+    {N8N_EXPERT_PROMPT}
+
+    {context}
+
+    Query: {query}
+    """
+
+    # Processa con LLM
+    response = await self.llm.ainvoke(enhanced_prompt)
+    return response
+```
+
+#### **Fase 5: Testing e Fine-Tuning (30 min)**
+
+**1. Test queries specifiche:**
+```python
+TEST_QUERIES = [
+    "dimmi l'ultimo messaggio del workflow Milena",
+    "quali workflow hanno avuto errori oggi?",
+    "mostra le ultime esecuzioni del processo fatture",
+    "c'è stato qualche webhook fallito?"
+]
+
+async def test_n8n_understanding():
+    for query in TEST_QUERIES:
+        result = await milhena.process(query)
+        print(f"Query: {query}")
+        print(f"Tools used: {result.tools_used}")
+        print(f"Response: {result.response}")
+        print("---")
+```
+
+**2. Fine-tuning basato su errori:**
+```python
+async def fine_tune_from_errors():
+    # Analizza query fallite
+    failed_queries = await db.query("""
+        SELECT query, expected, actual
+        FROM feedback
+        WHERE type = 'negative'
+        AND category = 'n8n_misunderstanding'
+    """)
+
+    # Genera nuovi esempi
+    for fq in failed_queries:
+        new_example = {
+            "query": fq.query,
+            "correct_tool": extract_correct_tool(fq.expected),
+            "correct_response": fq.expected
+        }
+
+        # Aggiungi a few-shot examples
+        await self.add_training_example(new_example)
+```
+
+### **10.3 Risultati Attesi**
+
+Dopo l'addestramento, Milhena sarà in grado di:
+
+1. **Comprendere query n8n specifiche:**
+   - "ultimo messaggio del workflow X" → Query execution_entity
+   - "errori di oggi" → Filter by date and status
+   - "webhook ricevuti" → Search webhook nodes
+
+2. **Usare i tools corretti:**
+   - Non più risposte generiche
+   - Query SQL specifiche per dati reali
+   - Accesso diretto a executions e workflow data
+
+3. **Fornire risposte complete:**
+   - Dati reali dal database
+   - Formattazione business-friendly
+   - Dettagli utili senza tecnicismi
+
+4. **Apprendere dai feedback:**
+   - Migliora comprensione termini n8n
+   - Affina query SQL
+   - Ottimizza performance
+
+### **10.4 Timeline Implementazione**
+
+- **Giorno 1**: Knowledge Base + Indicizzazione
+- **Giorno 2**: Tools n8n + Integrazione
+- **Giorno 3**: System Prompts + RAG
+- **Giorno 4**: Testing + Fine-tuning
+- **Giorno 5**: Deploy + Monitoring
+
+Con questo addestramento, Milhena passerà da risposte generiche tipo "non ho informazioni" a risposte precise tipo "L'ultimo messaggio del workflow Milena inviato alle 14:32 conteneva: [dati reali dal database]".
+
+---
+
 **Document Owner**: PilotProOS Intelligence Team
-**Architecture**: Self-Improving LLM-Hybrid Assistant
+**Architecture**: Self-Improving LLM-Hybrid Assistant with n8n Expertise
 **Last Review**: 2025-01-28
+**Last Update**: 2025-01-28 - Added n8n Training Plan
 
 > 🎯 **Milhena v3.0: L'assistente che impara, migliora e si evolve con ogni interazione**
