@@ -12,6 +12,7 @@ import './disable-animations.css'
 import './styles/insights-theme.css' // Global Insights theme applied to all pages
 import './styles/toast-theme.css' // Toast glassmorphism theme
 import './styles/rag-theme.css' // RAG components enterprise dark theme
+import './styles/milhena-theme.css' // Milhena chat enterprise dark theme
 
 // Vue Toastification - Battle-tested toast system
 import Toast, { POSITION } from 'vue-toastification'
