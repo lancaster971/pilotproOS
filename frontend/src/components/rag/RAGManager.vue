@@ -128,7 +128,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useToast } from 'vue-toastification'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import TabView from 'primevue/tabview'
@@ -183,12 +183,7 @@ const loadStatistics = async () => {
     statistics.value = response
   } catch (error) {
     console.error('Error loading RAG statistics:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: 'Failed to load knowledge base statistics',
-      life: 5000
-    })
+    toast.error('Failed to load knowledge base statistics')
   }
 }
 
@@ -225,51 +220,26 @@ const connectWebSocket = () => {
 const handleWebSocketMessage = (message) => {
   switch (message.type) {
     case 'document_uploaded':
-      toast.add({
-        severity: 'success',
-        summary: 'Document Uploaded',
-        detail: `File "${message.filename}" has been processed`,
-        life: 3000
-      })
+      toast.success(`File "${message.filename}" has been processed`)
       refreshStats()
       break
 
     case 'document_updated':
-      toast.add({
-        severity: 'info',
-        summary: 'Document Updated',
-        detail: 'Document has been modified',
-        life: 3000
-      })
+      toast.info('Document has been modified')
       refreshStats()
       break
 
     case 'document_deleted':
-      toast.add({
-        severity: 'warn',
-        summary: 'Document Deleted',
-        detail: 'Document has been removed',
-        life: 3000
-      })
+      toast.warning('Document has been removed')
       refreshStats()
       break
 
     case 'bulk_import_progress':
-      toast.add({
-        severity: 'info',
-        summary: 'Bulk Import Progress',
-        detail: `Processing ${message.current_file} (${message.processed}/${message.total})`,
-        life: 2000
-      })
+      toast.info(`Processing ${message.current_file} (${message.processed}/${message.total})`)
       break
 
     case 'reindex_started':
-      toast.add({
-        severity: 'info',
-        summary: 'Reindexing Started',
-        detail: 'Knowledge base is being reindexed',
-        life: 3000
-      })
+      toast.info('Knowledge base is being reindexed')
       break
   }
 }
@@ -280,20 +250,10 @@ const reindexKnowledgeBase = async () => {
 
   try {
     await ragApi.reindex()
-    toast.add({
-      severity: 'success',
-      summary: 'Reindexing Started',
-      detail: 'Knowledge base reindexing has been initiated',
-      life: 5000
-    })
+    toast.success('Knowledge base reindexing has been initiated')
   } catch (error) {
     console.error('Error starting reindex:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Reindex Failed',
-      detail: 'Failed to start knowledge base reindexing',
-      life: 5000
-    })
+    toast.error('Failed to start knowledge base reindexing')
   } finally {
     reindexing.value = false
   }
@@ -302,24 +262,14 @@ const reindexKnowledgeBase = async () => {
 // Handle upload complete
 const handleUploadComplete = (result) => {
   showUploadDialog.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Upload Complete',
-    detail: result.message,
-    life: 5000
-  })
+  toast.success(result.message || 'Documents uploaded successfully')
   refreshStats()
 }
 
 // Handle import complete
 const handleImportComplete = (result) => {
   showBulkImportDialog.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Import Complete',
-    detail: `Processed ${result.processed_files} files in ${result.processing_time_seconds.toFixed(1)}s`,
-    life: 5000
-  })
+  toast.success(`Processed ${result.processed_files} files in ${result.processing_time_seconds.toFixed(1)}s`)
   refreshStats()
 }
 

@@ -208,7 +208,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useToast } from 'vue-toastification'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
@@ -328,22 +328,12 @@ const addFiles = (files) => {
     )
 
     if (!hasValidExtension) {
-      toast.add({
-        severity: 'warn',
-        summary: 'Invalid File',
-        detail: `${file.name} - Unsupported file format`,
-        life: 3000
-      })
+      toast.warning(`${file.name} - Unsupported file format`)
       return false
     }
 
     if (file.size > 50 * 1024 * 1024) { // 50MB limit
-      toast.add({
-        severity: 'warn',
-        summary: 'File Too Large',
-        detail: `${file.name} - File size exceeds 50MB limit`,
-        life: 3000
-      })
+      toast.warning(`${file.name} - File size exceeds 50MB limit`)
       return false
     }
 
@@ -360,12 +350,7 @@ const addFiles = (files) => {
   selectedFiles.value.push(...uniqueFiles)
 
   if (uniqueFiles.length > 0) {
-    toast.add({
-      severity: 'success',
-      summary: 'Files Added',
-      detail: `Added ${uniqueFiles.length} file(s) for upload`,
-      life: 2000
-    })
+    toast.success(`Added ${uniqueFiles.length} file(s) for upload`)
   }
 }
 
@@ -426,12 +411,7 @@ const uploadDocuments = async () => {
       uploadProgress.completed = uploadProgress.total
       uploadProgress.percentage = 100
 
-      toast.add({
-        severity: 'success',
-        summary: 'Upload Complete',
-        detail: result.message,
-        life: 5000
-      })
+      toast.success(result.message || 'Documents uploaded successfully')
 
       emit('upload-complete', result)
 
@@ -451,12 +431,7 @@ const uploadDocuments = async () => {
       error: error.message || 'Unknown error occurred'
     })
 
-    toast.add({
-      severity: 'error',
-      summary: 'Upload Failed',
-      detail: error.message || 'Failed to upload documents',
-      life: 5000
-    })
+    toast.error(error.message || 'Failed to upload documents')
   } finally {
     uploading.value = false
   }

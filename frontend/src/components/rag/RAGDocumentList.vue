@@ -300,7 +300,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useToast } from 'vue-toastification'
 import { useConfirm } from 'primevue/useconfirm'
 import { debounce } from 'lodash-es'
 
@@ -413,12 +413,7 @@ const loadDocuments = async () => {
     totalCount.value = response.total_count || 0
   } catch (error) {
     console.error('Error loading documents:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Loading Failed',
-      detail: 'Failed to load documents',
-      life: 5000
-    })
+    toast.error('Failed to load documents')
     documents.value = []
     totalCount.value = 0
   } finally {
@@ -463,12 +458,7 @@ const editPreviewDocument = () => {
 // Download document
 const downloadDocument = (document) => {
   // TODO: Implement document download
-  toast.add({
-    severity: 'info',
-    summary: 'Download',
-    detail: 'Document download feature coming soon',
-    life: 3000
-  })
+  toast.info('Document download feature coming soon')
 }
 
 // Confirm delete
@@ -487,23 +477,13 @@ const deleteDocument = async (document) => {
   try {
     await ragApi.deleteDocument(document.id)
 
-    toast.add({
-      severity: 'success',
-      summary: 'Deleted',
-      detail: 'Document deleted successfully',
-      life: 3000
-    })
+    toast.success('Document deleted successfully')
 
     emit('document-deleted', document)
     await loadDocuments()
   } catch (error) {
     console.error('Error deleting document:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Delete Failed',
-      detail: 'Failed to delete document',
-      life: 5000
-    })
+    toast.error('Failed to delete document')
   }
 }
 

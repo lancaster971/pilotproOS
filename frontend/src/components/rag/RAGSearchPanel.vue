@@ -243,7 +243,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useToast } from 'vue-toastification'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -333,12 +333,7 @@ const loadAvailableCategories = async () => {
 // Perform semantic search
 const performSearch = async () => {
   if (!searchQuery.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Empty Query',
-      detail: 'Please enter a search query',
-      life: 3000
-    })
+    toast.warning('Please enter a search query')
     return
   }
 
@@ -365,21 +360,11 @@ const performSearch = async () => {
     lastQueryTime.value = response.query_time_ms || 0
 
     if (searchResults.value.length === 0) {
-      toast.add({
-        severity: 'info',
-        summary: 'No Results',
-        detail: 'No documents found matching your query',
-        life: 3000
-      })
+      toast.info('No documents found matching your query')
     }
   } catch (error) {
     console.error('Search error:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Search Failed',
-      detail: 'Failed to search documents',
-      life: 5000
-    })
+    toast.error('Failed to search documents')
     searchResults.value = []
   } finally {
     searching.value = false
