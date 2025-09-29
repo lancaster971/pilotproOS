@@ -1673,4 +1673,775 @@ Sistema enterprise-grade con:
 
 ---
 
+## 📚 **PHASE 6: MILHENA LEARNING + RAG FRONTEND INTEGRATION** (NEW)
+
+> **Status**: 🔄 **IN DEVELOPMENT** - Frontend integration following official LangChain/LangGraph documentation
+> **Reference**: Official LangChain RAG Tutorial, LangGraph Memory Management, LangSmith Feedback Loop, ChromaDB Best Practices
+
+### **Architecture Overview - Official Documentation Based**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Vue 3)                              │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
+│  │  Milhena Chat    │  │   RAG Manager    │  │   Learning    │ │
+│  │  (MilhenaChat.   │  │ (RAGManagerPage. │  │   Dashboard   │ │
+│  │   vue)           │  │   vue)           │  │  (NEW)        │ │
+│  └────────┬─────────┘  └────────┬─────────┘  └───────┬───────┘ │
+│           │                     │                     │          │
+└───────────┼─────────────────────┼─────────────────────┼──────────┘
+            │                     │                     │
+            ▼                     ▼                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              INTELLIGENCE ENGINE (FastAPI)                       │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  API Layer                                                │  │
+│  │  • /api/milhena/chat    (LangGraph StateGraph)           │  │
+│  │  • /api/milhena/feedback (LangSmith + Learning System)   │  │
+│  │  • /api/rag/*           (ChromaDB + Embeddings)          │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  LangGraph Memory Management (Official Pattern)          │  │
+│  │  • Short-term: Thread-scoped conversation history        │  │
+│  │  • Long-term: User preferences, learned patterns         │  │
+│  │  • Checkpointer: PostgreSQL persistence                  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  RAG System (LangChain Official Tutorial Pattern)        │  │
+│  │  • Document Loading: WebBaseLoader, RecursiveSplitter   │  │
+│  │  • Vector Store: ChromaDB with metadata filtering        │  │
+│  │  • Retrieval: Semantic search + full-text search         │  │
+│  │  • Generation: Context-aware prompts                     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Learning System (LangSmith Feedback Pattern)            │  │
+│  │  • Feedback Collection: Thumbs up/down, comments         │  │
+│  │  • Trace Association: Link feedback to specific runs     │  │
+│  │  • Pattern Analysis: Extract learnable n-grams           │  │
+│  │  • Continuous Improvement: Update system prompts         │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### **6.1 RAG System Integration - Following Official LangChain Tutorial**
+
+**Reference**: https://python.langchain.com/docs/tutorials/rag/
+
+#### **✅ Backend Implementation Status (COMPLETE)**
+
+Files Implemented:
+- `app/rag/maintainable_rag.py` - Main RAG system following official patterns
+- `app/api/rag.py` - FastAPI endpoints
+- `app/cache/optimized_embeddings_cache.py` - Embedding optimization
+
+**Key Features (Official Best Practices)**:
+```python
+# 1. Document Loading & Chunking (Official Pattern)
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,        # Official recommendation
+    chunk_overlap=200       # Official recommendation
+)
+
+# 2. Vector Store Integration (ChromaDB)
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+vectorstore = Chroma(
+    collection_name="pilotpros_knowledge",
+    embedding_function=OpenAIEmbeddings(),
+    persist_directory="./chroma_db"
+)
+
+# 3. Retrieval with Metadata Filtering (Official Pattern)
+docs = vectorstore.similarity_search(
+    query=user_query,
+    k=5,
+    filter={"category": "workflows"}  # Metadata filtering
+)
+
+# 4. Context-Aware Generation (Official Prompt Pattern)
+from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Use context to answer. If unknown, say 'don't know'. Max 3 sentences."),
+    ("user", "Context: {context}\n\nQuestion: {question}")
+])
+```
+
+#### **🔄 Frontend Integration Status (IN DEVELOPMENT)**
+
+**Existing Components** (Already Implemented):
+- ✅ `frontend/src/pages/RAGManagerPage.vue` - Main dashboard
+- ✅ `frontend/src/components/rag/RAGManager.vue` - Management interface
+- ✅ `frontend/src/components/rag/RAGUploadDialog.vue` - Document upload
+- ✅ `frontend/src/components/rag/RAGDocumentList.vue` - Document browser
+- ✅ `frontend/src/components/rag/RAGSearchPanel.vue` - Semantic search
+- ✅ `frontend/src/components/rag/RAGAnalytics.vue` - Analytics dashboard
+- ✅ `frontend/src/api/rag.js` - API client (battle-tested ofetch)
+
+**Integration Tasks**:
+
+**Task 6.1.1**: Connect RAG to Milhena Chat
+```vue
+<!-- frontend/src/pages/MilhenaChat.vue -->
+<script setup>
+import { ragApi } from '@/api/rag'
+
+// Before sending query to Milhena, search RAG knowledge base
+const sendMessage = async () => {
+  // 1. Search RAG for relevant context
+  const ragResults = await ragApi.searchDocuments({
+    query: inputMessage.value,
+    k: 3,
+    user_level: 'BUSINESS'
+  })
+
+  // 2. Add context to Milhena request
+  const response = await apiClient.post('/api/n8n/agent/customer-support', {
+    message: inputMessage.value,
+    session_id: sessionId.value,
+    context: {
+      rag_context: ragResults.results,  // Inject RAG context
+      conversation_history: messages.value.slice(-10)
+    }
+  })
+}
+</script>
+```
+
+**Task 6.1.2**: Update Intelligence Engine to use RAG context
+```python
+# intelligence-engine/app/milhena/graph.py
+
+async def process(self, query: str, session_id: str, context: Dict):
+    """Enhanced with RAG context injection (Official Pattern)"""
+
+    # 1. Extract RAG context if available
+    rag_context = context.get('rag_context', [])
+
+    # 2. Format context for prompt (Official Pattern)
+    context_text = "\n\n".join([
+        f"Document {i+1}:\n{doc['content']}"
+        for i, doc in enumerate(rag_context)
+    ])
+
+    # 3. Enhance system prompt with RAG context
+    enhanced_prompt = f"""
+    Use the following knowledge base context to answer questions:
+
+    {context_text}
+
+    If the answer is not in the context, say "Non ho informazioni su questo".
+    Always maintain business-friendly language (no technical terms).
+    """
+
+    # 4. Continue with normal LangGraph processing
+    state = {
+        "query": query,
+        "system_context": enhanced_prompt,
+        "conversation_history": context.get('conversation_history', [])
+    }
+
+    result = await self.graph.ainvoke(state)
+    return result
+```
+
+**Task 6.1.3**: Add RAG Quick Actions to Milhena Chat UI
+```vue
+<!-- frontend/src/pages/MilhenaChat.vue -->
+<template>
+  <div class="milhena-chat-container">
+    <!-- Existing chat UI -->
+
+    <!-- NEW: RAG Knowledge Suggestions -->
+    <div v-if="ragSuggestions.length > 0" class="rag-suggestions">
+      <h4>📚 Potrebbe interessarti:</h4>
+      <div v-for="doc in ragSuggestions" :key="doc.id" class="suggestion-card">
+        <p>{{ doc.title }}</p>
+        <Button
+          size="small"
+          @click="insertRAGContext(doc)"
+          label="Usa questo contesto"
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+// Auto-suggest relevant documents as user types
+const ragSuggestions = ref([])
+
+watch(inputMessage, async (newValue) => {
+  if (newValue.length > 10) {
+    // Debounced search
+    const results = await ragApi.searchDocuments({
+      query: newValue,
+      k: 2
+    })
+    ragSuggestions.value = results.results
+  }
+})
+</script>
+```
+
+---
+
+### **6.2 Learning System Frontend Integration - Following LangSmith Feedback Pattern**
+
+**Reference**: https://docs.langchain.com/langsmith/attach-user-feedback
+
+#### **✅ Backend Implementation Status (COMPLETE)**
+
+Files Implemented:
+- `app/milhena/learning.py` - Complete learning system
+- `app/milhena/api.py` - Feedback endpoint at `/api/milhena/feedback`
+
+**Key Features (LangSmith Official Pattern)**:
+```python
+# Learning System following official LangSmith pattern
+from langsmith import Client
+
+client = Client()
+
+async def record_feedback(
+    query: str,
+    intent: str,
+    response: str,
+    feedback_type: str,  # "positive" or "negative"
+    trace_id: Optional[str] = None
+):
+    """Record feedback following LangSmith official pattern"""
+
+    # 1. Create feedback in LangSmith (if trace_id available)
+    if trace_id:
+        client.create_feedback(
+            key="user_feedback",
+            score=1 if feedback_type == "positive" else 0,
+            trace_id=trace_id,
+            comment=f"Query: {query}"
+        )
+
+    # 2. Local learning (pattern extraction)
+    feedback_entry = FeedbackEntry(
+        timestamp=datetime.now(),
+        query=query,
+        intent=intent,
+        response=response,
+        feedback_type=feedback_type
+    )
+
+    self.feedback_entries.append(feedback_entry)
+
+    # 3. Extract learnable patterns (n-grams)
+    patterns = self._extract_patterns(query)  # 2-3 word patterns
+
+    # 4. Update confidence scores
+    for pattern in patterns:
+        if feedback_type == "positive":
+            pattern.confidence += 0.1  # Boost confidence
+        else:
+            pattern.confidence -= 0.2  # Reduce confidence
+
+    # 5. Calculate accuracy rate
+    self._update_accuracy()
+```
+
+#### **❌ Frontend Integration Status (MISSING)**
+
+**CRITICAL ISSUE**: Frontend feedback buttons call `/api/milhena/feedback` but:
+1. Backend Express NON ha questo endpoint
+2. Chiamata fallisce silenziosamente
+3. Learning System NON riceve feedback
+4. NO connessione Frontend → Intelligence Engine
+
+**SOLUTION**: Complete Frontend Learning Dashboard
+
+**Task 6.2.1**: Create Learning Dashboard Component (NEW)
+```vue
+<!-- frontend/src/pages/LearningDashboard.vue (NEW FILE) -->
+<template>
+  <MainLayout>
+    <div class="learning-dashboard">
+      <!-- Statistics Cards -->
+      <div class="stats-grid">
+        <Card>
+          <template #title>Total Feedback</template>
+          <template #content>
+            <div class="stat-value">{{ learningStore.totalFeedback }}</div>
+          </template>
+        </Card>
+
+        <Card>
+          <template #title>Accuracy Rate</template>
+          <template #content>
+            <div class="stat-value">{{ (learningStore.accuracy * 100).toFixed(1) }}%</div>
+            <ProgressBar :value="learningStore.accuracy * 100" />
+          </template>
+        </Card>
+
+        <Card>
+          <template #title>Learned Patterns</template>
+          <template #content>
+            <div class="stat-value">{{ learningStore.patternCount }}</div>
+          </template>
+        </Card>
+
+        <Card>
+          <template #title>Improvement Trend</template>
+          <template #content>
+            <Tag
+              :severity="getTrendSeverity(learningStore.trend)"
+              :value="learningStore.trend"
+            />
+          </template>
+        </Card>
+      </div>
+
+      <!-- Accuracy Over Time Chart -->
+      <Card title="Accuracy Improvement Over Time">
+        <Chart type="line" :data="accuracyChartData" :options="chartOptions" />
+      </Card>
+
+      <!-- Top Learned Patterns -->
+      <Card title="High-Confidence Patterns">
+        <DataTable :value="learningStore.topPatterns" :paginator="true" :rows="10">
+          <Column field="pattern" header="Pattern" />
+          <Column field="correct_intent" header="Intent" />
+          <Column field="confidence" header="Confidence">
+            <template #body="slotProps">
+              <ProgressBar :value="slotProps.data.confidence * 100" />
+            </template>
+          </Column>
+          <Column field="occurrences" header="Occurrences" />
+          <Column field="success_rate" header="Success Rate">
+            <template #body="slotProps">
+              {{ (slotProps.data.success_rate * 100).toFixed(1) }}%
+            </template>
+          </Column>
+        </DataTable>
+      </Card>
+
+      <!-- Recent Feedback -->
+      <Card title="Recent User Feedback">
+        <Timeline :value="learningStore.recentFeedback" align="alternate">
+          <template #opposite="slotProps">
+            <small class="text-color-secondary">{{ formatDate(slotProps.item.timestamp) }}</small>
+          </template>
+          <template #content="slotProps">
+            <Card>
+              <template #title>
+                <Icon
+                  :icon="slotProps.item.feedback_type === 'positive' ? 'mdi:thumb-up' : 'mdi:thumb-down'"
+                  :class="slotProps.item.feedback_type"
+                />
+                {{ slotProps.item.query }}
+              </template>
+              <template #subtitle>Intent: {{ slotProps.item.intent }}</template>
+              <template #content>
+                <p>{{ slotProps.item.response.substring(0, 100) }}...</p>
+              </template>
+            </Card>
+          </template>
+        </Timeline>
+      </Card>
+    </div>
+  </MainLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useLearningStore } from '@/stores/learning-store'
+import MainLayout from '@/layouts/MainLayout.vue'
+
+const learningStore = useLearningStore()
+
+onMounted(async () => {
+  await learningStore.loadDashboardData()
+})
+
+const accuracyChartData = computed(() => ({
+  labels: learningStore.improvementCurve.map(p => formatDate(p.timestamp)),
+  datasets: [{
+    label: 'Accuracy %',
+    data: learningStore.improvementCurve.map(p => p.accuracy * 100),
+    borderColor: '#10b981',
+    fill: true,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)'
+  }]
+}))
+
+const getTrendSeverity = (trend: string) => {
+  if (trend === 'improving') return 'success'
+  if (trend === 'declining') return 'danger'
+  return 'info'
+}
+</script>
+```
+
+**Task 6.2.2**: Create Learning Store (Pinia)
+```typescript
+// frontend/src/stores/learning-store.ts (NEW FILE)
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { ofetch } from 'ofetch'
+
+const INTELLIGENCE_API = import.meta.env.VITE_INTELLIGENCE_API_URL || 'http://localhost:8000'
+
+export const useLearningStore = defineStore('learning', () => {
+  // State
+  const feedbackEntries = ref([])
+  const learnedPatterns = ref([])
+  const performanceMetrics = ref({
+    total_queries: 0,
+    positive_feedback: 0,
+    negative_feedback: 0,
+    accuracy_rate: 0.75,
+    improvement_curve: []
+  })
+
+  // Getters
+  const totalFeedback = computed(() => feedbackEntries.value.length)
+  const accuracy = computed(() => performanceMetrics.value.accuracy_rate)
+  const patternCount = computed(() => learnedPatterns.value.length)
+  const trend = computed(() => {
+    const curve = performanceMetrics.value.improvement_curve
+    if (curve.length < 2) return 'insufficient_data'
+
+    const mid = Math.floor(curve.length / 2)
+    const firstHalf = curve.slice(0, mid).reduce((sum, p) => sum + p.accuracy, 0) / mid
+    const secondHalf = curve.slice(mid).reduce((sum, p) => sum + p.accuracy, 0) / (curve.length - mid)
+
+    const improvement = secondHalf - firstHalf
+    if (improvement > 0.05) return 'improving'
+    if (improvement < -0.05) return 'declining'
+    return 'stable'
+  })
+
+  const topPatterns = computed(() =>
+    learnedPatterns.value
+      .filter(p => p.confidence > 0.7)
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 20)
+  )
+
+  const recentFeedback = computed(() =>
+    feedbackEntries.value
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 50)
+  )
+
+  const improvementCurve = computed(() =>
+    performanceMetrics.value.improvement_curve
+  )
+
+  // Actions
+  const loadDashboardData = async () => {
+    try {
+      // Get performance report from Intelligence Engine
+      const report = await ofetch(`${INTELLIGENCE_API}/api/milhena/performance`, {
+        method: 'GET'
+      })
+
+      performanceMetrics.value = report.metrics
+      feedbackEntries.value = report.recent_feedback || []
+      learnedPatterns.value = report.learned_patterns || []
+    } catch (error) {
+      console.error('Failed to load learning dashboard:', error)
+    }
+  }
+
+  const submitFeedback = async (
+    query: string,
+    response: string,
+    feedbackType: 'positive' | 'negative',
+    intent?: string,
+    sessionId?: string,
+    traceId?: string
+  ) => {
+    try {
+      await ofetch(`${INTELLIGENCE_API}/api/milhena/feedback`, {
+        method: 'POST',
+        body: {
+          query,
+          response,
+          feedback_type: feedbackType,
+          intent: intent || 'GENERAL',
+          session_id: sessionId,
+          trace_id: traceId
+        }
+      })
+
+      // Reload dashboard after feedback
+      await loadDashboardData()
+    } catch (error) {
+      console.error('Failed to submit feedback:', error)
+      throw error
+    }
+  }
+
+  return {
+    // State
+    feedbackEntries,
+    learnedPatterns,
+    performanceMetrics,
+
+    // Getters
+    totalFeedback,
+    accuracy,
+    patternCount,
+    trend,
+    topPatterns,
+    recentFeedback,
+    improvementCurve,
+
+    // Actions
+    loadDashboardData,
+    submitFeedback
+  }
+})
+```
+
+**Task 6.2.3**: Update Milhena Chat to use Learning Store
+```vue
+<!-- frontend/src/pages/MilhenaChat.vue -->
+<script setup>
+import { useLearningStore } from '@/stores/learning-store'
+
+const learningStore = useLearningStore()
+
+// Update sendFeedback function
+const sendFeedback = async (messageIndex: number, feedbackType: 'positive' | 'negative') => {
+  const message = messages.value[messageIndex]
+  if (!message || message.feedback) return
+
+  // Mark message with feedback
+  message.feedback = feedbackType
+
+  // Show learning indicator
+  isLearning.value = true
+
+  try {
+    // Use Learning Store (connects to Intelligence Engine)
+    await learningStore.submitFeedback(
+      messages.value[messageIndex - 1]?.content || '',  // query
+      message.content,                                   // response
+      feedbackType,
+      message.intent,
+      sessionId.value,
+      message.trace_id  // Pass trace_id for LangSmith integration
+    )
+
+    toast.success(feedbackType === 'positive' ?
+      'Grazie per il feedback positivo!' :
+      'Grazie, userò questo feedback per migliorare')
+
+  } catch (error) {
+    console.error('Feedback error:', error)
+    toast.error('Errore durante l\'invio del feedback')
+  } finally {
+    isLearning.value = false
+  }
+}
+</script>
+```
+
+**Task 6.2.4**: Add Intelligence Engine Performance Endpoint
+```python
+# intelligence-engine/app/milhena/api.py
+
+@router.get("/performance")
+@traceable(name="MilhenaPerformance", run_type="chain")
+async def get_performance_report() -> Dict[str, Any]:
+    """
+    Get complete learning performance report
+    Following LangSmith pattern for continuous improvement
+    """
+    try:
+        learning = LearningSystem()
+        report = learning.get_performance_report()
+
+        # Add recent feedback (last 50 entries)
+        recent_feedback = [
+            {
+                "timestamp": entry.timestamp.isoformat(),
+                "query": entry.query,
+                "intent": entry.intent,
+                "response": entry.response,
+                "feedback_type": entry.feedback_type
+            }
+            for entry in learning.feedback_entries[-50:]
+        ]
+
+        # Add learned patterns (high confidence only)
+        learned_patterns = [
+            {
+                "pattern": p.pattern,
+                "correct_intent": p.correct_intent,
+                "confidence": p.confidence,
+                "occurrences": p.occurrences,
+                "success_rate": p.success_rate,
+                "last_seen": p.last_seen.isoformat()
+            }
+            for p in learning.learned_patterns.values()
+            if p.confidence > 0.5
+        ]
+
+        return {
+            "success": True,
+            "metrics": report["metrics"],
+            "recent_feedback": recent_feedback,
+            "learned_patterns": learned_patterns,
+            "pattern_count": report["pattern_count"],
+            "high_confidence_patterns": report["high_confidence_patterns"],
+            "recent_accuracy": report["recent_accuracy"],
+            "top_corrections": report["top_corrections"],
+            "improvement_trend": report["improvement_trend"]
+        }
+
+    except Exception as e:
+        logger.error(f"Performance report error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+---
+
+### **6.3 Complete Integration Workflow - End-to-End**
+
+**Following Official LangChain/LangGraph/LangSmith Patterns**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER INTERACTION FLOW                         │
+└─────────────────────────────────────────────────────────────────┘
+
+1. User opens Milhena Chat
+   ↓
+2. User types query: "Come si crea un workflow per fatture?"
+   ↓
+3. Frontend (Auto) searches RAG knowledge base for relevant docs
+   ↓
+4. Frontend sends to Intelligence Engine with:
+   - query
+   - session_id
+   - rag_context (from step 3)
+   - conversation_history
+   ↓
+5. Intelligence Engine (LangGraph):
+   - Loads short-term memory (conversation history)
+   - Loads long-term memory (user preferences, learned patterns)
+   - Injects RAG context into system prompt
+   - Routes query to appropriate agent (Milhena/N8N/Data)
+   - Generates response with LangSmith tracing
+   - Returns: response + intent + confidence + trace_id
+   ↓
+6. Frontend displays response with:
+   - Message content (business-friendly, masked)
+   - Confidence indicator
+   - Feedback buttons (👍/👎)
+   - Related RAG documents suggestions
+   ↓
+7. User clicks 👍 (positive feedback)
+   ↓
+8. Frontend calls Learning Store → Intelligence Engine:
+   - POST /api/milhena/feedback
+   - Body: { query, response, feedback_type, intent, trace_id }
+   ↓
+9. Intelligence Engine Learning System:
+   - Records feedback in LangSmith (trace_id)
+   - Extracts learnable patterns (n-grams)
+   - Updates confidence scores
+   - Recalculates accuracy rate
+   - Persists to disk (/tmp/milhena_learning/)
+   ↓
+10. Learning Dashboard updates in real-time (WebSocket):
+    - New accuracy score
+    - Updated pattern list
+    - Improvement trend
+    ↓
+11. FUTURE queries benefit from learned patterns:
+    - Similar queries routed better
+    - Responses improved based on feedback
+    - System prompt refined with reflection
+```
+
+---
+
+### **6.4 Implementation Roadmap**
+
+**Week 1: RAG-Milhena Integration**
+- [ ] Day 1: Implement Task 6.1.1 (RAG context injection)
+- [ ] Day 2: Implement Task 6.1.2 (Intelligence Engine RAG integration)
+- [ ] Day 3: Implement Task 6.1.3 (RAG suggestions in chat UI)
+- [ ] Day 4-5: Testing and optimization
+
+**Week 2: Learning System Frontend**
+- [ ] Day 1: Create LearningDashboard.vue (Task 6.2.1)
+- [ ] Day 2: Create learning-store.ts (Task 6.2.2)
+- [ ] Day 3: Update MilhenaChat feedback (Task 6.2.3)
+- [ ] Day 4: Add performance endpoint (Task 6.2.4)
+- [ ] Day 5: Testing and validation
+
+**Week 3: Integration & Polish**
+- [ ] Day 1-2: End-to-end testing
+- [ ] Day 3: Performance optimization
+- [ ] Day 4: Documentation update
+- [ ] Day 5: Production deployment preparation
+
+---
+
+### **6.5 Success Metrics - Following Official Patterns**
+
+**RAG Integration Metrics**:
+- **Context Relevance**: >80% of RAG documents used in responses
+- **Response Quality**: User satisfaction >4.5/5 with RAG-enhanced answers
+- **Latency**: <500ms additional latency for RAG search
+- **Cache Hit Rate**: >60% for frequent queries
+
+**Learning System Metrics**:
+- **Feedback Collection**: >20% of responses receive feedback
+- **Accuracy Improvement**: +5% accuracy per month
+- **Pattern Learning**: 100+ high-confidence patterns (>0.8)
+- **LangSmith Integration**: 100% of interactions traced
+
+**Combined System Metrics**:
+- **End-to-End Latency**: <2s total (RAG + LangGraph + Generation)
+- **User Satisfaction**: >4.5/5 overall
+- **Zero Technical Leaks**: 100% business-friendly responses
+- **System Uptime**: 99.9%
+
+---
+
+### **6.6 Official Documentation References**
+
+**LangChain RAG**:
+- Tutorial: https://python.langchain.com/docs/tutorials/rag/
+- Document Loaders: https://python.langchain.com/docs/integrations/document_loaders/
+- Text Splitters: https://python.langchain.com/docs/concepts/text_splitters/
+- Vector Stores: https://python.langchain.com/docs/integrations/vectorstores/
+
+**LangGraph Memory**:
+- Concepts: https://langchain-ai.github.io/langgraph/concepts/memory/
+- State Management: https://langchain-ai.github.io/langgraph/concepts/persistence/
+- Checkpointers: https://langchain-ai.github.io/langgraph/reference/checkpoints/
+
+**LangSmith Feedback**:
+- Attach User Feedback: https://docs.langchain.com/langsmith/attach-user-feedback
+- Annotation Queues: https://docs.smith.langchain.com/how_to_guides/annotation_queues
+- Evaluation: https://docs.smith.langchain.com/evaluation
+
+**ChromaDB**:
+- Getting Started: https://docs.trychroma.com/
+- Metadata Filtering: https://docs.trychroma.com/usage-guide#filtering
+- Collections: https://docs.trychroma.com/usage-guide#creating-inspecting-and-deleting-collections
+
+---
+
 > **🎉 SISTEMA COMPLETO AL 100% - FRONTEND + BACKEND + AI + MONITORING - PRODUCTION READY!** 🎉
