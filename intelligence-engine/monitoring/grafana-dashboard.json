@@ -1,0 +1,253 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "pilotpros-intelligence",
+    "title": "PilotProOS Intelligence Engine - Production",
+    "tags": ["langgraph", "multi-agent", "production"],
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "Agent Request Rate",
+        "targets": [
+          {
+            "expr": "rate(pilotpros_agent_requests_total[5m])",
+            "legendFormat": "{{agent_name}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "Agent Response Time (95th percentile)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(pilotpros_agent_response_seconds_bucket[5m])) by (agent_name, le))",
+            "legendFormat": "{{agent_name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+        "type": "singlestat",
+        "title": "System Health Score",
+        "targets": [
+          {
+            "expr": "pilotpros_system_health",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "thresholds": "80,90",
+        "colors": ["red", "yellow", "green"]
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+        "type": "singlestat",
+        "title": "Cost Savings Today (Groq)",
+        "targets": [
+          {
+            "expr": "sum(increase(pilotpros_router_savings_dollars[24h]))",
+            "refId": "A"
+          }
+        ],
+        "format": "currencyUSD",
+        "prefix": "$",
+        "colors": ["green"]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8},
+        "type": "singlestat",
+        "title": "Active Sessions",
+        "targets": [
+          {
+            "expr": "pilotpros_active_sessions",
+            "refId": "A"
+          }
+        ],
+        "format": "short"
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8},
+        "type": "singlestat",
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(pilotpros_errors_total[5m])) * 60",
+            "refId": "A"
+          }
+        ],
+        "format": "short",
+        "postfix": " errors/min",
+        "thresholds": "1,5",
+        "colors": ["green", "yellow", "red"]
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "type": "graph",
+        "title": "Token Usage by Model",
+        "targets": [
+          {
+            "expr": "sum by (model) (rate(pilotpros_agent_tokens_total[5m]) * 60)",
+            "legendFormat": "{{model}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Tokens/min"},
+          {"format": "short"}
+        ],
+        "stack": true
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "type": "graph",
+        "title": "Router Decision Distribution",
+        "targets": [
+          {
+            "expr": "sum by (tier) (rate(pilotpros_router_decisions_total[5m]))",
+            "legendFormat": "{{tier}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Distribution"},
+          {"format": "short"}
+        ],
+        "stack": true,
+        "percentage": true
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "type": "graph",
+        "title": "LangGraph Node Execution",
+        "targets": [
+          {
+            "expr": "sum by (node_name, status) (rate(pilotpros_langgraph_nodes_executed_total[5m]))",
+            "legendFormat": "{{node_name}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Executions/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "type": "graph",
+        "title": "API Endpoint Latency (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(pilotpros_api_latency_seconds_bucket[5m])) by (endpoint, le))",
+            "legendFormat": "{{endpoint}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "type": "graph",
+        "title": "N8N Workflow Operations",
+        "targets": [
+          {
+            "expr": "sum by (operation, status) (rate(pilotpros_n8n_workflows_queried_total[5m]))",
+            "legendFormat": "{{operation}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Operations/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 12,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "type": "graph",
+        "title": "Cache Hit Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(pilotpros_embedding_cache_hits_total{cache_type=\"hit\"}[5m])) / (sum(rate(pilotpros_embedding_cache_hits_total[5m])) + 0.0001) * 100",
+            "legendFormat": "Cache Hit %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Hit Rate", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 13,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 36},
+        "type": "graph",
+        "title": "Business Value Generated",
+        "targets": [
+          {
+            "expr": "sum by (metric_type) (increase(pilotpros_business_value_dollars[1h]))",
+            "legendFormat": "{{metric_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "currencyUSD", "label": "Value/hour"},
+          {"format": "short"}
+        ],
+        "bars": true,
+        "lines": false
+      },
+      {
+        "id": 14,
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 44},
+        "type": "alertlist",
+        "title": "Active Alerts",
+        "options": {
+          "showOptions": "current",
+          "maxItems": 10,
+          "sortOrder": 1,
+          "stateFilter": {
+            "ok": false,
+            "paused": false,
+            "no_data": false,
+            "alerting": true,
+            "pending": true
+          }
+        }
+      }
+    ]
+  }
+}

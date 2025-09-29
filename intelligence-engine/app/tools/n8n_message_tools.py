@@ -39,19 +39,21 @@ async def get_last_message_from_workflow(workflow_name: str) -> str:
         # Get REAL database connection
         conn = await get_db_connection()
 
-        # Query REAL execution_entity table with correct column names
+        # Query REAL execution_entity AND execution_data tables
         sql = """
             SELECT
+                e.id as execution_id,
                 e."workflowId",
                 w.name as workflow_name,
                 e."stoppedAt",
                 e."startedAt",
                 e.status,
                 e.mode,
-                w.nodes,
-                w.connections
+                ed.data as execution_data,
+                ed."workflowData"
             FROM n8n.execution_entity e
-            JOIN n8n.workflow_entity w ON e."workflowId" = w.id
+            JOIN n8n.workflow_entity w ON e."workflowId" = w.id::text
+            LEFT JOIN n8n.execution_data ed ON ed."executionId" = e.id
             WHERE LOWER(w.name) LIKE LOWER($1)
                 AND e."stoppedAt" IS NOT NULL
             ORDER BY e."stoppedAt" DESC
@@ -64,8 +66,8 @@ async def get_last_message_from_workflow(workflow_name: str) -> str:
         if not result:
             raise ToolException(f"Nessuna elaborazione trovata per il processo '{workflow_name}'")
 
-        # Extract message from workflow nodes (parsing JSON)
-        message_content = await _extract_message_from_nodes(result)
+        # Extract message from execution_data (the REAL data)
+        message_content = await _extract_message_from_execution_data(result)
 
         # Format timestamp
         timestamp = result['stoppedAt'].strftime("%d/%m/%Y %H:%M") if result['stoppedAt'] else "In corso"
@@ -349,50 +351,97 @@ async def extract_batch_messages(
         raise ToolException("Errore nell'estrazione batch")
 
 
-# Helper function to extract messages from workflow nodes
-async def _extract_message_from_nodes(execution_data: Dict) -> str:
+# Helper function to extract messages from execution_data
+async def _extract_message_from_execution_data(execution_result: Dict) -> str:
     """
-    Extract actual message content from workflow nodes JSON.
-    This parses the nodes structure to find message fields.
+    Extract actual message content from execution_data.data field.
+    This is where n8n stores the REAL execution data.
     """
     try:
-        if not execution_data.get('nodes'):
-            return "Messaggio non disponibile"
+        # Check if we have execution_data
+        if not execution_result.get('execution_data'):
+            # Fallback to workflow nodes if no execution data
+            return await _extract_from_workflow_nodes(execution_result)
 
-        nodes = execution_data['nodes']
+        # Parse the execution data (it's stored as text JSON)
+        exec_data_str = execution_result['execution_data']
+        if isinstance(exec_data_str, str):
+            exec_data = json.loads(exec_data_str)
+        else:
+            exec_data = exec_data_str
 
-        # If nodes is a string, parse it as JSON
-        if isinstance(nodes, str):
-            nodes = json.loads(nodes)
-
-        # Look for common message fields in nodes
+        # Navigate the n8n execution data structure
+        # Structure: data.resultData.runData.[nodeName][0].data.main[0][0].json
         messages = []
 
-        for node in nodes:
-            if isinstance(node, dict):
-                # Check common fields where messages are stored
-                if 'parameters' in node:
-                    params = node['parameters']
+        # Check if we have resultData
+        if 'resultData' in exec_data:
+            result_data = exec_data['resultData']
 
-                    # Check for message fields
-                    if 'message' in params:
-                        messages.append(params['message'])
-                    elif 'text' in params:
-                        messages.append(params['text'])
-                    elif 'content' in params:
-                        messages.append(params['content'])
-                    elif 'body' in params:
-                        messages.append(str(params['body']))
+            # Check for runData (contains actual node execution results)
+            if 'runData' in result_data:
+                run_data = result_data['runData']
+
+                # Iterate through each node's execution data
+                for node_name, node_runs in run_data.items():
+                    if isinstance(node_runs, list) and len(node_runs) > 0:
+                        # Get first run of the node
+                        first_run = node_runs[0]
+
+                        # Check for data.main (n8n's standard output structure)
+                        if 'data' in first_run and 'main' in first_run['data']:
+                            main_data = first_run['data']['main']
+
+                            # main is an array of arrays
+                            if isinstance(main_data, list) and len(main_data) > 0:
+                                first_output = main_data[0]
+
+                                # Each output is an array of items
+                                if isinstance(first_output, list):
+                                    for item in first_output[:3]:  # Get first 3 items
+                                        if 'json' in item:
+                                            json_data = item['json']
+
+                                            # Look for message fields
+                                            for key in ['message', 'text', 'content', 'body', 'chatInput', 'query', 'output']:
+                                                if key in json_data:
+                                                    msg = str(json_data[key])
+                                                    if msg and msg not in messages:
+                                                        messages.append(msg)
+                                                        break
 
         if messages:
-            return " | ".join(messages[:3])  # Return first 3 messages
+            # Return the most relevant message
+            return messages[0] if len(messages) == 1 else " | ".join(messages[:2])
         else:
-            # Fallback to generic message
-            return f"Elaborazione completata con stato: {execution_data.get('status', 'sconosciuto')}"
+            # No messages found in execution data
+            return f"Elaborazione completata (ID: {execution_result.get('execution_id', 'N/A')})"
 
     except Exception as e:
-        logger.warning(f"Could not extract message from nodes: {e}")
+        logger.warning(f"Could not extract message from execution data: {e}")
         return "Contenuto elaborazione disponibile"
+
+
+# Fallback helper for workflow nodes
+async def _extract_from_workflow_nodes(execution_result: Dict) -> str:
+    """
+    Fallback to extract from workflow nodes when no execution_data
+    """
+    try:
+        if 'workflowData' in execution_result and execution_result['workflowData']:
+            workflow_data = execution_result['workflowData']
+            if isinstance(workflow_data, str):
+                workflow_data = json.loads(workflow_data)
+
+            if 'nodes' in workflow_data:
+                # Look for webhook or other input nodes
+                for node in workflow_data['nodes']:
+                    if node.get('type') in ['n8n-nodes-base.webhook', 'n8n-nodes-base.httpRequest']:
+                        return f"Integrazione {node.get('name', 'webhook')} attiva"
+
+        return f"Processo completato con stato: {execution_result.get('status', 'sconosciuto')}"
+    except:
+        return "Elaborazione completata"
 
 
 # Tool configuration for error handling
