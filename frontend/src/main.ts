@@ -143,12 +143,18 @@ import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Rating from 'primevue/rating'
 import Skeleton from 'primevue/skeleton'
+import Sidebar from 'primevue/sidebar'
+import Textarea from 'primevue/textarea'
+import ConfirmDialog from 'primevue/confirmdialog'
 
 app.component('Timeline', Timeline)
 app.component('Splitter', Splitter)
 app.component('SplitterPanel', SplitterPanel)
 app.component('Rating', Rating)
 app.component('Skeleton', Skeleton)
+app.component('Sidebar', Sidebar)
+app.component('Textarea', Textarea)
+app.component('ConfirmDialog', ConfirmDialog)
 
 // Setup user activity detection for auto-logout reset
 let activityTimer: NodeJS.Timeout | null = null
