@@ -2,7 +2,7 @@
 
 ## 📋 Available Models & Providers
 
-### 🎯 OpenAI Models (Your Current Access)
+### 🎯 OpenAI Models OFFERTA SPECIALE (Your Current Access)
 
 #### 1M Token Group (250K for usage tiers 1-2):
 - `gpt-5-codex`

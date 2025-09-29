@@ -105,3 +105,22 @@ async def test_connection():
     except Exception as e:
         logger.error(f"❌ Database connection failed: {e}")
         return False
+
+async def get_db_connection():
+    """Get direct asyncpg connection for raw SQL queries"""
+    # When running outside Docker, we need to connect to localhost
+    # The database name from docker-compose is pilotpros_db (not pilotpros_dev)
+    host = "localhost"
+    port = 5432
+    database = "pilotpros_db"
+    user = "pilotpros_user"
+    password = "pilotpros_password_2025"
+
+    # Create asyncpg connection
+    return await asyncpg.connect(
+        host=host,
+        port=port,
+        database=database,
+        user=user,
+        password=password
+    )

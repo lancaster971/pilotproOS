@@ -5,14 +5,14 @@ langchain-core==0.3.76
 langserve==0.3.0
 langgraph==0.6.7
 langgraph-checkpoint-postgres==2.0.11
-langsmith==0.3.0
+langsmith>=0.3.45
 langchain-openai==0.3.33
 langchain-anthropic==0.3.0
 
 # Vector Store & Embeddings
-langchain-postgres==0.0.15
-pgvector==0.3.6
-langchain-chroma==0.1.4
+langchain-postgres>=0.0.15
+pgvector>=0.3.6
+langchain-chroma>=0.1.4
 
 # LLM Providers
 openai>=1.104.2
@@ -83,8 +83,8 @@ ruff==0.8.3
 mypy==1.13.0
 
 # Data Science (essenziali)
-pandas==2.2.3
-numpy==2.2.0
+pandas>=2.2.0
+numpy>=1.26.0
 matplotlib==3.9.2
 scikit-learn==1.6.1
 scipy==1.15.1

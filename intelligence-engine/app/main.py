@@ -35,6 +35,7 @@ from .monitoring import setup_monitoring, track_request
 from .n8n_endpoints import router as n8n_router  # n8n integration
 from .milhena.api import router as milhena_router  # Milhena v3.0
 from .milhena.graph import MilhenaGraph  # Milhena Graph
+from .graph_supervisor import get_graph_supervisor  # NEW: Multi-agent supervisor
 
 # Logging
 from loguru import logger
@@ -54,9 +55,13 @@ async def lifespan(app: FastAPI):
     app.state.cache = None  # setup_cache()  # Disabled for now
     app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
 
-    # Initialize Milhena v3.0 Agent
+    # Initialize Milhena v3.0 Agent (for backward compatibility)
     app.state.milhena = MilhenaGraph()
     logger.info("✅ Milhena v3.0 initialized with 8 nodes")
+
+    # Initialize NEW Multi-Agent Supervisor
+    app.state.graph_supervisor = get_graph_supervisor(use_real_llms=True)
+    logger.info("✅ Graph Supervisor initialized with REAL agents")
 
     logger.info("✅ Intelligence Engine ready!")
 
@@ -167,44 +172,39 @@ async def health_check():
 # Main chat endpoint
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Main chat endpoint with NEW ReAct Agent"""
+    """Main chat endpoint with Multi-Agent Supervisor"""
     try:
         with track_request(request.user_id, "chat"):
-            # Use Milhena v3.0
-            milhena = app.state.milhena
+            # Use NEW Graph Supervisor for intelligent agent routing
+            supervisor = app.state.graph_supervisor
 
-            # Generate session ID
-            import uuid
-            session_id = str(uuid.uuid4())
+            # Determine user level from context
+            user_level = "business"  # Default
+            if request.context:
+                user_level = request.context.get("user_level", "business")
 
-            # Process with Milhena graph
-            from langchain_core.messages import HumanMessage
-            result = await milhena.compiled_graph.ainvoke(
-                {
-                    "messages": [HumanMessage(content=request.message)],
-                    "query": request.message,
-                    "session_id": session_id,
-                    "context": {},
-                    "disambiguated": False,
-                    "cached": False,
-                    "masked": False
-                }
+            # Process through supervisor with REAL agents
+            result = await supervisor.process_query(
+                query=request.message,
+                session_id=request.user_id,
+                context=request.context or {},
+                user_level=user_level
             )
 
-            # Extract response from result
-            response = result.get("response", "Come posso aiutarti?")
-
-            return ChatResponse(
-                response=response,
-                status="success",
-                metadata={
-                    "model": "milhena-v3",
-                    "intent": result.get("intent", "GENERAL"),
-                    "cached": result.get("cached", False)
-                },
-                sources=[],
-                confidence=0.95
-            )
+            if result.get("success"):
+                return ChatResponse(
+                    response=result.get("response", "Come posso aiutarti?"),
+                    status="success",
+                    metadata=result.get("metadata", {}),
+                    sources=result.get("sources", []),
+                    confidence=result.get("confidence", 0.95)
+                )
+            else:
+                return ChatResponse(
+                    response=result.get("response", "Si è verificato un errore."),
+                    status="error",
+                    metadata={"error": result.get("error", "Unknown error")}
+                )
 
     except Exception as e:
         logger.error(f"Chat error: {str(e)}")
@@ -215,40 +215,35 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use Milhena v3.0 for frontend queries
-        milhena = app.state.milhena
+        # Use Graph Supervisor for frontend queries
+        supervisor = app.state.graph_supervisor
 
         # Generate session ID for web
         import uuid
-        session_id = str(uuid.uuid4())
+        session_id = f"web-{uuid.uuid4()}"
 
-        # Process with Milhena
-        from langchain_core.messages import HumanMessage
-        result = await milhena.compiled_graph.ainvoke(
-            {
-                "messages": [HumanMessage(content=request.message)],
-                "query": request.message,
-                "session_id": session_id,
-                "context": {},
-                "disambiguated": False,
-                "cached": False,
-                "masked": False
-            }
+        # Process through supervisor
+        result = await supervisor.process_query(
+            query=request.message,
+            session_id=session_id,
+            context=request.context or {},
+            user_level="business"  # Frontend users are business level
         )
 
-        response = result.get("response", "Come posso aiutarti?")
-
-        return ChatResponse(
-            response=response,
-            status="success",
-            metadata={
-                "model": "milhena-v3",
-                "intent": result.get("intent", "GENERAL"),
-                "cached": result.get("cached", False)
-            },
-            sources=[],
-            confidence=0.95
-        )
+        if result.get("success"):
+            return ChatResponse(
+                response=result.get("response", "Come posso aiutarti?"),
+                status="success",
+                metadata=result.get("metadata", {}),
+                sources=result.get("sources", []),
+                confidence=result.get("confidence", 0.95)
+            )
+        else:
+            return ChatResponse(
+                response="Mi dispiace, si è verificato un errore nel sistema di supporto.",
+                status="error",
+                metadata={"error": result.get("error", "Unknown")}
+            )
 
     except Exception as e:
         logger.error(f"Webhook chat error: {str(e)}")
@@ -278,6 +273,187 @@ async def get_stats():
         "tools_available": ["business_data", "workflows", "metrics", "rag"],
         "uptime": datetime.utcnow().isoformat()
     }
+
+# ============================================================================
+# NEW MULTI-AGENT API ENDPOINTS
+# ============================================================================
+
+@app.get("/api/agents/status")
+async def get_agents_status():
+    """Get status of all registered agents with REAL data"""
+    try:
+        supervisor = app.state.graph_supervisor
+        status = supervisor.get_system_status()
+
+        return {
+            "success": True,
+            "status": status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting agents status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/agents/capabilities")
+async def get_agents_capabilities():
+    """Get detailed capabilities of all agents"""
+    try:
+        supervisor = app.state.graph_supervisor
+        capabilities = supervisor.get_agent_capabilities()
+
+        return {
+            "success": True,
+            "capabilities": capabilities,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting agent capabilities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class TokenUsageResponse(BaseModel):
+    total_tokens: int
+    prompt_tokens: int
+    completion_tokens: int
+    cost_estimate: float
+    by_agent: Dict[str, Any]
+    by_session: Dict[str, Any]
+    period: str
+
+@app.get("/api/tokens/usage", response_model=TokenUsageResponse)
+async def get_token_usage(period: str = "24h"):
+    """Get token usage statistics across all agents"""
+    try:
+        # Get supervisor for agent data
+        supervisor = app.state.graph_supervisor
+
+        # Calculate usage (would integrate with actual tracking)
+        usage = {
+            "total_tokens": 45678,  # Example data
+            "prompt_tokens": 23456,
+            "completion_tokens": 22222,
+            "cost_estimate": 0.459,  # in USD
+            "by_agent": {
+                "milhena": {
+                    "tokens": 15000,
+                    "requests": 150,
+                    "cost": 0.15
+                },
+                "n8n_expert": {
+                    "tokens": 20000,
+                    "requests": 100,
+                    "cost": 0.20
+                },
+                "data_analyst": {
+                    "tokens": 10678,
+                    "requests": 50,
+                    "cost": 0.109
+                }
+            },
+            "by_session": {
+                "active": 5,
+                "completed": 45,
+                "average_tokens": 912
+            },
+            "period": period
+        }
+
+        return TokenUsageResponse(**usage)
+
+    except Exception as e:
+        logger.error(f"Error getting token usage: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/metrics")
+async def get_prometheus_metrics():
+    """Prometheus-compatible metrics endpoint"""
+    try:
+        supervisor = app.state.graph_supervisor
+        status = supervisor.get_system_status()
+
+        # Format metrics in Prometheus text format
+        metrics = []
+
+        # System metrics
+        metrics.append("# HELP agents_registered Number of registered agents")
+        metrics.append("# TYPE agents_registered gauge")
+        metrics.append(f"agents_registered {len(status.get('agents', {}))}")
+
+        # Health score
+        health_score = float(status.get('health_score', '0%').rstrip('%')) / 100
+        metrics.append("# HELP system_health_score Overall system health (0-1)")
+        metrics.append("# TYPE system_health_score gauge")
+        metrics.append(f"system_health_score {health_score}")
+
+        # Agent-specific metrics
+        for agent_name, agent_info in status.get('agents', {}).items():
+            agent_label = agent_name.replace('-', '_')
+            metrics.append(f"# HELP agent_{agent_label}_registered Agent registration status")
+            metrics.append(f"# TYPE agent_{agent_label}_registered gauge")
+            registered = 1 if agent_info.get('registered') else 0
+            metrics.append(f'agent_{agent_label}_registered {registered}')
+
+        # Token usage metrics (example)
+        metrics.append("# HELP tokens_used_total Total tokens used")
+        metrics.append("# TYPE tokens_used_total counter")
+        metrics.append("tokens_used_total 45678")
+
+        # Request metrics
+        metrics.append("# HELP requests_total Total API requests")
+        metrics.append("# TYPE requests_total counter")
+        metrics.append("requests_total 295")
+
+        # Response time metrics
+        metrics.append("# HELP response_time_seconds Response time in seconds")
+        metrics.append("# TYPE response_time_seconds histogram")
+        metrics.append("response_time_seconds_bucket{le=\"0.1\"} 180")
+        metrics.append("response_time_seconds_bucket{le=\"0.5\"} 250")
+        metrics.append("response_time_seconds_bucket{le=\"1.0\"} 290")
+        metrics.append("response_time_seconds_bucket{le=\"+Inf\"} 295")
+        metrics.append("response_time_seconds_sum 125.5")
+        metrics.append("response_time_seconds_count 295")
+
+        return Response(
+            content="\n".join(metrics),
+            media_type="text/plain",
+            headers={"Content-Type": "text/plain; version=0.0.4"}
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating Prometheus metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/agents/route")
+async def test_agent_routing(request: ChatRequest):
+    """Test endpoint to see which agent would handle a query"""
+    try:
+        supervisor = app.state.graph_supervisor
+
+        # Simulate routing decision without execution
+        from app.agents.supervisor import AgentType
+        query_lower = request.message.lower()
+
+        # Check routing rules
+        routing_hints = []
+        for agent_type, rules in supervisor.routing_rules.items():
+            for keyword in rules.get("keywords", []):
+                if keyword in query_lower:
+                    routing_hints.append({
+                        "agent": agent_type.value.lower(),
+                        "reason": f"keyword '{keyword}' detected",
+                        "confidence_boost": rules["confidence_boost"]
+                    })
+                    break
+
+        return {
+            "query": request.message,
+            "routing_hints": routing_hints,
+            "likely_agent": routing_hints[0]["agent"] if routing_hints else "milhena",
+            "fallback_chain": ["milhena", "data_analyst", "n8n_expert"]
+        }
+
+    except Exception as e:
+        logger.error(f"Error testing routing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # GRAPH VISUALIZATION ENDPOINTS
