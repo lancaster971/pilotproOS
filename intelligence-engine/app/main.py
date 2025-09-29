@@ -37,6 +37,7 @@ from .monitoring import setup_monitoring, track_request
 from .n8n_endpoints import router as n8n_router  # n8n integration
 from .milhena.api import router as milhena_router  # Milhena v3.0
 from .milhena.graph import MilhenaGraph  # Milhena Graph
+from .api.rag import router as rag_router  # RAG Management System
 from .graph_supervisor import get_graph_supervisor  # NEW: Multi-agent supervisor
 from .observability.observability import (
     initialize_monitoring,
@@ -170,6 +171,7 @@ setup_monitoring(app)
 app.include_router(n8n_router)  # n8n integration with Milhena
 # app.include_router(models_router)  # Not needed with Milhena
 app.include_router(milhena_router)  # Milhena v3.0 Business Assistant
+app.include_router(rag_router)  # RAG Management System
 
 # Request/Response models
 class ChatRequest(BaseModel):

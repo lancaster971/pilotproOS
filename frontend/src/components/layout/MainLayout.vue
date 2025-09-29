@@ -163,7 +163,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Menu, User, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
-  Database, Bot, AlertTriangle, ChevronLeft, ChevronRight, Settings, Zap, Terminal, Cpu, Brain, Workflow
+  Database, Bot, AlertTriangle, ChevronLeft, ChevronRight, Settings, Zap, Terminal, Cpu, Brain, Workflow, BookOpen
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
@@ -209,6 +209,15 @@ const allNavigationItems = [
     label: 'Milhena AI',
     description: 'Self-improving AI assistant',
     icon: Brain,
+    badge: { text: 'NEW', type: 'new' },
+    roles: ['admin', 'viewer']
+  },
+  {
+    name: 'rag',
+    path: '/rag',
+    label: 'Knowledge Base',
+    description: 'Document management & semantic search',
+    icon: BookOpen,
     badge: { text: 'NEW', type: 'new' },
     roles: ['admin', 'viewer']
   },
