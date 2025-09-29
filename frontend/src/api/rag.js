@@ -1,55 +1,50 @@
 /**
  * RAG (Retrieval-Augmented Generation) API Client
+ * BATTLE-TESTED: Using OFETCH (same as rest of frontend)
  * Following TODO-MILHENA-EXPERT.md specifications exactly
  */
 
-import axios from 'axios'
+import { ofetch } from 'ofetch'
 
 // Base configuration
-const RAG_API_BASE = process.env.VUE_APP_INTELLIGENCE_API_URL || 'http://localhost:8000'
+const RAG_API_BASE = import.meta.env.VITE_INTELLIGENCE_API_URL || 'http://localhost:8000'
 
-// Create axios instance with default configuration
-const ragApiClient = axios.create({
+// Create ofetch instance with default configuration
+const ragApiClient = ofetch.create({
   baseURL: `${RAG_API_BASE}/api/rag`,
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 30000 // 30 seconds timeout for file uploads
-})
-
-// Request interceptor for authentication
-ragApiClient.interceptors.request.use((config) => {
-  // Add auth token if available
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Response interceptor for error handling
-ragApiClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    console.error('RAG API Error:', error)
+  timeout: 30000, // 30 seconds timeout for file uploads
+  onRequest({ options }) {
+    // Add auth token if available
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  },
+  onResponseError({ response }) {
+    console.error('RAG API Error:', response)
 
     // Handle specific error cases
-    if (error.response?.status === 401) {
+    if (response.status === 401) {
       // Unauthorized - redirect to login
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('token')
       window.location.href = '/login'
-    } else if (error.response?.status === 413) {
+    } else if (response.status === 413) {
       // Payload too large
       throw new Error('File size too large. Please use files smaller than 50MB.')
-    } else if (error.response?.status === 422) {
+    } else if (response.status === 422) {
       // Validation error
-      const detail = error.response.data?.detail
+      const detail = response._data?.detail
       throw new Error(detail || 'Invalid request data')
     }
-
-    throw error.response?.data || error
   }
-)
+})
 
 /**
  * RAG API Methods
@@ -62,15 +57,12 @@ export const ragApi = {
    * @returns {Promise<Object>} Upload response
    */
   async uploadDocuments(formData, options = {}) {
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
+    return await ragApiClient('/documents', {
+      method: 'POST',
+      body: formData,
       timeout: 300000, // 5 minutes for large uploads
       ...options
-    }
-
-    return await ragApiClient.post('/documents', formData, config)
+    })
   },
 
   /**
@@ -79,16 +71,10 @@ export const ragApi = {
    * @returns {Promise<Object>} Documents list response
    */
   async listDocuments(params = {}) {
-    const queryParams = new URLSearchParams()
-
-    // Add all parameters
-    Object.keys(params).forEach(key => {
-      if (params[key] !== null && params[key] !== undefined) {
-        queryParams.append(key, params[key])
-      }
+    return await ragApiClient('/documents', {
+      method: 'GET',
+      query: params
     })
-
-    return await ragApiClient.get(`/documents?${queryParams.toString()}`)
   },
 
   /**
@@ -108,13 +94,10 @@ export const ragApi = {
       formData.append('metadata', JSON.stringify(data.metadata))
     }
 
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
-
-    return await ragApiClient.put(`/documents/${docId}`, formData, config)
+    return await ragApiClient(`/documents/${docId}`, {
+      method: 'PUT',
+      body: formData
+    })
   },
 
   /**
@@ -124,8 +107,10 @@ export const ragApi = {
    * @returns {Promise<Object>} Delete response
    */
   async deleteDocument(docId, softDelete = true) {
-    const params = new URLSearchParams({ soft_delete: softDelete.toString() })
-    return await ragApiClient.delete(`/documents/${docId}?${params.toString()}`)
+    return await ragApiClient(`/documents/${docId}`, {
+      method: 'DELETE',
+      query: { soft_delete: softDelete }
+    })
   },
 
   /**
@@ -134,7 +119,10 @@ export const ragApi = {
    * @returns {Promise<Object>} Search results
    */
   async searchDocuments(searchRequest) {
-    return await ragApiClient.post('/search', searchRequest)
+    return await ragApiClient('/search', {
+      method: 'POST',
+      body: searchRequest
+    })
   },
 
   /**
@@ -142,7 +130,7 @@ export const ragApi = {
    * @returns {Promise<Object>} System statistics
    */
   async getStatistics() {
-    return await ragApiClient.get('/stats')
+    return await ragApiClient('/stats', { method: 'GET' })
   },
 
   /**
@@ -155,15 +143,12 @@ export const ragApi = {
     const formData = new FormData()
     formData.append('archive', zipFile)
 
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
+    return await ragApiClient('/bulk-import', {
+      method: 'POST',
+      body: formData,
       timeout: 600000, // 10 minutes for large imports
       ...options
-    }
-
-    return await ragApiClient.post('/bulk-import', formData, config)
+    })
   },
 
   /**
@@ -171,7 +156,7 @@ export const ragApi = {
    * @returns {Promise<Object>} Reindex response
    */
   async reindex() {
-    return await ragApiClient.post('/reindex')
+    return await ragApiClient('/reindex', { method: 'POST' })
   },
 
   /**
@@ -180,7 +165,7 @@ export const ragApi = {
    * @returns {Promise<Object>} Document data
    */
   async getDocument(docId) {
-    return await ragApiClient.get(`/documents/${docId}`)
+    return await ragApiClient(`/documents/${docId}`, { method: 'GET' })
   },
 
   /**
@@ -190,10 +175,11 @@ export const ragApi = {
    */
   async exportDocuments(exportOptions = {}) {
     // TODO: Implement document export functionality
-    const response = await ragApiClient.post('/export', exportOptions, {
+    return await ragApiClient('/export', {
+      method: 'POST',
+      body: exportOptions,
       responseType: 'blob'
     })
-    return response
   },
 
   /**
@@ -203,8 +189,10 @@ export const ragApi = {
    * @returns {Promise<Object>} Document preview
    */
   async getDocumentPreview(docId, maxLength = 500) {
-    const params = new URLSearchParams({ max_length: maxLength.toString() })
-    return await ragApiClient.get(`/documents/${docId}/preview?${params.toString()}`)
+    return await ragApiClient(`/documents/${docId}/preview`, {
+      method: 'GET',
+      query: { max_length: maxLength }
+    })
   },
 
   /**
@@ -213,7 +201,7 @@ export const ragApi = {
    * @returns {Promise<Object>} Version history
    */
   async getDocumentHistory(docId) {
-    return await ragApiClient.get(`/documents/${docId}/history`)
+    return await ragApiClient(`/documents/${docId}/history`, { method: 'GET' })
   },
 
   /**
@@ -223,7 +211,7 @@ export const ragApi = {
    * @returns {Promise<Object>} Restore response
    */
   async restoreDocumentVersion(docId, version) {
-    return await ragApiClient.post(`/documents/${docId}/restore/${version}`)
+    return await ragApiClient(`/documents/${docId}/restore/${version}`, { method: 'POST' })
   },
 
   /**
@@ -233,8 +221,10 @@ export const ragApi = {
    * @returns {Promise<Object>} Similar documents
    */
   async getSimilarDocuments(docId, limit = 5) {
-    const params = new URLSearchParams({ limit: limit.toString() })
-    return await ragApiClient.get(`/documents/${docId}/similar?${params.toString()}`)
+    return await ragApiClient(`/documents/${docId}/similar`, {
+      method: 'GET',
+      query: { limit }
+    })
   },
 
   /**
@@ -251,7 +241,7 @@ export const ragApi = {
    * @returns {Promise<Object>} Health status
    */
   async healthCheck() {
-    return await ragApiClient.get('/health')
+    return await ragApiClient('/health', { method: 'GET' })
   },
 
   /**
