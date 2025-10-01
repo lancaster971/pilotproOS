@@ -84,10 +84,17 @@ class GraphSupervisor:
             logger.info("Core systems initialized")
 
         except Exception as e:
-            logger.error(f"Failed to initialize core systems: {e}")
-            # Continue without some systems if they fail
-            self.rag_system = None
-            self.embeddings_cache = None
+            # Handle expected "already exists" from concurrent RAG initialization
+            if "already exists" in str(e).lower():
+                logger.info(f"ℹ️ RAG collection already initialized (expected in multi-instance setup)")
+                # RAG system is still functional, don't set to None
+                self.rag_system = get_rag_system()
+                self.embeddings_cache = get_embeddings_cache()
+            else:
+                # Unexpected error, log and disable systems
+                logger.error(f"Failed to initialize core systems: {e}")
+                self.rag_system = None
+                self.embeddings_cache = None
 
     def _register_all_agents(self):
         """Register all REAL agents with the supervisor"""

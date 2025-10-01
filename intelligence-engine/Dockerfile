@@ -61,7 +61,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Expose ports
-EXPOSE 8000 8501 6006
+EXPOSE 8000 8501 2024 6006
 
 # Start script
 COPY --chown=appuser:appuser docker-entrypoint.sh /app/
