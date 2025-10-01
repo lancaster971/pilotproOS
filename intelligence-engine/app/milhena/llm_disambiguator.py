@@ -119,40 +119,81 @@ class LLMDisambiguator:
             DisambiguationResult with clarified intent
         """
         try:
+            # FIX 3: Wrap entire disambiguation with 5s timeout
+            return await asyncio.wait_for(
+                self._disambiguate_internal(query, context),
+                timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Disambiguation timeout after 5s, using rule-based fallback")
+            return self._rule_based_disambiguation(query)
+        except Exception as e:
+            logger.error(f"Disambiguation error: {e}")
+            return self._rule_based_disambiguation(query)
+
+    async def _disambiguate_internal(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> DisambiguationResult:
+        """
+        Internal disambiguation method with timeout protection
+
+        Args:
+            query: User query that may be ambiguous
+            context: Previous conversation context
+
+        Returns:
+            DisambiguationResult with clarified intent
+        """
+        try:
             # Format prompt
             formatted = self.disambiguation_prompt.format_messages(
                 query=query,
                 context=context or {}
             )
 
-            # Try GROQ first (free)
+            # Try GROQ first (free) with 3s timeout
             if self.groq_llm:
                 try:
                     logger.info("Disambiguating with GROQ (free tier)")
-                    response = await self.groq_llm.ainvoke(formatted)
+                    response = await asyncio.wait_for(
+                        self.groq_llm.ainvoke(formatted),
+                        timeout=3.0
+                    )
                     result_dict = self.parser.parse(response.content)
                     result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"GROQ disambiguation successful: {result.clarified_intent}")
                     return result
+                except asyncio.TimeoutError:
+                    logger.warning(f"GROQ disambiguation timeout after 3s")
                 except Exception as e:
                     logger.warning(f"GROQ disambiguation failed: {e}")
 
-            # Fallback to OpenAI Nano
+            # Fallback to OpenAI Nano with 2s timeout
             if self.openai_nano:
                 try:
                     logger.info("Fallback to OpenAI Nano")
-                    response = await self.openai_nano.ainvoke(formatted)
+                    response = await asyncio.wait_for(
+                        self.openai_nano.ainvoke(formatted),
+                        timeout=2.0
+                    )
                     result_dict = self.parser.parse(response.content)
                     result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"OpenAI Nano disambiguation successful: {result.clarified_intent}")
                     return result
+                except asyncio.TimeoutError:
+                    logger.warning(f"OpenAI Nano timeout after 2s")
                 except Exception as e:
                     logger.warning(f"OpenAI Nano failed: {e}")
 
-            # Fallback to OpenAI Mini if Nano fails
+            # Fallback to OpenAI Mini if Nano fails with 2s timeout
             if self.openai_mini:
                 logger.info("Final fallback to OpenAI Mini")
-                response = await self.openai_mini.ainvoke(formatted)
+                response = await asyncio.wait_for(
+                    self.openai_mini.ainvoke(formatted),
+                    timeout=2.0
+                )
                 result_dict = self.parser.parse(response.content)
                 result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                 return result

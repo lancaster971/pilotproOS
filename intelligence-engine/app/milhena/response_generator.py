@@ -141,6 +141,42 @@ class ResponseGenerator:
             Generated response (masked)
         """
         try:
+            # FIX 1: Wrap entire generation with 15s global timeout
+            return await asyncio.wait_for(
+                self._generate_internal(query, intent, llm, context, data, session_id),
+                timeout=15.0
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Response generation timeout after 15s for intent: {intent}")
+            return self._generate_fallback_response(intent, data)
+        except Exception as e:
+            logger.error(f"Response generation error: {e}")
+            return self._generate_fallback_response(intent, data)
+
+    async def _generate_internal(
+        self,
+        query: str,
+        intent: str,
+        llm: Optional[Any] = None,
+        context: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        session_id: Optional[str] = None
+    ) -> str:
+        """
+        Internal method for response generation with timeout protection
+
+        Args:
+            query: User query
+            intent: Detected intent
+            llm: Optional specific LLM to use
+            context: Conversation context
+            data: Relevant data for response
+            session_id: Session identifier
+
+        Returns:
+            Generated response (masked)
+        """
+        try:
             # Select template
             template = self.templates.get(intent, self.templates["GENERAL"])
 
@@ -179,8 +215,11 @@ class ResponseGenerator:
                 # No LLM available, use fallback
                 return self._generate_fallback_response(intent, data)
 
-            # Generate response
-            response = await llm.ainvoke(messages)
+            # Generate response with 10s timeout per LLM call
+            response = await asyncio.wait_for(
+                llm.ainvoke(messages),
+                timeout=10.0
+            )
             generated_text = response.content
 
             # Track token usage if OpenAI

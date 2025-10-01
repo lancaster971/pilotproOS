@@ -51,7 +51,7 @@ class N8nExpertAgent:
             temperature=0.3,  # Lower temperature for more precise extraction
             max_tokens=1500,
             timeout=30,
-            max_retries=2
+            max_retries=1  # FIX 2: Reduce retries for faster timeouts
         )
 
         # Specialized tools for n8n operations

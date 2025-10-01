@@ -140,7 +140,7 @@ class DataAnalystAgent:
             temperature=0.5,  # Balanced for analytical insights
             max_tokens=2000,
             timeout=30,
-            max_retries=2
+            max_retries=1  # FIX 2: Reduce retries for faster timeouts
         )
 
         # Analytics tools
