@@ -1,0 +1,10 @@
+{
+  "passed": "false",
+  "intent": "HELP",
+  "latency_ms": "5135",
+  "leaks": "0",
+  "failures": [
+    "Intent mismatch: expected TECHNICAL, got HELP",
+    "Latency too high: 5135ms > 2000ms"
+  ]
+}

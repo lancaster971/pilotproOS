@@ -1,0 +1,9 @@
+{
+  "passed": "false",
+  "intent": "ERROR",
+  "latency_ms": "4240",
+  "leaks": "0",
+  "failures": [
+    "Latency too high: 4240ms > 3000ms"
+  ]
+}
