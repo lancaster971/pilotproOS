@@ -218,8 +218,8 @@ services:
 
   # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
   intelligence-engine:
-    # USA IMMAGINE LOCKED ESISTENTE - NO REBUILD!
-    image: pilotpros-intelligence-engine:v1.0-langchain-complete-verified
+    # USA IMMAGINE MULTIAGENT CON RAG SYSTEM - POST MERGE TRAINING
+    image: pilotpros-intelligence-engine:v2.0-multiagent
     container_name: pilotpros-intelligence-engine-dev
     restart: unless-stopped
     depends_on:

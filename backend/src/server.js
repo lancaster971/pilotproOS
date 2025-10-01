@@ -4439,6 +4439,10 @@ app.use('/api/ai', aiRoutes);
 import agentEngineRoutes from './routes/agent-engine.routes.js';
 app.use('/api/agent-engine', agentEngineRoutes);
 
+// Milhena Learning System routes
+import milhenaRoutes from './routes/milhena.routes.js';
+app.use('/api/milhena', milhenaRoutes);
+
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================

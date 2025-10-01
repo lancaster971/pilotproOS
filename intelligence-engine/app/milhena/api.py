@@ -26,6 +26,20 @@ router = APIRouter(
 )
 
 # ============================================================================
+# GLOBAL SINGLETON INSTANCES
+# ============================================================================
+# Learning System singleton - maintains state across requests
+_learning_system_instance: Optional[LearningSystem] = None
+
+def get_learning_system() -> LearningSystem:
+    """Get or create singleton LearningSystem instance"""
+    global _learning_system_instance
+    if _learning_system_instance is None:
+        _learning_system_instance = LearningSystem()
+        logger.info("✅ LearningSystem singleton initialized")
+    return _learning_system_instance
+
+# ============================================================================
 # REQUEST/RESPONSE MODELS
 # ============================================================================
 
@@ -46,12 +60,13 @@ class MilhenaResponse(BaseModel):
     trace_id: Optional[str] = None
 
 class FeedbackRequest(BaseModel):
-    """Feedback request model"""
+    """Feedback request model following LangSmith best practices"""
     session_id: str
     query: str
     response: str
-    feedback_type: str = Field(..., description="'positive' or 'negative'")
+    feedback_type: str = Field(..., description="'positive', 'negative', or 'correction'")
     intent: Optional[str] = None
+    trace_id: Optional[str] = Field(None, description="LangSmith trace ID for linking feedback to traces")
 
 class StatsResponse(BaseModel):
     """Statistics response model"""
@@ -124,12 +139,12 @@ async def submit_feedback(request: FeedbackRequest) -> Dict[str, str]:
     Tracked in LangSmith for improvement analysis
     """
     try:
-        logger.info(f"[LangSmith] Feedback received - Type: {request.feedback_type}, Session: {request.session_id}")
+        logger.info(f"[LangSmith] Feedback received - Type: {request.feedback_type}, Session: {request.session_id}, Trace: {request.trace_id or 'none'}")
 
-        # Get learning system
-        learning = LearningSystem()
+        # Get learning system singleton
+        learning = get_learning_system()
 
-        # Record feedback
+        # Record feedback in Learning System
         await learning.record_feedback(
             query=request.query,
             intent=request.intent or "GENERAL",
@@ -138,13 +153,101 @@ async def submit_feedback(request: FeedbackRequest) -> Dict[str, str]:
             session_id=request.session_id
         )
 
-        return {
+        # Record feedback in LangSmith if trace_id provided (following official pattern)
+        if request.trace_id:
+            try:
+                from langsmith import Client
+                client = Client()
+
+                # Convert feedback_type to LangSmith score (0-1)
+                score = 1.0 if request.feedback_type == "positive" else 0.0
+
+                # Create feedback linked to trace (non-blocking in Python)
+                client.create_feedback(
+                    run_id=request.trace_id,
+                    key="user_feedback",
+                    score=score,
+                    comment=f"Intent: {request.intent or 'GENERAL'} | Query: {request.query[:100]}"
+                )
+                logger.info(f"[LangSmith] Feedback linked to trace: {request.trace_id}")
+            except Exception as langsmith_error:
+                # Don't fail the request if LangSmith is unavailable
+                logger.warning(f"[LangSmith] Failed to record feedback: {langsmith_error}")
+
+        response_data = {
             "status": "success",
             "message": f"Feedback recorded: {request.feedback_type}"
         }
 
+        # Add langsmith_linked only if trace_id was provided
+        if request.trace_id:
+            response_data["langsmith_trace_id"] = request.trace_id
+
+        return response_data
+
     except Exception as e:
         logger.error(f"[LangSmith] Feedback error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/performance")
+@traceable(
+    name="MilhenaPerformance",
+    run_type="chain",
+    metadata={"endpoint": "performance", "version": "3.0"}
+)
+async def get_performance_report() -> Dict[str, Any]:
+    """
+    Get complete learning performance report
+    Following LangSmith pattern for continuous improvement
+    """
+    try:
+        logger.info("[LangSmith] Performance report requested")
+
+        # Get learning system singleton
+        learning = get_learning_system()
+        report = learning.get_performance_report()
+
+        # Add recent feedback (last 50 entries)
+        recent_feedback = [
+            {
+                "timestamp": entry.timestamp.isoformat(),
+                "query": entry.query,
+                "intent": entry.intent,
+                "response": entry.response,
+                "feedback_type": entry.feedback_type,
+                "session_id": entry.session_id
+            }
+            for entry in learning.feedback_entries[-50:]
+        ]
+
+        # Add learned patterns (high confidence only)
+        learned_patterns = [
+            {
+                "pattern": p.pattern,
+                "correct_intent": p.correct_intent,
+                "confidence": p.confidence,
+                "occurrences": p.occurrences,
+                "success_rate": p.success_rate,
+                "last_seen": p.last_seen.isoformat()
+            }
+            for p in learning.learned_patterns.values()
+            if p.confidence > 0.5
+        ]
+
+        return {
+            "success": True,
+            "metrics": report["metrics"],
+            "recent_feedback": recent_feedback,
+            "learned_patterns": learned_patterns,
+            "pattern_count": report["pattern_count"],
+            "high_confidence_patterns": report["high_confidence_patterns"],
+            "recent_accuracy": report["recent_accuracy"],
+            "top_corrections": report["top_corrections"],
+            "improvement_trend": report["improvement_trend"]
+        }
+
+    except Exception as e:
+        logger.error(f"[LangSmith] Performance report error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats", response_model=StatsResponse)
