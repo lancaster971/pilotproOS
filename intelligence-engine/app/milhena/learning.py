@@ -467,6 +467,88 @@ class LearningSystem:
         else:
             return "stable"
 
+    async def check_learned_clarifications(
+        self,
+        query: str,
+        session_id: str
+    ) -> Optional[str]:
+        """
+        Check se abbiamo già appreso cosa user intende con questa query ambigua
+
+        Args:
+            query: User query originale
+            session_id: Session ID
+
+        Returns:
+            Clarification appresa se pattern forte (>= 2 occorrenze), altrimenti None
+        """
+        try:
+            # Cerca pattern simili apprese precedentemente
+            patterns = self._extract_patterns(query)
+
+            for pattern in patterns:
+                for pattern_key, learning in self.learned_patterns.items():
+                    if pattern.lower() in learning.pattern.lower():
+                        # Pattern forte: >= 2 occorrenze con confidence alta
+                        if learning.occurrences >= 2 and learning.confidence > 0.7:
+                            logger.info(
+                                f"[LEARNING] Pattern forte trovato: '{query[:30]}...' → '{learning.correct_intent}' "
+                                f"({learning.occurrences}x, conf: {learning.confidence:.2f})"
+                            )
+                            return learning.correct_intent
+
+            return None
+
+        except Exception as e:
+            logger.error(f"[LEARNING] Error checking learned clarifications: {e}")
+            return None
+
+    async def record_clarification(
+        self,
+        original_query: str,
+        clarification: str,
+        session_id: str
+    ):
+        """
+        Salva pattern di clarification per future learning
+
+        Args:
+            original_query: Query ambigua originale
+            clarification: Risposta user con chiarimento
+            session_id: Session ID
+        """
+        try:
+            # Extract pattern dalla query originale
+            patterns = self._extract_patterns(original_query)
+
+            # Crea o aggiorna pattern appreso
+            for pattern in patterns:
+                pattern_key = f"{pattern}:clarification:{clarification}"
+
+                if pattern_key not in self.learned_patterns:
+                    self.learned_patterns[pattern_key] = PatternLearning(
+                        pattern=pattern,
+                        correct_intent=clarification,
+                        confidence=0.6,  # Start moderate
+                        occurrences=1,
+                        last_seen=datetime.now(),
+                        success_rate=0.7
+                    )
+                else:
+                    learning = self.learned_patterns[pattern_key]
+                    learning.occurrences += 1
+                    learning.last_seen = datetime.now()
+                    learning.confidence = min(1.0, learning.confidence + 0.1)
+                    learning.success_rate = min(1.0, learning.success_rate + 0.05)
+
+            logger.info(f"[LEARNING] Clarification pattern salvato: '{original_query[:30]}...' → '{clarification}'")
+
+            # Save data
+            self._save_data()
+
+        except Exception as e:
+            logger.error(f"[LEARNING] Error recording clarification: {e}")
+
     def export_training_data(self) -> Dict[str, Any]:
         """
         Export training data for fine-tuning
