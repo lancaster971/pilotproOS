@@ -3,7 +3,8 @@ MilhenaGraph - LangGraph workflow for Business Assistant
 Following official LangGraph patterns with conditional routing
 FULL LANGSMITH TRACING ENABLED
 """
-from typing import TypedDict, List, Dict, Any, Optional, Annotated
+from typing import List, Dict, Any, Optional, Annotated
+from typing_extensions import TypedDict
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
