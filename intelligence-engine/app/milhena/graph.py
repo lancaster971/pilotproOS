@@ -19,6 +19,7 @@ import os
 from datetime import datetime
 import asyncio
 import uuid
+import json
 
 # Import Milhena components (using ABSOLUTE imports for LangGraph Studio compatibility)
 from app.milhena.core import MilhenaCore, MilhenaConfig
@@ -42,6 +43,196 @@ from app.rag import get_rag_system
 logger = logging.getLogger(__name__)
 
 # ============================================================================
+# SUPERVISOR ORCHESTRATOR PROMPT
+# ============================================================================
+
+SUPERVISOR_PROMPT = """# 🧠 SUPERVISOR ORCHESTRATOR PROMPT – MILHENA
+
+Sei un **agente di orchestrazione intelligente**, il **CERVELLO** del sistema **Milhena**, Business Process Assistant.
+Il tuo obiettivo è **restituire SEMPRE un JSON valido** che classifichi la query utente e determini l'azione corretta, ottimizzando **velocità**, **chiarezza** e **coerenza**.
+
+---
+
+## 🎯 OBIETTIVO
+Analizza ogni query utente (e la cronologia chat) e:
+1. **Classifica** la richiesta in una categoria chiara
+2. **Scegli** una delle tre azioni disponibili (`respond`, `tool`, `route`)
+3. **Fornisci** la risposta o le istruzioni per l'orchestrazione
+4. **Rispondi SOLO con JSON valido**, nessun testo extra
+
+---
+
+## 📥 INPUT
+**Query**: "{query}"
+**Conversazione precedente**: {context}
+
+---
+
+## 🧭 MATRICE DI DECISIONE RAPIDA
+
+| Tipo di Query                               | Azione   | Categoria            | Output Atteso               |
+|--------------------------------------------|----------|----------------------|-----------------------------|
+| Saluti o convenevoli                       | respond  | GREETING             | Risposta cortese            |
+| Richieste di credenziali o dati sensibili  | respond  | DANGER               | Blocco sicurezza            |
+| Query vaga o incompleta                    | respond  | CLARIFICATION_NEEDED | Domanda con opzioni         |
+| Domanda chiara sullo stato del sistema     | tool     | SIMPLE_STATUS        | Query al DB status          |
+| Domanda chiara su numeri/metriche          | tool     | SIMPLE_METRIC        | Query al DB metrica         |
+| Analisi complessa o richiesta articolata   | route    | COMPLEX_ANALYSIS     | Pipeline completa (RAG etc) |
+
+---
+
+## ⚙️ LE TUE 3 AZIONI DISPONIBILI
+
+### ACTION: `"respond"`
+**Quando**: puoi rispondere direttamente senza tool o pipeline
+**Casi**:
+- **GREETING**: "ciao", "grazie"
+- **DANGER**: "password database"
+- **CLARIFICATION**: query vaga ("come è andata oggi?")
+- **PATTERN APPRESO**: query già vista con risposta nota
+**Risultato**: `direct_response` testuale
+**Latenza target**: <1000ms
+
+---
+
+### ACTION: `"tool"`
+**Quando**: serve un dato specifico da DB/API
+**Casi**:
+- **SIMPLE_STATUS**: "tutto ok?"
+- **SIMPLE_METRIC**: "quante fatture oggi?"
+**Risultato**: Query DB → risposta → fine
+**Latenza target**: <1500ms
+
+---
+
+### ACTION: `"route"`
+**Quando**: query complessa o analisi approfondita
+**Casi**:
+- "analizza trend performance ultimo mese"
+- "perché workflow è lento?"
+- slang complesso non interpretabile subito
+**Risultato**: Disambiguate → RAG → Generate → fine
+**Latenza target**: <3500ms
+
+---
+
+## 📚 CATEGORIE
+
+### GREETING
+- **Azione**: respond
+- **Esempi**: "ciao", "grazie"
+- **Risposta**: `"Ciao! Come posso aiutarti con i processi aziendali?"`
+
+### DANGER
+- **Azione**: respond
+- **Esempi**: "password database", "credenziali"
+- **Risposta**: `"Non posso fornire informazioni sensibili. Contatta il team IT."`
+
+### CLARIFICATION_NEEDED
+- **Azione**: respond
+- **Quando**: query vaga
+- **Risposta**: domanda + 3-5 opzioni con emoji
+- **Esempio**:
+```
+Da quale punto di vista vuoi sapere come è andata oggi?
+📊 Status generale sistema
+❌ Errori e problemi
+✅ Successi
+📈 Metriche
+🔄 Esecuzioni
+```
+
+### SIMPLE_STATUS
+- **Azione**: tool
+- **Tool**: `query_system_status_tool`
+- **Esempi**: "sistema ok?", "tutto funziona?"
+
+### SIMPLE_METRIC
+- **Azione**: tool
+- **Tool**: `query_business_data_tool`
+- **Esempi**: "quante fatture oggi?", "quanti utenti?"
+
+### COMPLEX_ANALYSIS
+- **Azione**: route
+- **Esempi**: "analizza trend ultimo mese", "perché workflow è lento?"
+
+---
+
+## 🎓 LEARNING INTEGRATION
+Se nel contesto ci sono `learned_patterns` con:
+- `confidence ≥ 0.7`
+- `count ≥ 2`
+→ Usa direttamente quel pattern → **action = respond**
+
+---
+
+## 💬 DISAMBIGUAZIONE SLANG
+Traduci slang in linguaggio business:
+
+| Slang         | Business Meaning            |
+|---------------|-----------------------------|
+| "a puttane"   | problemi critici            |
+| "casino"      | situazione disorganizzata   |
+| "rotto"       | non funzionante             |
+| "workflow"    | processo aziendale          |
+
+- Se slang semplice con contesto → disambigua subito
+- Se slang complesso → usa `route` con nodo di disambiguazione
+
+---
+
+## 🧩 OUTPUT JSON RICHIESTO
+
+⚠️ Rispondi **SOLO** con JSON valido (nessun markdown, nessun testo extra)
+
+```json
+{{
+  "action": "respond|tool|route",
+  "category": "GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS",
+  "confidence": 0.95,
+  "reasoning": "spiegazione decisione (max 40 parole)",
+  "direct_response": "testo se action=respond, altrimenti null",
+  "needs_rag": true/false,
+  "needs_database": true/false,
+  "clarification_options": ["opz1", "opz2", "opz3"] o null
+}}
+```
+
+---
+
+## 🔄 TEMPLATE DI FALLBACK
+Usa questo se non sei sicuro:
+```json
+{{
+  "action": "respond",
+  "category": "CLARIFICATION_NEEDED",
+  "confidence": 0.50,
+  "reasoning": "Query non classificabile, meglio chiedere chiarimenti",
+  "direct_response": "Puoi chiarire meglio cosa intendi?",
+  "needs_rag": false,
+  "needs_database": false,
+  "clarification_options": null
+}}
+```
+
+---
+
+## 🧠 PRIORITÀ
+1. **DANGER** → blocca subito
+2. **LEARNED PATTERN** → rispondi diretto
+3. **CLARIFICATION_NEEDED** → se dubbio, chiedi
+4. **GREETING** → rispondi cortese
+5. **SIMPLE_*** → usa tool diretto
+6. **COMPLEX_ANALYSIS** → pipeline completa solo se necessario
+
+**Regola d'oro**: minimizza latenza → preferisci `respond` quando possibile.
+
+---
+
+Rispondi SOLO con JSON valido. NO markdown blocks. NO testo extra.
+"""
+
+# ============================================================================
 # LANGSMITH CONFIGURATION FOR MILHENA
 # ============================================================================
 
@@ -62,6 +253,18 @@ else:
 # STATE DEFINITION - Following LangGraph best practices
 # ============================================================================
 
+class SupervisorDecision(TypedDict):
+    """Supervisor classification decision"""
+    action: str  # respond|tool|route
+    category: str  # GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS
+    confidence: float
+    reasoning: str
+    direct_response: Optional[str]
+    needs_rag: bool
+    needs_database: bool
+    clarification_options: Optional[List[str]]
+    llm_used: str
+
 class MilhenaState(TypedDict):
     """State for Milhena conversation flow"""
     messages: Annotated[List[BaseMessage], add_messages]
@@ -77,6 +280,11 @@ class MilhenaState(TypedDict):
     error: Optional[str]
     rag_context: Optional[List[Dict[str, Any]]]  # RAG retrieved documents
     learned_patterns: Optional[List[Dict[str, Any]]]  # Learning system patterns
+
+    # NEW: Supervisor fields
+    supervisor_decision: Optional[SupervisorDecision]
+    waiting_clarification: bool
+    original_query: Optional[str]  # For learning
 
 # ============================================================================
 # MILHENA TOOLS - Business-focused tools with masking
@@ -357,15 +565,37 @@ class MilhenaGraph:
         else:
             self.openai_llm = None
 
+        # Initialize Supervisor LLM (GROQ primary + OpenAI fallback)
+        self.supervisor_llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,  # Low for consistent classification
+            request_timeout=10.0,
+            max_retries=1,
+            api_key=os.getenv("GROQ_API_KEY")
+        ) if os.getenv("GROQ_API_KEY") else None
+
+        self.supervisor_fallback = ChatOpenAI(
+            model="gpt-4.1-nano-2025-04-14",
+            temperature=0.3,
+            request_timeout=10.0,
+            max_retries=1,
+            api_key=os.getenv("OPENAI_API_KEY")
+        ) if os.getenv("OPENAI_API_KEY") else None
+
+        logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
         logger.info("MilhenaGraph initialized")
 
     def _build_graph(self):
-        """Build the LangGraph workflow"""
+        """Build the LangGraph workflow with Supervisor entry point"""
         # Create the graph
         graph = StateGraph(MilhenaState)
 
         # Add nodes with CLEAR PREFIXES
-        graph.add_node("[CODE] Check Cache", self.check_cache)
+        # NEW: Supervisor as entry point
+        graph.add_node("[SUPERVISOR] Route Query", self.supervisor_orchestrator)
+
+        # EXISTING nodes (NON TOCCARE)
+        # NOTE: [CODE] Check Cache removed - Supervisor handles routing directly
         graph.add_node("[LEARNING] Apply Patterns", self.apply_learned_patterns)
         graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
         graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
@@ -376,19 +606,21 @@ class MilhenaGraph:
         graph.add_node("[CODE] Record Feedback", self.record_feedback)
         graph.add_node("[CODE] Handle Error", self.handle_error)
 
-        # Set entry point
-        graph.set_entry_point("[CODE] Check Cache")
+        # NEW: Set entry point to Supervisor
+        graph.set_entry_point("[SUPERVISOR] Route Query")
 
-        # Add edges
+        # NEW: Conditional routing from Supervisor
         graph.add_conditional_edges(
-            "[CODE] Check Cache",
-            self.route_from_cache,
+            "[SUPERVISOR] Route Query",
+            self.route_from_supervisor,
             {
-                "cached": "[LIB] Mask Response",
-                "not_cached": "[LEARNING] Apply Patterns"
+                "mask_response": "[LIB] Mask Response",  # Direct responses (GREETING, DANGER, CLARIFICATION)
+                "database_query": "[TOOL] Database Query",  # Simple queries (skip Disambiguate, RAG)
+                "apply_patterns": "[LEARNING] Apply Patterns"  # Complex queries (full pipeline)
             }
         )
 
+        # EXISTING edges (NON TOCCARE - pipeline rimane identica)
         graph.add_edge("[LEARNING] Apply Patterns", "[AGENT] Disambiguate")
         graph.add_edge("[AGENT] Disambiguate", "[AGENT] Analyze Intent")
 
@@ -419,13 +651,13 @@ class MilhenaGraph:
         graph.add_edge("[CODE] Record Feedback", END)
         graph.add_edge("[CODE] Handle Error", END)
 
-        # Compile the graph with higher recursion limit
+        # Compile the graph
         self.compiled_graph = graph.compile(
-            checkpointer=None,  # No memory for now
+            checkpointer=None,
             debug=False
         )
 
-        logger.info("MilhenaGraph compiled successfully")
+        logger.info("MilhenaGraph compiled with Supervisor entry point")
 
     # ============================================================================
     # NODE IMPLEMENTATIONS - ALL WITH LANGSMITH TRACING
@@ -483,6 +715,312 @@ class MilhenaGraph:
         except Exception as e:
             logger.warning(f"Cache check failed: {e}")
             state["cached"] = False
+
+        return state
+
+    @traceable(
+        name="SupervisorOrchestrator",
+        run_type="chain",
+        metadata={"component": "supervisor", "version": "3.1"}
+    )
+    async def supervisor_orchestrator(self, state: MilhenaState) -> MilhenaState:
+        """
+        Supervisor Orchestrator: classifica query e decide routing
+        Best Practice 2025: Supervisor non fa lavoro, solo coordina
+        """
+        query = state["query"]
+        session_id = state["session_id"]
+
+        logger.info(f"[SUPERVISOR] Analyzing query: {query[:50]}...")
+
+        # STEP 0: Instant classification (fast-path bypass LLM)
+        instant = self._instant_classify(query)
+        if instant:
+            logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
+            decision = SupervisorDecision(**instant)
+            state["supervisor_decision"] = decision
+            state["waiting_clarification"] = False
+            if decision["direct_response"]:
+                state["response"] = decision["direct_response"]
+            return state
+
+        # STEP 1: Check Learning System (pattern già appresi)
+        learned_pattern = await self.learning_system.check_learned_clarifications(
+            query, session_id
+        )
+
+        if learned_pattern:
+            # Pattern appreso! Skip clarification
+            logger.info(f"[LEARNING] Pattern appreso: '{query[:30]}...' → {learned_pattern}")
+            decision = SupervisorDecision(
+                action="tool",  # Pattern appreso richiede DB query
+                category="SIMPLE_METRIC",  # Assume learned pattern è sempre metric/status
+                confidence=1.0,
+                reasoning=f"Pattern appreso dal learning system: {learned_pattern}",
+                direct_response=None,
+                needs_rag=False,
+                needs_database=True,
+                clarification_options=None,
+                llm_used="learning-system"
+            )
+            state["supervisor_decision"] = decision
+            state["waiting_clarification"] = False
+            return state
+
+        # STEP 2: Classify con LLM
+        # Prepare context string from messages history
+        messages_history = state.get("messages", [])
+        context_str = ""
+        if len(messages_history) > 1:
+            # Show last 3 messages for context
+            recent = messages_history[-4:-1] if len(messages_history) > 4 else messages_history[:-1]
+            context_str = "\n".join([f"- {msg.content[:100]}" for msg in recent if hasattr(msg, "content")])
+        else:
+            context_str = "Nessun messaggio precedente"
+
+        prompt = SUPERVISOR_PROMPT.format(query=query, context=context_str)
+
+        try:
+            # Try GROQ first (free + fast)
+            if self.supervisor_llm:
+                logger.info("[SUPERVISOR] Using GROQ for classification")
+                response = await self.supervisor_llm.ainvoke(prompt)
+                classification = json.loads(response.content)
+                classification["llm_used"] = "groq"
+                logger.info(f"[SUPERVISOR] GROQ: {classification['category']} (conf: {classification['confidence']:.2f})")
+            else:
+                raise Exception("GROQ not available")
+
+        except Exception as e:
+            # Fallback to OpenAI
+            logger.warning(f"[SUPERVISOR] GROQ failed: {e}, using OpenAI fallback")
+
+            if self.supervisor_fallback:
+                response = await self.supervisor_fallback.ainvoke(prompt)
+                classification = json.loads(response.content)
+                classification["llm_used"] = "openai-nano"
+                logger.info(f"[SUPERVISOR] OpenAI: {classification['category']} (conf: {classification['confidence']:.2f})")
+            else:
+                # Ultimate fallback: rule-based
+                classification = self._fallback_classification(query)
+                classification["llm_used"] = "rule-based"
+                logger.warning("[SUPERVISOR] Using rule-based fallback")
+
+        # STEP 3: Save decision
+        decision = SupervisorDecision(**classification)
+        state["supervisor_decision"] = decision
+
+        # STEP 4: Handle waiting clarification
+        if decision["category"] == "CLARIFICATION_NEEDED":
+            state["waiting_clarification"] = True
+            state["original_query"] = query
+            state["response"] = decision["direct_response"]
+            logger.info(f"[SUPERVISOR] Waiting clarification with {len(decision.get('clarification_options', []))} options")
+        else:
+            state["waiting_clarification"] = False
+            if decision["direct_response"]:
+                # Direct response (GREETING, DANGER)
+                state["response"] = decision["direct_response"]
+                logger.info(f"[SUPERVISOR] Direct response for {decision['category']}")
+
+        # STEP 5: If previous message was clarification, record pattern
+        if state.get("context", {}).get("previous_clarification_asked"):
+            original = state["context"].get("previous_query")
+            if original and original != query:
+                # User ha risposto alla clarification
+                await self.learning_system.record_clarification(
+                    original_query=original,
+                    clarification=query,
+                    session_id=session_id
+                )
+                # Clear flag
+                state["context"]["previous_clarification_asked"] = False
+                logger.info(f"[LEARNING] Recorded clarification: '{original[:30]}...' → '{query[:30]}...'")
+
+        # STEP 6: If asking clarification, set flag for next message
+        if decision["category"] == "CLARIFICATION_NEEDED":
+            if "context" not in state:
+                state["context"] = {}
+            state["context"]["previous_clarification_asked"] = True
+            state["context"]["previous_query"] = query
+
+        logger.info(f"[SUPERVISOR] Decision: {decision['category']} → needs_rag={decision['needs_rag']}, needs_db={decision['needs_database']}")
+
+        return state
+
+    def _fallback_classification(self, query: str) -> Dict[str, Any]:
+        """
+        Rule-based fallback quando LLM non disponibili
+        """
+        query_lower = query.lower()
+
+        # DANGER keywords
+        danger_keywords = ["password", "credential", "api key", "secret", "token", "connessione database"]
+        if any(kw in query_lower for kw in danger_keywords):
+            return {
+                "action": "respond",
+                "category": "DANGER",
+                "confidence": 0.9,
+                "reasoning": "Rule-based: parola chiave pericolosa rilevata",
+                "direct_response": "Non posso fornire informazioni sensibili. Contatta il team IT.",
+                "needs_rag": False,
+                "needs_database": False,
+                "clarification_options": None
+            }
+
+        # GREETING keywords
+        greeting_keywords = ["ciao", "buongiorno", "buonasera", "salve", "hello", "grazie", "arrivederci"]
+        if any(kw in query_lower for kw in greeting_keywords) and len(query.split()) <= 3:
+            return {
+                "action": "respond",
+                "category": "GREETING",
+                "confidence": 0.85,
+                "reasoning": "Rule-based: saluto rilevato",
+                "direct_response": "Ciao! Come posso aiutarti?",
+                "needs_rag": False,
+                "needs_database": False,
+                "clarification_options": None
+            }
+
+        # SIMPLE_METRIC keywords
+        metric_keywords = ["quant", "numer", "count", "quanti", "quante"]
+        if any(kw in query_lower for kw in metric_keywords):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.7,
+                "reasoning": "Rule-based: keyword metrica rilevata",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None
+            }
+
+        # Default: COMPLEX_ANALYSIS (conservative)
+        return {
+            "action": "route",
+            "category": "COMPLEX_ANALYSIS",
+            "confidence": 0.5,
+            "reasoning": "Rule-based fallback: default a full pipeline",
+            "direct_response": None,
+            "needs_rag": True,
+            "needs_database": True,
+            "clarification_options": None
+        }
+
+    def _instant_classify(self, query: str) -> Optional[Dict[str, Any]]:
+        """
+        Instant classification using regex patterns (bypass LLM).
+        Returns classification dict or None if no match.
+
+        This fast-path reduces latency from ~3s to <50ms for common queries.
+        """
+        query_lower = query.lower().strip()
+
+        # GREETING patterns (exact match)
+        greeting_exact = {"ciao", "buongiorno", "buonasera", "hello", "hi", "salve",
+                         "grazie", "arrivederci", "buonanotte", "hey"}
+        if query_lower in greeting_exact:
+            return {
+                "action": "respond",
+                "category": "GREETING",
+                "confidence": 1.0,
+                "reasoning": "Saluto comune - fast-path",
+                "direct_response": "Ciao! Come posso aiutarti con i processi aziendali?",
+                "needs_rag": False,
+                "needs_database": False,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # DANGER keywords (contains match)
+        danger_keywords = ["password", "credenziali", "credential", "api key", "token",
+                          "secret", "chiave", "accesso admin", "root password"]
+        if any(kw in query_lower for kw in danger_keywords):
+            return {
+                "action": "respond",
+                "category": "DANGER",
+                "confidence": 1.0,
+                "reasoning": "Richiesta sensibile - fast-path block",
+                "direct_response": "Non posso fornire informazioni sensibili come password o credenziali. Per questioni di sicurezza, contatta il team IT.",
+                "needs_rag": False,
+                "needs_database": False,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # SIMPLE_METRIC patterns (starts with)
+        metric_starts = ["quant", "quand", "numero", "count", "quanti", "quante"]
+        if any(query_lower.startswith(prefix) for prefix in metric_starts):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query metrica - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # SIMPLE_STATUS patterns (short status queries)
+        status_patterns = ["tutto ok", "sistema ok", "funziona", "va bene",
+                          "stato sistema", "tutto bene", "status"]
+        if any(pattern in query_lower for pattern in status_patterns) and len(query.split()) <= 5:
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.85,
+                "reasoning": "Query status semplice - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # No fast-path match → use LLM
+        return None
+
+    @traceable(
+        name="MilhenaClassifyComplexity",
+        run_type="chain",
+        metadata={"component": "optimization", "version": "3.0"}
+    )
+    async def classify_complexity(self, state: MilhenaState) -> MilhenaState:
+        """
+        Classify query complexity for fast-path optimization.
+        Simple queries skip disambiguation and RAG retrieval.
+        """
+        query = state["query"].lower()
+        word_count = len(query.split())
+
+        # Keywords for simple STATUS queries
+        simple_keywords = [
+            "come va", "come vanno", "status", "stato",
+            "ciao", "hello", "salve", "buongiorno",
+            "sistema", "funziona", "ok", "bene"
+        ]
+
+        # Keywords for simple GREETING queries
+        greeting_keywords = ["ciao", "hello", "salve", "buongiorno", "buonasera", "hey"]
+
+        # Classify as simple if:
+        # 1. Short query (<10 words) AND
+        # 2. Contains simple/greeting keywords
+        is_simple = (
+            word_count < 10 and
+            any(keyword in query for keyword in simple_keywords + greeting_keywords)
+        )
+
+        state["context"]["is_simple_query"] = is_simple
+        state["context"]["word_count"] = word_count
+
+        if is_simple:
+            logger.info(f"[OPTIMIZATION] Classified as SIMPLE query (words: {word_count})")
+        else:
+            logger.info(f"[OPTIMIZATION] Classified as COMPLEX query (words: {word_count})")
 
         return state
 
@@ -814,9 +1352,57 @@ class MilhenaGraph:
     # ROUTING FUNCTIONS
     # ============================================================================
 
-    def route_from_cache(self, state: MilhenaState) -> str:
-        """Route based on cache status"""
-        return "cached" if state.get("cached") else "not_cached"
+    def route_from_supervisor(self, state: MilhenaState) -> str:
+        """
+        Route based on Supervisor ACTION decision.
+        Best Practice 2025: Action-based routing (respond/tool/route)
+
+        IMPORTANTE: TUTTI i path passano SEMPRE per mask_response prima di END
+        """
+        decision = state.get("supervisor_decision")
+
+        if not decision:
+            logger.warning("[ROUTING] No supervisor decision, defaulting to full pipeline")
+            return "apply_patterns"
+
+        action = decision.get("action", "route")  # Default: route (conservative)
+        category = decision["category"]
+
+        # ACTION: respond
+        # Supervisor ha già generato direct_response, vai direttamente a Mask
+        if action == "respond":
+            logger.info(f"[ROUTING] action=respond (category={category}) → mask_response")
+            return "mask_response"
+
+        # ACTION: tool
+        # Serve DB query per dati, poi genera risposta e va a Mask
+        if action == "tool":
+            logger.info(f"[ROUTING] action=tool (category={category}) → database_query → generate_response → mask_response")
+            return "database_query"
+
+        # ACTION: route
+        # Full pipeline: Disambiguate → RAG → Generate → Mask
+        if action == "route":
+            logger.info(f"[ROUTING] action=route (category={category}) → apply_patterns (full pipeline)")
+            return "apply_patterns"
+
+        # Fallback (non dovrebbe mai succedere)
+        logger.warning(f"[ROUTING] Unknown action '{action}', defaulting to full pipeline")
+        return "apply_patterns"
+
+    def route_from_complexity(self, state: MilhenaState) -> str:
+        """
+        Route based on query complexity for fast-path optimization.
+        Simple queries skip disambiguation/RAG and go directly to response generation.
+        """
+        is_simple = state.get("context", {}).get("is_simple_query", False)
+
+        if is_simple:
+            logger.info("[OPTIMIZATION] Taking FAST PATH - skipping disambiguation and RAG")
+            return "simple"
+        else:
+            logger.info("[OPTIMIZATION] Taking FULL PATH - complex query needs full pipeline")
+            return "complex"
 
     def route_from_intent(self, state: MilhenaState) -> str:
         """Route based on intent"""
@@ -900,11 +1486,17 @@ class MilhenaGraph:
                 masked=False,
                 error=None,
                 rag_context=None,
-                learned_patterns=None
+                learned_patterns=None,
+                supervisor_decision=None,
+                waiting_clarification=False,
+                original_query=None
             )
 
             # Run the graph
             final_state = await self.compiled_graph.ainvoke(initial_state)
+
+            # Extract supervisor decision for metadata
+            supervisor_decision = final_state.get("supervisor_decision")
 
             # Return the result
             return {
@@ -913,7 +1505,13 @@ class MilhenaGraph:
                 "intent": final_state.get("intent"),
                 "cached": final_state.get("cached", False),
                 "session_id": session_id,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "metadata": {
+                    "supervisor_decision": supervisor_decision,
+                    "supervisor_category": supervisor_decision.get("category") if supervisor_decision else None,
+                    "supervisor_action": supervisor_decision.get("action") if supervisor_decision else None,
+                    "supervisor_confidence": supervisor_decision.get("confidence") if supervisor_decision else None
+                }
             }
 
         except Exception as e:
@@ -959,6 +1557,47 @@ class MilhenaGraph:
             )
 
         return result
+
+    async def process_query(
+        self,
+        query: str,
+        session_id: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Process query with enhanced metadata for API compatibility.
+        Alias for process() with additional metadata extraction.
+
+        Args:
+            query: User query
+            session_id: Session identifier
+            context: Optional context
+
+        Returns:
+            Response dictionary with metadata (supervisor_decision, processing_time, etc.)
+        """
+        import time
+        start_time = time.time()
+
+        # Call the base process method
+        result = await self.process(query, session_id, context)
+
+        # Add processing time
+        processing_time = time.time() - start_time
+
+        # Enhance metadata with supervisor decision if available
+        # (extract from final state if needed)
+        metadata = result.get("metadata", {})
+        metadata["processing_time"] = processing_time
+
+        # Return enhanced result
+        return {
+            "success": result.get("success", False),
+            "response": result.get("response", "Come posso aiutarti?"),
+            "metadata": metadata,
+            "sources": result.get("sources", []),
+            "confidence": result.get("confidence", 0.95)
+        }
 
 # ============================================================================
 # SINGLETON INSTANCE

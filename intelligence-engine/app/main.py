@@ -213,26 +213,20 @@ async def health_check():
 # Main chat endpoint
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Main chat endpoint with Multi-Agent Supervisor and REAL metrics"""
+    """Main chat endpoint using Milhena v3.1 with Supervisor Orchestrator"""
     import time
     start_time = time.time()
 
     try:
         with track_request(request.user_id, "chat"):
-            # Use NEW Graph Supervisor for intelligent agent routing
-            supervisor = app.state.graph_supervisor
+            # Use Milhena v3.1 Graph (with internal Supervisor)
+            milhena = app.state.milhena
 
-            # Determine user level from context
-            user_level = "business"  # Default
-            if request.context:
-                user_level = request.context.get("user_level", "business")
-
-            # Process through supervisor with REAL agents
-            result = await supervisor.process_query(
+            # Process through Milhena's compiled graph
+            result = await milhena.process_query(
                 query=request.message,
-                session_id=request.user_id,
-                context=request.context or {},
-                user_level=user_level
+                session_id=request.user_id or "default-session",
+                context=request.context or {}
             )
 
             # Track API metrics
