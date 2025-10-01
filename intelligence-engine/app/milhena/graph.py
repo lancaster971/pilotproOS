@@ -686,17 +686,21 @@ class MilhenaGraph:
 
         try:
             # Search RAG knowledge base for relevant documentation
-            results = await self.rag_system.search_documents(
+            # Using correct API: search() returns List[Dict] directly
+            from app.rag.maintainable_rag import UserLevel
+
+            docs = await self.rag_system.search(
                 query=query,
                 top_k=3,
-                user_level="BUSINESS"
+                user_level=UserLevel.BUSINESS
             )
 
-            if results and results.get("results"):
-                docs = results["results"]
+            if docs and len(docs) > 0:
                 state["rag_context"] = docs
                 state["context"]["rag_docs"] = docs
-                logger.info(f"Retrieved {len(docs)} RAG documents (relevance: {docs[0].get('score', 0):.3f})")
+                # Relevance score: 1.0 = perfect match, 0.0 = no match
+                top_relevance = docs[0].get('relevance_score', 0.0)
+                logger.info(f"Retrieved {len(docs)} RAG documents (top relevance: {top_relevance:.3f})")
             else:
                 state["rag_context"] = []
                 logger.info("No relevant RAG documents found")
@@ -833,10 +837,10 @@ class MilhenaGraph:
 
         # If RAG found high-quality docs, we might have the answer
         if rag_context and len(rag_context) > 0:
-            # Check if top result has high relevance
-            top_score = rag_context[0].get("score", 0)
-            if top_score > 0.8:
-                logger.info(f"High-quality RAG result (score: {top_score}), skipping DB query")
+            # Check if top result has high relevance (relevance_score: 1.0 = perfect)
+            top_relevance = rag_context[0].get("relevance_score", 0.0)
+            if top_relevance > 0.8:
+                logger.info(f"High-quality RAG result (relevance: {top_relevance:.3f}), skipping DB query")
                 return "has_answer"
 
         # For data-heavy intents, always query DB even if RAG found something
