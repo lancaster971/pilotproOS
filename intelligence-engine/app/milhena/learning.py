@@ -359,6 +359,45 @@ class LearningSystem:
 
         logger.info(f"High confidence patterns: {len(high_confidence)}")
 
+    async def get_relevant_patterns(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get relevant learned patterns for a query
+
+        Args:
+            query: User query to match patterns against
+            limit: Maximum number of patterns to return
+
+        Returns:
+            List of relevant patterns with metadata
+        """
+        try:
+            # Extract patterns from current query
+            query_patterns = self._extract_patterns(query)
+
+            # Find matching learned patterns
+            relevant = []
+            for pattern_key, learning in self.learned_patterns.items():
+                # Check if any query pattern matches learned pattern
+                for qp in query_patterns:
+                    if qp.lower() in learning.pattern.lower() or learning.pattern.lower() in qp.lower():
+                        relevant.append({
+                            "pattern": learning.pattern,
+                            "correct_intent": learning.correct_intent,
+                            "confidence": learning.confidence,
+                            "occurrences": learning.occurrences,
+                            "success_rate": learning.success_rate
+                        })
+                        break
+
+            # Sort by confidence * success_rate
+            relevant.sort(key=lambda x: x["confidence"] * x["success_rate"], reverse=True)
+
+            return relevant[:limit]
+
+        except Exception as e:
+            logger.error(f"Failed to get relevant patterns: {e}")
+            return []
+
     def get_performance_report(self) -> Dict[str, Any]:
         """
         Get performance report

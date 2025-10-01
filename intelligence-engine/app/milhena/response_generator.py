@@ -144,10 +144,28 @@ class ResponseGenerator:
             # Select template
             template = self.templates.get(intent, self.templates["GENERAL"])
 
-            # Prepare data
+            # Prepare data with RAG context if available
+            rag_docs = context.get("rag_docs", []) if context else []
+            learned_patterns = context.get("learned_patterns", []) if context else []
+
+            # Build enhanced context string
+            enhanced_data = data or context or {}
+            if rag_docs:
+                # Add RAG documentation to context
+                rag_context_str = "\n\n".join([
+                    f"[Knowledge Base] {doc.get('content', '')[:500]}"
+                    for doc in rag_docs[:2]  # Top 2 docs
+                ])
+                enhanced_data = f"{enhanced_data}\n\nRelevant Documentation:\n{rag_context_str}"
+
+            if learned_patterns:
+                # Add learned patterns hint
+                patterns_str = ", ".join([p.get("pattern", "") for p in learned_patterns[:3]])
+                logger.info(f"Applying learned patterns: {patterns_str}")
+
             response_data = {
                 "query": query,
-                "data": data or context or {}
+                "data": enhanced_data
             }
 
             # Format prompt

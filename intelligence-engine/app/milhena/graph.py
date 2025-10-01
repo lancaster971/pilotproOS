@@ -35,6 +35,9 @@ from app.milhena.business_tools import (
     get_analytics_tool
 )
 
+# Import RAG System for knowledge retrieval
+from app.rag import get_rag_system
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -71,6 +74,8 @@ class MilhenaState(TypedDict):
     cached: bool
     masked: bool
     error: Optional[str]
+    rag_context: Optional[List[Dict[str, Any]]]  # RAG retrieved documents
+    learned_patterns: Optional[List[Dict[str, Any]]]  # Learning system patterns
 
 # ============================================================================
 # MILHENA TOOLS - Business-focused tools with masking
@@ -312,6 +317,14 @@ class MilhenaGraph:
         self.token_manager = TokenManager()
         self.cache_manager = CacheManager(self.config)
 
+        # Initialize RAG System for knowledge retrieval
+        try:
+            self.rag_system = get_rag_system()
+            logger.info("RAG System initialized in Milhena graph")
+        except Exception as e:
+            logger.error(f"Failed to initialize RAG system: {e}")
+            self.rag_system = None
+
         # Initialize database tools - COMPLETE SET
         self.tools = [
             query_users_tool,
@@ -352,8 +365,10 @@ class MilhenaGraph:
 
         # Add nodes with CLEAR PREFIXES
         graph.add_node("[CODE] Check Cache", self.check_cache)
+        graph.add_node("[LEARNING] Apply Patterns", self.apply_learned_patterns)
         graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
         graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
+        graph.add_node("[RAG] Retrieve Context", self.retrieve_rag_context)
         graph.add_node("[TOOL] Database Query", self.database_query)
         graph.add_node("[AGENT] Generate Response", self.generate_response)
         graph.add_node("[LIB] Mask Response", self.mask_response)
@@ -369,10 +384,11 @@ class MilhenaGraph:
             self.route_from_cache,
             {
                 "cached": "[LIB] Mask Response",
-                "not_cached": "[AGENT] Disambiguate"
+                "not_cached": "[LEARNING] Apply Patterns"
             }
         )
 
+        graph.add_edge("[LEARNING] Apply Patterns", "[AGENT] Disambiguate")
         graph.add_edge("[AGENT] Disambiguate", "[AGENT] Analyze Intent")
 
         graph.add_conditional_edges(
@@ -380,8 +396,18 @@ class MilhenaGraph:
             self.route_from_intent,
             {
                 "technical": "[CODE] Handle Error",
-                "needs_data": "[TOOL] Database Query",
+                "needs_data": "[RAG] Retrieve Context",
                 "business": "[AGENT] Generate Response"
+            }
+        )
+
+        # RAG retrieves context, then goes to DB query or direct response
+        graph.add_conditional_edges(
+            "[RAG] Retrieve Context",
+            self.route_after_rag,
+            {
+                "needs_db": "[TOOL] Database Query",
+                "has_answer": "[AGENT] Generate Response"
             }
         )
 
@@ -456,6 +482,34 @@ class MilhenaGraph:
         except Exception as e:
             logger.warning(f"Cache check failed: {e}")
             state["cached"] = False
+
+        return state
+
+    @traceable(
+        name="MilhenaApplyPatterns",
+        run_type="chain",
+        metadata={"component": "learning", "version": "3.0"}
+    )
+    async def apply_learned_patterns(self, state: MilhenaState) -> MilhenaState:
+        """Apply learned patterns from previous interactions"""
+        query = state["query"]
+        session_id = state["session_id"]
+
+        try:
+            # Get learned patterns from learning system
+            patterns = await self.learning_system.get_relevant_patterns(query)
+
+            if patterns:
+                state["learned_patterns"] = patterns
+                state["context"]["learned_patterns"] = patterns
+                logger.info(f"Applied {len(patterns)} learned patterns")
+            else:
+                state["learned_patterns"] = []
+                logger.info("No relevant learned patterns found")
+
+        except Exception as e:
+            logger.warning(f"Failed to apply learned patterns: {e}")
+            state["learned_patterns"] = []
 
         return state
 
@@ -614,6 +668,45 @@ class MilhenaGraph:
 
         return state
 
+    @traceable(
+        name="MilhenaRetrieveRAG",
+        run_type="retriever",
+        metadata={"component": "rag", "version": "3.0"}
+    )
+    async def retrieve_rag_context(self, state: MilhenaState) -> MilhenaState:
+        """Retrieve relevant context from RAG knowledge base"""
+        query = state["query"]
+        intent = state.get("intent", "GENERAL")
+
+        if not self.rag_system:
+            logger.warning("RAG system not available, skipping retrieval")
+            state["rag_context"] = []
+            return state
+
+        try:
+            # Search RAG knowledge base for relevant documentation
+            results = await self.rag_system.search_documents(
+                query=query,
+                top_k=3,
+                user_level="BUSINESS"
+            )
+
+            if results and results.get("results"):
+                docs = results["results"]
+                state["rag_context"] = docs
+                state["context"]["rag_docs"] = docs
+                logger.info(f"Retrieved {len(docs)} RAG documents (relevance: {docs[0].get('score', 0):.3f})")
+            else:
+                state["rag_context"] = []
+                logger.info("No relevant RAG documents found")
+
+        except Exception as e:
+            logger.error(f"RAG retrieval failed: {e}")
+            state["rag_context"] = []
+            state["context"]["rag_error"] = str(e)
+
+        return state
+
     @traceable(name="MilhenaGenerateResponse")
     async def generate_response(self, state: MilhenaState) -> MilhenaState:
         """Generate appropriate response"""
@@ -727,10 +820,33 @@ class MilhenaGraph:
         if intent == "TECHNICAL":
             return "technical"
         elif intent in ["METRIC", "STATUS", "DATA", "COUNT"]:
-            # These intents need database data
+            # These intents need database data - go through RAG first
             return "needs_data"
         else:
             return "business"
+
+    def route_after_rag(self, state: MilhenaState) -> str:
+        """Route after RAG retrieval - decide if we need DB data or can answer directly"""
+        rag_context = state.get("rag_context", [])
+        intent = state.get("intent", "GENERAL")
+
+        # If RAG found high-quality docs, we might have the answer
+        if rag_context and len(rag_context) > 0:
+            # Check if top result has high relevance
+            top_score = rag_context[0].get("score", 0)
+            if top_score > 0.8:
+                logger.info(f"High-quality RAG result (score: {top_score}), skipping DB query")
+                return "has_answer"
+
+        # For data-heavy intents, always query DB even if RAG found something
+        if intent in ["METRIC", "STATUS", "DATA", "COUNT"]:
+            return "needs_db"
+
+        # Default: if we have some RAG context, use it
+        if rag_context:
+            return "has_answer"
+
+        return "needs_db"
 
     def _assess_complexity(self, query: str) -> str:
         """Assess query complexity"""
@@ -777,7 +893,9 @@ class MilhenaGraph:
                 feedback=None,
                 cached=False,
                 masked=False,
-                error=None
+                error=None,
+                rag_context=None,
+                learned_patterns=None
             )
 
             # Run the graph
