@@ -131,9 +131,10 @@ npm run test              # All tests in Docker
 
 ### **✅ WORKING FEATURES**
 - ✅ **LangGraph ReAct Agent** - GPT-4o-mini with tool execution
+- ✅ **RAG System** - ChromaDB with OpenAI embeddings (production ready)
 - ✅ **Graph Visualization** - Professional PNG (4700x2745px) with 3D effects
 - ✅ **Interactive D3.js** - Force-directed graph in frontend
-- ✅ **LangGraph Studio** - Desktop debugging interface
+- ✅ **LangGraph Studio** - Web-based debugging interface via LangSmith
 - ✅ **Authentication System** - JWT with HttpOnly cookies
 - ✅ **n8n Integration** - Full workflow automation support
 
@@ -160,10 +161,9 @@ npm run test              # All tests in Docker
 ./stack-safe.sh start     # Direct start
 ./stack-safe.sh status    # Health check
 
-# LangGraph Studio (Desktop Interface)
-cd intelligence-engine
-langgraph dev --port 2024    # Start LangGraph Studio server
-# Then open: http://localhost:2024
+# LangGraph Studio (Web Interface via LangSmith)
+# Server auto-starts with Intelligence Engine container
+# Access at: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 
 # Test Intelligence Engine
 curl http://localhost:8000/api/n8n/agent/customer-support?message=test
@@ -254,22 +254,28 @@ Il container Intelligence Engine esegue 4 microservizi gestiti automaticamente:
 - **Auto-refresh**: Live updates every 5 seconds
 
 ### **LangGraph Studio Setup**
+**NOTE**: LangGraph Studio Desktop app deprecated (archived July 29, 2025)
+
+**Web-based Studio Access**:
 ```bash
-# Install CLI (requires Python 3.11+)
-pip install langgraph-cli
-
-# Start development server
+# Start LangGraph Studio server (auto-starts with Intelligence Engine container)
 cd intelligence-engine
-langgraph dev --port 2024
+langgraph dev --port 2024 --host 0.0.0.0
 
-# Access Studio
-open http://localhost:2024
+# Access Web Studio (requires LangSmith account)
+open https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 ```
+
+**LangSmith Integration**:
+- Project: `milhena-v3-production` (UUID: d97bd0e6-0e8d-4777-82b7-6ad726a4213a)
+- Tracing: https://smith.langchain.com/
+- API Key: Configured in `.env` (LANGCHAIN_API_KEY)
 
 ### **Configuration Files**
 - `intelligence-engine/langgraph.json` - Studio configuration
 - `intelligence-engine/app/graph.py` - Graph definition
 - `intelligence-engine/.env` - Environment variables
+- `intelligence-engine/requirements.txt` - Includes `langgraph-cli[inmem]>=0.1.55`
 
 ---
 
