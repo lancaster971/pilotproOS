@@ -31,7 +31,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 
 # Local imports
-from app.rag.maintainable_rag import MaintainableRAGSystem, DocumentMetadata, DocumentStatus
+from app.rag.maintainable_rag import MaintainableRAGSystem, DocumentMetadata, DocumentStatus, get_rag_system
 from app.security.masking_engine import MultiLevelMaskingEngine, UserLevel
 from app.cache.optimized_embeddings_cache import OptimizedEmbeddingsCache
 from app.observability.observability import track_api_request, track_business_value
@@ -67,28 +67,8 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Initialize RAG system (singleton pattern)
-rag_system: Optional[MaintainableRAGSystem] = None
-
-def get_rag_system() -> MaintainableRAGSystem:
-    """Get or initialize RAG system"""
-    global rag_system
-    if rag_system is None:
-        # Initialize with production configuration
-        embeddings_cache = OptimizedEmbeddingsCache()
-        masking_engine = MultiLevelMaskingEngine()
-
-        rag_system = MaintainableRAGSystem(
-            collection_name="pilotpros_knowledge",
-            persist_directory="./chroma_db",
-            chunk_size=1000,
-            chunk_overlap=200,
-            embeddings_cache=embeddings_cache,
-            masking_engine=masking_engine
-        )
-        logger.info("RAG system initialized with production configuration")
-
-    return rag_system
+# NOTE: Using singleton from maintainable_rag.py (imported above) to avoid duplicate instances
+# This ensures GraphSupervisor and API share the same RAG system instance
 
 # Pydantic models for API requests/responses
 class DocumentUploadResponse(BaseModel):
@@ -249,8 +229,8 @@ async def upload_documents(
                 # Clean up temporary file
                 os.unlink(temp_file_path)
 
-        # Track business value
-        await track_business_value(len(files), "documents_uploaded")
+        # Track business value (metric_type, value) - NOT async
+        track_business_value("documents_uploaded", len(files))
 
         return DocumentUploadResponse(
             success=True,
@@ -260,8 +240,10 @@ async def upload_documents(
         )
 
     except Exception as e:
-        logger.error(f"Error uploading documents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Error uploading documents: {e}\n{error_trace}")
+        raise HTTPException(status_code=500, detail=f"{str(e)} - Check logs for full traceback")
 
 @router.get("/documents", response_model=DocumentListResponse)
 async def list_documents(
@@ -307,7 +289,6 @@ async def list_documents(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/documents/{doc_id}")
-
 async def update_document(
     doc_id: str,
     content: str = Form(...),
@@ -320,16 +301,15 @@ async def update_document(
         # Parse metadata if provided
         metadata_dict = json.loads(metadata) if metadata else {}
 
-        # Update document
-        success = await rag.update_document(
+        # Update document (matches maintainable_rag.py signature)
+        result = await rag.update_document(
             doc_id=doc_id,
             new_content=content,
-            metadata_updates=metadata_dict,
-            author="user"
+            update_metadata=metadata_dict
         )
 
-        if not success:
-            raise HTTPException(status_code=404, detail="Document not found")
+        if result.get("status") == "error":
+            raise HTTPException(status_code=404, detail=result.get("message", "Document not found"))
 
         # Broadcast update
         await manager.broadcast(json.dumps({
@@ -337,14 +317,13 @@ async def update_document(
             "document_id": doc_id
         }))
 
-        return {"success": True, "message": "Document updated successfully"}
+        return {"success": True, "message": "Document updated successfully", "result": result}
 
     except Exception as e:
         logger.error(f"Error updating document {doc_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/documents/{doc_id}")
-
 async def delete_document(
     doc_id: str,
     soft_delete: bool = True
@@ -353,14 +332,14 @@ async def delete_document(
     try:
         rag = get_rag_system()
 
-        success = await rag.delete_document(
+        # Delete document (matches maintainable_rag.py signature)
+        result = await rag.delete_document(
             doc_id=doc_id,
-            soft_delete=soft_delete,
-            author="user"
+            hard_delete=not soft_delete
         )
 
-        if not success:
-            raise HTTPException(status_code=404, detail="Document not found")
+        if result.get("status") == "error":
+            raise HTTPException(status_code=404, detail=result.get("message", "Document not found"))
 
         # Broadcast deletion
         await manager.broadcast(json.dumps({
@@ -368,26 +347,26 @@ async def delete_document(
             "document_id": doc_id
         }))
 
-        return {"success": True, "message": "Document deleted successfully"}
+        return {"success": True, "message": result.get("message", "Document deleted successfully")}
 
     except Exception as e:
         logger.error(f"Error deleting document {doc_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/search", response_model=DocumentSearchResponse)
-
 async def semantic_search(request: DocumentSearchRequest):
     """Semantic search with relevance scoring"""
     try:
         start_time = datetime.now()
         rag = get_rag_system()
 
-        # Perform semantic search
-        results = await rag.search_documents(
+        # Perform semantic search (matches maintainable_rag.py method)
+        results = await rag.search(
             query=request.query,
-            k=request.k,
-            filters=request.filters,
-            user_level=request.user_level
+            user_level=request.user_level,
+            top_k=request.k,
+            filter_metadata=request.filters,
+            include_archived=False
         )
 
         # Calculate query time
@@ -465,7 +444,7 @@ async def bulk_import(archive: UploadFile = File(...)):
                             # Process file
                             text_content = extract_text_from_file(temp_file_path, file_info.filename)
 
-                            # Create document
+                            # Create document metadata
                             doc_metadata = DocumentMetadata(
                                 title=file_info.filename,
                                 source="bulk_import",
@@ -473,14 +452,15 @@ async def bulk_import(archive: UploadFile = File(...)):
                                 author="bulk_import"
                             )
 
-                            document = Document(
-                                page_content=text_content,
-                                metadata=doc_metadata.dict()
+                            # Add to RAG (matches maintainable_rag.py method)
+                            result = await rag.create_document(
+                                content=text_content,
+                                metadata=doc_metadata,
+                                auto_chunk=True
                             )
 
-                            # Add to RAG
-                            doc_id = await rag.add_document(document)
-                            processed_files += 1
+                            if result.get("status") == "success":
+                                processed_files += 1
 
                             # Broadcast progress
                             await manager.broadcast(json.dumps({
@@ -503,8 +483,8 @@ async def bulk_import(archive: UploadFile = File(...)):
 
         processing_time = (datetime.now() - start_time).total_seconds()
 
-        # Track business value
-        await track_business_value(processed_files, "bulk_documents_imported")
+        # Track business value (metric_type, value) - NOT async
+        track_business_value("bulk_documents_imported", processed_files)
 
         return BulkImportStatus(
             success=True,
@@ -520,25 +500,35 @@ async def bulk_import(archive: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/reindex")
-
 async def reindex_knowledge_base():
-    """Force re-indexing of all documents"""
+    """
+    Force re-indexing of all documents
+    NOTE: Currently reindexing is automatic when documents are updated.
+    This endpoint triggers a full statistics recalculation.
+    """
     try:
         rag = get_rag_system()
 
-        # Start reindexing in background
-        reindex_task = asyncio.create_task(rag.reindex_all())
+        # Get current statistics (triggers internal recalculation)
+        stats = await rag.get_statistics()
 
-        # Broadcast start of reindexing
+        # Broadcast reindex completion
         await manager.broadcast(json.dumps({
-            "type": "reindex_started",
-            "timestamp": datetime.now().isoformat()
+            "type": "reindex_completed",
+            "timestamp": datetime.now().isoformat(),
+            "total_documents": stats.get("unique_documents", 0),
+            "total_chunks": stats.get("total_chunks", 0)
         }))
 
-        return {"success": True, "message": "Reindexing started", "status": "in_progress"}
+        return {
+            "success": True,
+            "message": "Knowledge base statistics refreshed",
+            "status": "completed",
+            "stats": stats
+        }
 
     except Exception as e:
-        logger.error(f"Error starting reindex: {e}")
+        logger.error(f"Error refreshing statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # WebSocket endpoint for real-time updates

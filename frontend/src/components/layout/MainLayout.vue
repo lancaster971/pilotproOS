@@ -213,6 +213,15 @@ const allNavigationItems = [
     roles: ['admin', 'viewer']
   },
   {
+    name: 'milhena-learning',
+    path: '/milhena/learning',
+    label: 'Learning Analytics',
+    description: 'AI accuracy & continuous improvement',
+    icon: BarChart3,
+    badge: { text: 'BETA', type: 'info' },
+    roles: ['admin', 'viewer']
+  },
+  {
     name: 'rag',
     path: '/rag',
     label: 'Knowledge Base',
@@ -497,6 +506,12 @@ onMounted(() => {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
   border: 1px solid rgba(16, 185, 129, 0.3);
   color: #10b981;
+}
+
+.badge-info-main {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 212, 255, 0.1) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
 }
 
 .badge-pulse-main {
