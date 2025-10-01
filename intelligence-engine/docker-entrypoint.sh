@@ -30,9 +30,9 @@ if [ "$SERVICE_MODE" = "all" ] || [ -z "$SERVICE_MODE" ]; then
     # Start Streamlit UI in background
     streamlit run app/ui/dashboard.py &
 
-    # Start LangGraph Studio in background
-    echo "Starting LangGraph Studio on port 2024..."
-    langgraph dev --port 2024 --host 0.0.0.0 &
+    # Start LangGraph Studio in background (DISABLED - incompatible with langgraph 0.6.7)
+    # echo "Starting LangGraph Studio on port 2024..."
+    # langgraph dev --port 2024 --host 0.0.0.0 &
 
     # Start API server
     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

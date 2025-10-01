@@ -5,7 +5,8 @@ langchain-core==0.3.76
 langserve==0.3.0
 langgraph==0.6.7
 langgraph-checkpoint-postgres==2.0.11
-langgraph-cli[inmem]>=0.1.55  # LangGraph Studio development server with in-memory API
+# langgraph-cli>=0.1.55  # LangGraph Studio CLI (DISABLED - incompatible with langgraph 0.6.7)
+# langgraph-runtime-inmem>=0.12.0  # In-memory runtime (DISABLED - not needed without Studio)
 langsmith>=0.3.45
 langchain-openai==0.3.33
 langchain-anthropic==0.3.0

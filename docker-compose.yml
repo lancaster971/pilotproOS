@@ -228,8 +228,8 @@ services:
       redis-dev:
         condition: service_healthy
     environment:
-      # Service Configuration
-      SERVICE_MODE: all  # all | api | ui
+      # Service Configuration (api-only: LangGraph Studio incompatible with langgraph 0.6.7)
+      SERVICE_MODE: api  # all | api | ui
 
       # Database
       DB_HOST: postgres-dev
