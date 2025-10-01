@@ -45,13 +45,13 @@ class EnhancedMilhenaAgent:
             raise ValueError("OPENAI_API_KEY is required for REAL agent")
 
         # Initialize REAL LLM
-        # FIX 2: Reduce retries from 2 to 1 (max 60s instead of 90s)
+        # FIX 2: Use request_timeout (not timeout) + reduce retries
         self.llm = ChatOpenAI(
             api_key=self.api_key,
             model="gpt-4o-mini",
             temperature=0.7,
             max_tokens=1000,
-            timeout=30,
+            request_timeout=30.0,
             max_retries=1
         )
 

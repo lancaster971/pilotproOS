@@ -38,9 +38,11 @@ class LLMDisambiguator:
     def _initialize_llms(self):
         """Initialize GROQ (free) and OpenAI (backup) models"""
         # GROQ - Free tier
+        # FIX 2: Use request_timeout instead of timeout (LangChain best practice)
         self.groq_llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0.3,
+            request_timeout=15.0,  # 15s timeout for disambiguation
             api_key=os.getenv("GROQ_API_KEY")
         ) if os.getenv("GROQ_API_KEY") else None
 
@@ -48,12 +50,14 @@ class LLMDisambiguator:
         self.openai_nano = ChatOpenAI(
             model="gpt-4.1-nano-2025-04-14",  # 10M tokens
             temperature=0.3,
+            request_timeout=15.0,  # 15s timeout
             api_key=os.getenv("OPENAI_API_KEY")
         ) if os.getenv("OPENAI_API_KEY") else None
 
         self.openai_mini = ChatOpenAI(
             model="gpt-4o-mini-2024-07-18",  # 10M tokens
             temperature=0.3,
+            request_timeout=15.0,  # 15s timeout
             api_key=os.getenv("OPENAI_API_KEY")
         ) if os.getenv("OPENAI_API_KEY") else None
 
@@ -110,34 +114,7 @@ class LLMDisambiguator:
     ) -> DisambiguationResult:
         """
         Disambiguate an ambiguous query
-
-        Args:
-            query: User query that may be ambiguous
-            context: Previous conversation context
-
-        Returns:
-            DisambiguationResult with clarified intent
-        """
-        try:
-            # FIX 3: Wrap entire disambiguation with 5s timeout
-            return await asyncio.wait_for(
-                self._disambiguate_internal(query, context),
-                timeout=5.0
-            )
-        except asyncio.TimeoutError:
-            logger.warning(f"Disambiguation timeout after 5s, using rule-based fallback")
-            return self._rule_based_disambiguation(query)
-        except Exception as e:
-            logger.error(f"Disambiguation error: {e}")
-            return self._rule_based_disambiguation(query)
-
-    async def _disambiguate_internal(
-        self,
-        query: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> DisambiguationResult:
-        """
-        Internal disambiguation method with timeout protection
+        FIX 3: Removed nested asyncio.wait_for - trust LLM internal request_timeout
 
         Args:
             query: User query that may be ambiguous
@@ -153,47 +130,34 @@ class LLMDisambiguator:
                 context=context or {}
             )
 
-            # Try GROQ first (free) with 3s timeout
+            # Try GROQ first (free) - uses internal request_timeout=15s
             if self.groq_llm:
                 try:
                     logger.info("Disambiguating with GROQ (free tier)")
-                    response = await asyncio.wait_for(
-                        self.groq_llm.ainvoke(formatted),
-                        timeout=3.0
-                    )
+                    response = await self.groq_llm.ainvoke(formatted)
                     result_dict = self.parser.parse(response.content)
                     result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"GROQ disambiguation successful: {result.clarified_intent}")
                     return result
-                except asyncio.TimeoutError:
-                    logger.warning(f"GROQ disambiguation timeout after 3s")
                 except Exception as e:
                     logger.warning(f"GROQ disambiguation failed: {e}")
 
-            # Fallback to OpenAI Nano with 2s timeout
+            # Fallback to OpenAI Nano - uses internal request_timeout=15s
             if self.openai_nano:
                 try:
                     logger.info("Fallback to OpenAI Nano")
-                    response = await asyncio.wait_for(
-                        self.openai_nano.ainvoke(formatted),
-                        timeout=2.0
-                    )
+                    response = await self.openai_nano.ainvoke(formatted)
                     result_dict = self.parser.parse(response.content)
                     result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                     logger.info(f"OpenAI Nano disambiguation successful: {result.clarified_intent}")
                     return result
-                except asyncio.TimeoutError:
-                    logger.warning(f"OpenAI Nano timeout after 2s")
                 except Exception as e:
                     logger.warning(f"OpenAI Nano failed: {e}")
 
-            # Fallback to OpenAI Mini if Nano fails with 2s timeout
+            # Fallback to OpenAI Mini if Nano fails - uses internal request_timeout=15s
             if self.openai_mini:
                 logger.info("Final fallback to OpenAI Mini")
-                response = await asyncio.wait_for(
-                    self.openai_mini.ainvoke(formatted),
-                    timeout=2.0
-                )
+                response = await self.openai_mini.ainvoke(formatted)
                 result_dict = self.parser.parse(response.content)
                 result = DisambiguationResult(**result_dict) if isinstance(result_dict, dict) else result_dict
                 return result

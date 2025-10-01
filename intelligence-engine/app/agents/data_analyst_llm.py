@@ -139,8 +139,8 @@ class DataAnalystAgent:
             model="gpt-4o-mini",
             temperature=0.5,  # Balanced for analytical insights
             max_tokens=2000,
-            timeout=30,
-            max_retries=1  # FIX 2: Reduce retries for faster timeouts
+            request_timeout=30.0,  # FIX 2: Use request_timeout not timeout
+            max_retries=1
         )
 
         # Analytics tools

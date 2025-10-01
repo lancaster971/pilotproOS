@@ -36,9 +36,11 @@ class ResponseGenerator:
     def _initialize_llms(self):
         """Initialize LLMs for response generation"""
         # GROQ models (free)
+        # FIX 2: Use request_timeout instead of timeout (LangChain best practice)
         self.groq_llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0.7,
+            request_timeout=20.0,  # 20s for response generation
             api_key=os.getenv("GROQ_API_KEY")
         ) if os.getenv("GROQ_API_KEY") else None
 
@@ -50,6 +52,7 @@ class ResponseGenerator:
             self.models["nano"] = ChatOpenAI(
                 model="gpt-4.1-nano-2025-04-14",
                 temperature=0.7,
+                request_timeout=20.0,  # 20s timeout
                 api_key=os.getenv("OPENAI_API_KEY")
             )
 
@@ -57,6 +60,7 @@ class ResponseGenerator:
             self.models["mini"] = ChatOpenAI(
                 model="gpt-4o-mini-2024-07-18",
                 temperature=0.7,
+                request_timeout=20.0,  # 20s timeout
                 api_key=os.getenv("OPENAI_API_KEY")
             )
 
@@ -64,6 +68,7 @@ class ResponseGenerator:
             self.models["premium"] = ChatOpenAI(
                 model="gpt-4o-2024-11-20",
                 temperature=0.7,
+                request_timeout=30.0,  # 30s for complex tasks
                 api_key=os.getenv("OPENAI_API_KEY")
             )
 
@@ -215,11 +220,8 @@ class ResponseGenerator:
                 # No LLM available, use fallback
                 return self._generate_fallback_response(intent, data)
 
-            # Generate response with 10s timeout per LLM call
-            response = await asyncio.wait_for(
-                llm.ainvoke(messages),
-                timeout=10.0
-            )
+            # Generate response - LLM has internal request_timeout, no need to wrap
+            response = await llm.ainvoke(messages)
             generated_text = response.content
 
             # Track token usage if OpenAI

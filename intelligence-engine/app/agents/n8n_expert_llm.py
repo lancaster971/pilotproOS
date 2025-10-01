@@ -50,8 +50,8 @@ class N8nExpertAgent:
             model="gpt-4o-mini",
             temperature=0.3,  # Lower temperature for more precise extraction
             max_tokens=1500,
-            timeout=30,
-            max_retries=1  # FIX 2: Reduce retries for faster timeouts
+            request_timeout=30.0,  # FIX 2: Use request_timeout not timeout
+            max_retries=1
         )
 
         # Specialized tools for n8n operations
