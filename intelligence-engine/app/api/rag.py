@@ -263,13 +263,14 @@ async def list_documents(
         if category:
             filters["category"] = category
 
-        # Get documents from RAG system
+        # Get ALL documents from RAG system (limit=10000 to get all chunks, then dedup)
+        # NOTE: Must use high limit because ChromaDB returns chunks, not unique docs
         documents = await rag.list_documents(
             category_filter=filters.get("category") if filters else None,
-            limit=page_size
+            limit=10000  # Get all chunks, dedup happens in list_documents()
         )
 
-        # Apply simple pagination
+        # Apply simple pagination AFTER dedup
         start = (page - 1) * page_size
         end = start + page_size
         paginated_docs = documents[start:end]
@@ -391,12 +392,28 @@ async def get_rag_statistics():
         rag = get_rag_system()
         stats = await rag.get_statistics()
 
+        # Extract categories (dict → list)
+        categories_dict = stats.get("categories", {})
+        categories_list = list(categories_dict.keys()) if isinstance(categories_dict, dict) else []
+
+        # Calculate size estimation (avg 1KB per chunk)
+        total_chunks = stats.get("total_chunks", 0)
+        total_size_mb = (total_chunks * 1.0) / 1024  # Rough estimate
+
+        # Build embedding status from cache stats
+        cache_stats = stats.get("cache_stats", {})
+        embedding_status = {
+            "cached": cache_stats.get("cache_hits", 0),
+            "generated": cache_stats.get("cache_misses", 0),
+            "total": cache_stats.get("total_embeddings", 0)
+        }
+
         return RAGStatistics(
-            total_documents=stats.get("total_documents", 0),
-            total_size_mb=stats.get("total_size_mb", 0.0),
-            categories=stats.get("categories", []) if isinstance(stats.get("categories"), list) else [],
-            avg_document_size=stats.get("avg_document_size", 0.0),
-            embedding_status=stats.get("embedding_status", {}) if isinstance(stats.get("embedding_status"), dict) else {},
+            total_documents=stats.get("unique_documents", 0),
+            total_size_mb=round(total_size_mb, 2),
+            categories=categories_list,
+            avg_document_size=round(total_chunks / max(stats.get("unique_documents", 1), 1), 2),
+            embedding_status=embedding_status,
             last_update=stats.get("last_update") if stats.get("last_update") else datetime.now()
         )
 

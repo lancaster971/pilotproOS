@@ -8,7 +8,8 @@ from typing_extensions import TypedDict
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
@@ -35,7 +36,12 @@ from app.milhena.business_tools import (
     get_workflows_tool,
     get_performance_metrics_tool,
     get_system_monitoring_tool,
-    get_analytics_tool
+    get_analytics_tool,
+    get_workflow_details_tool,
+    get_error_details_tool,
+    get_all_errors_summary_tool,
+    search_knowledge_base_tool,
+    get_executions_by_date_tool
 )
 
 # Import RAG System for knowledge retrieval
@@ -51,6 +57,27 @@ SUPERVISOR_PROMPT = """# 🧠 SUPERVISOR ORCHESTRATOR PROMPT – MILHENA
 
 Sei un **agente di orchestrazione intelligente**, il **CERVELLO** del sistema **Milhena**, Business Process Assistant.
 Il tuo obiettivo è **restituire SEMPRE un JSON valido** che classifichi la query utente e determini l'azione corretta, ottimizzando **velocità**, **chiarezza** e **coerenza**.
+
+---
+
+## 🎯 TUA MISSIONE PRINCIPALE: FORNIRE DATI SUI WORKFLOW
+
+**WORKFLOW = ANIMA DI PILOTPRO**
+- I workflow sono il cuore del business dell'utente
+- Il tuo compito è FORNIRE DATI PRECISI su workflow, esecuzioni, errori, statistiche
+- È MEGLIO fornire dati approssimativi che chiedere chiarimenti
+- Anche query vaghe come "come va?" → interroga il database per dare risposte concrete
+
+**TERMINOLOGIA BUSINESS (CRITICA - NON VIOLARE MAI)**:
+- ✅ USA SEMPRE: processo, esecuzione, elaborazione, errore applicativo, sistema
+- ❌ MAI NOMINARE: n8n, postgres, langchain, docker, redis, nginx, kubernetes, container, database
+
+Questi termini tecnici verranno mascherati automaticamente DOPO la tua risposta.
+
+**PRIORITÀ ASSOLUTA**:
+1. Query su workflow/processi/esecuzioni/errori → **SEMPRE** `action: tool` + `needs_database: true`
+2. Anche query generiche ("tutto ok?", "come va?") → interroga database
+3. CLARIFICATION solo se tecnicamente impossibile interpretare (es: "ciao come è andata?" senza context)
 
 ---
 
@@ -92,7 +119,14 @@ Analizza ogni query utente (e la cronologia chat) e:
 - User: "ciao" → Milhena: "ciao!" → User: "come è andato?"
   → **AMBIGUO**: history non ha topic → CLARIFICATION_NEEDED
 
-**REGOLA D'ORO**: Se cronologia contiene topic chiaro (ordini, errori, fatture, processi) → NON chiedere clarification, continua topic
+**REGOLA D'ORO**: Se cronologia contiene topic chiaro (ordini, errori, fatture, processi, PilotPro, sistema, architettura) → NON chiedere clarification, continua topic
+
+**DOMANDE GENERICHE CON CONTESTO**:
+- User: "come è organizzata l'architettura di PilotPro?" → Milhena: "(risposta)" → User: "utilizza intelligenza artificiale?"
+  → **INFERISCI**: "PilotPro utilizza intelligenza artificiale?" (NON parlare di te stessa Milhena!)
+  → Usa RAG per cercare informazioni su PilotPro + AI
+
+**IMPORTANTE**: Se l'ultimo topic era un sistema/prodotto (PilotPro, sistema X, etc.), domande generiche si riferiscono A QUEL SISTEMA, non a Milhena!
 
 ---
 
@@ -235,6 +269,29 @@ Traduci slang in linguaggio business:
 
 ---
 
+## 📚 QUANDO USARE RAG vs DATABASE
+
+**needs_rag = true** quando la domanda riguarda:
+- **Cos'è PilotProOS?** → Panoramica sistema
+- **Come funziona...?** → Documentazione/guide
+- **PilotPro utilizza AI?** → Caratteristiche sistema
+- **FAQ generali** → Domande frequenti
+- **Troubleshooting** → "Cosa faccio se...?"
+
+**needs_database = true** quando la domanda riguarda:
+- **Quali processi...?** → Elenco workflow live
+- **Quante esecuzioni...?** → Statistiche real-time
+- **Ci sono errori...?** → Status errori correnti
+- **Quando è stato eseguito...?** → Timestamp specifici
+- **Processo X funziona?** → Status specifico workflow
+
+**Entrambi true** quando serve sia contesto che dati:
+- "Cosa fa il processo X?" → RAG (descrizione) + DB (status)
+
+**REGOLA CRITICA**:
+- Domande su WORKFLOW SPECIFICI → `needs_database: true` (priorità DB!)
+- Domande su SISTEMA/CONCETTI → `needs_rag: true`
+
 ## 🔄 TEMPLATE DI FALLBACK
 Usa questo se non sei sicuro:
 ```json
@@ -255,20 +312,27 @@ Usa questo se non sei sicuro:
 ## 🧠 PRIORITÀ (ordinata per importanza)
 1. **DANGER** → blocca subito (massima priorità)
 2. **LEARNED PATTERN** → rispondi diretto (se confidence ≥ 0.7)
-3. **CLARIFICATION_NEEDED** → **SE QUALSIASI DUBBIO, CHIEDI** (preferisci over SIMPLE_*)
-4. **GREETING** → rispondi cortese (solo se inequivocabile)
-5. **SIMPLE_*** → usa tool diretto (solo se 100% chiaro)
-6. **COMPLEX_ANALYSIS** → pipeline completa solo se necessario
+3. **GREETING** → rispondi cortese (solo se inequivocabile: "ciao", "grazie")
+4. **SIMPLE_*/DATABASE_QUERY** → usa tool (anche con confidence >= 0.6) ⚠️ PRIORITÀ ALTA
+5. **COMPLEX_ANALYSIS** → pipeline completa se serve analisi approfondita
+6. **CLARIFICATION_NEEDED** → ultima risorsa (solo se impossibile interpretare)
 
 ## 🔍 WHEN TO TRIGGER CLARIFICATION_NEEDED
-**Ambiguous Patterns (da ricerca CLAMBER)**:
-- Queries generiche: "dammi info", "come va", "dimmi tutto", "cosa c'è", "novità"
-- Pronomi vaghi: "questo", "quello", "la cosa", "il sistema" (quale?)
-- Temporal ambiguity: "recente", "oggi" (senza specificare cosa), "ieri" (contesto perso)
-- Missing subject: "errori" (di cosa?), "report" (quale?), "dati" (quali?)
-- Short context-dependent: "e ieri?", "anche quello", "lo stesso" (senza messaggio precedente)
+**⚠️ ATTENZIONE: Usa CLARIFICATION solo come ULTIMA RISORSA**
 
-**REGOLA D'ORO**: Se la query può avere 2+ interpretazioni → CLARIFICATION_NEEDED
+**CASI AMMESSI (molto rari)**:
+- Queries generiche SENZA topic chiaro: "come è andata?" (senza contesto)
+- Pronomi vaghi SENZA cronologia: "questo", "quello" (primo messaggio)
+- SOLO se tecnicamente impossibile inferire: nessun topic in cronologia + query ambigua
+
+**⚠️ NON USARE CLARIFICATION PER**:
+- "errori" → interroga DB per errori recenti (action: tool)
+- "come va" → interroga DB per status generale (action: tool)
+- "workflow" / "processi" → interroga DB (action: tool)
+- "oggi" / "ieri" → usa timestamp automaticamente (action: tool)
+- Query vaghe MA su topic workflow → SEMPRE tool
+
+**REGOLA D'ORO NUOVA**: Se la query menziona workflow/processi/esecuzioni/errori → SEMPRE `action: tool`
 
 **Regola d'oro**: minimizza latenza → preferisci `respond` quando possibile.
 
@@ -665,7 +729,8 @@ class MilhenaGraph:
         graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
         graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
         graph.add_node("[RAG] Retrieve Context", self.retrieve_rag_context)
-        graph.add_node("[TOOL] Database Query", self.database_query)
+        # NEW: Replace hardcoded database_query with intelligent ReAct agent
+        graph.add_node("[TOOL] Database Query", self.execute_react_agent)
         graph.add_node("[AGENT] Generate Response", self.generate_response)
         graph.add_node("[LIB] Mask Response", self.mask_response)
         graph.add_node("[CODE] Record Feedback", self.record_feedback)
@@ -716,13 +781,45 @@ class MilhenaGraph:
         graph.add_edge("[CODE] Record Feedback", END)
         graph.add_edge("[CODE] Handle Error", END)
 
-        # Compile the graph
+        # Initialize In-Memory Checkpointer for conversation memory
+        # Best Practice (LangGraph): Start with MemorySaver for testing, upgrade to DB for production
+        # MemorySaver stores conversation history in-memory (lost on restart, but simple & fast)
+        checkpointer = MemorySaver()
+        logger.info("✅ MemorySaver initialized - Conversation memory active (in-memory)")
+
+        # Initialize ReAct Agent for tool calling with conversation memory
+        # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
+        # This replaces hardcoded if/elif pattern matching with intelligent tool selection
+        react_tools = [
+            get_workflows_tool,
+            get_performance_metrics_tool,
+            get_system_monitoring_tool,
+            get_analytics_tool,
+            get_workflow_details_tool,
+            get_error_details_tool,
+            get_all_errors_summary_tool,
+            search_knowledge_base_tool,
+            get_executions_by_date_tool
+        ]
+
+        # Use OpenAI Nano (10M tokens "Offerta Speciale") - GROQ hit rate limit
+        # gpt-4.1-nano-2025-04-14: 10M tokens budget, perfect for ReAct agent
+        react_model = self.openai_llm if self.openai_llm else self.groq_llm
+
+        self.react_agent = create_react_agent(
+            model=react_model,
+            tools=react_tools,
+            checkpointer=checkpointer  # Share same checkpointer for unified memory
+        )
+        logger.info("✅ ReAct Agent initialized with 9 tools (8 DB + 1 RAG) - Context-aware tool selection")
+
+        # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
-            checkpointer=None,
+            checkpointer=checkpointer,
             debug=False
         )
 
-        logger.info("MilhenaGraph compiled with Supervisor entry point")
+        logger.info("MilhenaGraph compiled with Supervisor entry point + Memory")
 
     # ============================================================================
     # NODE IMPLEMENTATIONS - ALL WITH LANGSMITH TRACING
@@ -796,11 +893,13 @@ class MilhenaGraph:
         query = state["query"]
         session_id = state["session_id"]
 
+        logger.error(f"🔍 [DEBUG] SUPERVISOR CALLED with query: '{query[:80]}'")
         logger.info(f"[SUPERVISOR] Analyzing query: {query[:50]}...")
 
         # STEP 0: Instant classification (fast-path bypass LLM)
         instant = self._instant_classify(query)
         if instant:
+            logger.error(f"🎯 [DEBUG] INSTANT MATCH: {instant['category']} - needs_db={instant.get('needs_database')}, needs_rag={instant.get('needs_rag')}")
             logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
             decision = SupervisorDecision(**instant)
             state["supervisor_decision"] = decision
@@ -1027,6 +1126,8 @@ class MilhenaGraph:
         This fast-path reduces latency from ~3s to <50ms for common queries.
         Best Practice: Use regex for high-frequency patterns to reduce LLM costs.
         """
+        import re
+
         query_lower = query.lower().strip()
 
         # GREETING patterns (exact match)
@@ -1066,18 +1167,49 @@ class MilhenaGraph:
                 "llm_used": "fast-path"
             }
 
-        # WORKFLOW/PROCESS patterns (NEW - high frequency queries)
+        # META-QUERIES: Questions ABOUT the assistant itself (NOT workflows)
+        # IMPORTANT: Check this BEFORE workflow patterns to avoid confusion
+        # BUT: Skip if user explicitly mentions "workflow" or "processo"
+        if not re.search(r'\b(workflow|processo|processi|process|esecuzione)', query_lower):
+            meta_patterns = [
+                r'\b(chi sei|cosa sei|come ti chiami)\b',
+                r'\b(cosa|chi|come).*\b(milhena|milena)\b',
+                r'\b(milhena|milena)\b.*\b(cosa|chi|come|puoi|fai)\b',
+                r'\binformazioni\s+(su|di|riguard)?\s*(milhena|milena)$',  # Solo se finisce con milhena
+                r'\bparla.*\b(milhena|milena)\b',
+            ]
+        else:
+            meta_patterns = []
+        for pattern in meta_patterns:
+            if re.search(pattern, query_lower):
+                logger.info(f"[FAST-PATH] META-QUERY detected: asking about assistant itself")
+                return {
+                    "action": "respond",  # Direct response (RAG search not reliable for meta-queries)
+                    "category": "ABOUT_ASSISTANT",
+                    "confidence": 0.95,
+                    "reasoning": "Meta-query - user asking about Milhena assistant (not workflow)",
+                    "direct_response": "Sono Milhena, l'assistente intelligente di PilotProOS.\n\n**Cosa faccio:**\n• Fornisco informazioni sui processi aziendali\n• Mostro statistiche e metriche in tempo reale\n• Spiego errori in linguaggio business\n\n**Cosa NON faccio:**\n• NON ho accesso a password o credenziali\n• NON posso eseguire processi (solo informazioni)\n\n**Come aiutarti:**\nChiedi in italiano: \"Quanti processi?\", \"Ci sono errori?\", \"Info sul processo X\"\n\nAltro?",
+                    "needs_rag": False,
+                    "needs_database": False,
+                    "clarification_options": None,
+                    "llm_used": "fast-path"
+                }
+
+        # WORKFLOW/PROCESS patterns (HIGH PRIORITY - core mission)
         workflow_patterns = [
             "mostra workflow", "lista workflow", "workflow attiv", "processi attiv",
             "quali workflow", "quali processi", "elenco workflow", "elenco processi",
-            "vedi workflow", "vedi processi"
+            "vedi workflow", "vedi processi", "workflow", "processi",
+            "quale workflow", "quale processo", "ultimo workflow", "ultim",
+            "esecuzioni", "esecuzione", "errori", "errore", "fallito", "falliti",
+            "stato", "status", "come va", "come stanno", "tutto ok"
         ]
         if any(pattern in query_lower for pattern in workflow_patterns):
             return {
                 "action": "tool",
                 "category": "SIMPLE_METRIC",
-                "confidence": 0.9,
-                "reasoning": "Query workflow comune - fast-path",
+                "confidence": 0.95,  # Aumentata confidence per workflow queries
+                "reasoning": "Query workflow/esecuzioni - fast-path (missione core)",
                 "direct_response": None,
                 "needs_rag": False,
                 "needs_database": True,
@@ -1712,6 +1844,81 @@ class MilhenaGraph:
         return state
 
     @traceable(
+        name="MilhenaReActAgent",
+        run_type="chain",
+        metadata={"component": "react_agent", "version": "3.0"}
+    )
+    async def execute_react_agent(self, state: MilhenaState) -> MilhenaState:
+        """
+        Execute ReAct Agent with conversation memory for intelligent tool selection
+
+        Best Practice (LangGraph Official): Use create_react_agent for context-aware tool calling
+        The agent receives full conversation history and intelligently selects tools
+
+        Benefits:
+        - Understands pronouns and references ("quali sono?" → knows from history)
+        - LLM-based tool selection (no hardcoded if/elif)
+        - Automatic conversation context resolution
+        """
+        session_id = state["session_id"]
+        query = state.get("query", "")
+
+        logger.error(f"🛠️ [DEBUG] EXECUTE_REACT_AGENT CALLED - query='{query[:60]}'")
+
+        try:
+            # Config for ReAct agent with thread_id for memory
+            config = {
+                "configurable": {
+                    "thread_id": session_id
+                }
+            }
+
+            # Invoke ReAct agent with full message history
+            # Agent automatically loads previous messages from checkpointer
+            result = await self.react_agent.ainvoke(
+                {"messages": state["messages"]},
+                config
+            )
+
+            # Extract tool results from ToolMessages (Best Practice: LangGraph official docs)
+            # ToolMessage.content contains actual tool execution results
+            # Final AIMessage often contains generic LLM-generated text
+            from langchain_core.messages import ToolMessage
+
+            tool_messages = [msg for msg in result["messages"] if isinstance(msg, ToolMessage)]
+
+            # LOGGING: Estrai anche quale tool è stato chiamato
+            tool_names = []
+            for msg in result["messages"]:
+                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    for tool_call in msg.tool_calls:
+                        if 'name' in tool_call:
+                            tool_names.append(tool_call['name'])
+
+            logger.error(f"📊 [DEBUG] REACT AGENT RESULT - total messages={len(result['messages'])}, ToolMessages={len(tool_messages)}")
+            logger.error(f"🔧 [DEBUG] TOOLS CHIAMATI: {tool_names if tool_names else 'NESSUNO (risposta diretta LLM)'}")
+
+            if tool_messages:
+                # Combine all tool results (multiple tools may have been called)
+                tool_output = "\n\n".join([msg.content for msg in tool_messages])
+                state["context"]["database_result"] = tool_output
+                logger.error(f"✅ [DEBUG] Extracted {len(tool_messages)} ToolMessages: {tool_output[:150]}")
+            else:
+                # Fallback: no tools used, use final AI message
+                final_message = result["messages"][-1]
+                tool_output = final_message.content if hasattr(final_message, 'content') else ""
+                state["context"]["database_result"] = tool_output
+                logger.error(f"⚠️ [DEBUG] NO ToolMessages - using AIMessage: {tool_output[:100]}")
+
+        except Exception as e:
+            logger.error(f"ReAct Agent failed: {e}")
+            state["context"]["database_error"] = str(e)
+            # Fallback to empty result
+            state["context"]["database_result"] = "Unable to retrieve data at this time."
+
+        return state
+
+    @traceable(
         name="MilhenaRetrieveRAG",
         run_type="retriever",
         metadata={"component": "rag", "version": "3.0"}
@@ -1810,10 +2017,11 @@ class MilhenaGraph:
 
         if response:
             try:
+                # Apply smart masking that preserves workflow names
                 masked = self.masking_engine.mask(response)
                 state["response"] = masked
                 state["masked"] = True
-                logger.info("Response masked")
+                logger.info("Response masked (preserving workflow names)")
             except Exception as e:
                 logger.error(f"Masking failed: {e}")
                 state["masked"] = False
@@ -1865,12 +2073,16 @@ class MilhenaGraph:
         """
         decision = state.get("supervisor_decision")
 
+        logger.error(f"🚦 [DEBUG] ROUTING - decision={decision}")
+
         if not decision:
             logger.warning("[ROUTING] No supervisor decision, defaulting to full pipeline")
             return "apply_patterns"
 
         action = decision.get("action", "route")  # Default: route (conservative)
         category = decision["category"]
+
+        logger.error(f"🚦 [DEBUG] ROUTING - action={action}, category={category}")
 
         # ACTION: respond
         # Supervisor ha già generato direct_response, vai direttamente a Mask
@@ -1881,6 +2093,7 @@ class MilhenaGraph:
         # ACTION: tool
         # Serve DB query per dati, poi genera risposta e va a Mask
         if action == "tool":
+            logger.error(f"🚀 [DEBUG] ROUTING TO DATABASE_QUERY NODE")
             logger.info(f"[ROUTING] action=tool (category={category}) → database_query → generate_response → mask_response")
             return "database_query"
 
@@ -1976,9 +2189,33 @@ class MilhenaGraph:
             Response dictionary
         """
         try:
-            # Initialize state
+            # Config with thread_id for conversation memory (Best Practice: LangGraph Checkpointer)
+            # thread_id = session_id ensures each user has their own conversation history
+            config = {
+                "configurable": {
+                    "thread_id": session_id
+                }
+            }
+
+            # CRITICAL FIX: Load conversation history BEFORE invoking graph
+            # So supervisor can access it in state["messages"]
+            previous_messages = []
+            try:
+                # Get last checkpoint for this thread
+                state_snapshot = self.compiled_graph.get_state(config)
+                if state_snapshot and hasattr(state_snapshot, 'values') and state_snapshot.values:
+                    # Extract messages from previous state
+                    prev_msgs = state_snapshot.values.get("messages", [])
+                    # Keep last 10 messages max (5 turns) to avoid context explosion
+                    previous_messages = prev_msgs[-10:] if len(prev_msgs) > 10 else prev_msgs
+                    logger.info(f"[MEMORY] Loaded {len(previous_messages)} previous messages from session {session_id}")
+            except Exception as e:
+                logger.warning(f"[MEMORY] Could not load previous state: {e}")
+                # Continue without history if loading fails
+
+            # Initialize state WITH conversation history
             initial_state = MilhenaState(
-                messages=[HumanMessage(content=query)],
+                messages=previous_messages + [HumanMessage(content=query)],  # History + new message
                 query=query,
                 intent=None,
                 session_id=session_id,
@@ -1996,8 +2233,8 @@ class MilhenaGraph:
                 original_query=None
             )
 
-            # Run the graph
-            final_state = await self.compiled_graph.ainvoke(initial_state)
+            # Run the graph with config (checkpointer saves NEW state after execution)
+            final_state = await self.compiled_graph.ainvoke(initial_state, config)
 
             # Extract supervisor decision for metadata
             supervisor_decision = final_state.get("supervisor_decision")

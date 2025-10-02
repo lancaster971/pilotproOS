@@ -190,7 +190,7 @@
   </MainLayout>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useToast } from 'vue-toastification'
@@ -338,8 +338,16 @@ const sendMessage = async () => {
   inputMessage.value = ''
 
   // Check if this is a reformulation
+  // Serialize conversation history properly (remove Date objects)
+  const serializedHistory = messages.value.slice(-10).map(msg => ({
+    role: msg.role,
+    content: msg.content,
+    confidence: msg.confidence,
+    intent: msg.intent
+  }))
+
   let contextData = {
-    conversation_history: messages.value.slice(-10), // Last 10 messages
+    conversation_history: serializedHistory,
     is_reformulation: isReformulating.value
   }
 
@@ -361,44 +369,67 @@ const sendMessage = async () => {
 
   try {
     // Call Milhena API via backend proxy
-    const response = await apiClient.post('/api/milhena/chat', {
+    const payload = {
       message: question,
       session_id: sessionId.value,
       context: contextData
+    }
+    console.log('🚀 Sending to Milhena:', JSON.stringify(payload, null, 2))
+
+    // Use fetch directly to avoid ofetch serialization issues
+    const token = localStorage.getItem('token')
+    const fetchResponse = await fetch('http://localhost:3001/api/milhena/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(payload)
     })
+
+    if (!fetchResponse.ok) {
+      const errorData = await fetchResponse.json()
+      throw new Error(errorData.error || 'Request failed')
+    }
+
+    const response = await fetchResponse.json()
 
     const latency = Date.now() - startTime
     responseTime.value = latency
 
     // Update accuracy if provided
-    if (response.data.system_accuracy) {
-      accuracy.value = Math.round(response.data.system_accuracy * 100)
+    if (response.system_accuracy) {
+      accuracy.value = Math.round(response.system_accuracy * 100)
     }
 
     // Add assistant response with all metadata
     messages.value.push({
       role: 'assistant',
-      content: response.data.response || response.data.message,
+      content: response.response || response.message,
       timestamp: new Date(),
-      confidence: response.data.confidence,
-      intent: response.data.intent,
+      confidence: response.confidence,
+      intent: response.intent,
       latency: latency,
-      cached: response.data.cached || false,
-      learned: response.data.learned || false
+      cached: response.cached || false,
+      learned: response.learned || false
     })
 
     // Update stats if learned something
-    if (response.data.learned) {
+    if (response.learned) {
       todayStats.value.patterns++
     }
 
-  } catch (error) {
-    console.error('Chat error:', error)
+  } catch (error: any) {
+    console.error('❌ Chat error FULL:', error)
+    console.error('❌ Error data:', JSON.stringify(error.data, null, 2))
+    console.error('❌ Error message:', error.message)
+    console.error('❌ Error status:', error.statusCode)
+    console.error('❌ Error response:', error.response)
 
     // Fallback message
     messages.value.push({
       role: 'assistant',
-      content: error.response?.data?.message ||
+      content: error.data?.message || error.message ||
                'Mi dispiace, c\'è stato un problema. Riprova tra poco.',
       timestamp: new Date(),
       latency: Date.now() - startTime
@@ -416,12 +447,12 @@ const sendMessage = async () => {
 // Load learning stats
 const loadLearningStats = async () => {
   try {
-    const response = await apiClient.get('/api/milhena/learning/stats/today')
-    todayStats.value = response.data
+    const response = await apiClient.get('/api/milhena/stats')
+    todayStats.value = response
 
     // Update accuracy from stats
-    if (response.data.accuracy) {
-      accuracy.value = Math.round(response.data.accuracy * 100)
+    if (response.accuracy) {
+      accuracy.value = Math.round(response.accuracy * 100)
     }
   } catch (error) {
     console.error('Failed to load learning stats:', error)

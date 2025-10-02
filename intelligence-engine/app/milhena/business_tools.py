@@ -10,6 +10,9 @@ from typing import Dict, Any, List, Optional
 from langchain_core.tools import tool
 from langsmith import traceable
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Database connection helper
 def get_db_connection():
@@ -243,7 +246,7 @@ def get_performance_metrics_tool(query_type: str = "overview") -> str:
 
             response = "**Tasso di successo per processo:**\n"
             for r in results:
-                emoji = "🟢" if r[3] >= 90 else "🟡" if r[3] >= 70 else "🔴"
+                emoji = "[OK]" if r[3] >= 90 else "[!]" if r[3] >= 70 else "[!!]"
                 response += f"{emoji} {r[0]}: {r[3]}% ({r[2]}/{r[1]} successi)\n"
 
         elif query_type == "trends":
@@ -286,7 +289,7 @@ def get_performance_metrics_tool(query_type: str = "overview") -> str:
             results = cur.fetchall()
 
             if results:
-                response = "**⚠️ Processi che richiedono attenzione:**\n"
+                response = "**[AVVISO] Processi che richiedono attenzione:**\n"
                 for r in results:
                     issues = []
                     if r[1] > 0:
@@ -295,7 +298,7 @@ def get_performance_metrics_tool(query_type: str = "overview") -> str:
                         issues.append(f"{r[2]} esecuzioni lente (>10s)")
                     response += f"- {r[0]}: {', '.join(issues)} (media: {r[3]:.1f}s)\n"
             else:
-                response = "✅ Nessun collo di bottiglia identificato"
+                response = "[OK] Nessun collo di bottiglia identificato"
 
         conn.close()
         return response
@@ -338,7 +341,7 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
             result = cur.fetchone()
 
             error_rate = (result[1]/result[0]*100) if result[0] > 0 else 0
-            health_status = "🟢 Ottimale" if error_rate < 5 else "🟡 Attenzione" if error_rate < 20 else "🔴 Critico"
+            health_status = "[OK] Ottimale" if error_rate < 5 else "[!] Attenzione" if error_rate < 20 else "[!!] Critico"
 
             response = f"""**Stato Sistema:**
 {health_status}
@@ -362,7 +365,7 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
             """)
             stuck = cur.fetchone()
             if stuck[0] > 0:
-                alerts.append(f"⚠️ {stuck[0]} esecuzioni bloccate da oltre 30 minuti")
+                alerts.append(f"[AVVISO] {stuck[0]} esecuzioni bloccate da oltre 30 minuti")
 
             # Check for high error rate
             cur.execute("""
@@ -374,7 +377,7 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
             """)
             recent = cur.fetchone()
             if recent[0] > 0 and (recent[1]/recent[0]) > 0.2:
-                alerts.append(f"🔴 Alto tasso errori: {recent[1]}/{recent[0]} nell'ultima ora")
+                alerts.append(f"[!!] Alto tasso errori: {recent[1]}/{recent[0]} nell'ultima ora")
 
             # Check for workflows with consecutive failures
             cur.execute("""
@@ -394,9 +397,9 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
             """)
             failing = cur.fetchall()
             for f in failing:
-                alerts.append(f"❌ '{f[0]}' ha {f[1]} errori consecutivi")
+                alerts.append(f"[ERRORE] '{f[0]}' ha {f[1]} errori consecutivi")
 
-            response = "**Alert Sistema:**\n" + "\n".join(alerts) if alerts else "✅ Nessun alert attivo"
+            response = "**Alert Sistema:**\n" + "\n".join(alerts) if alerts else "[OK] Nessun alert attivo"
 
         elif query_type == "queue":
             # Execution queue status
@@ -462,7 +465,7 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
 - Uptime: {uptime:.1f}%
 - Ore attive: {result[0]}/24
 - Tasso successo medio: {success_rate:.1f}%
-- SLA: {'✅ Rispettato' if uptime >= 99 else '⚠️ Sotto target' if uptime >= 95 else '🔴 Critico'}"""
+- SLA: {'[OK] Rispettato' if uptime >= 99 else '[!] Sotto target' if uptime >= 95 else '[!!] Critico'}"""
 
         conn.close()
         return response
@@ -478,13 +481,24 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
 @traceable(name="MilhenaAnalytics", run_type="tool")
 def get_analytics_tool(query_type: str = "summary") -> str:
     """
-    Get business analytics and reports.
+    Get business analytics and execution statistics.
+
+    Use this when user asks about:
+    - "quante esecuzioni oggi?" → use query_type="summary"
+    - "quante esecuzioni questa settimana?" → use query_type="summary"
+    - "confronto con settimana scorsa" → use query_type="comparison"
+    - ANY question about execution counts, totals, or statistics
 
     Args:
-        query_type: "summary", "comparison", "roi", "patterns", "forecast"
+        query_type:
+            - "summary" (DEFAULT): Esecuzioni oggi + settimana (use for "quante esecuzioni")
+            - "comparison": Confronto settimana vs settimana scorsa
+            - "roi": Return on investment analysis
+            - "patterns": Pattern detection
+            - "forecast": Trend forecasting
 
     Returns:
-        Business analytics insights
+        Business analytics insights with execution counts and success rates
     """
     try:
         conn = get_db_connection()
@@ -701,3 +715,695 @@ def get_analytics_tool(query_type: str = "summary") -> str:
 
     except Exception as e:
         return f"Errore analytics: {str(e)}"
+
+
+# ============================================================================
+# NEW ENHANCED TOOLS - WORKFLOW DETAILS & ERRORS
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaWorkflowDetails", run_type="tool")
+def get_workflow_details_tool(workflow_name: str) -> str:
+    """
+    Get detailed information about a specific workflow/process.
+
+    Args:
+        workflow_name: Name of the workflow to get details for
+
+    Returns:
+        Detailed workflow information including execution history and status
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Get workflow basic info
+        cur.execute("""
+            SELECT
+                we.id,
+                we.name,
+                we.active,
+                we."createdAt",
+                we."updatedAt",
+                we."triggerCount",
+                JSON_ARRAY_LENGTH(we.nodes) as node_count
+            FROM n8n.workflow_entity we
+            WHERE LOWER(we.name) LIKE LOWER(%s)
+            LIMIT 1
+        """, (f"%{workflow_name}%",))
+
+        workflow = cur.fetchone()
+
+        if not workflow:
+            return f"Processo '{workflow_name}' non trovato. Verifica il nome o contatta IT."
+
+        wf_id, name, active, created, updated, trigger_count, node_count = workflow
+
+        # Get execution stats
+        cur.execute("""
+            SELECT
+                COUNT(*) as total_executions,
+                COUNT(CASE WHEN status = 'success' THEN 1 END) as successful,
+                COUNT(CASE WHEN status = 'error' THEN 1 END) as failed,
+                MAX("startedAt") as last_execution,
+                MAX(CASE WHEN status = 'success' THEN "startedAt" END) as last_success,
+                MAX(CASE WHEN status = 'error' THEN "startedAt" END) as last_error
+            FROM n8n.execution_entity
+            WHERE "workflowId" = %s
+        """, (wf_id,))
+
+        stats = cur.fetchone()
+        total_exec, successful, failed, last_exec, last_success, last_error = stats
+
+        # Build response
+        status_emoji = "[ATTIVO]" if active else "[PAUSA]"
+        status_text = "Attivo" if active else "Inattivo"
+
+        response = f"""**{status_emoji} Processo: {name}**
+
+**Stato:** {status_text}
+**Complessità:** {node_count} passaggi
+**Creato:** {created.strftime('%d/%m/%Y alle %H:%M')}
+**Ultimo aggiornamento:** {updated.strftime('%d/%m/%Y alle %H:%M')}
+
+**📊 Statistiche Esecuzioni:**
+- Totali: {total_exec or 0}
+- Successo: {successful or 0} ({(successful/total_exec*100 if total_exec else 0):.1f}%)
+- Errori: {failed or 0} ({(failed/total_exec*100 if total_exec else 0):.1f}%)
+"""
+
+        if last_exec:
+            response += f"\n**[i] Ultima Esecuzione:** {last_exec.strftime('%d/%m/%Y alle %H:%M')}"
+
+        if last_success:
+            response += f"\n**[OK] Ultimo Successo:** {last_success.strftime('%d/%m/%Y alle %H:%M')}"
+
+        if last_error:
+            response += f"\n**[ERRORE] Ultimo Errore:** {last_error.strftime('%d/%m/%Y alle %H:%M')}"
+
+        if not last_exec:
+            response += "\n\n[AVVISO] Questo processo non è mai stato eseguito."
+
+        conn.close()
+        return response
+
+    except Exception as e:
+        return f"Errore recupero dettagli processo: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaAllErrors", run_type="tool")
+def get_all_errors_summary_tool(hours: int = 24) -> str:
+    """
+    Get summary of ALL workflows that had errors (no details, just list).
+
+    Use this when user asks general questions:
+    - "che errori abbiamo oggi?"
+    - "quali processi hanno avuto problemi?"
+    - "ci sono errori?"
+
+    Returns: List of workflow names with error counts
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        time_cutoff = datetime.now() - timedelta(hours=hours)
+
+        # All workflows with errors
+        cur.execute("""
+            SELECT
+                we.name,
+                COUNT(*) as error_count,
+                MAX(ee."startedAt") as last_error
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+            WHERE ee.status = 'error'
+              AND ee."startedAt" >= %s
+            GROUP BY we.name
+            ORDER BY error_count DESC
+            LIMIT 10
+        """, (time_cutoff,))
+
+        errors = cur.fetchall()
+
+        if not errors:
+            return f"[OK] Nessun errore rilevato nelle ultime {hours} ore. Sistema operativo."
+
+        # SMART RESPONSE: Se c'è UN SOLO errore, mostra subito i dettagli!
+        if len(errors) == 1:
+            workflow_name = errors[0][0]
+
+            # Ottieni dettagli errore inline (non possiamo chiamare altro @tool)
+            cur.execute("""
+                SELECT
+                    we.name,
+                    ee."startedAt",
+                    ee."stoppedAt",
+                    ee.status,
+                    ee.id,
+                    ed.data
+                FROM n8n.execution_entity ee
+                JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+                LEFT JOIN n8n.execution_data ed ON ed."executionId" = ee.id
+                WHERE LOWER(we.name) LIKE LOWER(%s)
+                  AND ee.status = 'error'
+                  AND ee."startedAt" >= %s
+                ORDER BY ee."startedAt" DESC
+                LIMIT 5
+            """, (f"%{workflow_name}%", time_cutoff))
+
+            error_details = cur.fetchall()
+
+            if error_details:
+                # Mostra dettagli completi (riusa la logica del tool dettagliato)
+                response = f"[ERRORE] **Errore in '{workflow_name}'**:\n\n"
+
+                for idx, (name, started, stopped, status, exec_id, error_data) in enumerate(error_details[:1], 1):  # Solo il primo
+                    duration = (stopped - started).total_seconds() if stopped else 0
+                    response += f"**Errore del {started.strftime('%d/%m/%Y alle %H:%M')}** (durata: {duration:.0f}s)\n"
+
+                    if error_data:
+                        try:
+                            # Decompressione errore (inline)
+                            data = json.loads(error_data)
+
+                            def decompress(obj, array):
+                                if isinstance(obj, dict):
+                                    return {k: decompress(v, array) for k, v in obj.items()}
+                                elif isinstance(obj, list):
+                                    return [decompress(item, array) for item in obj]
+                                elif isinstance(obj, str) and obj.isdigit():
+                                    idx = int(obj)
+                                    if 0 <= idx < len(array):
+                                        return decompress(array[idx], array)
+                                return obj
+
+                            decompressed = decompress(data[0], data)
+                            result_data = decompressed.get('resultData', {})
+                            error_obj = result_data.get('error', {})
+
+                            error_msg = error_obj.get('message', 'Errore sconosciuto')
+                            node_name = error_obj.get('node', {}).get('name', 'N/A')
+
+                            response += f"[!] **Passaggio fallito:** {node_name}\n"
+
+                            # Trova spiegazione (pattern matching inline)
+                            if 'unable to sign without access token' in error_msg.lower():
+                                response += "\n[CAUSA] Le credenziali di accesso al file esterno (Google Sheets/Excel) sono scadute o mancanti."
+                                response += "\n[SOLUZIONE] Contatta IT per riautorizzare l'accesso al file. Servirà riconnettere l'account Google/Microsoft."
+                            elif 'timeout' in error_msg.lower() or 'ETIMEDOUT' in error_msg:
+                                response += "\n[CAUSA] Il servizio esterno non ha risposto in tempo."
+                                response += "\n[SOLUZIONE] Riprova tra 5 minuti. Se persiste, contatta IT."
+                            elif '401' in error_msg or 'unauthorized' in error_msg.lower():
+                                response += "\n[CAUSA] Credenziali non valide o scadute."
+                                response += "\n[SOLUZIONE] Contatta IT per aggiornare le credenziali."
+                            elif '403' in error_msg or 'forbidden' in error_msg.lower():
+                                response += "\n[CAUSA] Permessi insufficienti."
+                                response += "\n[SOLUZIONE] Contatta IT per richiedere i permessi necessari."
+                            elif '429' in error_msg or 'rate limit' in error_msg.lower():
+                                response += "\n[CAUSA] Troppo richieste. Limite raggiunto."
+                                response += "\n[SOLUZIONE] Attendi 1 ora prima di riprovare."
+                            elif 'ECONNREFUSED' in error_msg:
+                                response += "\n[CAUSA] Impossibile connettersi al servizio esterno."
+                                response += "\n[SOLUZIONE] Contatta IT per verificare lo stato del servizio."
+                            else:
+                                response += f"\n[INFO] {error_msg}"
+                                response += "\n[SOLUZIONE] Contatta IT con questo messaggio e l'orario dell'errore."
+
+                        except Exception as e:
+                            logger.error(f"Error parsing error data: {e}")
+                            response += "[AVVISO] Dettagli errore non disponibili"
+                    else:
+                        response += "[AVVISO] Dettagli errore non disponibili"
+
+                cur.close()
+                conn.close()
+                return response
+
+        # Se ci sono MULTIPLI errori, mostra solo la lista
+        response = f"[ERRORE] **Processi con errori** (ultime {hours}h):\n\n"
+
+        for i, (name, count, last_error) in enumerate(errors, 1):
+            severity = "[!!!]" if count >= 5 else "[!!]" if count >= 2 else "[!]"
+            response += f"{severity} **{name}**\n"
+            response += f"   Errori: {count} | Ultimo: {last_error.strftime('%d/%m %H:%M')}\n\n"
+
+        response += f"**Totale processi con errori:** {len(errors)}\n\n"
+
+        # Suggerisci di chiedere dettagli
+        response += "[SUGGERIMENTO] Per vedere i dettagli di un errore specifico, chiedi: \"spiegami l'errore di [nome processo]\""
+
+        # Critical alert
+        critical = [e for e in errors if e[1] >= 5]
+        if critical:
+            response += f"\n\n[CRITICO] {len(critical)} processi con errori multipli. Contatta IT urgentemente."
+
+        cur.close()
+        conn.close()
+
+        return response
+
+    except Exception as e:
+        return f"Errore recupero lista errori: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaErrorDetails", run_type="tool")
+def get_error_details_tool(workflow_name: str, hours: int = 24) -> str:
+    """
+    Get DETAILED error explanation with cause, failed step, and solution for a SPECIFIC workflow.
+
+    IMPORTANT: workflow_name is REQUIRED! If user mentions a workflow name in previous messages,
+    extract it from conversation history.
+
+    Use this when user asks:
+    - "che errore ha il processo X?" → workflow_name="X"
+    - "spiegami l'errore di X" → workflow_name="X"
+    - "perché è fallito X?" → workflow_name="X"
+    - "che tipo di errore è?" (follow-up to previous error message) → extract name from history
+
+    Args:
+        workflow_name: REQUIRED - Name of workflow to analyze (extract from user query or history)
+        hours: Time range in hours (default: last 24 hours)
+
+    Returns:
+        Detailed error with: timestamp, failed node/step name, error cause in business terms, solution
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        time_cutoff = datetime.now() - timedelta(hours=hours)
+
+        # Errors for specific workflow WITH error data
+        cur.execute("""
+            SELECT
+                we.name,
+                ee."startedAt",
+                ee."stoppedAt",
+                ee.status,
+                ee.id,
+                ed.data
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+            LEFT JOIN n8n.execution_data ed ON ed."executionId" = ee.id
+            WHERE LOWER(we.name) LIKE LOWER(%s)
+              AND ee.status = 'error'
+              AND ee."startedAt" >= %s
+            ORDER BY ee."startedAt" DESC
+            LIMIT 10
+        """, (f"%{workflow_name}%", time_cutoff))
+
+        errors = cur.fetchall()
+
+        if not errors:
+            return f"Nessun errore trovato per il processo '{workflow_name}' nelle ultime {hours} ore."
+
+        response = f"[ERRORE] **Errori per '{errors[0][0]}'** (ultime {hours}h):\n\n"
+
+        # Helper function to decompress n8n error data
+        def decompress_error_data(data_str):
+            """Decomprime il formato JSON indicizzato di n8n"""
+            try:
+                data = json.loads(data_str)
+
+                def decompress(obj, array):
+                    if isinstance(obj, dict):
+                        return {k: decompress(v, array) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [decompress(item, array) for item in obj]
+                    elif isinstance(obj, str) and obj.isdigit():
+                        idx = int(obj)
+                        if 0 <= idx < len(array):
+                            return decompress(array[idx], array)
+                    return obj
+
+                decompressed = decompress(data[0], data)
+                result_data = decompressed.get('resultData', {})
+                error = result_data.get('error', {})
+
+                return {
+                    'message': error.get('message', 'Errore sconosciuto'),
+                    'node': error.get('node', {}).get('name', 'N/A'),
+                    'type': error.get('name', 'N/A')
+                }
+            except Exception as e:
+                logger.error(f"Error decompressing error data: {e}")
+                return None
+
+        # Helper function to explain error in business terms
+        def explain_error(error_msg, node_name):
+            """Spiega l'errore in linguaggio business con soluzione"""
+            explanations = {
+                # OAuth / Autenticazione
+                'Unable to sign without access token': {
+                    'reason': 'Le credenziali di accesso al file esterno (Google Sheets/Excel) sono scadute o mancanti.',
+                    'solution': 'Contatta IT per riautorizzare l\'accesso al file. Servirà riconnettere l\'account Google/Microsoft.'
+                },
+                'authentication': {
+                    'reason': 'Problema di autenticazione con servizio esterno.',
+                    'solution': 'Contatta IT per verificare credenziali e permessi di accesso.'
+                },
+                'invalid credentials': {
+                    'reason': 'Le credenziali di accesso non sono corrette o sono scadute.',
+                    'solution': 'Contatta IT per aggiornare le credenziali di accesso al servizio.'
+                },
+                'unauthorized': {
+                    'reason': 'Accesso negato al servizio esterno. Credenziali mancanti o non valide.',
+                    'solution': 'Contatta IT per verificare i permessi e le credenziali dell\'account.'
+                },
+
+                # Timeout / Connessione
+                'timeout': {
+                    'reason': 'Il sistema esterno non ha risposto in tempo.',
+                    'solution': 'Riprova tra qualche minuto. Se persiste, contatta IT per verificare la connessione.'
+                },
+                'ETIMEDOUT': {
+                    'reason': 'Tempo di attesa scaduto durante la connessione al servizio esterno.',
+                    'solution': 'Il servizio esterno è lento o non disponibile. Riprova tra 5 minuti.'
+                },
+                'ECONNREFUSED': {
+                    'reason': 'Impossibile connettersi al servizio esterno. Il servizio potrebbe essere offline.',
+                    'solution': 'Contatta IT per verificare lo stato del servizio esterno.'
+                },
+                'network error': {
+                    'reason': 'Problema di connessione di rete con il servizio esterno.',
+                    'solution': 'Verifica la connessione internet. Se il problema persiste, contatta IT.'
+                },
+
+                # Permessi / Rate Limit
+                'permission': {
+                    'reason': 'Permessi insufficienti per accedere alla risorsa.',
+                    'solution': 'Contatta IT per verificare i permessi dell\'account sul servizio esterno.'
+                },
+                'forbidden': {
+                    'reason': 'Accesso negato alla risorsa. I permessi sono insufficienti.',
+                    'solution': 'Contatta IT per richiedere i permessi necessari sul file o servizio.'
+                },
+                'rate limit': {
+                    'reason': 'Raggiunto il limite di richieste consentite dal servizio esterno.',
+                    'solution': 'Attendi 1 ora prima di riprovare. Se urgente, contatta IT per aumentare i limiti.'
+                },
+                'too many requests': {
+                    'reason': 'Troppe richieste inviate al servizio esterno in breve tempo.',
+                    'solution': 'Attendi 30 minuti prima di riprovare l\'elaborazione.'
+                },
+
+                # Dati / Formato
+                'not found': {
+                    'reason': 'Il file o la risorsa richiesta non esiste o è stata spostata.',
+                    'solution': 'Verifica che il file esista nella posizione corretta. Contatta IT se non lo trovi.'
+                },
+                'invalid format': {
+                    'reason': 'Il formato dei dati ricevuti non è quello atteso dal sistema.',
+                    'solution': 'Contatta IT per verificare la struttura del file o dei dati di input.'
+                },
+                'required parameter': {
+                    'reason': 'Mancano informazioni obbligatorie per completare l\'elaborazione.',
+                    'solution': 'Contatta IT specificando quale elaborazione è fallita. Potrebbero servire dati aggiuntivi.'
+                },
+                'invalid json': {
+                    'reason': 'I dati ricevuti dal servizio esterno sono malformati.',
+                    'solution': 'Errore tecnico del servizio esterno. Contatta IT per una verifica approfondita.'
+                },
+
+                # Email / SMTP
+                'SMTP': {
+                    'reason': 'Impossibile inviare l\'email. Problema con il server di posta.',
+                    'solution': 'Contatta IT per verificare la configurazione del server email.'
+                },
+                'invalid recipient': {
+                    'reason': 'Uno o più destinatari email non sono validi.',
+                    'solution': 'Verifica gli indirizzi email dei destinatari. Contatta IT se il problema persiste.'
+                },
+
+                # Database / Storage
+                'duplicate': {
+                    'reason': 'Il record esiste già nel sistema. Impossibile creare duplicati.',
+                    'solution': 'Verifica che il dato non sia già presente. Se è corretto, contatta IT.'
+                },
+                'constraint violation': {
+                    'reason': 'Violazione delle regole di integrità dei dati.',
+                    'solution': 'I dati non rispettano i vincoli definiti. Contatta IT per una verifica.'
+                },
+
+                # API / Servizi esterni
+                'API key': {
+                    'reason': 'La chiave di accesso al servizio esterno non è valida o è scaduta.',
+                    'solution': 'Contatta IT per rinnovare la chiave di accesso al servizio.'
+                },
+                'quota exceeded': {
+                    'reason': 'Superato il limite di utilizzo del servizio esterno per il mese corrente.',
+                    'solution': 'Contatta IT per aumentare la quota o attendere il rinnovo mensile.'
+                },
+                'service unavailable': {
+                    'reason': 'Il servizio esterno è temporaneamente non disponibile.',
+                    'solution': 'Riprova tra 15 minuti. Se persiste, contatta IT per verifiche.'
+                },
+
+                # HTTP Status Codes
+                '400': {
+                    'reason': 'La richiesta inviata contiene dati non validi o incompleti.',
+                    'solution': 'Contatta IT con l\'orario dell\'errore. Potrebbero servire correzioni alla configurazione.'
+                },
+                '401': {
+                    'reason': 'Credenziali non valide o scadute per accedere al servizio.',
+                    'solution': 'Contatta IT per aggiornare le credenziali di autenticazione.'
+                },
+                '403': {
+                    'reason': 'Accesso negato. L\'account non ha i permessi necessari.',
+                    'solution': 'Contatta IT per richiedere i permessi mancanti sull\'account.'
+                },
+                '404': {
+                    'reason': 'La risorsa richiesta non esiste o è stata rimossa.',
+                    'solution': 'Verifica che il file/dato esista. Contatta IT se il problema persiste.'
+                },
+                '429': {
+                    'reason': 'Troppe richieste inviate. Limite del servizio esterno raggiunto.',
+                    'solution': 'Attendi 1 ora prima di riprovare. Contatta IT se urgente per aumentare i limiti.'
+                },
+                '500': {
+                    'reason': 'Errore interno del servizio esterno.',
+                    'solution': 'Il problema è sul servizio esterno. Riprova tra 30 minuti. Se persiste, contatta IT.'
+                },
+                '502': {
+                    'reason': 'Errore di comunicazione tra servizi. Gateway non raggiungibile.',
+                    'solution': 'Problema temporaneo del servizio esterno. Riprova tra 10 minuti.'
+                },
+                '503': {
+                    'reason': 'Servizio esterno temporaneamente in manutenzione.',
+                    'solution': 'Riprova tra 20 minuti. Se urgente, verifica lo stato del servizio esterno.'
+                },
+
+                # Errori specifici servizi comuni
+                'ENOTFOUND': {
+                    'reason': 'Impossibile trovare l\'indirizzo del servizio esterno.',
+                    'solution': 'Verifica connessione internet. Se funziona, contatta IT per verificare la configurazione.'
+                },
+                'certificate': {
+                    'reason': 'Problema con il certificato di sicurezza del servizio esterno.',
+                    'solution': 'Errore di sicurezza della connessione. Contatta IT per verificare i certificati.'
+                },
+                'SSL': {
+                    'reason': 'Errore nella connessione sicura (SSL/TLS) al servizio.',
+                    'solution': 'Problema di sicurezza della connessione. Contatta IT immediatamente.'
+                },
+                'refresh token': {
+                    'reason': 'Il token di accesso è scaduto e il rinnovo automatico è fallito.',
+                    'solution': 'Contatta IT per riautenticare l\'account e rinnovare i permessi.'
+                },
+                'webhook': {
+                    'reason': 'Il punto di ricezione dati automatico non è raggiungibile o configurato correttamente.',
+                    'solution': 'Contatta IT per verificare la configurazione del punto di ricezione dati.'
+                },
+                'execution': {
+                    'reason': 'Errore generico durante l\'elaborazione del processo.',
+                    'solution': 'Contatta IT specificando l\'orario esatto dell\'errore per una diagnosi dettagliata.'
+                }
+            }
+
+            # Cerca spiegazione
+            for key, expl in explanations.items():
+                if key.lower() in error_msg.lower():
+                    return f"\n   [CAUSA] {expl['reason']}\n   [SOLUZIONE] {expl['solution']}"
+
+            return f"\n   [INFO] {error_msg}\n   [SOLUZIONE] Contatta IT con questo messaggio e l'orario dell'errore."
+
+        for i, (name, started, stopped, status, exec_id, error_data) in enumerate(errors, 1):
+            duration = (stopped - started).total_seconds() if stopped else 0
+            response += f"**{i}. Errore del {started.strftime('%d/%m/%Y alle %H:%M')}** (durata: {duration:.0f}s)\n"
+
+            # Estrai e spiega errore
+            if error_data:
+                error_info = decompress_error_data(error_data)
+                if error_info:
+                    response += f"   [!] **Passaggio fallito:** {error_info['node']}\n"
+                    response += explain_error(error_info['message'], error_info['node'])
+                else:
+                    response += "   [AVVISO] Dettagli errore non disponibili"
+            else:
+                response += "   [AVVISO] Dettagli errore non disponibili"
+
+            response += "\n\n"
+
+        response += f"**Totale errori:** {len(errors)}"
+
+        if len(errors) >= 3:
+            response += "\n\n[ATTENZIONE] Errori ripetuti rilevati. Contatta il reparto IT urgentemente con questi dettagli."
+
+        conn.close()
+        return response
+
+    except Exception as e:
+        return f"Errore recupero dettagli errore: {str(e)}"
+
+
+# ============================================================================
+# KNOWLEDGE BASE TOOL (RAG)
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaExecutionsList", run_type="tool")
+def get_executions_by_date_tool(date: str, workflow_name: Optional[str] = None) -> str:
+    """
+    Get detailed list of ALL executions for a specific date.
+
+    Use this when user asks for:
+    - "tutte le esecuzioni del DD/MM/YY"
+    - "dammi le esecuzioni di oggi/ieri/data"
+    - "cosa è stato eseguito il DD/MM"
+    - "elenco esecuzioni del DD/MM"
+
+    Args:
+        date: Date in format DD/MM/YYYY or DD/MM/YY (e.g., "29/09/25", "01/10/2025")
+        workflow_name: Optional - filter by workflow name
+
+    Returns:
+        Detailed list with: processo name, execution time, status, duration
+    """
+    import psycopg2
+    from datetime import datetime
+
+    try:
+        # Parse date (support both DD/MM/YY and DD/MM/YYYY)
+        date_parts = date.split('/')
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Convert 2-digit year to 4-digit
+            if len(year) == 2:
+                year = f"20{year}"
+
+            # PostgreSQL date format: YYYY-MM-DD
+            pg_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+        else:
+            return f"[AVVISO] Formato data non valido. Usa DD/MM/YYYY o DD/MM/YY (es: 29/09/25)"
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to get ALL executions for the date
+        query = """
+            SELECT
+                w.name,
+                TO_CHAR(e.\"startedAt\", 'HH24:MI:SS') as execution_time,
+                e.status,
+                EXTRACT(EPOCH FROM (e.\"stoppedAt\" - e.\"startedAt\")) as duration_seconds
+            FROM execution_entity e
+            JOIN workflow_entity w ON e.\"workflowId\" = w.id
+            WHERE DATE(e.\"startedAt\") = %s
+        """
+
+        params = [pg_date]
+
+        if workflow_name:
+            query += " AND w.name ILIKE %s"
+            params.append(f"%{workflow_name}%")
+
+        query += " ORDER BY e.\"startedAt\" DESC"
+
+        cursor.execute(query, params)
+        executions = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        if not executions:
+            return f"Nessuna esecuzione trovata per il {date}"
+
+        # Format response with ALL executions listed
+        response = f"**Esecuzioni del {date}** (Totale: {len(executions)})\n\n"
+
+        for idx, (name, exec_time, status, duration) in enumerate(executions, 1):
+            status_icon = "[OK]" if status == "success" else "[ERR]"
+            duration_str = f"{int(duration)}s" if duration else "N/A"
+
+            response += f"{idx}. {status_icon} **{name}**\n"
+            response += f"   • Orario: {exec_time}\n"
+            response += f"   • Stato: {status}\n"
+            response += f"   • Durata: {duration_str}\n\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting executions by date: {e}")
+        return f"[ERRORE] Impossibile recuperare esecuzioni per {date}: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaKnowledgeBase", run_type="tool")
+async def search_knowledge_base_tool(query: str, top_k: int = 3) -> str:
+    """
+    Search the knowledge base for information about processes, system features, and procedures.
+
+    Use this when:
+    - User asks "what does process X do?"
+    - User asks "how do I...?"
+    - User needs business/operational information
+    - Database tools only return technical data
+
+    Args:
+        query: Search query (process name, feature name, or question)
+        top_k: Number of results to return (default 3)
+
+    Returns:
+        Business-friendly information from knowledge base
+    """
+    try:
+        from app.rag import get_rag_system
+
+        rag = get_rag_system()
+        results = await rag.search(query=query, top_k=top_k)
+
+        if not results or len(results) == 0:
+            return "Nessuna informazione trovata nella knowledge base. Contatta il reparto IT per maggiori dettagli."
+
+        # Format results business-friendly
+        response = "📚 **Informazioni dalla Knowledge Base:**\n\n"
+
+        for i, result in enumerate(results, 1):
+            content = result.get("content", "")
+            metadata = result.get("metadata", {})
+            score = result.get("relevance_score", 0)
+
+            # Only show highly relevant results (score > 0.5)
+            if score < 0.5:
+                continue
+
+            # Extract title and category
+            title = metadata.get("title", "Informazione")
+            category = metadata.get("category", "")
+
+            response += f"**{i}. {title}**\n"
+            if category:
+                response += f"*Categoria: {category}*\n\n"
+            response += f"{content}\n\n"
+            response += "---\n\n"
+
+        if response == "📚 **Informazioni dalla Knowledge Base:**\n\n":
+            return "Nessun risultato rilevante trovato. Per informazioni specifiche, contatta il reparto IT."
+
+        return response
+
+    except Exception as e:
+        return f"Errore ricerca knowledge base. Contatta IT per assistenza. (Dettaglio tecnico: {str(e)})"

@@ -143,10 +143,12 @@ app.use(ToastService)
 
 app.use(pinia)
 app.use(router)
-registerAdvancedChat() // Register Advanced Chat
 
 // Vue Toastification configuration - Insights theme
 app.use(Toast, toastOptions)
+
+// Register Advanced Chat globally
+registerAdvancedChat()
 
 // Import and register missing PrimeVue components
 import Timeline from 'primevue/timeline'

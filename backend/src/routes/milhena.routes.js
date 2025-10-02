@@ -135,7 +135,7 @@ router.get('/stats', async (req, res) => {
 
     // Forward to Intelligence Engine
     const intelligenceResponse = await axios.get(
-      `${INTELLIGENCE_ENGINE_URL}/api/milhena/stats`,
+      `${INTELLIGENCE_ENGINE_URL}/api/stats`,
       {
         timeout: TIMEOUT,
         headers: {
