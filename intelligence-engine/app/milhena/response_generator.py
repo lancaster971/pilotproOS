@@ -75,15 +75,20 @@ class ResponseGenerator:
         logger.info(f"Response Generator initialized with {len(self.models)} OpenAI models + GROQ")
 
     def _setup_templates(self):
-        """Setup response templates for different intents"""
+        """Setup response templates for different intents
+
+        Best Practice (LangChain RAG): Use clear instructions to utilize provided context
+        """
         self.templates = {
             "STATUS": ChatPromptTemplate.from_messages([
                 ("system", """You are a helpful business assistant.
                 Provide clear status information in Italian.
                 Be concise and friendly.
                 Never mention technical terms like n8n, PostgreSQL, Docker, etc.
-                Use business terms like 'processo', 'elaborazione', 'sistema'."""),
-                ("human", "Query: {query}\n\nData: {data}\n\nProvide a status update.")
+                Use business terms like 'processo', 'elaborazione', 'sistema'.
+
+                IMPORTANT: Use the provided data to answer the question. If data is provided, cite specific numbers and details."""),
+                ("human", "Query: {query}\n\nData: {data}\n\nProvide a status update based on the data.")
             ]),
 
             "ERROR": ChatPromptTemplate.from_messages([
@@ -91,8 +96,10 @@ class ResponseGenerator:
                 Explain errors in simple, non-technical Italian.
                 Be reassuring and solution-focused.
                 Never expose technical details or system architecture.
-                Suggest contacting support for technical issues."""),
-                ("human", "Query: {query}\n\nError: {data}\n\nExplain the issue and suggest solutions.")
+                Suggest contacting support for technical issues.
+
+                IMPORTANT: Use the provided error data to explain what happened."""),
+                ("human", "Query: {query}\n\nError: {data}\n\nExplain the issue and suggest solutions based on the error data.")
             ]),
 
             "METRIC": ChatPromptTemplate.from_messages([
@@ -100,8 +107,10 @@ class ResponseGenerator:
                 Present data in clear, business-friendly Italian.
                 Focus on insights and trends.
                 Use percentages and comparisons.
-                Avoid technical jargon."""),
-                ("human", "Query: {query}\n\nMetrics: {data}\n\nPresent the metrics clearly.")
+                Avoid technical jargon.
+
+                IMPORTANT: Use the exact metrics provided in the data. Cite specific numbers, counts, and percentages."""),
+                ("human", "Query: {query}\n\nMetrics Data: {data}\n\nPresent these specific metrics clearly, using the exact numbers provided.")
             ]),
 
             "HELP": ChatPromptTemplate.from_messages([
@@ -109,16 +118,20 @@ class ResponseGenerator:
                 Provide step-by-step instructions in Italian.
                 Be patient and thorough.
                 Use simple language.
-                Focus on business operations, not technical details."""),
-                ("human", "Query: {query}\n\nContext: {data}\n\nProvide helpful guidance.")
+                Focus on business operations, not technical details.
+
+                IMPORTANT: Base your guidance on the provided context."""),
+                ("human", "Query: {query}\n\nContext: {data}\n\nProvide helpful guidance using this context.")
             ]),
 
             "GENERAL": ChatPromptTemplate.from_messages([
                 ("system", """You are Milhena, a friendly business assistant.
                 Respond in Italian with warmth and professionalism.
                 Keep responses concise and relevant.
-                If asked about technical details, politely redirect to business aspects."""),
-                ("human", "{query}")
+                If asked about technical details, politely redirect to business aspects.
+
+                IMPORTANT: If data is provided below, use it to answer the question. If no data is provided, give a general helpful response."""),
+                ("human", "Query: {query}\n\nAvailable Data: {data}\n\nRespond appropriately.")
             ])
         }
 
@@ -185,24 +198,41 @@ class ResponseGenerator:
             # Select template
             template = self.templates.get(intent, self.templates["GENERAL"])
 
-            # Prepare data with RAG context if available
+            # BEST PRACTICE: Extract relevant data from context (RAG pattern)
+            # Based on LangChain RAG documentation and LangGraph state management
             rag_docs = context.get("rag_docs", []) if context else []
             learned_patterns = context.get("learned_patterns", []) if context else []
+            database_result = context.get("database_result", "") if context else ""
 
-            # Build enhanced context string
-            enhanced_data = data or context or {}
+            # Build enhanced context string with all available data
+            # Priority: database_result > RAG docs > generic data
+            data_parts = []
+
+            # 1. Database results (highest priority - real-time data)
+            if database_result:
+                data_parts.append(f"[Database Results]\n{database_result}")
+                logger.info(f"Including database result in prompt: {database_result[:100]}...")
+
+            # 2. RAG documentation (knowledge base)
             if rag_docs:
-                # Add RAG documentation to context
                 rag_context_str = "\n\n".join([
                     f"[Knowledge Base] {doc.get('content', '')[:500]}"
                     for doc in rag_docs[:2]  # Top 2 docs
                 ])
-                enhanced_data = f"{enhanced_data}\n\nRelevant Documentation:\n{rag_context_str}"
+                data_parts.append(f"[Documentation]\n{rag_context_str}")
+                logger.info(f"Including {len(rag_docs)} RAG documents in prompt")
 
+            # 3. Explicit data parameter (if provided)
+            if data:
+                data_parts.append(f"[Additional Data]\n{data}")
+
+            # 4. Learned patterns (hints for response style)
             if learned_patterns:
-                # Add learned patterns hint
                 patterns_str = ", ".join([p.get("pattern", "") for p in learned_patterns[:3]])
                 logger.info(f"Applying learned patterns: {patterns_str}")
+
+            # Combine all data sources into single context string
+            enhanced_data = "\n\n".join(data_parts) if data_parts else "No specific data available."
 
             response_data = {
                 "query": query,
@@ -220,9 +250,30 @@ class ResponseGenerator:
                 # No LLM available, use fallback
                 return self._generate_fallback_response(intent, data)
 
-            # Generate response - LLM has internal request_timeout, no need to wrap
-            response = await llm.ainvoke(messages)
-            generated_text = response.content
+            # Generate response with automatic GROQ → OpenAI fallback on rate limit
+            # Best Practice: Graceful degradation when free tier exhausted
+            try:
+                response = await llm.ainvoke(messages)
+                generated_text = response.content
+            except Exception as llm_error:
+                # Check if GROQ rate limit error
+                if "rate_limit" in str(llm_error).lower() or "429" in str(llm_error):
+                    logger.warning(f"GROQ rate limit hit, switching to OpenAI: {llm_error}")
+                    # Try OpenAI fallback
+                    fallback_llm = None
+                    if "nano" in self.models:
+                        fallback_llm = self.models["nano"]
+                    elif "mini" in self.models:
+                        fallback_llm = self.models["mini"]
+
+                    if fallback_llm:
+                        logger.info("Using OpenAI fallback for response generation")
+                        response = await fallback_llm.ainvoke(messages)
+                        generated_text = response.content
+                    else:
+                        raise  # No fallback available, re-raise error
+                else:
+                    raise  # Not a rate limit error, re-raise
 
             # Track token usage if OpenAI
             if hasattr(llm, 'model_name'):
@@ -259,6 +310,9 @@ class ResponseGenerator:
         """
         Select appropriate LLM based on complexity and budget
 
+        Best Practice: Prioritize OpenAI models with high token limits (10M tokens)
+        to avoid GROQ rate limit issues during testing
+
         Args:
             query: User query
             intent: Detected intent
@@ -269,26 +323,21 @@ class ResponseGenerator:
         # Assess complexity
         complexity = self._assess_complexity(query, intent)
 
-        # Try GROQ first for simple queries (free)
-        if complexity == "simple" and self.groq_llm:
-            logger.info("Using GROQ for simple query")
-            return self.groq_llm
-
-        # Check OpenAI token budget
+        # PRIORITY 1: OpenAI models (10M token budget - offerta speciale)
         if complexity == "simple":
-            model_key = "nano"
+            model_key = "mini"  # gpt-4o-mini: 10M tokens available
         elif complexity == "medium":
-            model_key = "mini"
+            model_key = "mini"  # Still use mini for medium (plenty of tokens)
         else:
-            model_key = "premium"
+            model_key = "premium"  # gpt-4o: 1M tokens for complex queries
 
-        # Try to get OpenAI model
+        # Try to get OpenAI model first
         if model_key in self.models:
             model = self.models[model_key]
             model_name = model.model_name
 
             if self.token_manager.can_use_model(model_name):
-                logger.info(f"Using OpenAI {model_key} model")
+                logger.info(f"Using OpenAI {model_key} model ({model_name})")
                 return model
             else:
                 logger.warning(f"Token budget exceeded for {model_name}")
@@ -299,9 +348,9 @@ class ResponseGenerator:
                         logger.info("Falling back to mini model")
                         return self.models["mini"]
 
-        # Final fallback to GROQ
+        # PRIORITY 2: Fallback to GROQ (only if OpenAI unavailable)
         if self.groq_llm:
-            logger.info("Final fallback to GROQ")
+            logger.info("Fallback to GROQ (OpenAI not available)")
             return self.groq_llm
 
         return None

@@ -163,4 +163,68 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+/**
+ * @route   POST /api/milhena/chat
+ * @desc    Chat with Milhena assistant
+ * @access  Public (will be protected in production)
+ */
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, session_id, context } = req.body;
+
+    // Validate required fields
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: message'
+      });
+    }
+
+    businessLogger.log('Milhena chat request', {
+      session_id,
+      has_context: !!context
+    });
+
+    // Forward to Intelligence Engine
+    const intelligenceResponse = await axios.post(
+      `${INTELLIGENCE_ENGINE_URL}/api/chat`,
+      {
+        message,
+        user_id: session_id || 'anonymous',
+        context
+      },
+      {
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    businessLogger.success('Milhena chat response', {
+      session_id,
+      category: intelligenceResponse.data.metadata?.supervisor_category,
+      latency: intelligenceResponse.data.metadata?.processing_time
+    });
+
+    res.json({
+      success: true,
+      ...intelligenceResponse.data
+    });
+
+  } catch (error) {
+    businessLogger.error('Milhena chat error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: 'Failed to process chat message',
+      message: error.response?.data?.detail || error.message
+    });
+  }
+});
+
 export default router;

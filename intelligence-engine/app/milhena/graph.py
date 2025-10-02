@@ -12,6 +12,7 @@ from langgraph.prebuilt import ToolNode
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
+from langchain_core.rate_limiters import InMemoryRateLimiter
 from langsmith import traceable, Client
 from langsmith.run_trees import RunTree
 import logging
@@ -590,12 +591,29 @@ class MilhenaGraph:
         ]
         self.tool_node = ToolNode(self.tools)
 
-        # Initialize LLMs
+        # Initialize Rate Limiters (Best Practice: prevent rate limit errors)
+        # Based on LangChain documentation and OpenAI Cookbook best practices
+        # GROQ Free Tier: 100k tokens/day (~30 req/min safe limit)
+        groq_rate_limiter = InMemoryRateLimiter(
+            requests_per_second=0.5,  # 30 req/min = 0.5 req/sec (conservative)
+            check_every_n_seconds=0.1,
+            max_bucket_size=5  # Allow small bursts
+        )
+
+        # OpenAI Tier 1: 500 req/min, 30k req/day
+        openai_rate_limiter = InMemoryRateLimiter(
+            requests_per_second=8.0,  # 480 req/min (80% of limit for safety)
+            check_every_n_seconds=0.1,
+            max_bucket_size=10
+        )
+
+        # Initialize LLMs with rate limiters
         if os.getenv("GROQ_API_KEY"):
             self.groq_llm = ChatGroq(
                 model="llama-3.3-70b-versatile",
                 temperature=0.7,
-                api_key=os.getenv("GROQ_API_KEY")
+                api_key=os.getenv("GROQ_API_KEY"),
+                rate_limiter=groq_rate_limiter
             )
         else:
             self.groq_llm = None
@@ -604,18 +622,20 @@ class MilhenaGraph:
             self.openai_llm = ChatOpenAI(
                 model="gpt-4.1-nano-2025-04-14",
                 temperature=0.7,
-                api_key=os.getenv("OPENAI_API_KEY")
+                api_key=os.getenv("OPENAI_API_KEY"),
+                rate_limiter=openai_rate_limiter
             )
         else:
             self.openai_llm = None
 
-        # Initialize Supervisor LLM (GROQ primary + OpenAI fallback)
+        # Initialize Supervisor LLM (GROQ primary + OpenAI fallback) with rate limiters
         self.supervisor_llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0.3,  # Low for consistent classification
             request_timeout=10.0,
             max_retries=1,
-            api_key=os.getenv("GROQ_API_KEY")
+            api_key=os.getenv("GROQ_API_KEY"),
+            rate_limiter=groq_rate_limiter
         ) if os.getenv("GROQ_API_KEY") else None
 
         self.supervisor_fallback = ChatOpenAI(
@@ -623,7 +643,8 @@ class MilhenaGraph:
             temperature=0.3,
             request_timeout=10.0,
             max_retries=1,
-            api_key=os.getenv("OPENAI_API_KEY")
+            api_key=os.getenv("OPENAI_API_KEY"),
+            rate_limiter=openai_rate_limiter
         ) if os.getenv("OPENAI_API_KEY") else None
 
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
@@ -1004,6 +1025,7 @@ class MilhenaGraph:
         Returns classification dict or None if no match.
 
         This fast-path reduces latency from ~3s to <50ms for common queries.
+        Best Practice: Use regex for high-frequency patterns to reduce LLM costs.
         """
         query_lower = query.lower().strip()
 
@@ -1044,14 +1066,18 @@ class MilhenaGraph:
                 "llm_used": "fast-path"
             }
 
-        # SIMPLE_METRIC patterns (starts with)
-        metric_starts = ["quant", "quand", "numero", "count", "quanti", "quante"]
-        if any(query_lower.startswith(prefix) for prefix in metric_starts):
+        # WORKFLOW/PROCESS patterns (NEW - high frequency queries)
+        workflow_patterns = [
+            "mostra workflow", "lista workflow", "workflow attiv", "processi attiv",
+            "quali workflow", "quali processi", "elenco workflow", "elenco processi",
+            "vedi workflow", "vedi processi"
+        ]
+        if any(pattern in query_lower for pattern in workflow_patterns):
             return {
                 "action": "tool",
                 "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query metrica - fast-path",
+                "confidence": 0.9,
+                "reasoning": "Query workflow comune - fast-path",
                 "direct_response": None,
                 "needs_rag": False,
                 "needs_database": True,
@@ -1059,15 +1085,386 @@ class MilhenaGraph:
                 "llm_used": "fast-path"
             }
 
-        # SIMPLE_STATUS patterns (short status queries)
-        status_patterns = ["tutto ok", "sistema ok", "funziona", "va bene",
-                          "stato sistema", "tutto bene", "status"]
+        # PERFORMANCE/METRICS patterns (NEW - analytics queries)
+        performance_patterns = [
+            "performance", "metriche", "statistiche", "analisi",
+            "andamento", "trend", "come va", "come stanno andando"
+        ]
+        if any(pattern in query_lower for pattern in performance_patterns) and len(query.split()) <= 6:
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query performance - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # SIMPLE_METRIC patterns (starts with - quantitative queries)
+        metric_starts = ["quant", "quand", "numero", "count", "quanti", "quante"]
+        if any(query_lower.startswith(prefix) for prefix in metric_starts):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.9,
+                "reasoning": "Query metrica quantitativa - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # SIMPLE_STATUS patterns (system health checks)
+        status_patterns = [
+            "tutto ok", "sistema ok", "funziona", "va bene",
+            "stato sistema", "tutto bene", "status", "salute sistema",
+            "ci sono problemi", "problemi sistema"
+        ]
         if any(pattern in query_lower for pattern in status_patterns) and len(query.split()) <= 5:
             return {
                 "action": "tool",
                 "category": "SIMPLE_STATUS",
                 "confidence": 0.85,
-                "reasoning": "Query status semplice - fast-path",
+                "reasoning": "Query status sistema - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # ERROR patterns (error checking queries)
+        error_patterns = [
+            "ci sono errori", "errori da segnalare", "problemi da segnalare",
+            "errori sistema", "errori nel sistema", "ci sono problemi",
+            "qualche errore", "errori recenti", "ultimi errori"
+        ]
+        if any(pattern in query_lower for pattern in error_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.9,
+                "reasoning": "Query errori sistema - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # TEMPORAL patterns (when/last time - HIGH PRIORITY)
+        # Based on help desk research: users frequently ask "when did X happen"
+        temporal_patterns = [
+            "quando", "a che ora", "ultima volta", "ultimo",
+            "data", "timestamp", "orario", "recente", "ultime"
+        ]
+        if any(pattern in query_lower for pattern in temporal_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query temporale - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # DURATION patterns (how long - HIGH PRIORITY)
+        # Based on business monitoring: users want to know execution times
+        duration_patterns = [
+            "quanto tempo", "quanto dura", "durata",
+            "tempo di", "ci vuole", "impiega", "velocità"
+        ]
+        if any(pattern in query_lower for pattern in duration_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query durata - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # TREND/HISTORICAL patterns (negli ultimi/scorsi - HIGH PRIORITY)
+        # Based on analytics needs: users want historical data
+        trend_patterns = [
+            "negli ultimi", "ultimi", "scorsi", "passati",
+            "trend", "andamento", "storico", "settimana", "mese", "giorni"
+        ]
+        if any(pattern in query_lower for pattern in trend_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query trend/storico - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # LIST/ENUMERATION patterns (extended - HIGH PRIORITY)
+        # Based on business needs: users want complete lists
+        list_patterns = [
+            "lista", "elenco", "tutti", "tutte",
+            "visualizza", "fammi vedere", "elenca"
+        ]
+        if any(pattern in query_lower for pattern in list_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query lista/elenco - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # COMPARATIVE patterns (MEDIUM PRIORITY - Fase 2)
+        # Based on KPI analysis: users want to compare metrics
+        comparative_patterns = [
+            "più", "meno", "migliore", "peggiore",
+            "confronta", "differenza", "meglio", "vs"
+        ]
+        if any(pattern in query_lower for pattern in comparative_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query comparativa - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # AGGREGATION patterns (MEDIUM PRIORITY - Fase 2)
+        # Based on business metrics: users want totals/averages
+        aggregation_patterns = [
+            "totale", "somma", "media", "percentuale",
+            "rapporto", "ratio", "tasso", "average"
+        ]
+        if any(pattern in query_lower for pattern in aggregation_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query aggregazione - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # CAUSALITY patterns (MEDIUM PRIORITY - Fase 2)
+        # Based on troubleshooting: users want explanations
+        causality_patterns = [
+            "perché", "perchè", "come mai", "motivo",
+            "causa", "ragione"
+        ]
+        if any(pattern in query_lower for pattern in causality_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.75,
+                "reasoning": "Query causale - fast-path",
+                "direct_response": None,
+                "needs_rag": True,  # Might need RAG for explanations
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # BATCH 3 - HIGH FREQUENCY PATTERNS (50 pattern)
+        # Based on comprehensive business KPI research
+
+        # FREQUENCY patterns (ogni quanto/frequenza)
+        frequency_patterns = [
+            "ogni quanto", "frequenza", "periodicità", "cadenza",
+            "intervallo", "quante volte", "spesso"
+        ]
+        if any(pattern in query_lower for pattern in frequency_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query frequenza - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # RATE/PERCENTAGE patterns (tasso/percentuale)
+        rate_patterns = [
+            "tasso", "rate", "percentuale", "%",
+            "success rate", "failure rate", "conversion"
+        ]
+        if any(pattern in query_lower for pattern in rate_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query tasso/rate - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # TOP/BEST patterns (migliore/top/peggiore)
+        ranking_patterns = [
+            "top", "best", "worst", "bottom",
+            "first", "last", "maggior", "minor"
+        ]
+        if any(pattern in query_lower for pattern in ranking_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query ranking - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # COUNT/NUMBER patterns (count/numero/totale variations)
+        count_variations = [
+            "count", "numero di", "quantità",
+            "ammontare", "how many", "volume"
+        ]
+        if any(pattern in query_lower for pattern in count_variations):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.85,
+                "reasoning": "Query count - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # DETAILS patterns (dettagli/informazioni/show me)
+        details_patterns = [
+            "dettagli", "informazioni", "info",
+            "show me", "dammi info", "voglio sapere"
+        ]
+        if any(pattern in query_lower for pattern in details_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.75,
+                "reasoning": "Query dettagli - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # HEALTH/STATUS variations (salute/disponibilità)
+        health_patterns = [
+            "salute", "health", "disponibilità",
+            "availability", "uptime", "operativo"
+        ]
+        if any(pattern in query_lower for pattern in health_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.85,
+                "reasoning": "Query health - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # ACTIVE/INACTIVE patterns (attivo/inattivo/running)
+        activity_patterns = [
+            "running", "in esecuzione", "fermo",
+            "stopped", "paused", "in pausa"
+        ]
+        if any(pattern in query_lower for pattern in activity_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.8,
+                "reasoning": "Query activity - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # FIRST/LAST patterns (primo/ultimo)
+        position_patterns = [
+            "primo", "prima", "first",
+            "latest", "earliest", "più recente"
+        ]
+        if any(pattern in query_lower for pattern in position_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.8,
+                "reasoning": "Query posizione - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # FAILED/SUCCESS patterns (fallito/successo)
+        outcome_patterns = [
+            "fallito", "failed", "success",
+            "riuscito", "completato", "interrotto"
+        ]
+        if any(pattern in query_lower for pattern in outcome_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_STATUS",
+                "confidence": 0.85,
+                "reasoning": "Query outcome - fast-path",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": "fast-path"
+            }
+
+        # CHANGES patterns (modificato/aggiornato/cambiato)
+        change_patterns = [
+            "modificato", "cambiato", "aggiornato",
+            "changed", "updated", "modifiche"
+        ]
+        if any(pattern in query_lower for pattern in change_patterns):
+            return {
+                "action": "tool",
+                "category": "SIMPLE_METRIC",
+                "confidence": 0.75,
+                "reasoning": "Query changes - fast-path",
                 "direct_response": None,
                 "needs_rag": False,
                 "needs_database": True,
@@ -1200,7 +1597,10 @@ class MilhenaGraph:
 
     @traceable(name="MilhenaDatabaseQuery")
     async def database_query(self, state: MilhenaState) -> MilhenaState:
-        """Execute database query based on intent"""
+        """Execute database query based on intent
+
+        Best Practice (LangChain 2025): Use tool.invoke({args}) instead of tool(args)
+        """
         query = state["query"]
         intent = state.get("intent", "GENERAL")
 
@@ -1211,86 +1611,95 @@ class MilhenaGraph:
             # USER QUERIES
             if "utenti" in query_lower or "users" in query_lower:
                 if "quanti" in query_lower or "count" in query_lower:
-                    result = query_users_tool("count")
+                    result = query_users_tool.invoke({"query_type": "count"})
                 elif "attivi" in query_lower or "active" in query_lower:
-                    result = query_users_tool("active")
+                    result = query_users_tool.invoke({"query_type": "active"})
                 else:
-                    result = query_users_tool("all")
+                    result = query_users_tool.invoke({"query_type": "all"})
 
             # EXECUTION QUERIES
             elif "esecuzione" in query_lower or "execution" in query_lower or "ultima" in query_lower:
                 if "ultima" in query_lower or "last" in query_lower or "recente" in query_lower:
-                    result = get_executions_tool("last")
+                    result = get_executions_tool.invoke({"query_type": "last"})
                 elif "oggi" in query_lower or "today" in query_lower:
-                    result = get_executions_tool("today")
+                    result = get_executions_tool.invoke({"query_type": "today"})
                 elif "fallite" in query_lower or "errori" in query_lower or "failed" in query_lower:
-                    result = get_executions_tool("failed")
+                    result = get_executions_tool.invoke({"query_type": "failed"})
                 else:
-                    result = get_executions_tool("last")
+                    result = get_executions_tool.invoke({"query_type": "last"})
 
             # WORKFLOW QUERIES
             elif "workflow" in query_lower or "processo" in query_lower or "processi" in query_lower:
                 if "attiv" in query_lower:
-                    result = get_workflows_tool("active")
+                    result = get_workflows_tool.invoke({"query_type": "active"})
                 elif "inattiv" in query_lower or "disattiv" in query_lower:
-                    result = get_workflows_tool("inactive")
+                    result = get_workflows_tool.invoke({"query_type": "inactive"})
                 elif "utilizzat" in query_lower or "usat" in query_lower or "top" in query_lower:
-                    result = get_workflows_tool("top_used")
+                    result = get_workflows_tool.invoke({"query_type": "top_used"})
                 elif "compless" in query_lower or "nodi" in query_lower:
-                    result = get_workflows_tool("complex")
+                    result = get_workflows_tool.invoke({"query_type": "complex"})
                 elif "recen" in query_lower or "modificat" in query_lower:
-                    result = get_workflows_tool("recent")
+                    result = get_workflows_tool.invoke({"query_type": "recent"})
                 elif "error" in query_lower or "problem" in query_lower:
-                    result = get_workflows_tool("errors")
+                    result = get_workflows_tool.invoke({"query_type": "errors"})
                 else:
-                    result = get_workflows_tool("all")
+                    result = get_workflows_tool.invoke({"query_type": "all"})
 
             # PERFORMANCE QUERIES
             elif "performance" in query_lower or "velocit" in query_lower or "lent" in query_lower or "tasso" in query_lower:
                 if "velocit" in query_lower or "lent" in query_lower or "speed" in query_lower:
-                    result = get_performance_metrics_tool("speed")
+                    result = get_performance_metrics_tool.invoke({"query_type": "speed"})
                 elif "tasso" in query_lower or "success" in query_lower or "successo" in query_lower:
-                    result = get_performance_metrics_tool("success_rate")
+                    result = get_performance_metrics_tool.invoke({"query_type": "success_rate"})
                 elif "trend" in query_lower or "andamento" in query_lower:
-                    result = get_performance_metrics_tool("trends")
+                    result = get_performance_metrics_tool.invoke({"query_type": "trends"})
                 elif "bottleneck" in query_lower or "collo" in query_lower or "problema" in query_lower:
-                    result = get_performance_metrics_tool("bottlenecks")
+                    result = get_performance_metrics_tool.invoke({"query_type": "bottlenecks"})
                 else:
-                    result = get_performance_metrics_tool("overview")
+                    result = get_performance_metrics_tool.invoke({"query_type": "overview"})
 
             # MONITORING QUERIES
             elif "monitoraggio" in query_lower or "alert" in query_lower or "salute" in query_lower or "health" in query_lower:
                 if "alert" in query_lower or "avvisi" in query_lower or "warning" in query_lower:
-                    result = get_system_monitoring_tool("alerts")
+                    result = get_system_monitoring_tool.invoke({"query_type": "alerts"})
                 elif "coda" in query_lower or "queue" in query_lower:
-                    result = get_system_monitoring_tool("queue")
+                    result = get_system_monitoring_tool.invoke({"query_type": "queue"})
                 elif "risorse" in query_lower or "resources" in query_lower:
-                    result = get_system_monitoring_tool("resources")
+                    result = get_system_monitoring_tool.invoke({"query_type": "resources"})
                 elif "disponibilit" in query_lower or "availability" in query_lower or "uptime" in query_lower:
-                    result = get_system_monitoring_tool("availability")
+                    result = get_system_monitoring_tool.invoke({"query_type": "availability"})
                 else:
-                    result = get_system_monitoring_tool("health")
+                    result = get_system_monitoring_tool.invoke({"query_type": "health"})
 
             # ANALYTICS QUERIES
             elif "report" in query_lower or "analisi" in query_lower or "confronto" in query_lower or "roi" in query_lower:
                 if "confronto" in query_lower or "comparison" in query_lower or "settiman" in query_lower:
-                    result = get_analytics_tool("comparison")
+                    result = get_analytics_tool.invoke({"query_type": "comparison"})
                 elif "roi" in query_lower or "risparmio" in query_lower or "valore" in query_lower:
-                    result = get_analytics_tool("roi")
+                    result = get_analytics_tool.invoke({"query_type": "roi"})
                 elif "pattern" in query_lower or "utilizzo" in query_lower or "picco" in query_lower:
-                    result = get_analytics_tool("patterns")
+                    result = get_analytics_tool.invoke({"query_type": "patterns"})
                 elif "prevision" in query_lower or "forecast" in query_lower or "proiezion" in query_lower:
-                    result = get_analytics_tool("forecast")
+                    result = get_analytics_tool.invoke({"query_type": "forecast"})
                 else:
-                    result = get_analytics_tool("summary")
+                    result = get_analytics_tool.invoke({"query_type": "summary"})
+
+            # ERROR QUERIES (generic error checking)
+            elif "errori" in query_lower or "error" in query_lower:
+                # Check if it's about executions specifically
+                if "esecuz" in query_lower:
+                    result = get_executions_tool.invoke({"query_type": "failed"})
+                else:
+                    # Generic error check: use system monitoring
+                    result = get_system_monitoring_tool.invoke({"query_type": "alerts"})
 
             # SYSTEM STATUS (default)
             elif "sistema" in query_lower or "status" in query_lower or "stato" in query_lower:
-                result = get_system_status_tool()
+                result = get_system_monitoring_tool.invoke({"query_type": "health"})
 
             else:
                 # Default: try to get general analytics
-                result = get_analytics_tool("summary")
+                result = get_analytics_tool.invoke({"query_type": "summary"})
 
             # Store result in context for response generation
             state["context"]["database_result"] = result

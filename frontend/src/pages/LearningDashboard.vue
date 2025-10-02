@@ -243,8 +243,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import MainLayout from '@/layouts/MainLayout.vue'
-import axios from 'axios'
+import MainLayout from '@/components/layout/MainLayout.vue'
+import { apiClient } from '@/services/api-client'
 import Chart from 'chart.js/auto'
 
 // State
@@ -260,10 +260,10 @@ const refreshData = async () => {
   error.value = null
 
   try {
-    const response = await axios.get('/api/milhena/performance')
+    const response = await apiClient.get('/api/milhena/performance')
 
-    if (response.data.success) {
-      performanceData.value = response.data
+    if (response.success) {
+      performanceData.value = response
 
       // Render chart after data is loaded
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -273,7 +273,7 @@ const refreshData = async () => {
     }
   } catch (err: any) {
     console.error('Performance data error:', err)
-    error.value = err.response?.data?.message || 'Failed to connect to learning system'
+    error.value = err.data?.message || err.message || 'Failed to connect to learning system'
   } finally {
     isLoading.value = false
   }

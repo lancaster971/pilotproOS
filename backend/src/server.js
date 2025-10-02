@@ -4443,6 +4443,10 @@ app.use('/api/agent-engine', agentEngineRoutes);
 import milhenaRoutes from './routes/milhena.routes.js';
 app.use('/api/milhena', milhenaRoutes);
 
+// RAG Knowledge Base routes
+import ragRoutes from './routes/rag.routes.js';
+app.use('/api/rag', ragRoutes);
+
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================

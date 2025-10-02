@@ -360,8 +360,8 @@ const sendMessage = async () => {
   const startTime = Date.now()
 
   try {
-    // Call Milhena API via n8n endpoint (actual working endpoint)
-    const response = await apiClient.post('/api/n8n/agent/customer-support', {
+    // Call Milhena API via backend proxy
+    const response = await apiClient.post('/api/milhena/chat', {
       message: question,
       session_id: sessionId.value,
       context: contextData
