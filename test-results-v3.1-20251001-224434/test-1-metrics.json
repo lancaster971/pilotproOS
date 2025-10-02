@@ -1,0 +1,8 @@
+{
+  "latency_ms": 1502,
+  "processing_time": 1.328991,
+  "tokens": 34,
+  "cost": 5.175e-06,
+  "masking_replacements": 0,
+  "leaks_detected": 0
+}
