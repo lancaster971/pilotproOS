@@ -63,8 +63,35 @@ Analizza ogni query utente (e la cronologia chat) e:
 ---
 
 ## 📥 INPUT
-**Query**: "{query}"
-**Conversazione precedente**: {context}
+**Query corrente**: "{query}"
+**Conversazione precedente**: {chat_history}
+**Contesto aggiuntivo**: {context}
+
+## 💬 GESTIONE CONTESTO CONVERSAZIONE
+
+**CRITICAL PRIORITY**: Se la query contiene pronomi o riferimenti temporali vaghi, **USA SEMPRE LA CRONOLOGIA**
+
+**Riferimenti anaforici (PRIORITY 1)**:
+- "e ieri?", "e oggi?", "e domani?" → Inferisci topic dall'ultimo messaggio HUMAN
+- "anche quello", "lo stesso", "pure" → Ripeti topic precedente
+- "questo", "quello", "la cosa" → Cerca referente in cronologia
+
+**Come inferire topic**:
+1. Trova ultimo messaggio Human in cronologia
+2. Estrai il **sostantivo chiave** (ordini, errori, fatture, processi, utenti, etc.)
+3. **Combina** sostantivo + nuovo contesto temporale
+
+**Esempi PRATICI (da seguire ESATTAMENTE)**:
+- User: "quanti ordini oggi?" → Milhena: "(risposta)" → User: "e ieri?"
+  → **INFERISCI**: "quanti ordini ieri?" → SIMPLE_METRIC (NON clarification!)
+
+- User: "ci sono errori?" → Milhena: "(risposta)" → User: "anche oggi?"
+  → **INFERISCI**: "ci sono errori anche oggi?" → SIMPLE_STATUS
+
+- User: "ciao" → Milhena: "ciao!" → User: "come è andato?"
+  → **AMBIGUO**: history non ha topic → CLARIFICATION_NEEDED
+
+**REGOLA D'ORO**: Se cronologia contiene topic chiaro (ordini, errori, fatture, processi) → NON chiedere clarification, continua topic
 
 ---
 
@@ -130,7 +157,13 @@ Analizza ogni query utente (e la cronologia chat) e:
 
 ### CLARIFICATION_NEEDED
 - **Azione**: respond
-- **Quando**: query vaga
+- **Quando**: query vaga, ambigua, o manca contesto
+- **Trigger Ambiguity Types** (basato su CLAMBER research):
+  - **Semantic**: "info sul sistema", "come va", "dimmi tutto" (manca specificità)
+  - **Who**: "dammi dati utente" (quale utente?)
+  - **When**: "errori recenti" (quanto recenti?)
+  - **What**: "mostrami report" (quale report?)
+  - **Where**: "processi" (quali processi?)
 - **Risposta**: domanda + 3-5 opzioni con emoji
 - **Esempio**:
 ```
@@ -141,6 +174,7 @@ Da quale punto di vista vuoi sapere come è andata oggi?
 📈 Metriche
 🔄 Esecuzioni
 ```
+- **CRITICAL**: Preferisci CLARIFICATION over simple classification - è meglio chiedere che rispondere male
 
 ### SIMPLE_STATUS
 - **Azione**: tool
@@ -217,13 +251,23 @@ Usa questo se non sei sicuro:
 
 ---
 
-## 🧠 PRIORITÀ
-1. **DANGER** → blocca subito
-2. **LEARNED PATTERN** → rispondi diretto
-3. **CLARIFICATION_NEEDED** → se dubbio, chiedi
-4. **GREETING** → rispondi cortese
-5. **SIMPLE_*** → usa tool diretto
+## 🧠 PRIORITÀ (ordinata per importanza)
+1. **DANGER** → blocca subito (massima priorità)
+2. **LEARNED PATTERN** → rispondi diretto (se confidence ≥ 0.7)
+3. **CLARIFICATION_NEEDED** → **SE QUALSIASI DUBBIO, CHIEDI** (preferisci over SIMPLE_*)
+4. **GREETING** → rispondi cortese (solo se inequivocabile)
+5. **SIMPLE_*** → usa tool diretto (solo se 100% chiaro)
 6. **COMPLEX_ANALYSIS** → pipeline completa solo se necessario
+
+## 🔍 WHEN TO TRIGGER CLARIFICATION_NEEDED
+**Ambiguous Patterns (da ricerca CLAMBER)**:
+- Queries generiche: "dammi info", "come va", "dimmi tutto", "cosa c'è", "novità"
+- Pronomi vaghi: "questo", "quello", "la cosa", "il sistema" (quale?)
+- Temporal ambiguity: "recente", "oggi" (senza specificare cosa), "ieri" (contesto perso)
+- Missing subject: "errori" (di cosa?), "report" (quale?), "dati" (quali?)
+- Short context-dependent: "e ieri?", "anche quello", "lo stesso" (senza messaggio precedente)
+
+**REGOLA D'ORO**: Se la query può avere 2+ interpretazioni → CLARIFICATION_NEEDED
 
 **Regola d'oro**: minimizza latenza → preferisci `respond` quando possibile.
 
@@ -768,17 +812,34 @@ class MilhenaGraph:
             return state
 
         # STEP 2: Classify con LLM
-        # Prepare context string from messages history
+        # Prepare chat history (following LangGraph best practices)
         messages_history = state.get("messages", [])
-        context_str = ""
-        if len(messages_history) > 1:
-            # Show last 3 messages for context
-            recent = messages_history[-4:-1] if len(messages_history) > 4 else messages_history[:-1]
-            context_str = "\n".join([f"- {msg.content[:100]}" for msg in recent if hasattr(msg, "content")])
-        else:
-            context_str = "Nessun messaggio precedente"
+        chat_history_str = ""
+        context_additional = state.get("context", {})
 
-        prompt = SUPERVISOR_PROMPT.format(query=query, context=context_str)
+        if len(messages_history) > 1:
+            # Show last 4 messages for context (2 turns = user + assistant)
+            recent = messages_history[-5:-1] if len(messages_history) > 5 else messages_history[:-1]
+
+            # Format as conversation (Human/AI labels)
+            formatted_msgs = []
+            for msg in recent:
+                if hasattr(msg, "content"):
+                    role = "User" if isinstance(msg, HumanMessage) else "Milhena"
+                    formatted_msgs.append(f"{role}: {msg.content[:150]}")
+
+            chat_history_str = "\n".join(formatted_msgs)
+        else:
+            chat_history_str = "(Prima interazione - nessuna cronologia)"
+
+        # Additional context (metadata, etc.)
+        context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
+
+        prompt = SUPERVISOR_PROMPT.format(
+            query=query,
+            chat_history=chat_history_str,
+            context=context_str
+        )
 
         try:
             # Try GROQ first (free + fast)
@@ -874,6 +935,29 @@ class MilhenaGraph:
                 "clarification_options": None
             }
 
+        # CLARIFICATION patterns (ambiguous queries - based on CLAMBER research)
+        ambiguous_patterns = [
+            "dammi info", "info sul", "come va", "dimmi tutto", "cosa c'è",
+            "novità", "come è andata", "come sono andate", "dimmi",
+            "il sistema", "questo", "quello", "la cosa",
+            "errori" if len(query_lower.split()) <= 2 else None,  # "errori" alone is ambiguous
+            "report" if len(query_lower.split()) <= 2 else None,
+            "dati" if len(query_lower.split()) <= 2 else None,
+        ]
+        ambiguous_patterns = [p for p in ambiguous_patterns if p]  # Remove None
+
+        if any(pattern in query_lower for pattern in ambiguous_patterns):
+            return {
+                "action": "respond",
+                "category": "CLARIFICATION_NEEDED",
+                "confidence": 0.8,
+                "reasoning": "Query ambigua: manca specificità",
+                "direct_response": "Cosa vuoi sapere esattamente?\n\n📊 Status generale sistema\n❌ Errori e problemi\n📈 Metriche e statistiche\n🔄 Esecuzioni processi\n📝 Report dettagliati",
+                "needs_rag": False,
+                "needs_database": False,
+                "clarification_options": ["status", "errori", "metriche", "esecuzioni", "report"]
+            }
+
         # GREETING keywords
         greeting_keywords = ["ciao", "buongiorno", "buonasera", "salve", "hello", "grazie", "arrivederci"]
         if any(kw in query_lower for kw in greeting_keywords) and len(query.split()) <= 3:
@@ -902,16 +986,16 @@ class MilhenaGraph:
                 "clarification_options": None
             }
 
-        # Default: COMPLEX_ANALYSIS (conservative)
+        # Default: CLARIFICATION (conservative - meglio chiedere che sbagliare)
         return {
-            "action": "route",
-            "category": "COMPLEX_ANALYSIS",
-            "confidence": 0.5,
-            "reasoning": "Rule-based fallback: default a full pipeline",
-            "direct_response": None,
-            "needs_rag": True,
-            "needs_database": True,
-            "clarification_options": None
+            "action": "respond",
+            "category": "CLARIFICATION_NEEDED",
+            "confidence": 0.6,
+            "reasoning": "Query non riconosciuta: richiesta chiarimento",
+            "direct_response": "Puoi essere più specifico? Cosa vuoi sapere?\n\n📊 Status sistema\n❌ Errori\n📈 Metriche\n🔄 Processi\n📝 Report",
+            "needs_rag": False,
+            "needs_database": False,
+            "clarification_options": ["status", "errori", "metriche", "processi", "report"]
         }
 
     def _instant_classify(self, query: str) -> Optional[Dict[str, Any]]:
