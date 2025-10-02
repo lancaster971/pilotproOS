@@ -67,6 +67,46 @@ class MultiLevelMaskingEngine:
     Provides context-aware masking based on user authorization
     """
 
+    # Comprehensive PII/Security patterns based on LangChain best practices
+    SENSITIVE_PATTERNS = {
+        "credentials": [
+            r"\b(?:password|passwd|pwd)[s]?\b",
+            r"\b(?:api[_\s-]?key)[s]?\b",
+            r"\b(?:secret[_\s-]?key)[s]?\b",
+            r"\b(?:access[_\s-]?token)[s]?\b",
+            r"\b(?:refresh[_\s-]?token)[s]?\b",
+            r"\b(?:auth[_\s-]?token)[s]?\b",
+            r"\b(?:credential)[s]?\b",
+            r"\b(?:bearer\s+[A-Za-z0-9\-._~+/]+=*)\b",
+        ],
+        "connection_strings": [
+            r"(?:postgres|postgresql|mysql|mongodb)://[^\s]+",
+            r"\bconnection[_\s-]?string[s]?\b",
+            r"\bdsn\b",
+            r"\bdb[_\s-]?url\b",
+            r"\bdatabase[_\s-]?url\b",
+        ],
+        "email": [
+            r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b",
+        ],
+        "phone": [
+            r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b",
+        ],
+        "ssn": [
+            r"\b\d{3}-\d{2}-\d{4}\b",
+        ],
+        "credit_card": [
+            r"\b(?:\d[ -]*?){13,16}\b",
+        ],
+        "ip_address": [
+            r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b",
+        ],
+        "private_keys": [
+            r"-----BEGIN (?:RSA |EC )?PRIVATE KEY-----",
+            r"-----BEGIN OPENSSH PRIVATE KEY-----",
+        ]
+    }
+
     # Masking rules by user level
     MASKING_LEVELS = {
         UserLevel.BUSINESS: {
@@ -75,9 +115,29 @@ class MultiLevelMaskingEngine:
                 "docker", "container", "kubernetes", "langraph", "langchain",
                 "api", "webhook", "trigger", "redis", "nginx", "fastapi",
                 "sqlalchemy", "asyncpg", "execution_entity", "sql", "select",
-                "database", "table", "schema", "index", "query"
+                "database", "table", "schema", "index", "query",
+                # Security additions based on best practices
+                "password", "credential", "token", "secret", "key",
+                "connection string", "dsn", "api_key", "access_token"
             ],
             "replacements": {
+                # Security-sensitive terms (CRITICAL - based on LangChain best practices)
+                r"\b(?:password|passwd|pwd)[s]?\b": "[REDACTED]",
+                r"\b(?:credential)[s]?\b": "[REDACTED]",
+                r"\b(?:api[_\s-]?key)[s]?\b": "[REDACTED]",
+                r"\b(?:secret[_\s-]?key)[s]?\b": "[REDACTED]",
+                r"\b(?:access[_\s-]?token)[s]?\b": "[REDACTED]",
+                r"\b(?:auth[_\s-]?token)[s]?\b": "[REDACTED]",
+                r"\b(?:bearer\s+[A-Za-z0-9\-._~+/]+=*)\b": "[REDACTED]",
+                r"\bconnection[_\s-]?string[s]?\b": "[REDACTED]",
+                r"\bdsn\b": "[REDACTED]",
+                r"(?:postgres|postgresql|mysql|mongodb)://[^\s]+": "[REDACTED]",
+
+                # PII patterns (email, phone, SSN, credit card)
+                r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b": "[EMAIL_REDACTED]",
+                r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b": "[PHONE_REDACTED]",
+                r"\b\d{3}-\d{2}-\d{4}\b": "[SSN_REDACTED]",
+
                 # Workflow terms
                 r"\bworkflow[s]?\b": "processo",
                 r"\bnode[s]?\b": "passaggio",
@@ -235,7 +295,17 @@ class MultiLevelMaskingEngine:
         # Get compiled patterns for this level
         patterns = self._compiled_patterns.get(level, {})
 
-        # First pass: Remove sensitive patterns
+        # CRITICAL FIRST PASS: Apply security-sensitive replacements BEFORE anything else
+        # This ensures credentials/PII are masked even in error/denial messages
+        for pattern, replacement in patterns.get("replacements", {}).items():
+            # Only process security-critical patterns first (containing [REDACTED])
+            if "[REDACTED]" in replacement or "[EMAIL_REDACTED]" in replacement or "[PHONE_REDACTED]" in replacement or "[SSN_REDACTED]" in replacement:
+                matches = pattern.findall(masked_content)
+                if matches:
+                    replacements_made += len(matches)
+                    masked_content = pattern.sub(replacement, masked_content)
+
+        # Second pass: Remove sensitive patterns (URLs, UUIDs, env vars)
         for pattern in patterns.get("patterns_to_remove", []):
             matches = pattern.findall(masked_content)
             if matches:
@@ -247,29 +317,38 @@ class MultiLevelMaskingEngine:
                 else:
                     masked_content = pattern.sub("[redacted]", masked_content)
 
-        # Second pass: Apply replacements
+        # Third pass: Apply business terminology replacements
         for pattern, replacement in patterns.get("replacements", {}).items():
+            # Skip security patterns (already processed)
+            if "[REDACTED]" in replacement or "[EMAIL_REDACTED]" in replacement or "[PHONE_REDACTED]" in replacement or "[SSN_REDACTED]" in replacement:
+                continue
+
             matches = pattern.findall(masked_content)
             if matches:
                 replacements_made += len(matches)
                 masked_content = pattern.sub(replacement, masked_content)
 
-        # Third pass: Check for forbidden terms (leak detection)
+        # Fourth pass: Check for forbidden terms (leak detection with aggressive removal)
         forbidden = patterns.get("forbidden", set())
         for term in forbidden:
-            if term.lower() in masked_content.lower():
+            # Case-insensitive search with word boundaries
+            search_pattern = re.compile(r'\b' + re.escape(term) + r'\b', re.IGNORECASE)
+            if search_pattern.search(masked_content):
                 leaks_detected.append(term)
 
-                # In strict mode, raise error
-                if self.config.strict_mode:
-                    raise SecurityError(
-                        f"Leak detected for {level.value} user: '{term}' found in content"
-                    )
-
-                # Otherwise, forcefully remove
-                pattern = re.compile(r'\b' + re.escape(term) + r'\b', re.IGNORECASE)
-                masked_content = pattern.sub("[REDACTED]", masked_content)
+                # ALWAYS forcefully remove - don't wait for strict_mode
+                masked_content = search_pattern.sub("[REDACTED]", masked_content)
                 replacements_made += 1
+
+        # Fifth pass: Final safety check - scan for any remaining sensitive patterns
+        # This catches edge cases like "password:" or "api-key" variations
+        for category, regex_patterns in self.SENSITIVE_PATTERNS.items():
+            for regex_pattern in regex_patterns:
+                compiled = re.compile(regex_pattern, re.IGNORECASE)
+                if compiled.search(masked_content):
+                    masked_content = compiled.sub(f"[{category.upper()}_REDACTED]", masked_content)
+                    replacements_made += 1
+                    leaks_detected.append(f"{category}_pattern")
 
         # Apply custom rules if provided
         if self.config.custom_rules:

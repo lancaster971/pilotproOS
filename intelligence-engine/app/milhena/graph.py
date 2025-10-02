@@ -854,15 +854,21 @@ class MilhenaGraph:
         """
         query_lower = query.lower()
 
-        # DANGER keywords
-        danger_keywords = ["password", "credential", "api key", "secret", "token", "connessione database"]
+        # DANGER keywords (expanded based on LangChain security best practices)
+        danger_keywords = [
+            "password", "credential", "api key", "secret", "token",
+            "connessione database", "connection string", "dsn",
+            "api_key", "access_token", "chiave", "credenziali",
+            "passwd", "pwd", "auth token", "bearer token",
+            "access key", "refresh token", "private key"
+        ]
         if any(kw in query_lower for kw in danger_keywords):
             return {
                 "action": "respond",
                 "category": "DANGER",
-                "confidence": 0.9,
-                "reasoning": "Rule-based: parola chiave pericolosa rilevata",
-                "direct_response": "Non posso fornire informazioni sensibili. Contatta il team IT.",
+                "confidence": 1.0,  # Maximum confidence for security
+                "reasoning": "Blocco sicurezza: richiesta dati sensibili",
+                "direct_response": "Non posso fornire informazioni su dati sensibili del sistema.",
                 "needs_rag": False,
                 "needs_database": False,
                 "clarification_options": None
@@ -933,16 +939,21 @@ class MilhenaGraph:
                 "llm_used": "fast-path"
             }
 
-        # DANGER keywords (contains match)
-        danger_keywords = ["password", "credenziali", "credential", "api key", "token",
-                          "secret", "chiave", "accesso admin", "root password"]
+        # DANGER keywords (expanded based on security best practices)
+        danger_keywords = [
+            "password", "credenziali", "credential", "api key", "token",
+            "secret", "chiave", "accesso admin", "root password",
+            "connection string", "dsn", "db url", "database url",
+            "api_key", "access_token", "bearer", "auth token",
+            "passwd", "pwd", "private key", "refresh token"
+        ]
         if any(kw in query_lower for kw in danger_keywords):
             return {
                 "action": "respond",
                 "category": "DANGER",
                 "confidence": 1.0,
-                "reasoning": "Richiesta sensibile - fast-path block",
-                "direct_response": "Non posso fornire informazioni sensibili come password o credenziali. Per questioni di sicurezza, contatta il team IT.",
+                "reasoning": "Blocco sicurezza immediato - fast-path",
+                "direct_response": "Non posso fornire informazioni su dati sensibili del sistema.",
                 "needs_rag": False,
                 "needs_database": False,
                 "clarification_options": None,
