@@ -1535,18 +1535,34 @@ def get_executions_by_date_tool(date: str, workflow_name: Optional[str] = None) 
     from datetime import datetime
 
     try:
-        # Parse date (support both DD/MM/YY and DD/MM/YYYY)
-        date_parts = date.split('/')
-        if len(date_parts) == 3:
-            day, month, year = date_parts
-            # Convert 2-digit year to 4-digit
-            if len(year) == 2:
-                year = f"20{year}"
+        # Parse date (support DD/MM/YY, DD/MM/YYYY, YYYY-MM-DD, and "oggi"/"ieri")
+        from datetime import datetime, timedelta
 
-            # PostgreSQL date format: YYYY-MM-DD
-            pg_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+        # Handle special keywords
+        if date.lower() in ["oggi", "today"]:
+            pg_date = datetime.now().strftime("%Y-%m-%d")
+        elif date.lower() in ["ieri", "yesterday"]:
+            pg_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        # Check if ISO format (YYYY-MM-DD)
+        elif '-' in date and len(date.split('-')) == 3:
+            parts = date.split('-')
+            if len(parts[0]) == 4:  # Year first (ISO format)
+                pg_date = date  # Already in PostgreSQL format
+            else:
+                return f"[AVVISO] Formato data non valido. Usa DD/MM/YYYY o YYYY-MM-DD (es: 03/10/2025 o 2025-10-03)"
+        # Italian format DD/MM/YY or DD/MM/YYYY
+        elif '/' in date:
+            date_parts = date.split('/')
+            if len(date_parts) == 3:
+                day, month, year = date_parts
+                # Convert 2-digit year to 4-digit
+                if len(year) == 2:
+                    year = f"20{year}"
+                pg_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            else:
+                return f"[AVVISO] Formato data non valido. Usa DD/MM/YYYY o YYYY-MM-DD (es: 03/10/2025 o 2025-10-03)"
         else:
-            return f"[AVVISO] Formato data non valido. Usa DD/MM/YYYY o DD/MM/YY (es: 29/09/25)"
+            return f"[AVVISO] Formato data non valido. Usa DD/MM/YYYY o YYYY-MM-DD (es: 03/10/2025 o 2025-10-03)"
 
         conn = get_db_connection()
         cursor = conn.cursor()
