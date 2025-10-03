@@ -200,16 +200,17 @@ services:
 
   # Redis Cache & Queue - Ready for future LangChain Agent Engine
   redis-dev:
-    image: redis:7-alpine
+    image: redis/redis-stack:latest  # Redis Stack with RediSearch module for RedisSaver
     container_name: pilotpros-redis-dev
     restart: unless-stopped
     ports:
       - "6379:6379"
+      - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_dev_data:/data
     networks:
       - pilotpros-dev
-    command: redis-server --appendonly yes
+    command: redis-stack-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

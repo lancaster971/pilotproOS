@@ -10,7 +10,7 @@ from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-# from langgraph.checkpoint.redis import RedisSaver  # TODO: Requires Docker rebuild
+from langgraph.checkpoint.redis import AsyncRedisSaver
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
@@ -817,13 +817,21 @@ class MilhenaGraph:
         graph.add_edge("[CODE] Record Feedback", END)
         graph.add_edge("[CODE] Handle Error", END)
 
-        # Initialize Conversation Memory Checkpointer
-        # TODO: Upgrade to RedisSaver for persistence (requires Docker rebuild con langgraph-checkpoint-redis)
-        # MemorySaver: Funziona ma memory degrada dopo 3-4 turni (in-memory, lost on restart)
-        # RedisSaver: Persistent, NO degradation, Redis separato (NO mixing con n8n DB!)
+        # Initialize Redis Checkpointer for PERSISTENT conversation memory
+        # Pattern from official docs: Use Redis client directly (NOT context manager in __init__)
+        # Redis container SEPARATO (redis-dev:6379) - ZERO mixing con n8n database
 
-        checkpointer = MemorySaver()
-        logger.info("✅ MemorySaver initialized - Conversation memory active (TODO: upgrade to Redis)")
+        redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379")
+
+        # Create ASYNC Redis client for AsyncRedisSaver
+        from redis.asyncio import Redis as AsyncRedis
+
+        async_redis_client = AsyncRedis.from_url(redis_url, decode_responses=False)
+
+        # Initialize AsyncRedisSaver with async client
+        checkpointer = AsyncRedisSaver(redis_client=async_redis_client)
+
+        logger.info(f"✅ AsyncRedisSaver initialized - Persistent memory (Redis: {redis_url})")
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
@@ -2750,7 +2758,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             }
 
         except Exception as e:
-            logger.error(f"Error in MilhenaGraph: {e}")
+            logger.error(f"Error in MilhenaGraph: {e}", exc_info=True)  # Show full traceback
             return {
                 "success": False,
                 "response": "Si è verificato un problema temporaneo. Riprova.",
