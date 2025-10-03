@@ -95,3 +95,38 @@ export const requireRole = (role) => {
 export const requireAdmin = (req, res, next) => {
   return requireRole('admin')(req, res, next);
 };
+
+/**
+ * Service-to-service authentication
+ * Allows Intelligence Engine and other internal services to call backend APIs
+ * without user authentication
+ */
+export const authenticateService = (req, res, next) => {
+  // Priority 1: Check service token
+  const serviceToken = req.headers['x-service-auth'];
+  const expectedToken = process.env.SERVICE_AUTH_TOKEN || 'intelligence-engine-service-token-2025';
+
+  if (serviceToken) {
+    // Service token provided
+    if (serviceToken !== expectedToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid service token'
+      });
+    }
+
+    // Service authenticated
+    req.user = {
+      id: 'service',
+      email: 'intelligence-engine@pilotpros.internal',
+      role: 'service',
+      isService: true
+    };
+
+    return next();
+  }
+
+  // Priority 2: Fallback to user JWT authentication
+  // This allows frontend to access these APIs with user auth
+  return authenticate(req, res, next);
+};

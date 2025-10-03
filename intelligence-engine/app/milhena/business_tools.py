@@ -1680,3 +1680,545 @@ async def search_knowledge_base_tool(query: str, top_k: int = 3) -> str:
 
     except Exception as e:
         return f"Errore ricerca knowledge base. Contatta IT per assistenza. (Dettaglio tecnico: {str(e)})"
+
+
+# ============================================================================
+# HTTP CLIENT HELPER - Call PilotProOS Backend APIs
+# ============================================================================
+
+async def call_backend_api(endpoint: str, timeout: float = 10.0) -> dict:
+    """
+    Call PilotProOS backend API from Intelligence Engine.
+    Uses service-to-service authentication with shared secret.
+
+    Args:
+        endpoint: API path (e.g., "/api/business/top-performers")
+        timeout: Request timeout in seconds
+
+    Returns:
+        JSON response from backend
+    """
+    import httpx
+
+    backend_url = os.getenv("BACKEND_URL", "http://pilotpros-backend-dev:3001")
+    service_token = os.getenv("SERVICE_AUTH_TOKEN", "intelligence-engine-service-token-2025")
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            headers = {
+                "X-Service-Auth": service_token,
+                "Content-Type": "application/json"
+            }
+            response = await client.get(f"{backend_url}{endpoint}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+    except httpx.TimeoutException:
+        logger.error(f"Backend API timeout: {endpoint}")
+        return {"error": "timeout", "endpoint": endpoint}
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Backend API error {e.response.status_code}: {endpoint}")
+        return {"error": f"http_{e.response.status_code}", "endpoint": endpoint}
+    except Exception as e:
+        logger.error(f"Backend API exception: {endpoint} - {e}")
+        return {"error": str(e), "endpoint": endpoint}
+
+
+# ============================================================================
+# NODE-LEVEL TOOLS - Query singoli nodi di workflow
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaNodeDetails", run_type="tool")
+def get_node_execution_details_tool(
+    workflow_name: str,
+    node_name: str,
+    date: str = "oggi"
+) -> str:
+    """
+    Estrae dati di esecuzione di un NODO SPECIFICO di un workflow.
+
+    Use cases:
+    - "output del nodo Rispondi a mittente"
+    - "cosa ha fatto il nodo X?"
+    - "input ricevuto dal trigger"
+    - "che dati ha prodotto il nodo Y?"
+
+    Args:
+        workflow_name: Nome del workflow (es: "ChatOne", "CHATBOT COMMERCIALE")
+        node_name: Nome esatto del nodo (es: "Rispondi a mittente", "Ricezione Mail")
+        date: Data esecuzione (DD/MM/YYYY, YYYY-MM-DD, "oggi", "ieri")
+
+    Returns:
+        Input/output del nodo specifico con timestamp e parametri
+    """
+    try:
+        from datetime import datetime, timedelta
+
+        # Parse date
+        if date.lower() in ["oggi", "today"]:
+            pg_date = datetime.now().strftime("%Y-%m-%d")
+        elif date.lower() in ["ieri", "yesterday"]:
+            pg_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        elif '-' in date:
+            pg_date = date  # ISO format
+        elif '/' in date:
+            parts = date.split('/')
+            if len(parts) == 3:
+                day, month, year = parts
+                if len(year) == 2:
+                    year = f"20{year}"
+                pg_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            else:
+                return "[ERRORE] Formato data non valido. Usa DD/MM/YYYY o YYYY-MM-DD"
+        else:
+            return "[ERRORE] Formato data non valido. Usa DD/MM/YYYY o YYYY-MM-DD"
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to get execution data with node outputs
+        query = """
+            SELECT
+                ee.id as execution_id,
+                w.name as workflow_name,
+                TO_CHAR(ee."startedAt", 'DD/MM/YYYY HH24:MI:SS') as started_at,
+                ee.status,
+                ed.data::jsonb -> 'resultData' -> 'runData' -> %s as node_data
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity w ON ee."workflowId" = w.id
+            JOIN n8n.execution_data ed ON ed."executionId" = ee.id
+            WHERE w.name ILIKE %s
+              AND DATE(ee."startedAt") = %s
+              AND ed.data::jsonb -> 'resultData' -> 'runData' -> %s IS NOT NULL
+            ORDER BY ee."startedAt" DESC
+            LIMIT 5
+        """
+
+        cursor.execute(query, [node_name, f"%{workflow_name}%", pg_date, node_name])
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return f"[INFO] Nessuna esecuzione trovata per il nodo '{node_name}' nel workflow '{workflow_name}' in data {date}."
+
+        response = f"**Dettagli Nodo: {node_name}** ({workflow_name})\n\n"
+
+        for exec_id, wf_name, started, status, node_data in results:
+            response += f"**Esecuzione {exec_id}** - {started}\n"
+            response += f"Stato: {status}\n\n"
+
+            # Extract node execution data (first run)
+            if node_data and len(node_data) > 0:
+                first_run = node_data[0]
+
+                # Input data
+                if first_run.get('data', {}).get('main'):
+                    main_data = first_run['data']['main'][0]
+                    if main_data and len(main_data) > 0:
+                        output_json = main_data[0].get('json', {})
+
+                        # Format key fields
+                        response += "**Output del nodo:**\n"
+                        for key, value in list(output_json.items())[:10]:  # Limit to 10 fields
+                            if isinstance(value, str) and len(value) > 200:
+                                value = value[:200] + "..."
+                            response += f"  • {key}: {value}\n"
+
+                        response += "\n"
+
+            response += "---\n\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting node execution details: {e}")
+        return f"[ERRORE] Impossibile recuperare dettagli nodo: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaChatOneEmails", run_type="tool")
+def get_chatone_email_details_tool(date: str = "oggi", limit: int = 5) -> str:
+    """
+    Mostra email ricevute e risposte inviate dal workflow ChatOne (email automation bot).
+
+    Use cases:
+    - "che risposta ha dato il chatbot alla mail?"
+    - "email ricevute oggi"
+    - "ultima conversazione email"
+    - "cosa ha risposto il bot?"
+
+    Args:
+        date: Data esecuzione (DD/MM/YYYY, YYYY-MM-DD, "oggi", "ieri")
+        limit: Numero massimo di conversazioni da mostrare (default 5)
+
+    Returns:
+        Lista conversazioni: email ricevuta + risposta inviata
+    """
+    try:
+        from datetime import datetime, timedelta
+
+        # Parse date
+        if date.lower() in ["oggi", "today"]:
+            pg_date = datetime.now().strftime("%Y-%m-%d")
+        elif date.lower() in ["ieri", "yesterday"]:
+            pg_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        elif '-' in date:
+            pg_date = date
+        elif '/' in date:
+            parts = date.split('/')
+            if len(parts) == 3:
+                day, month, year = parts
+                if len(year) == 2:
+                    year = f"20{year}"
+                pg_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            else:
+                return "[ERRORE] Formato data non valido"
+        else:
+            return "[ERRORE] Formato data non valido"
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query ChatOne workflow executions with email nodes data
+        query = """
+            SELECT
+                ee.id,
+                TO_CHAR(ee."startedAt", 'DD/MM/YYYY HH24:MI') as started,
+                ed.data::jsonb -> 'resultData' -> 'runData' -> 'Ricezione Mail' -> 0 -> 'data' -> 'main' -> 0 -> 0 -> 'json' as email_received,
+                ed.data::jsonb -> 'resultData' -> 'runData' -> 'Rispondi a mittente' -> 0 -> 'data' -> 'main' -> 0 -> 0 -> 'json' as email_reply
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity w ON ee."workflowId" = w.id
+            JOIN n8n.execution_data ed ON ed."executionId" = ee.id
+            WHERE w.name = 'ChatOne'
+              AND DATE(ee."startedAt") = %s
+              AND ed.data::jsonb -> 'resultData' -> 'runData' -> 'Ricezione Mail' IS NOT NULL
+            ORDER BY ee."startedAt" DESC
+            LIMIT %s
+        """
+
+        cursor.execute(query, [pg_date, limit])
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not results:
+            return f"[INFO] Nessuna email gestita da ChatOne in data {date}."
+
+        response = f"**📧 Conversazioni Email ChatOne** ({date})\n\n"
+
+        for exec_id, started, email_in, email_out in results:
+            response += f"**Conversazione del {started}**\n\n"
+
+            # Email ricevuta
+            if email_in:
+                sender = email_in.get('from', {})
+                if isinstance(sender, dict):
+                    sender_email = sender.get('emailAddress', {}).get('address', 'N/A')
+                else:
+                    sender_email = str(sender)
+
+                subject = email_in.get('subject', 'N/A')
+                body = email_in.get('bodyPreview', email_in.get('body', {}).get('content', 'N/A'))
+
+                if isinstance(body, str) and len(body) > 150:
+                    body = body[:150] + "..."
+
+                response += f"📨 **Email ricevuta:**\n"
+                response += f"  • Da: {sender_email}\n"
+                response += f"  • Oggetto: {subject}\n"
+                response += f"  • Contenuto: {body}\n\n"
+
+            # Risposta inviata
+            if email_out:
+                reply_message = email_out.get('message', 'N/A')
+                if isinstance(reply_message, str) and len(reply_message) > 200:
+                    # Remove HTML tags for readability
+                    import re
+                    reply_clean = re.sub(r'<[^>]+>', '', reply_message)
+                    reply_clean = reply_clean[:200] + "..."
+                else:
+                    reply_clean = reply_message
+
+                response += f"🤖 **Risposta bot:**\n"
+                response += f"  {reply_clean}\n\n"
+
+            response += "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting ChatOne email details: {e}")
+        return f"[ERRORE] Impossibile recuperare conversazioni email: {str(e)}"
+
+
+# ============================================================================
+# FRONTEND API INTEGRATION TOOLS - Dati aggregati dal backend
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaTopPerformers", run_type="tool")
+async def get_top_performers_tool() -> str:
+    """
+    Top 5 workflow che performano meglio (ultimi 30 giorni).
+
+    Use cases:
+    - "quali workflow sono i migliori?"
+    - "processi più affidabili"
+    - "chi performa meglio?"
+    - "workflow con più successi"
+
+    Returns:
+        Top 5 workflow ordinati per success rate + execution count
+    """
+    try:
+        data = await call_backend_api("/api/business/top-performers")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare top performers dal backend."
+
+        performers = data.get("data", [])
+
+        if not performers:
+            return "[INFO] Nessun workflow con esecuzioni sufficienti negli ultimi 30 giorni."
+
+        response = "**🏆 Top 5 Workflow Performanti** (ultimi 30 giorni)\n\n"
+
+        for idx, perf in enumerate(performers, 1):
+            name = perf.get("process_name", "N/A")
+            exec_count = perf.get("execution_count", 0)
+            success_rate = perf.get("success_rate", 0)
+            avg_duration = perf.get("avg_duration_ms", 0)
+
+            response += f"{idx}. **{name}**\n"
+            response += f"   • Esecuzioni: {exec_count}\n"
+            response += f"   • Success Rate: {success_rate}%\n"
+            response += f"   • Tempo medio: {int(avg_duration)}ms\n\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting top performers: {e}")
+        return f"[ERRORE] Impossibile recuperare top performers: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaHourlyAnalytics", run_type="tool")
+async def get_hourly_analytics_tool() -> str:
+    """
+    Distribuzione oraria delle esecuzioni (24h) con peak hours e quiet hours.
+
+    Use cases:
+    - "quando gira di più il sistema?"
+    - "orari di picco attività"
+    - "momenti più attivi della giornata"
+    - "quando ci sono meno esecuzioni?"
+
+    Returns:
+        Distribuzione 24h + peak/quiet hours + total executions
+    """
+    try:
+        data = await call_backend_api("/api/business/hourly-analytics")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare analytics orarie dal backend."
+
+        insights = data.get("insights", {})
+        hourly_stats = data.get("hourlyStats", [])
+
+        peak_hour = insights.get("peakHour", 0)
+        quiet_hour = insights.get("quietHour", 0)
+        avg_load = insights.get("avgHourlyLoad", 0)
+        peak_value = insights.get("peakValue", 0)
+        total_day = insights.get("totalDayExecutions", 0)
+
+        response = f"**⏰ Distribuzione Oraria Attività** (ultimi 7 giorni)\n\n"
+        response += f"📊 **Metriche principali:**\n"
+        response += f"  • Picco attività: ore {peak_hour}:00 ({peak_value} esecuzioni)\n"
+        response += f"  • Momento più calmo: ore {quiet_hour}:00\n"
+        response += f"  • Carico medio orario: {avg_load} esecuzioni/h\n"
+        response += f"  • Totale giornaliero: {total_day} esecuzioni\n\n"
+
+        # Show top 5 busiest hours
+        sorted_hours = sorted(hourly_stats, key=lambda x: x.get('executions', 0), reverse=True)[:5]
+
+        response += "**Orari più attivi:**\n"
+        for hour_stat in sorted_hours:
+            hour = hour_stat.get('hour', 'N/A')
+            execs = hour_stat.get('executions', 0)
+            success = hour_stat.get('success_rate', 0)
+
+            response += f"  • {hour}: {execs} esecuzioni ({success}% successo)\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting hourly analytics: {e}")
+        return f"[ERRORE] Impossibile recuperare analytics orarie: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaIntegrationHealth", run_type="tool")
+async def get_integration_health_tool() -> str:
+    """
+    Stato di salute delle integrazioni e automazioni attive.
+
+    Use cases:
+    - "salute delle integrazioni"
+    - "uptime del sistema"
+    - "connessioni attive"
+    - "ci sono problemi con le integrazioni?"
+
+    Returns:
+        Status generale, uptime%, connessioni healthy/total, issues count
+    """
+    try:
+        data = await call_backend_api("/api/business/integration-health")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare health integrazioni dal backend."
+
+        status = data.get("status", "unknown")
+        uptime = data.get("uptime", 0)
+        healthy_conn = data.get("healthyConnections", 0)
+        total_conn = data.get("totalConnections", 0)
+        issues = data.get("issuesCount", 0)
+        top_services = data.get("topServices", [])
+
+        # Status emoji
+        status_emoji = "🟢" if status == "healthy" else "🟡" if status == "degraded" else "🔴"
+
+        response = f"**{status_emoji} Salute Integrazioni**\n\n"
+        response += f"**Status generale:** {status.upper()}\n"
+        response += f"**Uptime:** {uptime:.1f}%\n"
+        response += f"**Connessioni:** {healthy_conn}/{total_conn} healthy\n"
+        response += f"**Issues:** {issues}\n\n"
+
+        if top_services and len(top_services) > 0:
+            response += "**Servizi principali:**\n"
+            for svc in top_services[:5]:
+                svc_name = svc.get("name", "N/A")
+                svc_status = svc.get("status", "unknown")
+                svc_emoji = "✅" if svc_status == "operational" else "⚠️"
+
+                response += f"  {svc_emoji} {svc_name}: {svc_status}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting integration health: {e}")
+        return f"[ERRORE] Impossibile recuperare health integrazioni: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaDailyTrend", run_type="tool")
+async def get_daily_trend_tool(days: int = 7) -> str:
+    """
+    Trend giornaliero esecuzioni (ultimi 7-30 giorni).
+
+    Use cases:
+    - "trend degli ultimi giorni"
+    - "come sta andando questa settimana?"
+    - "grafico esecuzioni giornaliere"
+    - "andamento ultimi 7 giorni"
+
+    Args:
+        days: Numero di giorni da analizzare (7 o 30)
+
+    Returns:
+        Trend giornaliero con success/failures per giorno
+    """
+    try:
+        data = await call_backend_api("/api/business/daily-trend")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare trend giornaliero dal backend."
+
+        daily_stats = data.get("dailyStats", [])
+
+        if not daily_stats:
+            return "[INFO] Nessun dato disponibile per il trend giornaliero."
+
+        # Filter last N days
+        recent_days = daily_stats[-days:] if len(daily_stats) > days else daily_stats
+
+        response = f"**📈 Trend Giornaliero** (ultimi {len(recent_days)} giorni)\n\n"
+
+        # Calculate totals
+        total_execs = sum(d.get('executions', 0) for d in recent_days)
+        total_success = sum(d.get('successes', 0) for d in recent_days)
+        total_failures = sum(d.get('failures', 0) for d in recent_days)
+        avg_success_rate = sum(d.get('success_rate', 0) for d in recent_days) / len(recent_days) if recent_days else 0
+
+        response += f"**Riepilogo periodo:**\n"
+        response += f"  • Esecuzioni totali: {total_execs}\n"
+        response += f"  • Successi: {total_success}\n"
+        response += f"  • Errori: {total_failures}\n"
+        response += f"  • Success rate medio: {avg_success_rate:.1f}%\n\n"
+
+        response += "**Dettaglio giornaliero:**\n"
+        for day in recent_days[-7:]:  # Show last 7 days detail
+            date = day.get('date', 'N/A')
+            execs = day.get('executions', 0)
+            success = day.get('successes', 0)
+            fail = day.get('failures', 0)
+            rate = day.get('success_rate', 0)
+
+            status_emoji = "🟢" if rate >= 80 else "🟡" if rate >= 50 else "🔴"
+
+            response += f"{status_emoji} {date}: {execs} exec ({success}✓ / {fail}✗) - {rate}%\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting daily trend: {e}")
+        return f"[ERRORE] Impossibile recuperare trend giornaliero: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaAutomationInsights", run_type="tool")
+async def get_automation_insights_tool() -> str:
+    """
+    Insights su automazioni: crescita settimanale, automation rate, trend.
+
+    Use cases:
+    - "come crescono le automazioni?"
+    - "insights sulle automazioni"
+    - "tendenze automazione"
+    - "performance generale automazioni"
+
+    Returns:
+        Weekly growth, automation rate, active processes, trend indicators
+    """
+    try:
+        data = await call_backend_api("/api/business/automation-insights")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare automation insights dal backend."
+
+        total_procs = data.get("totalProcesses", 0)
+        active_procs = data.get("activeProcesses", 0)
+        weekly_growth = data.get("weeklyGrowth", 0)
+        automation_rate = data.get("automationRate", 0)
+        success_rate = data.get("successRate", 0)
+        trend = data.get("trend", "stable")
+
+        # Trend emoji
+        trend_emoji = "📈" if trend == "up" else "📉" if trend == "down" else "➡️"
+
+        response = f"**🤖 Automation Insights**\n\n"
+        response += f"**Processi:**\n"
+        response += f"  • Totali: {total_procs}\n"
+        response += f"  • Attivi: {active_procs}\n"
+        response += f"  • Automation rate: {automation_rate:.1f}%\n\n"
+
+        response += f"**Performance:**\n"
+        response += f"  • Success rate: {success_rate:.1f}%\n"
+        response += f"  • Crescita settimanale: {weekly_growth:+.1f}%\n"
+        response += f"  • Trend: {trend_emoji} {trend}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting automation insights: {e}")
+        return f"[ERRORE] Impossibile recuperare automation insights: {str(e)}"

@@ -61,7 +61,7 @@ import authController from './controllers/auth.controller.js';
 
 // Authentication Configuration Controller
 import authConfigController from './controllers/auth-config.controller.js';
-import { authenticate } from './middleware/auth.middleware.js';
+import { authenticate, authenticateService } from './middleware/auth.middleware.js';
 
 // Health Check Controller - TEMPORARILY DISABLED
 // import healthController from './controllers/health.controller.js';
@@ -360,7 +360,8 @@ app.get('/api/n8n-icons/:nodeType', async (req, res) => {
 // ============================================================================
 
 // SECURITY: Apply JWT authentication to ALL business routes
-app.use('/api/business/*', authenticate);
+// MODIFIED: Allow service-to-service auth OR user auth for business APIs
+app.use('/api/business/*', authenticateService);
 
 // Additional security headers for business routes
 app.use('/api/business/*', (req, res, next) => {

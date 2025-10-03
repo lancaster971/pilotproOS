@@ -42,7 +42,15 @@ from app.milhena.business_tools import (
     get_all_errors_summary_tool,
     search_knowledge_base_tool,
     get_executions_by_date_tool,
-    get_full_database_dump
+    get_full_database_dump,
+    # NEW: Node-level + Frontend API tools
+    get_node_execution_details_tool,
+    get_chatone_email_details_tool,
+    get_top_performers_tool,
+    get_hourly_analytics_tool,
+    get_integration_health_tool,
+    get_daily_trend_tool,
+    get_automation_insights_tool
 )
 
 # Import RAG System for knowledge retrieval
@@ -815,6 +823,7 @@ class MilhenaGraph:
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
         # This replaces hardcoded if/elif pattern matching with intelligent tool selection
         react_tools = [
+            # Core database tools (10)
             get_full_database_dump,
             get_workflows_tool,
             get_performance_metrics_tool,
@@ -824,7 +833,16 @@ class MilhenaGraph:
             get_error_details_tool,
             get_all_errors_summary_tool,
             search_knowledge_base_tool,
-            get_executions_by_date_tool
+            get_executions_by_date_tool,
+            # NEW: Node-level tools (2)
+            get_node_execution_details_tool,
+            get_chatone_email_details_tool,
+            # NEW: Frontend API aggregated data tools (5)
+            get_top_performers_tool,
+            get_hourly_analytics_tool,
+            get_integration_health_tool,
+            get_daily_trend_tool,
+            get_automation_insights_tool
         ]
 
         # Use OpenAI Nano (10M tokens "Offerta Speciale") - GROQ hit rate limit
@@ -902,6 +920,34 @@ Usa SEMPRE i dati real-time provenienti dal database o dai tool forniti.
 - "dump completo", "voglio tutto", "dettagli profondi", "statistiche complete", "approfondisci"
 → get_full_database_dump(days=7)
 
+1️⃣1️⃣ Dettagli singolo nodo di workflow (NODE-LEVEL)
+- "output del nodo X", "cosa ha fatto il nodo Y", "input ricevuto dal trigger", "che dati ha prodotto il nodo Z"
+→ get_node_execution_details_tool(workflow_name="...", node_name="...", date="oggi")
+
+1️⃣2️⃣ Email conversations ChatOne (BOT EMAIL)
+- "che risposta ha dato alla mail", "email ricevute oggi", "ultima conversazione email", "cosa ha risposto il bot"
+→ get_chatone_email_details_tool(date="oggi")
+
+1️⃣3️⃣ Top workflow performers (BEST PRACTICES)
+- "workflow migliori", "chi performa meglio", "processi più affidabili", "top 5 workflow"
+→ get_top_performers_tool()
+
+1️⃣4️⃣ Orari picco attività (HOURLY DISTRIBUTION)
+- "quando gira di più", "orari di picco", "momenti più attivi", "distribuzione oraria"
+→ get_hourly_analytics_tool()
+
+1️⃣5️⃣ Trend giornaliero (DAILY TREND)
+- "trend ultimi giorni", "come va questa settimana", "andamento giornaliero", "grafico esecuzioni"
+→ get_daily_trend_tool(days=7)
+
+1️⃣6️⃣ Insights automazioni (AUTOMATION GROWTH)
+- "crescita automazioni", "automation insights", "tendenze automazione", "performance generale automazioni"
+→ get_automation_insights_tool()
+
+1️⃣7️⃣ Salute integrazioni (INTEGRATION HEALTH)
+- "salute integrazioni", "uptime sistema", "connessioni attive", "problemi integrazioni"
+→ get_integration_health_tool()
+
 ---
 
 📚 ESEMPI DI USO CORRETTO (Few-shot examples)
@@ -930,6 +976,27 @@ User: "Che movimenti abbiamo avuto di recente?"
 User: "Lista tutti i workflow"
 → Tool: get_workflows_tool()
 
+User: "Che risposta ha dato il bot all'ultima email?"
+→ Tool: get_chatone_email_details_tool(date="oggi")
+
+User: "Quali sono i workflow che performano meglio?"
+→ Tool: get_top_performers_tool()
+
+User: "Quando abbiamo più attività durante la giornata?"
+→ Tool: get_hourly_analytics_tool()
+
+User: "Trend degli ultimi 7 giorni"
+→ Tool: get_daily_trend_tool(days=7)
+
+User: "Come sta andando l'automazione in generale?"
+→ Tool: get_automation_insights_tool()
+
+User: "Uptime delle integrazioni?"
+→ Tool: get_integration_health_tool()
+
+User: "Output del nodo Rispondi a mittente"
+→ Tool: get_node_execution_details_tool(workflow_name="ChatOne", node_name="Rispondi a mittente")
+
 ---
 
 ❌ ERRORI COMUNI DA EVITARE:
@@ -951,7 +1018,7 @@ Usa terminologia business, evita tecnicismi."""
             checkpointer=checkpointer,  # Share same checkpointer for unified memory
             prompt=react_system_prompt  # Custom instructions for better tool selection
         )
-        logger.info("✅ ReAct Agent initialized with 10 tools + custom system prompt")
+        logger.info("✅ ReAct Agent initialized with 17 tools (10 DB + 2 node-level + 5 frontend API) + custom system prompt")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
