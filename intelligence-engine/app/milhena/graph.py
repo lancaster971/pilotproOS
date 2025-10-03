@@ -396,6 +396,10 @@ class MilhenaState(TypedDict):
     waiting_clarification: bool
     original_query: Optional[str]  # For learning
 
+    # NEW: Rephraser fields
+    is_ambiguous: bool  # Rule-based ambiguity detection
+    rephraser_triggered: bool  # Safety flag (max 1 rephrase)
+
 # ============================================================================
 # MILHENA TOOLS - Business-focused tools with masking
 # ============================================================================
@@ -721,6 +725,10 @@ class MilhenaGraph:
         graph = StateGraph(MilhenaState)
 
         # Add nodes with CLEAR PREFIXES
+        # NEW: Rephraser pre-check nodes (lightweight, rule-based)
+        graph.add_node("[REPHRASER] Check Ambiguity", self.check_ambiguity)
+        graph.add_node("[REPHRASER] Rephrase Query", self.rephrase_query)
+
         # NEW: Supervisor as entry point
         graph.add_node("[SUPERVISOR] Route Query", self.supervisor_orchestrator)
 
@@ -737,9 +745,22 @@ class MilhenaGraph:
         graph.add_node("[CODE] Record Feedback", self.record_feedback)
         graph.add_node("[CODE] Handle Error", self.handle_error)
 
-        # SIMPLIFIED: Entry point DIRETTO al ReAct Agent (bypass supervisor)
-        # Il ReAct Agent ha memoria conversazionale nativa e decide tutto
-        graph.set_entry_point("[TOOL] Database Query")
+        # NEW ENTRY POINT: Rephraser check BEFORE ReAct Agent
+        # Pattern: Ambiguity Check → (if ambiguous) Rephrase → ReAct Agent
+        graph.set_entry_point("[REPHRASER] Check Ambiguity")
+
+        # NEW: Conditional routing from Rephraser Check
+        graph.add_conditional_edges(
+            "[REPHRASER] Check Ambiguity",
+            self.route_after_ambiguity_check,
+            {
+                "rephrase": "[REPHRASER] Rephrase Query",  # Query ambigua → rephrase
+                "proceed": "[TOOL] Database Query"  # Query chiara → direct to ReAct
+            }
+        )
+
+        # After rephrasing, always proceed to ReAct Agent
+        graph.add_edge("[REPHRASER] Rephrase Query", "[TOOL] Database Query")
 
         # NEW: Conditional routing from Supervisor
         graph.add_conditional_edges(
@@ -1641,6 +1662,167 @@ Dopo aver ricevuto i dati dal tool, rispondi in italiano, sii conciso, usa termi
 
         # No fast-path match → use LLM
         return None
+
+    # ============================================================================
+    # REPHRASER NODES - Lightweight pre-check for ambiguous queries
+    # ============================================================================
+
+    @traceable(
+        name="Rephraser_CheckAmbiguity",
+        run_type="chain",
+        metadata={"component": "rephraser", "version": "1.0"}
+    )
+    async def check_ambiguity(self, state: MilhenaState) -> MilhenaState:
+        """
+        Rule-based ambiguity detection (<10ms overhead).
+        Checks if query is too vague for direct ReAct Agent processing.
+        """
+        # Extract query from messages if not present
+        if "query" not in state or not state.get("query"):
+            messages = state.get("messages", [])
+            if messages:
+                last_msg = messages[-1]
+                if hasattr(last_msg, "content"):
+                    content = last_msg.content
+                    if isinstance(content, list):
+                        text_parts = [part.get("text", "") if isinstance(part, dict) else str(part) for part in content]
+                        state["query"] = " ".join(text_parts)
+                    else:
+                        state["query"] = str(content)
+                else:
+                    state["query"] = str(last_msg)
+            else:
+                state["query"] = ""
+
+        query = state["query"].lower().strip()
+
+        # Initialize rephraser metadata
+        state["rephraser_triggered"] = False
+        state["original_query"] = state["query"]
+
+        import re
+
+        # WHITELIST: Query chiare che NON devono essere rephrasate
+        clear_patterns = [
+            r"\bqual[ie]\s+(workflow|errori|processi|esecuzioni)",  # "quali workflow", "quali errori"
+            r"\b(workflow|processi)\b.*(hanno|con|in)\b",  # "workflow che hanno errori"
+            r"\b(lista|mostra|dammi)\s+(workflow|processi|tutti)",  # "lista workflow"
+            r"\berrori\s+(di|in|del|nel)\s+\w+",  # "errori di [nome]"
+            r"\binfo\s+su\s+\w+",  # "info su [nome]"
+        ]
+
+        # Se query matcha whitelist → CHIARA, skip rephrase
+        is_clear = any(re.search(pattern, query) for pattern in clear_patterns)
+
+        if is_clear:
+            is_vague = False
+        else:
+            # Pattern 1: Generic pronouns without context (es: "flussi problematici", "dammi info")
+            vague_patterns = [
+                r"\bflussi?\b.*\bproblematic[oi]\b",  # flussi problematici
+                r"\bdammi\b.*\binfo\b(?!\s+su)",  # dammi info (NON "dammi info su X")
+                r"\bcom[e']?\s*(va|vanno)\b(?!\s+\w+)",  # come va/vanno (senza specificare cosa)
+                r"\b(quello|quella|quelli|quelle)\b",  # pronomi dimostrativi vaghi
+            ]
+
+            # Pattern 2: Ultra-short queries (<3 words) excluding greetings
+            word_count = len(query.split())
+            is_greeting = any(greet in query for greet in ["ciao", "hello", "salve", "buongiorno", "hey"])
+
+            # Pattern 3: Questions without subject (es: "come funziona?", "quanti sono?")
+            vague_questions = [
+                r"\bcome\s+(funziona|va|sono)\b(?!\s+\w+)",
+                r"\bquant[oi]\b(?!\s+(workflow|errori|processi))",
+                r"\bdove\s+(sono|va)\b(?!\s+\w+)",
+            ]
+
+            is_vague = (
+                any(re.search(pattern, query) for pattern in vague_patterns) or
+                any(re.search(pattern, query) for pattern in vague_questions) or
+                (word_count < 3 and not is_greeting)
+            )
+
+        state["is_ambiguous"] = is_vague
+
+        if is_vague:
+            logger.warning(f"[REPHRASER] Query AMBIGUA rilevata: '{query[:80]}' - attivo rephrase")
+        else:
+            logger.info(f"[REPHRASER] Query CHIARA: '{query[:80]}' - procedo diretto")
+
+        return state
+
+    @traceable(
+        name="Rephraser_RephraseQuery",
+        run_type="chain",
+        metadata={"component": "rephraser", "version": "1.0"}
+    )
+    async def rephrase_query(self, state: MilhenaState) -> MilhenaState:
+        """
+        LLM-based query rephrasing using Groq (fast & free).
+        Reformulates ambiguous queries to match MAPPA TOOL patterns.
+        """
+        original_query = state["original_query"]
+
+        # Safety: Max 1 rephrase attempt
+        if state.get("rephraser_triggered"):
+            logger.warning("[REPHRASER] Max 1 rephrase già eseguito - skip")
+            return state
+
+        rephrase_prompt = f"""Sei un assistente che riformula query vaghe in query precise.
+
+Query originale: "{original_query}"
+
+TOOL DISPONIBILI (target output):
+1. get_all_errors_summary_tool() → "quali errori abbiamo?"
+2. get_error_details_tool(workflow_name) → "errori di [NOME_WORKFLOW]"
+3. get_workflow_details_tool(workflow_name) → "info su [NOME_WORKFLOW]"
+4. get_workflows_tool() → "lista tutti i workflow"
+5. get_executions_by_date_tool(date) → "esecuzioni del [DATA]"
+
+Riformula la query per matchare uno dei pattern sopra.
+Se la query è già chiara, restituiscila invariata.
+
+ESEMPI:
+Input: "flussi problematici"
+Output: "quali workflow hanno errori?"
+
+Input: "dammi info"
+Output: "lista tutti i workflow"
+
+Input: "come va quello?"
+Output: "quali errori abbiamo nel sistema?"
+
+Rispondi SOLO con la query riformulata, nessun testo extra."""
+
+        try:
+            # Use Groq (free + fast) for rephrasing
+            llm = self.supervisor_llm if self.supervisor_llm else self.supervisor_fallback
+
+            response = await llm.ainvoke(rephrase_prompt)
+            rephrased = response.content.strip()
+
+            state["query"] = rephrased
+            state["rephraser_triggered"] = True
+            state["messages"].append(AIMessage(content=f"[REPHRASER] Query riformulata: {rephrased}"))
+
+            logger.info(f"[REPHRASER] Query riformulata: '{original_query}' → '{rephrased}'")
+
+        except Exception as e:
+            logger.error(f"[REPHRASER] Errore rephrasing: {e} - uso query originale")
+            state["query"] = original_query
+
+        return state
+
+    def route_after_ambiguity_check(self, state: MilhenaState) -> str:
+        """Routing function dopo check ambiguity"""
+        if state.get("is_ambiguous", False):
+            return "rephrase"
+        else:
+            return "proceed"
+
+    # ============================================================================
+    # OPTIMIZATION NODES
+    # ============================================================================
 
     @traceable(
         name="MilhenaClassifyComplexity",
