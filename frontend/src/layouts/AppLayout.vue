@@ -90,17 +90,21 @@
         <slot />
       </main>
     </div>
+
+    <!-- Chat Widget -->
+    <ChatWidget />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
+import {
   Menu, LogOut, LayoutDashboard, GitBranch, Play, BarChart3,
   Database, Bot
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import ChatWidget from '../components/ChatWidget.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
