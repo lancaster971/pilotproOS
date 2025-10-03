@@ -1269,7 +1269,33 @@ def get_error_details_tool(workflow_name: str, hours: int = 24) -> str:
         if not errors:
             return f"Nessun errore trovato per il processo '{workflow_name}' nelle ultime {hours} ore."
 
-        response = f"[ERRORE] **Errori per '{errors[0][0]}'** (ultime {hours}h):\n\n"
+        workflow_full_name = errors[0][0]
+
+        response = f"[ERRORE] **Errori per '{workflow_full_name}'** (ultime {hours}h):\n\n"
+
+        # AUTO-ENRICHMENT: Aggiungi statistiche workflow per context completo
+        cur.execute("""
+            SELECT
+                COUNT(*) FILTER (WHERE ee.status = 'success') as successes,
+                COUNT(*) FILTER (WHERE ee.status = 'error') as errors_count,
+                COUNT(*) as total_execs,
+                AVG(EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt"))) as avg_duration
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+            WHERE LOWER(we.name) LIKE LOWER(%s)
+              AND ee."startedAt" >= %s
+        """, (f"%{workflow_name}%", time_cutoff))
+
+        stats = cur.fetchone()
+        if stats and stats[2] > 0:
+            success_rate = (stats[0] / stats[2] * 100) if stats[2] > 0 else 0
+            response += f"**📊 Context Performance** (ultime {hours}h):\n"
+            response += f"  • Esecuzioni totali: {stats[2]}\n"
+            response += f"  • Successi: {stats[0]} | Errori: {stats[1]}\n"
+            response += f"  • Success Rate: {success_rate:.1f}%\n"
+            response += f"  • Durata media: {stats[3]:.1f}s\n\n"
+
+        response += f"**🔍 Dettaglio Errori:**\n\n"
 
         # Helper function to decompress n8n error data
         def decompress_error_data(data_str):
