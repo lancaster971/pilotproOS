@@ -33,44 +33,27 @@ from app.milhena.token_manager import TokenManager
 from app.milhena.cache_manager import CacheManager
 from app.milhena.masking import TechnicalMaskingEngine
 from app.milhena.business_tools import (
-    # Core DB tools (10)
-    get_workflows_tool,
-    get_performance_metrics_tool,
-    get_system_monitoring_tool,
-    get_analytics_tool,
-    get_workflow_details_tool,
+    # SMART CONSOLIDATED TOOLS (3) - Reduce 30→12 decision space
+    smart_analytics_query_tool,
+    smart_workflow_query_tool,
+    smart_executions_query_tool,
+    # SPECIALIZED TOOLS (9) - Cannot be consolidated
     get_error_details_tool,
     get_all_errors_summary_tool,
-    search_knowledge_base_tool,
-    get_executions_by_date_tool,
-    get_full_database_dump,
-    # Node-level tools (2)
     get_node_execution_details_tool,
     get_chatone_email_details_tool,
-    # Frontend API - Analytics (5)
-    get_top_performers_tool,
-    get_hourly_analytics_tool,
-    get_integration_health_tool,
-    get_daily_trend_tool,
-    get_automation_insights_tool,
-    # Frontend API - Analytics Extended (3)
-    get_analytics_overview_tool,
-    get_statistics_tool,
-    get_performance_metrics_frontend_tool,
-    # Frontend API - Workflow Details (3)
-    get_workflow_dashboard_tool,
-    get_workflow_full_stats_tool,
-    get_workflow_cards_tool,
-    # Frontend API - Executions (3)
-    get_executions_list_tool,
-    get_workflow_executions_tool,
-    get_execution_status_tool,
-    # Frontend API - Timeline & Events (2)
-    get_live_events_tool,
     get_raw_modal_data_tool,
-    # Frontend API - Actions (2)
+    get_live_events_tool,
+    get_workflows_tool,
+    get_workflow_cards_tool,
     execute_workflow_tool,
-    toggle_workflow_tool
+    toggle_workflow_tool,
+    search_knowledge_base_tool,
+    get_full_database_dump,
+    # LEGACY WRAPPERS (3) - Backward compatibility
+    get_performance_metrics_tool,
+    get_system_monitoring_tool,
+    get_analytics_tool
 )
 
 # Import RAG System for knowledge retrieval
@@ -843,43 +826,24 @@ class MilhenaGraph:
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
         # This replaces hardcoded if/elif pattern matching with intelligent tool selection
         react_tools = [
-            # Core database tools (10)
-            get_full_database_dump,
-            get_workflows_tool,
-            get_performance_metrics_tool,
-            get_system_monitoring_tool,
-            get_analytics_tool,
-            get_workflow_details_tool,
-            get_error_details_tool,
-            get_all_errors_summary_tool,
-            search_knowledge_base_tool,
-            get_executions_by_date_tool,
-            # Node-level tools (2)
-            get_node_execution_details_tool,
-            get_chatone_email_details_tool,
-            # Frontend API - Analytics (8 total)
-            get_top_performers_tool,
-            get_hourly_analytics_tool,
-            get_integration_health_tool,
-            get_daily_trend_tool,
-            get_automation_insights_tool,
-            get_analytics_overview_tool,
-            get_statistics_tool,
-            get_performance_metrics_frontend_tool,
-            # Frontend API - Workflow Details (3)
-            get_workflow_dashboard_tool,
-            get_workflow_full_stats_tool,
-            get_workflow_cards_tool,
-            # Frontend API - Executions (3)
-            get_executions_list_tool,
-            get_workflow_executions_tool,
-            get_execution_status_tool,
-            # Frontend API - Timeline & Events (2)
-            get_live_events_tool,
-            get_raw_modal_data_tool,
-            # Frontend API - Actions (2)
-            execute_workflow_tool,
-            toggle_workflow_tool
+            # SMART CONSOLIDATED TOOLS (3) - Primary decision layer
+            smart_analytics_query_tool,      # 9 analytics tools in 1
+            smart_workflow_query_tool,       # 3 workflow details in 1
+            smart_executions_query_tool,     # 4 executions tools in 1
+
+            # SPECIALIZED TOOLS (9) - Unique functionality
+            get_error_details_tool,          # Errors for specific workflow
+            get_all_errors_summary_tool,     # Aggregated errors
+            get_node_execution_details_tool, # Node-level granularity
+            get_chatone_email_details_tool,  # Email conversations
+            get_raw_modal_data_tool,         # Timeline node-by-node
+            get_live_events_tool,            # Real-time stream
+            get_workflows_tool,              # Basic workflow list
+            get_workflow_cards_tool,         # Cards overview
+            execute_workflow_tool,           # ⚠️ Execute action
+            toggle_workflow_tool,            # ⚠️ Toggle action
+            search_knowledge_base_tool,      # RAG system
+            get_full_database_dump           # Complete dump
         ]
 
         # Use OpenAI Nano (10M tokens "Offerta Speciale") - GROQ hit rate limit
@@ -914,138 +878,133 @@ Usa SEMPRE i dati real-time provenienti dal database o dai tool forniti.
 
 ---
 
-🗺️ MAPPA TOOL - 30 TOOLS DISPONIBILI (scegli il PIÙ SPECIFICO)
+🗺️ MAPPA TOOL - 12 TOOLS (consolidati per decisioni veloci)
 
-📋 CATEGORIA A: QUERY SU WORKFLOW SPECIFICO (priorità MASSIMA se utente nomina un workflow)
+1️⃣ SMART ANALYTICS (9 metriche in 1 tool)
+smart_analytics_query_tool(metric_type, period_days)
 
-A1. Errori workflow specifico: get_error_details_tool(workflow_name="X")
-A2. Status workflow: get_workflow_details_tool(workflow_name="X")
-A3. Dashboard completo workflow: get_workflow_dashboard_tool(workflow_id="...")
-A4. Statistiche complete workflow: get_workflow_full_stats_tool(workflow_id="...", days=30)
-A5. Esecuzioni workflow: get_workflow_executions_tool(workflow_id="...", limit=10)
+Use cases & metric_type:
+- "statistiche sistema" → metric_type="statistics"
+- "top performers" / "migliori workflow" → metric_type="top_performers"
+- "trend ultimi giorni" → metric_type="daily_trend", period_days=7
+- "orari picco" / "quando gira di più" → metric_type="hourly"
+- "analytics completo" → metric_type="overview"
+- "salute integrazioni" / "uptime" → metric_type="integration_health"
+- "insights automazioni" / "crescita" → metric_type="automation"
+- "performance dettagliate" → metric_type="performance"
 
-📋 CATEGORIA B: NODE-LEVEL QUERIES (massima granularità)
+2️⃣ SMART WORKFLOW (dettagli workflow in 1 tool)
+smart_workflow_query_tool(workflow_id, detail_level)
 
-B1. Output singolo nodo: get_node_execution_details_tool(workflow_name="X", node_name="Y", date="oggi")
-B2. Email ChatOne: get_chatone_email_details_tool(date="oggi")
-B3. Timeline node-by-node: get_raw_modal_data_tool(workflow_id="...", execution_id=123)
+Use cases & detail_level:
+- "info su ChatOne" → detail_level="basic"
+- "dashboard ChatOne" → detail_level="dashboard" (include email/AI activity!)
+- "statistiche complete ChatOne" → detail_level="full_stats"
 
-📋 CATEGORIA C: ANALYTICS & METRICS (dati aggregati)
+3️⃣ SMART EXECUTIONS (esecuzioni in 1 tool)
+smart_executions_query_tool(scope, target, limit)
 
-C1. Top performers: get_top_performers_tool()
-C2. Analytics overview: get_analytics_overview_tool()
-C3. Statistiche sistema: get_statistics_tool()
-C4. Performance metrics: get_performance_metrics_frontend_tool()
-C5. Trend giornaliero: get_daily_trend_tool(days=7)
-C6. Orari picco: get_hourly_analytics_tool()
-C7. Automation insights: get_automation_insights_tool()
-C8. Integration health: get_integration_health_tool()
+Use cases & scope:
+- "ultime esecuzioni" → scope="recent_all", limit=20
+- "esecuzioni di oggi" → scope="by_date", target="2025-10-03"
+- "esecuzioni ChatOne" → scope="by_workflow", target="workflow_id"
+- "status esecuzione 123" → scope="specific", target="123"
 
-📋 CATEGORIA D: ESECUZIONI & ATTIVITÀ
+4️⃣ Errori workflow specifico
+get_error_details_tool(workflow_name="X")
 
-D1. Attività per data: get_executions_by_date_tool(date="2025-10-03")
-D2. Ultime esecuzioni (tutte): get_executions_list_tool(limit=20)
-D3. Status esecuzione specifica: get_execution_status_tool(execution_id=123)
-D4. Eventi live: get_live_events_tool()
+5️⃣ Errori aggregati sistema
+get_all_errors_summary_tool()
 
-📋 CATEGORIA E: LISTE & OVERVIEW
+6️⃣ Node-level query (massima granularità!)
+get_node_execution_details_tool(workflow_name="X", node_name="Y", date="oggi")
 
-E1. Lista workflow: get_workflows_tool()
-E2. Workflow cards: get_workflow_cards_tool()
-E3. Errori aggregati: get_all_errors_summary_tool()
-E4. System monitoring: get_system_monitoring_tool()
+7️⃣ Email ChatOne (conversazioni bot)
+get_chatone_email_details_tool(date="oggi")
 
-📋 CATEGORIA F: AZIONI (⚠️ CRITICHE)
+8️⃣ Timeline node-by-node (business intelligence completa)
+get_raw_modal_data_tool(workflow_id="...", execution_id=None)
 
-F1. Esegui workflow: execute_workflow_tool(workflow_id="...")
-F2. Attiva/Disattiva: toggle_workflow_tool(workflow_id="...", active=true/false)
+9️⃣ Eventi live real-time
+get_live_events_tool()
 
-📋 CATEGORIA G: RICERCA & DUMP
+🔟 Lista workflow base
+get_workflows_tool()
 
-G1. Search knowledge base: search_knowledge_base_tool(query="...")
-G2. Dump completo: get_full_database_dump(days=7)
+1️⃣1️⃣ Card overview tutti workflow
+get_workflow_cards_tool()
+
+1️⃣2️⃣ Actions (⚠️ CRITICHE)
+- execute_workflow_tool(workflow_id) - Esegui workflow
+- toggle_workflow_tool(workflow_id, active) - Attiva/disattiva
+
+BONUS:
+- search_knowledge_base_tool(query) - RAG documentazione
+- get_full_database_dump(days) - Dump completo
 
 ---
 
-🎯 STRATEGIA SELEZIONE TOOL:
+🎯 STRATEGIA DECISIONALE SEMPLIFICATA:
 
-1. Se utente NOMINA UN WORKFLOW → usa CATEGORIA A (workflow-specific)
-2. Se utente chiede NODO SPECIFICO → usa CATEGORIA B (node-level)
-3. Se utente chiede METRICHE/ANALYTICS → usa CATEGORIA C (analytics)
-4. Se utente chiede ATTIVITÀ/ESECUZIONI → usa CATEGORIA D (executions)
-5. Se utente chiede LISTA/OVERVIEW → usa CATEGORIA E (overview)
-6. Se utente chiede di ESEGUIRE → usa CATEGORIA F (actions) ⚠️
-7. Se utente chiede DOCUMENTAZIONE → usa CATEGORIA G (search/dump)
+1. Metriche/Analytics/Statistiche → smart_analytics_query_tool
+2. Dettagli workflow specifico → smart_workflow_query_tool
+3. Query su esecuzioni → smart_executions_query_tool
+4. Errori → get_error_details_tool o get_all_errors_summary_tool
+5. Node/Email/Timeline → tool specializzati
+6. Azioni → execute/toggle workflow
+7. Liste → get_workflows_tool o get_workflow_cards_tool
 
 ---
 
 📚 ESEMPI DI USO CORRETTO (Few-shot examples)
 
-User: "Email automation è in errore?"
-→ Tool: get_error_details_tool(workflow_name="Email Automation")
+User: "Statistiche sistema"
+→ Tool: smart_analytics_query_tool(metric_type="statistics")
 
-User: "Cosa è successo ieri notte?"
-→ Tool: get_executions_by_date_tool(date="2025-10-02")
+User: "Top 5 workflow migliori"
+→ Tool: smart_analytics_query_tool(metric_type="top_performers")
 
-User: "Abbiamo avuto problemi oggi?"
+User: "Trend ultimi 7 giorni"
+→ Tool: smart_analytics_query_tool(metric_type="daily_trend", period_days=7)
+
+User: "Quando gira di più il sistema?"
+→ Tool: smart_analytics_query_tool(metric_type="hourly")
+
+User: "Dashboard ChatOne"
+→ Tool: smart_workflow_query_tool(workflow_id="iZnBHM7mDFS2wW0u", detail_level="dashboard")
+
+User: "Info su TEST_LANG"
+→ Tool: smart_workflow_query_tool(workflow_id="TEST_LANG", detail_level="basic")
+
+User: "Ultime 20 esecuzioni"
+→ Tool: smart_executions_query_tool(scope="recent_all", limit=20)
+
+User: "Esecuzioni di oggi"
+→ Tool: smart_executions_query_tool(scope="by_date", target="2025-10-03")
+
+User: "Errori di ChatOne"
+→ Tool: get_error_details_tool(workflow_name="ChatOne")
+
+User: "Ci sono problemi?"
 → Tool: get_all_errors_summary_tool()
 
-User: "I bot stanno rispondendo?"
-→ Tool: get_system_monitoring_tool()
-
-User: "Quali flussi falliscono più spesso?"
-→ Tool: get_analytics_tool()
-
-User: "Ci sono rallentamenti?"
-→ Tool: get_performance_metrics_tool()
-
-User: "Che movimenti abbiamo avuto di recente?"
-→ Tool: get_executions_by_date_tool(date="2025-10-03")
-
-User: "Lista tutti i workflow"
-→ Tool: get_workflows_tool()
-
-User: "Che risposta ha dato il bot all'ultima email?"
+User: "Email ricevute oggi dal bot"
 → Tool: get_chatone_email_details_tool(date="oggi")
-
-User: "Quali sono i workflow che performano meglio?"
-→ Tool: get_top_performers_tool()
-
-User: "Quando abbiamo più attività durante la giornata?"
-→ Tool: get_hourly_analytics_tool()
-
-User: "Trend degli ultimi 7 giorni"
-→ Tool: get_daily_trend_tool(days=7)
-
-User: "Come sta andando l'automazione in generale?"
-→ Tool: get_automation_insights_tool()
-
-User: "Uptime delle integrazioni?"
-→ Tool: get_integration_health_tool()
 
 User: "Output del nodo Rispondi a mittente"
 → Tool: get_node_execution_details_tool(workflow_name="ChatOne", node_name="Rispondi a mittente")
 
-User: "Statistiche complete sistema"
-→ Tool: get_statistics_tool()
+User: "Timeline node-by-node ChatOne"
+→ Tool: get_raw_modal_data_tool(workflow_id="iZnBHM7mDFS2wW0u")
 
-User: "Analytics overview completo"
-→ Tool: get_analytics_overview_tool()
-
-User: "Ultime esecuzioni di tutti i workflow"
-→ Tool: get_executions_list_tool(limit=20)
-
-User: "Card overview tutti i processi"
-→ Tool: get_workflow_cards_tool()
-
-User: "Cosa sta succedendo ora in tempo reale?"
+User: "Cosa sta succedendo ora?"
 → Tool: get_live_events_tool()
 
-User: "Dashboard completo di ChatOne"
-→ Tool: get_workflow_dashboard_tool(workflow_id="iZnBHM7mDFS2wW0u")
+User: "Lista workflow"
+→ Tool: get_workflows_tool()
 
-User: "Timeline dettagliata ultima esecuzione ChatOne"
-→ Tool: get_raw_modal_data_tool(workflow_id="iZnBHM7mDFS2wW0u")
+User: "Card overview processi"
+→ Tool: get_workflow_cards_tool()
 
 ---
 
@@ -1068,7 +1027,7 @@ Usa terminologia business, evita tecnicismi."""
             checkpointer=checkpointer,  # Share same checkpointer for unified memory
             prompt=react_system_prompt  # Custom instructions for better tool selection
         )
-        logger.info("✅ ReAct Agent initialized with 30 tools (10 DB + 2 node-level + 18 frontend API) + custom system prompt")
+        logger.info("✅ ReAct Agent initialized with 12 CONSOLIDATED tools (3 smart + 9 specialized) + optimized prompt")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(

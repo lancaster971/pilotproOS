@@ -2847,3 +2847,314 @@ async def toggle_workflow_tool(workflow_id: str, active: bool) -> str:
     except Exception as e:
         logger.error(f"Error toggling workflow: {e}")
         return f"[ERRORE] Impossibile modificare stato workflow: {str(e)}"
+
+
+# ============================================================================
+# SMART CONSOLIDATED TOOLS - Riducono 30 tools → 12 tools
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaSmartAnalytics", run_type="tool")
+async def smart_analytics_query_tool(
+    metric_type: str = "statistics",
+    period_days: int = 7
+) -> str:
+    """
+    Smart Analytics Query - Consolida 9 tool analytics in UNO.
+
+    Use cases:
+    - "statistiche sistema" → metric_type="statistics"
+    - "top performers" → metric_type="top_performers"
+    - "trend giornaliero" → metric_type="daily_trend"
+    - "orari picco" → metric_type="hourly"
+    - "analytics completo" → metric_type="overview"
+    - "salute integrazioni" → metric_type="integration_health"
+    - "insights automazioni" → metric_type="automation"
+
+    Args:
+        metric_type: Tipo metrica richiesta
+          - "statistics": KPI core sistema (default)
+          - "overview": Analytics overview con trend
+          - "top_performers": Top 5 workflow migliori
+          - "hourly": Distribuzione oraria 24h
+          - "daily_trend": Trend giornaliero N giorni
+          - "automation": Automation insights (growth, rate)
+          - "integration_health": Health integrazioni
+          - "performance": Performance metrics dettagliati
+        period_days: Periodo analisi in giorni (7 o 30)
+
+    Returns:
+        Metriche richieste formattate per business user
+    """
+    try:
+        # Route to appropriate backend API based on metric_type
+        if metric_type == "statistics":
+            data = await call_backend_api("/api/business/statistics")
+            if "error" in data:
+                return "[ERRORE] Impossibile recuperare statistiche."
+            stats = data.get("data", {})
+            return f"""📈 Statistiche Sistema
+
+• Processi totali: {stats.get('totalProcesses', 0)}
+• Processi attivi: {stats.get('activeProcesses', 0)}
+• Esecuzioni totali: {stats.get('totalExecutions', 0)}
+• Success rate: {stats.get('successRate', 0)}%
+• Tempo elaborazione medio: {stats.get('avgProcessingTime', 0)}ms"""
+
+        elif metric_type == "overview":
+            data = await call_backend_api("/api/business/analytics")
+            if "error" in data:
+                return "[ERRORE] Impossibile recuperare analytics overview."
+            overview = data.get("overview", {})
+            return f"""📊 Analytics Sistema Completo
+
+Processi: {overview.get('totalProcesses', 0)} totali, {overview.get('activeProcesses', 0)} attivi
+Esecuzioni: {overview.get('totalExecutions', 0)} totali, {overview.get('successRate', 0)}% successo
+Durata media: {overview.get('avgDurationSeconds', 0)}s"""
+
+        elif metric_type == "top_performers":
+            data = await call_backend_api("/api/business/top-performers")
+            if "error" in data:
+                return "[ERRORE] Impossibile recuperare top performers."
+            performers = data.get("data", [])
+            response = "🏆 Top 5 Workflow Performanti\n\n"
+            for idx, perf in enumerate(performers[:5], 1):
+                response += f"{idx}. {perf.get('process_name')} - {perf.get('success_rate')}% ({perf.get('execution_count')} exec)\n"
+            return response
+
+        elif metric_type == "hourly":
+            data = await call_backend_api("/api/business/hourly-analytics")
+            insights = data.get("insights", {})
+            return f"""⏰ Distribuzione Oraria
+
+Picco: ore {insights.get('peakHour', 0)}:00 ({insights.get('peakValue', 0)} exec)
+Calmo: ore {insights.get('quietHour', 0)}:00
+Media oraria: {insights.get('avgHourlyLoad', 0)} exec/h"""
+
+        elif metric_type == "daily_trend":
+            data = await call_backend_api("/api/business/daily-trend")
+            daily_stats = data.get("dailyStats", [])[-period_days:]
+            total = sum(d.get('executions', 0) for d in daily_stats)
+            success = sum(d.get('successes', 0) for d in daily_stats)
+            return f"""📈 Trend Ultimi {period_days} Giorni
+
+Esecuzioni totali: {total}
+Successi: {success}
+Errori: {total-success}"""
+
+        elif metric_type == "automation":
+            data = await call_backend_api("/api/business/automation-insights")
+            return f"""🤖 Automation Insights
+
+Processi: {data.get('totalProcesses', 0)} totali, {data.get('activeProcesses', 0)} attivi
+Success rate: {data.get('successRate', 0):.1f}%
+Crescita settimanale: {data.get('weeklyGrowth', 0):+.1f}%"""
+
+        elif metric_type == "integration_health":
+            data = await call_backend_api("/api/business/integration-health")
+            return f"""🟢 Salute Integrazioni
+
+Status: {data.get('status', 'N/A').upper()}
+Uptime: {data.get('uptime', 0):.1f}%
+Connessioni: {data.get('healthyConnections', 0)}/{data.get('totalConnections', 0)}"""
+
+        elif metric_type == "performance":
+            data = await call_backend_api("/api/business/performance-metrics")
+            return f"⚡ Performance Metrics\n\n{json.dumps(data, indent=2, ensure_ascii=False)[:500]}"
+
+        else:
+            return f"[ERRORE] metric_type '{metric_type}' non valido. Usa: statistics, overview, top_performers, hourly, daily_trend, automation, integration_health, performance"
+
+    except Exception as e:
+        logger.error(f"Error in smart analytics query: {e}")
+        return f"[ERRORE] Impossibile recuperare analytics: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaSmartWorkflow", run_type="tool")
+async def smart_workflow_query_tool(
+    workflow_id: str,
+    detail_level: str = "dashboard"
+) -> str:
+    """
+    Smart Workflow Query - Consolida 3 tool workflow details in UNO.
+
+    Use cases:
+    - "info su ChatOne" → detail_level="basic"
+    - "dashboard ChatOne" → detail_level="dashboard" (include recentActivity!)
+    - "statistiche complete ChatOne" → detail_level="full_stats"
+
+    Args:
+        workflow_id: ID workflow (es: "iZnBHM7mDFS2wW0u") o nome (es: "ChatOne")
+        detail_level: Livello dettaglio richiesto
+          - "basic": Status, errori recenti, performance base
+          - "dashboard": Dashboard completo + recentActivity (EMAIL, AI responses)
+          - "full_stats": Statistiche complete 30gg (KPIs, trend, durations)
+
+    Returns:
+        Dettagli workflow al livello richiesto
+    """
+    try:
+        # Call appropriate backend API based on detail_level
+        if detail_level == "basic":
+            # Use DB query for basic info
+            return get_workflow_details_tool(workflow_name=workflow_id)
+
+        elif detail_level == "dashboard":
+            # Use dashboard API (has recentActivity!)
+            data = await call_backend_api(f"/api/business/dashboard/{workflow_id}")
+            if "error" in data:
+                return f"[ERRORE] Impossibile recuperare dashboard workflow."
+
+            workflow = data.get("workflow", {})
+            recent = data.get("recentActivity", [])
+
+            response = f"""📊 Dashboard: {workflow.get('name', 'N/A')}
+
+Status: {'Attivo' if workflow.get('active') else 'Inattivo'}
+Complessità: {workflow.get('nodeCount', 0)} passaggi
+
+🔔 Attività Recenti ({len(recent)} eventi):
+"""
+            for idx, act in enumerate(recent[:5], 1):
+                response += f"{idx}. [{act.get('type')}] {act.get('summary', '')[:80]}\n"
+            return response
+
+        elif detail_level == "full_stats":
+            # Use full-stats API
+            data = await call_backend_api(f"/api/business/workflow/{workflow_id}/full-stats?days=30")
+            if "error" in data:
+                return f"[ERRORE] Impossibile recuperare full stats workflow."
+
+            kpis = data.get("kpis", {})
+            return f"""📈 Statistiche Complete (30 giorni)
+
+Esecuzioni: {kpis.get('totalExecutions', 0)} totali
+Successi: {kpis.get('successfulExecutions', 0)} ({kpis.get('successRate', 0)}%)
+Errori: {kpis.get('failedExecutions', 0)}
+Tempo medio: {kpis.get('avgRunTime', 0)}ms
+Ultime 24h: {kpis.get('last24hExecutions', 0)} esecuzioni"""
+
+        else:
+            return f"[ERRORE] detail_level '{detail_level}' non valido. Usa: basic, dashboard, full_stats"
+
+    except Exception as e:
+        logger.error(f"Error in smart workflow query: {e}")
+        return f"[ERRORE] Impossibile recuperare dati workflow: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaSmartExecutions", run_type="tool")
+async def smart_executions_query_tool(
+    scope: str = "recent_all",
+    target: str = None,
+    limit: int = 20
+) -> str:
+    """
+    Smart Executions Query - Consolida 4 tool executions in UNO.
+
+    Use cases:
+    - "ultime esecuzioni" → scope="recent_all"
+    - "esecuzioni di oggi" → scope="by_date", target="2025-10-03"
+    - "esecuzioni ChatOne" → scope="by_workflow", target="iZnBHM7mDFS2wW0u"
+    - "status esecuzione 123" → scope="specific", target="123"
+
+    Args:
+        scope: Tipo query esecuzioni
+          - "recent_all": Ultime N esecuzioni (cross-workflow)
+          - "by_date": Esecuzioni per data specifica
+          - "by_workflow": Esecuzioni di workflow specifico
+          - "specific": Status esecuzione singola
+        target: Valore filtro (date | workflow_id | execution_id)
+        limit: Numero risultati (default 20)
+
+    Returns:
+        Lista esecuzioni o status specifico
+    """
+    try:
+        if scope == "recent_all":
+            # Call backend API for recent executions
+            data = await call_backend_api(f"/api/business/executions?limit={limit}")
+            if "error" in data:
+                return "[ERRORE] Impossibile recuperare esecuzioni."
+
+            executions = data.get("data", [])
+            if not executions:
+                return "[INFO] Nessuna esecuzione recente."
+
+            response = f"🔄 Ultime {len(executions)} Esecuzioni\n\n"
+            for idx, exe in enumerate(executions[:limit], 1):
+                status_emoji = "✅" if exe.get('status') == "success" else "❌"
+                response += f"{idx}. {status_emoji} {exe.get('workflowName', 'N/A')} - {exe.get('status')}\n"
+            return response
+
+        elif scope == "by_date":
+            if not target:
+                return "[ERRORE] Specifica target=date per scope='by_date'"
+            # Use DB query for date-specific
+            return get_executions_by_date_tool(date=target)
+
+        elif scope == "by_workflow":
+            if not target:
+                return "[ERRORE] Specifica target=workflow_id per scope='by_workflow'"
+            # Call backend API
+            data = await call_backend_api(f"/api/business/process-executions/{target}?limit={limit}")
+            if "error" in data:
+                return f"[ERRORE] Impossibile recuperare executions workflow."
+
+            executions = data.get("data", [])
+            response = f"🔄 Esecuzioni Workflow ({len(executions)})\n\n"
+            for idx, exe in enumerate(executions, 1):
+                response += f"{idx}. {exe.get('status')} - {exe.get('startedAt', '')[:16]}\n"
+            return response
+
+        elif scope == "specific":
+            if not target:
+                return "[ERRORE] Specifica target=execution_id per scope='specific'"
+            # Call backend API
+            data = await call_backend_api(f"/api/business/execution-status/{target}")
+            if "error" in data:
+                return f"[ERRORE] Impossibile recuperare execution status."
+
+            exe = data.get("data", {})
+            return f"""🔍 Execution {target}
+
+Workflow: {exe.get('workflowName', 'N/A')}
+Status: {exe.get('status', 'N/A')}
+Started: {exe.get('startedAt', 'N/A')[:19]}
+Duration: {exe.get('duration', 0)}ms"""
+
+        else:
+            return f"[ERRORE] scope '{scope}' non valido. Usa: recent_all, by_date, by_workflow, specific"
+
+    except Exception as e:
+        logger.error(f"Error in smart executions query: {e}")
+        return f"[ERRORE] Impossibile recuperare executions: {str(e)}"
+
+
+# ============================================================================
+# BACKWARD COMPATIBILITY WRAPPERS - Per codice legacy che chiama tool vecchi
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaPerformanceMetricsLegacy", run_type="tool")
+def get_performance_metrics_tool(query_type: str = "overview") -> str:
+    """LEGACY wrapper → usa smart_analytics_query_tool"""
+    import asyncio
+    return asyncio.run(smart_analytics_query_tool(metric_type="performance"))
+
+
+@tool
+@traceable(name="MilhenaSystemMonitoringLegacy", run_type="tool")
+def get_system_monitoring_tool(query_type: str = "health") -> str:
+    """LEGACY wrapper → usa smart_analytics_query_tool"""
+    import asyncio
+    return asyncio.run(smart_analytics_query_tool(metric_type="integration_health"))
+
+
+@tool
+@traceable(name="MilhenaAnalyticsLegacy", run_type="tool")
+def get_analytics_tool(query_type: str = "overview") -> str:
+    """LEGACY wrapper → usa smart_analytics_query_tool"""
+    import asyncio
+    return asyncio.run(smart_analytics_query_tool(metric_type="overview"))
