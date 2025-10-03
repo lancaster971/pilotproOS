@@ -670,8 +670,8 @@ LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 
 **Documentation**:
 - `CLAUDE.md` - Main project guide
-- `TODO-MILHENA-v3.md` - Learning system roadmap
-- `TODO-MILHENA-EXPERT.md` - This file
+- `TODO-MILHENA-LEARNING-SYSTEM.md` - Continuous learning system implementation
+- `TODO-MILHENA-ARCHITECTURE.md` - This file (ReAct Agent architecture)
 
 ---
 

@@ -520,8 +520,8 @@ Frontend ChatWidget → Backend Express Proxy → Intelligence Engine ReAct Agen
 ## 📚 **KEY DOCUMENTATION FILES**
 
 - **CLAUDE.md** (this file) - Main project guide
-- **TODO-MILHENA-EXPERT.md** - Enterprise multi-agent system roadmap (v2.1.0 FINAL)
-- **TODO-MILHENA-v3.md** - Learning system + RAG integration (Phase 6 in progress)
+- **intelligence-engine/TODO-MILHENA-ARCHITECTURE.md** - ReAct Agent architecture & production deployment
+- **intelligence-engine/TODO-MILHENA-LEARNING-SYSTEM.md** - Continuous learning system implementation
 - **intelligence-engine/app/milhena/graph.py** - Milhena ReAct Agent implementation
 - **frontend/src/components/ChatWidget.vue** - Dark theme chat widget
 - **backend/src/routes/milhena.routes.js** - Milhena feedback proxy
