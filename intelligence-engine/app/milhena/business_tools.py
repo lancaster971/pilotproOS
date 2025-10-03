@@ -478,6 +478,164 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
 # ============================================================================
 
 @tool
+@traceable(name="MilhenaFullData", run_type="tool")
+def get_full_database_dump(days: int = 7) -> str:
+    """
+    MASSIVA QUERY CHE ESTRAE TUTTI I DATI DISPONIBILI DAL DATABASE POSTGRESQL.
+
+    Restituisce TUTTO - poi l'LLM filtra quello che serve!
+
+    Dati estratti:
+    - Tutte le esecuzioni con dettagli completi (workflow, timing, stato, errori)
+    - Statistiche aggregate per workflow
+    - Trend giornalieri
+    - Metriche di performance
+    - Contatori di successo/errore
+
+    Args:
+        days: Numero di giorni da analizzare (default: 7)
+
+    Returns:
+        Dump completo di tutti i dati in formato leggibile
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # QUERY 1: TUTTE LE ESECUZIONI CON DETTAGLI COMPLETI
+        cur.execute("""
+            SELECT
+                ee.id,
+                we.name as workflow_name,
+                ee."startedAt",
+                ee."stoppedAt",
+                ee.status,
+                EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt")) as duration_seconds,
+                ee.mode,
+                ee.finished,
+                DATE(ee."startedAt") as execution_date,
+                ed.data as error_data
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+            LEFT JOIN n8n.execution_data ed ON ed."executionId" = ee.id
+            WHERE ee."startedAt" >= CURRENT_DATE - INTERVAL '%s days'
+            ORDER BY ee."startedAt" DESC
+        """, (days,))
+
+        all_executions = cur.fetchall()
+
+        # QUERY 2: STATISTICHE AGGREGATE PER WORKFLOW
+        cur.execute("""
+            SELECT
+                we.name,
+                we.active,
+                COUNT(ee.id) as total_executions,
+                COUNT(CASE WHEN ee.status = 'success' THEN 1 END) as success_count,
+                COUNT(CASE WHEN ee.status = 'error' THEN 1 END) as error_count,
+                AVG(EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt"))) as avg_duration,
+                MIN(ee."startedAt") as first_execution,
+                MAX(ee."startedAt") as last_execution
+            FROM n8n.workflow_entity we
+            LEFT JOIN n8n.execution_entity ee ON we.id = ee."workflowId"
+                AND ee."startedAt" >= CURRENT_DATE - INTERVAL '%s days'
+            GROUP BY we.id, we.name, we.active
+            ORDER BY total_executions DESC
+        """, (days,))
+
+        workflow_stats = cur.fetchall()
+
+        # QUERY 3: TREND GIORNALIERO
+        cur.execute("""
+            SELECT
+                DATE(ee."startedAt") as day,
+                COUNT(*) as total,
+                COUNT(CASE WHEN ee.status = 'success' THEN 1 END) as success,
+                COUNT(CASE WHEN ee.status = 'error' THEN 1 END) as errors,
+                AVG(EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt"))) as avg_duration
+            FROM n8n.execution_entity ee
+            WHERE ee."startedAt" >= CURRENT_DATE - INTERVAL '%s days'
+            GROUP BY DATE(ee."startedAt")
+            ORDER BY day DESC
+        """, (days,))
+
+        daily_trends = cur.fetchall()
+
+        # QUERY 4: TOP ERRORI
+        cur.execute("""
+            SELECT
+                we.name,
+                COUNT(*) as error_count,
+                MAX(ee."startedAt") as last_error
+            FROM n8n.execution_entity ee
+            JOIN n8n.workflow_entity we ON ee."workflowId" = we.id
+            WHERE ee.status = 'error'
+            AND ee."startedAt" >= CURRENT_DATE - INTERVAL '%s days'
+            GROUP BY we.name
+            ORDER BY error_count DESC
+            LIMIT 20
+        """, (days,))
+
+        top_errors = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        # FORMATTA OUTPUT COMPLETO
+        response = f"""=== DUMP COMPLETO DATABASE (ultimi {days} giorni) ===
+
+[SEZIONE 1] TREND GIORNALIERO ({len(daily_trends)} giorni)
+"""
+
+        for day, total, success, errors, avg_dur in daily_trends:
+            success_rate = (success/total*100) if total > 0 else 0
+            response += f"\n{day.strftime('%d/%m/%Y')}: {total} esecuzioni, {success_rate:.0f}% successo ({success} OK, {errors} ERR), media {avg_dur:.1f}s"
+
+        response += f"""\n\n[SEZIONE 2] STATISTICHE PER WORKFLOW ({len(workflow_stats)} workflow)
+"""
+
+        for name, active, total, success, errors, avg_dur, first, last in workflow_stats:
+            if total and total > 0:
+                success_rate = (success/total*100) if total else 0
+                status = "[ATTIVO]" if active else "[PAUSA]"
+                response += f"\n{status} {name}:"
+                response += f"\n  - Esecuzioni: {total} (Success: {success}, Error: {errors}, Rate: {success_rate:.0f}%)"
+                response += f"\n  - Durata media: {avg_dur:.1f}s"
+                if last:
+                    response += f"\n  - Ultima: {last.strftime('%d/%m %H:%M')}"
+
+        response += f"""\n\n[SEZIONE 3] TOP 20 WORKFLOW CON ERRORI
+"""
+
+        for name, err_count, last_err in top_errors:
+            response += f"\n{name}: {err_count} errori (ultimo: {last_err.strftime('%d/%m %H:%M')})"
+
+        response += f"""\n\n[SEZIONE 4] LISTA COMPLETA ESECUZIONI ({len(all_executions)} totali)
+"""
+
+        # Mostra solo le ultime 50 per non saturare il contesto
+        for i, (exec_id, wf_name, started, stopped, status, duration, mode, finished, exec_date, err_data) in enumerate(all_executions[:50], 1):
+            status_icon = "[OK]" if status == "success" else "[ERR]"
+            dur_str = f"{duration:.0f}s" if duration else "N/A"
+            response += f"\n{i}. {status_icon} {wf_name} - {started.strftime('%d/%m %H:%M')} - {dur_str}"
+
+        if len(all_executions) > 50:
+            response += f"\n\n[NOTA] Mostrate prime 50 esecuzioni su {len(all_executions)} totali"
+
+        response += f"""\n\n[RIEPILOGO GLOBALE]
+- Periodo analizzato: {days} giorni
+- Totale esecuzioni: {len(all_executions)}
+- Workflow unici: {len(workflow_stats)}
+- Giorni con attività: {len(daily_trends)}
+"""
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in full database dump: {e}")
+        return f"[ERRORE] Impossibile estrarre dati: {str(e)}"
+
+
+@tool
 @traceable(name="MilhenaAnalytics", run_type="tool")
 def get_analytics_tool(query_type: str = "summary") -> str:
     """
@@ -537,7 +695,7 @@ def get_analytics_tool(query_type: str = "summary") -> str:
             today_rate = (result[1]/result[0]*100) if result[0] and result[0] > 0 else 0
             week_rate = (result[4]/result[3]*100) if result[3] and result[3] > 0 else 0
 
-            response = f"""**📊 Report Automazione:**
+            response = f"""**Report Automazione:**
 
 **Oggi:**
 - Esecuzioni: {result[0] or 0}

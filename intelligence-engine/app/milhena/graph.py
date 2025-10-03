@@ -41,7 +41,8 @@ from app.milhena.business_tools import (
     get_error_details_tool,
     get_all_errors_summary_tool,
     search_knowledge_base_tool,
-    get_executions_by_date_tool
+    get_executions_by_date_tool,
+    get_full_database_dump
 )
 
 # Import RAG System for knowledge retrieval
@@ -791,6 +792,7 @@ class MilhenaGraph:
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
         # This replaces hardcoded if/elif pattern matching with intelligent tool selection
         react_tools = [
+            get_full_database_dump,
             get_workflows_tool,
             get_performance_metrics_tool,
             get_system_monitoring_tool,
@@ -811,7 +813,7 @@ class MilhenaGraph:
             tools=react_tools,
             checkpointer=checkpointer  # Share same checkpointer for unified memory
         )
-        logger.info("✅ ReAct Agent initialized with 9 tools (8 DB + 1 RAG) - Context-aware tool selection")
+        logger.info("✅ ReAct Agent initialized with 10 tools (9 DB + 1 RAG) - Context-aware tool selection")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
