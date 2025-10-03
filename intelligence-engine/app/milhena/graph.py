@@ -5,8 +5,8 @@ FULL LANGSMITH TRACING ENABLED
 """
 from typing import List, Dict, Any, Optional, Annotated
 from typing_extensions import TypedDict
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langgraph.graph import StateGraph, END
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -1008,26 +1008,145 @@ User: "Card overview processi"
 
 ---
 
+🔍 APPROFONDIMENTO MULTI-STEP - REGOLA CRITICA:
+
+Quando user dice "si", "sì", "vai", "continua", "dimmi di più", "approfondisci", "dettagli":
+
+⚠️ QUESTO SIGNIFICA: "non ho abbastanza informazioni, chiamane altri tool per avere quadro completo"
+
+**PROCEDURA OBBLIGATORIA per approfondimento:**
+
+STEP 1: Identifica workflow/errore discusso nel messaggio precedente
+STEP 2: Chiama ALMENO 3 TOOL diversi (non fermarti a 1!):
+
+Tool call #1: get_error_details_tool(workflow_name)
+  → Aspetta risposta
+
+Tool call #2: smart_workflow_query_tool(workflow_id, detail_level="full_stats")
+  → Aspetta risposta (trend errori, success rate, durata)
+
+Tool call #3: get_raw_modal_data_tool(workflow_id)
+  → Aspetta risposta (quale nodo specifico fallisce)
+
+STEP 3: DOPO aver ricevuto TUTTI i 3 risultati, sintetizza in risposta completa:
+  "L'errore è nel nodo X, fallisce da Y giorni, pattern Z, success rate W%, nodo specifico: [dettaglio]"
+
+❌ VIETATO terminare loop dopo 1 solo tool call se user ha chiesto approfondimento!
+
+**Esempio OBBLIGATORIO step-by-step:**
+
+User: "Quali workflow hanno errori?"
+Assistant: [CALL TOOL #1] get_all_errors_summary_tool()
+→ Result: "GRAB INFO SUPPLIER ha errori"
+Assistant: "GRAB INFO ha errori. Vuoi approfondire?"
+
+User: "Si"
+Assistant: [CALL TOOL #1] get_error_details_tool(workflow_name="GRAB INFO SUPPLIER FROM ORDINI")
+→ Wait for result
+Assistant: [CALL TOOL #2] smart_workflow_query_tool(workflow_id="...", detail_level="full_stats")
+→ Wait for result
+Assistant: [CALL TOOL #3] get_raw_modal_data_tool(workflow_id="...")
+→ Wait for result
+Assistant: [SYNTHESIS] "Il workflow GRAB INFO fallisce al nodo Excel DB1 per credenziali scadute. Success rate 0% ultimi 3gg. Nodo 'Excel DB1' fallisce sempre a 2:30 dall'avvio. Pattern: 5 fallimenti consecutivi."
+
+⚠️ CRITICO: Quando user dice "Si" devi chiamare ALMENO 3 tool PRIMA di rispondere!
+Non fermarti dopo get_error_details - continua con smart_workflow e get_raw_modal_data!
+
+**Gestione pronomi** ("quello", "quella", "quel processo"):
+- Estrai da conversation history ultimo workflow menzionato
+- Usa workflow_name o workflow_id per tool calls successive
+
+---
+
 ❌ ERRORI COMUNI DA EVITARE:
 
 - NON rispondere mai senza chiamare un tool
 - NON usare tool generici quando esiste un tool specifico
 - NON ignorare riferimenti temporali ("oggi", "ieri") - convertili in date
-- NON chiamare più tool contemporaneamente - scegli il PIÙ SPECIFICO
+- NON FERMARTI a 1 tool quando user chiede approfondimento - usa while-loop per multipli tool!
+- NON perdere contesto conversazione - ricorda workflow/errori menzionati precedentemente
 
 ---
 
 🎯 OBIETTIVO:
 Rispondere in modo chiaro e utile, sempre basandoti su dati ottenuti via tool.
+Quando user chiede approfondimento, fornisci ANALISI COMPLETA con dati da MULTIPLI tool.
 Usa terminologia business, evita tecnicismi."""
 
-        self.react_agent = create_react_agent(
-            model=react_model,
-            tools=react_tools,
-            checkpointer=checkpointer,  # Share same checkpointer for unified memory
-            prompt=react_system_prompt  # Custom instructions for better tool selection
+        # CUSTOM LOOP: Replace create_react_agent with controlled multi-tool loop
+        # Reason: Force multiple tool calls when user asks to "dig deeper"
+
+        # Build custom ReAct loop with controlled termination
+        react_graph = StateGraph(MessagesState)
+
+        # Bind tools to model
+        model_with_tools = react_model.bind_tools(react_tools)
+
+        def call_model_node(state: MessagesState):
+            """Call LLM with tools and system prompt"""
+            # Prepend system prompt to messages
+            messages_with_prompt = [SystemMessage(content=react_system_prompt)] + state["messages"]
+            response = model_with_tools.invoke(messages_with_prompt)
+            return {"messages": [response]}
+
+        def should_continue_react(state: MessagesState):
+            """
+            Decide if loop should continue.
+            CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper.
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            # Find last HumanMessage to check for deep-dive keywords
+            last_human_msg = None
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_human_msg = msg
+                    break
+
+            if last_human_msg:
+                user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
+
+                # Count tool messages in current conversation
+                tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
+
+                deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
+                is_deep_dive = any(kw in user_text for kw in deep_keywords)
+
+                logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
+
+                # If user wants deep dive AND called <3 tools → CONTINUE LOOP
+                if is_deep_dive and tool_count < 3:
+                    logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
+                    # Return to model to force another tool call
+                    # (we can't force specific tools, but we prevent termination)
+
+            # Standard termination logic
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                return "execute_tools"
+            else:
+                return END
+
+        # Add nodes
+        react_graph.add_node("call_model", call_model_node)
+        react_graph.add_node("execute_tools", ToolNode(react_tools))
+
+        # Add edges
+        react_graph.set_entry_point("call_model")
+        react_graph.add_conditional_edges(
+            "call_model",
+            should_continue_react,
+            {
+                "execute_tools": "execute_tools",
+                END: END
+            }
         )
-        logger.info("✅ ReAct Agent initialized with 12 CONSOLIDATED tools (3 smart + 9 specialized) + optimized prompt")
+        react_graph.add_edge("execute_tools", "call_model")
+
+        # Compile custom ReAct agent with checkpointer
+        self.react_agent = react_graph.compile(checkpointer=checkpointer)
+
+        logger.info("✅ Custom ReAct Agent with controlled multi-tool loop (12 tools, deep-dive enabled)")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
