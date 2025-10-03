@@ -33,7 +33,7 @@ pydantic==2.10.3
 pydantic-settings==2.11.0
 
 # Redis for Memory & Cache
-redis==5.2.0
+redis>=5.2.1  # Updated for langgraph-checkpoint-redis compatibility
 redis-om==0.3.2
 
 # PostgreSQL
