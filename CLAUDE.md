@@ -4,42 +4,52 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-03 - Milhena ReAct Agent Simplification & Chat Widget UX Polish
+**LAST UPDATED**: 2025-10-04 - Milhena v3.1 with Smart Tools + AsyncRedisSaver Persistent Memory
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
 **PROJECT STATUS:**
-- ✅ **Milhena ReAct Agent** - Production ready with intelligent tool routing (SIMPLIFIED ARCHITECTURE)
-- ✅ **RAG System Backend** - ChromaDB + OpenAI embeddings (0.644 accuracy, production ready)
-- ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport (z-index isolated)
-- ✅ **Stack Services** - 7 core services fully integrated + monitoring active
-- ✅ **Graph Visualization** - Professional PNG (4700x2745px) + interactive D3.js
-- ✅ **LangGraph Studio** - Web-based debugging via LangSmith
+- ✅ **Milhena ReAct Agent v3.1** - 12 Smart Tools + Auto-enriched responses + Custom loop
+- ✅ **AsyncRedisSaver** - INFINITE persistent memory (Redis Stack, NO degradation!)
+- ✅ **28 Frontend API Integration** - Complete system visibility (node-level + aggregated)
+- ✅ **Rephraser Pre-check** - Ambiguous query reformulation before ReAct Agent
+- ✅ **RAG System Backend** - ChromaDB + OpenAI embeddings (0.644 accuracy)
+- ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport
+- ✅ **Stack Services** - 7 core services + Redis Stack (RediSearch module)
 
 ## 🏗️ **SIMPLIFIED ARCHITECTURE (2025-10-03)**
 
 **CRITICAL CHANGE**: Migrated from Multi-Agent Supervisor to **Single ReAct Agent** with intelligent tool routing.
 
 **STACK COMPONENTS:**
-- **PostgreSQL** - Database (dual schema: n8n + pilotpros)
-- **Redis** - Cache & session management
-- **Backend** - Express API (business terminology translator + Milhena proxy)
-- **Frontend** - Vue 3 Portal + ChatWidget (Teleport dark theme)
-- **Intelligence Engine** - **Milhena ReAct Agent** (entry point, bypasses Supervisor)
-- **Automation** - n8n Workflow Engine
+- **PostgreSQL** - Database (dual schema: n8n + pilotpros) - n8n data ONLY, NO mixing
+- **Redis Stack** - Persistent memory (AsyncRedisSaver) + Cache + RediSearch module
+- **Backend** - Express API (business translator + Milhena proxy + service auth)
+- **Frontend** - Vue 3 Portal + ChatWidget (28 API business integrate)
+- **Intelligence Engine** - Milhena ReAct Agent v3.1 (12 smart tools + custom loop)
+- **Automation** - n8n Workflow Engine (isolated database)
 - **Monitor** - Nginx Reverse Proxy
 
-**INTELLIGENCE ENGINE ARCHITECTURE:**
+**INTELLIGENCE ENGINE ARCHITECTURE v3.1:**
 ```
-User Query → Milhena ReAct Agent → Tool Selection → Database Query → Mask Response → End
-            (LangGraph entry point)  (LLM decides)   (10 tools)     (business terms)
+User Query
+  → Rephraser Check (rule-based <10ms)
+  → Rephraser LLM (if ambiguous ~200ms)
+  → Milhena ReAct Agent (custom loop, deep-dive detection)
+  → Tool Selection (12 smart tools, LLM decides)
+  → Auto-enriched Response (1 tool = complete data)
+  → Business Masking (zero technical leaks)
+  → AsyncRedisSaver (persistent memory Redis Stack)
+  → End
 ```
 
-**KEY SIMPLIFICATION**:
-- **BEFORE**: Supervisor → Route → Agent → Tool (4 hops, 10 nodes)
-- **NOW**: ReAct Agent → Tool → Mask (3 nodes, 1 LLM call)
+**KEY EVOLUTION**:
+- **v1.0 (Sept)**: Supervisor → Route → Agent → Tool (4 hops, 10 nodes)
+- **v2.0 (Oct 03)**: ReAct Agent direct (3 nodes, 10 tools)
+- **v3.0 (Oct 03)**: Rephraser + ReAct (4 nodes, 30 tools → chaos!)
+- **v3.1 (Oct 04)**: Smart Tools consolidation (12 tools) + AsyncRedisSaver + Auto-enrichment
 
 ### **⚡ QUICK START**
 
@@ -202,27 +212,29 @@ curl http://localhost:8000/api/n8n/agent/customer-support?message=test
 curl http://localhost:8000/graph/visualize --output graph.png  # Get graph PNG
 ```
 
-## **🤖 INTELLIGENCE ENGINE - MILHENA REACT AGENT**
+## **🤖 INTELLIGENCE ENGINE - MILHENA v3.1**
 
-### **Architecture Overview (SIMPLIFIED 2025-10-03)**
+### **Architecture Overview (2025-10-04)**
 
-**Entry Point**: `[TOOL] Database Query` (ReAct Agent diretto, NO Supervisor)
+**Entry Point**: `[REPHRASER] Check Ambiguity` → ReAct Agent con custom loop
 
-**Critical Design Decision**:
-- ❌ **REMOVED**: Multi-agent Supervisor orchestration (troppo complesso)
-- ✅ **IMPLEMENTED**: Single Milhena ReAct Agent with intelligent tool selection
+**Evolution Timeline**:
+- ❌ v1.0: Multi-agent Supervisor (troppo complesso, 10 nodes)
+- ❌ v2.0: Direct ReAct Agent (10 tools, no rephraser)
+- ❌ v3.0: Rephraser + 30 tools (decision chaos!)
+- ✅ **v3.1**: Rephraser + 12 Smart Tools + AsyncRedisSaver + Auto-enrichment
 
-**Flow**:
+**Flow v3.1**:
 ```python
-graph.set_entry_point("[TOOL] Database Query")  # Direct to ReAct Agent
-# User Query → execute_react_agent() → LLM selects tool → Extract AIMessage → Mask → End
+graph.set_entry_point("[REPHRASER] Check Ambiguity")
+# Whitelist check → Rephrase (if ambiguous) → Custom ReAct Loop → Smart Tool → Auto-enriched Response
 ```
 
-### **Milhena ReAct Agent Configuration**
+### **Milhena v3.1 Configuration**
 
 **LLM Models**:
-- **Primary**: `llama-3.3-70b-versatile` (Groq FREE, unlimited)
-- **Fallback**: `gpt-4.1-nano-2025-04-14` (OpenAI, 10M tokens budget)
+- **Primary**: `llama-3.3-70b-versatile` (Groq FREE, unlimited) - Rephraser
+- **ReAct**: `gpt-4.1-nano-2025-04-14` (OpenAI, 10M tokens) - Tool selection
 
 **Custom System Prompt** (graph.py:810-848):
 ```python
@@ -242,22 +254,31 @@ MAPPA TOOL (scegli in base alla domanda):
 """
 ```
 
-**10 Database Tools** (ReAct Agent Toolkit):
-1. `get_workflows_tool` - List all n8n workflows
-2. `get_workflow_details_tool` - Workflow performance + trends
-3. `get_executions_by_date_tool` - Executions timeline
-4. `get_all_errors_summary_tool` - Error aggregation
-5. `get_error_details_tool` - Specific workflow errors
-6. `get_full_database_dump` - Complete system snapshot
-7. `search_executions_tool` - Full-text search
-8. `get_recent_executions_tool` - Latest runs
-9. `get_workflow_statistics_tool` - Performance metrics
-10. `rag_search_tool` - ChromaDB semantic search
+**12 Smart Tools** (ReAct Agent v3.1):
 
-**Conversation Memory**:
-- **Checkpointer**: `MemorySaver()` (in-memory, session-scoped)
-- **Best Practice**: Start with MemorySaver for testing, upgrade to PostgreSQL for production
-- **Thread ID**: `session_id` from frontend (unique per conversation)
+**3 Smart Consolidated Tools:**
+1. `smart_analytics_query_tool(metric_type, period)` - 9 analytics in 1
+2. `smart_workflow_query_tool(workflow_id, detail_level)` - 3 workflow details in 1
+3. `smart_executions_query_tool(scope, target, limit)` - 4 executions tools in 1
+
+**9 Specialized Tools:**
+4. `get_error_details_tool` - Errori workflow (AUTO-ENRICHED: +performance context!)
+5. `get_all_errors_summary_tool` - Errori aggregati
+6. `get_node_execution_details_tool` - Node-level granularity
+7. `get_chatone_email_details_tool` - Email conversations bot
+8. `get_raw_modal_data_tool` - Timeline node-by-node
+9. `get_live_events_tool` - Real-time stream
+10. `get_workflows_tool` - Lista workflow
+11. `get_workflow_cards_tool` - Card overview
+12. `execute_workflow_tool` / `toggle_workflow_tool` - Actions
++ `search_knowledge_base_tool` - RAG
++ `get_full_database_dump` - Dump completo
+
+**Conversation Memory v3.1**:
+- **Checkpointer**: `AsyncRedisSaver()` - PERSISTENT, infinite TTL
+- **Storage**: Redis Stack (redis-dev:6379) - ISOLATED, NO mixing n8n DB
+- **Persistence**: Survives restarts, NO degradation 10+ turns
+- **Keys**: 500+ checkpoint keys in Redis
 
 ### **Microservices Architecture**
 
@@ -538,6 +559,31 @@ Frontend ChatWidget → Backend Express Proxy → Intelligence Engine ReAct Agen
 ---
 
 **Document Owner**: PilotProOS Development Team
-**Last Updated**: 2025-10-03
-**Version**: 3.0 - Milhena ReAct Agent Simplification + Chat Widget UX Polish
-**Status**: ✅ Production Ready (Backend) | 🔄 In Development (Learning UI + RAG UI)
+**Last Updated**: 2025-10-04
+**Version**: 3.1 - Milhena Smart Tools + AsyncRedisSaver Persistent Memory
+**Status**: ✅ Production Ready (Backend + Memory) | 🔄 In Development (Learning UI + RAG UI)
+
+---
+
+## 🆕 **CHANGELOG v3.1 (2025-10-04)**
+
+**Major Features:**
+1. ✅ **12 Smart Tools** - Consolidamento 30→12 tools (-60% decision space)
+2. ✅ **AsyncRedisSaver** - Persistent memory INFINITE (Redis Stack, NO degradation!)
+3. ✅ **28 Frontend API** - Complete integration (node-level + aggregated data)
+4. ✅ **Auto-enrichment** - Single tool call returns complete analysis
+5. ✅ **Custom ReAct Loop** - Deep-dive detection (multi-tool suggestion)
+6. ✅ **Rephraser v2** - Whitelist patterns + flexible query reformulation
+7. ✅ **Service Auth** - Intelligence Engine ↔ Backend (X-Service-Auth header)
+8. ✅ **Redis Stack** - RediSearch module for checkpointer
+
+**Breaking Changes:**
+- Redis: `redis:7-alpine` → `redis/redis-stack:latest` (1.33GB image)
+- Tools: 10 DB-only → 12 smart tools (3 consolidated + 9 specialized)
+- Memory: MemorySaver (degrada T4) → AsyncRedisSaver (infinite persistence)
+
+**Files Changed:**
+- +1832 insertions, -11451 deletions (cleanup test files)
+- 52 test files obsoleti rimossi
+- docker-compose.yml: Redis Stack upgrade
+- intelligence-engine/app/milhena/: +1508 righe (business_tools.py)
