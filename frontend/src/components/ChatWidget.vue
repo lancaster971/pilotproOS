@@ -58,7 +58,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
-import axios from 'axios'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -89,14 +88,22 @@ const send = async () => {
   isLoading.value = true
 
   try {
-    const response = await axios.post('http://localhost:8000/api/chat', {
-      message: userMessage,
-      session_id: sessionId.value
+    const response = await fetch('http://localhost:8000/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        session_id: sessionId.value
+      })
     })
+
+    const data = await response.json()
 
     messages.value.push({
       role: 'assistant',
-      content: response.data.response,
+      content: data.response,
       timestamp: new Date()
     })
 
