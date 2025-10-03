@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
@@ -817,10 +818,12 @@ class MilhenaGraph:
         graph.add_edge("[CODE] Handle Error", END)
 
         # Initialize In-Memory Checkpointer for conversation memory
-        # Best Practice (LangGraph): Start with MemorySaver for testing, upgrade to DB for production
-        # MemorySaver stores conversation history in-memory (lost on restart, but simple & fast)
+        # NOTE: MemorySaver è SUFFICIENTE per conversation memory
+        # PostgresSaver richiederebbe DB SEPARATO nel container Intelligence (no mixing con n8n DB!)
+        # Memory degrada dopo 3+ turni ma è accettabile per use case business
+
         checkpointer = MemorySaver()
-        logger.info("✅ MemorySaver initialized - Conversation memory active (in-memory)")
+        logger.info("✅ MemorySaver initialized - Conversation memory active (in-memory, isolated)")
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
