@@ -152,9 +152,10 @@
     ></div>
     
     <!-- Toast Container -->
-    
-    <!-- AI Chat removed - future implementation -->
-    
+
+    <!-- AI Chat Widget -->
+    <ChatWidget />
+
   </div>
 </template>
 
@@ -167,7 +168,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
-// MilhenaChat import removed - AI agent discontinued
+import ChatWidget from '../ChatWidget.vue'
 
 // Stores
 const authStore = useAuthStore()

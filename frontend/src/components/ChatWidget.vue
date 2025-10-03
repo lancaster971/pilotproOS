@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <Teleport to="body">
     <!-- Chat Button -->
     <button v-if="!isOpen" @click="isOpen = true" class="chat-btn">
       <Icon icon="mdi:message-text" />
@@ -52,7 +52,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -142,23 +142,23 @@ const formatTime = (date: Date) => {
 <style scoped>
 /* Chat Button */
 .chat-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  transition: all 0.2s;
-  z-index: 1000;
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  width: 56px !important;
+  height: 56px !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 24px !important;
+  transition: all 0.2s !important;
+  z-index: 999999 !important;
 }
 
 .chat-btn:hover {
@@ -173,13 +173,15 @@ const formatTime = (date: Date) => {
   right: 24px;
   width: 380px;
   height: 600px;
-  background: #fff;
+  background: #1a1a1a !important;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 99999 !important;
   animation: slideUp 0.3s ease;
+  overflow: hidden;
+  border: 1px solid #2a2a2a !important;
 }
 
 @keyframes slideUp {
@@ -195,25 +197,27 @@ const formatTime = (date: Date) => {
 
 .chat-header {
   padding: 16px 20px;
-  background: #2563eb;
-  color: #fff;
-  border-radius: 12px 12px 0 0;
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #2a2a2a;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
+  font-size: 16px;
 }
 
 .close-btn {
   background: transparent;
   border: none;
-  color: #fff;
+  color: #ffffff !important;
   cursor: pointer;
   font-size: 20px;
-  padding: 0;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.2s;
 }
 
 .close-btn:hover {
@@ -227,13 +231,20 @@ const formatTime = (date: Date) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: #1a1a1a !important;
 }
 
 .welcome {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: #888 !important;
   font-size: 14px;
+  line-height: 1.6;
+}
+
+.welcome p {
+  color: #888 !important;
+  margin: 0;
 }
 
 .msg {
@@ -254,14 +265,14 @@ const formatTime = (date: Date) => {
 }
 
 .msg.user .msg-content {
-  background: #2563eb;
-  color: #fff;
+  background: #2563eb !important;
+  color: #ffffff !important;
   border-bottom-right-radius: 3px;
 }
 
 .msg.assistant .msg-content {
-  background: #f3f4f6;
-  color: #111;
+  background: #2a2a2a !important;
+  color: #e5e5e5 !important;
   border-bottom-left-radius: 3px;
 }
 
@@ -317,16 +328,23 @@ const formatTime = (date: Date) => {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #2a2a2a;
+  background: #0a0a0a !important;
 }
 
 .input-bar input {
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #2a2a2a;
   border-radius: 8px;
   font-size: 13px;
   outline: none;
+  background: #1a1a1a !important;
+  color: #e5e5e5 !important;
+}
+
+.input-bar input::placeholder {
+  color: #666 !important;
 }
 
 .input-bar input:focus {
@@ -335,22 +353,23 @@ const formatTime = (date: Date) => {
 
 .input-bar button {
   padding: 10px 14px;
-  background: #2563eb;
-  color: #fff;
+  background: #2563eb !important;
+  color: #ffffff !important;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s;
 }
 
 .input-bar button:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #1d4ed8 !important;
 }
 
 .input-bar button:disabled {
-  background: #9ca3af;
+  background: #9ca3af !important;
   cursor: not-allowed;
 }
 

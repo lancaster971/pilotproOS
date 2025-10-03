@@ -7,25 +7,17 @@
     </router-view>
     <!-- Custom notification system -->
     <NotificationContainer />
-    <!-- PilotPro Chat Widget - Always available -->
-    <PilotProChat v-if="isAuthenticated" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import webSocketService from './services/websocket'
 import NotificationContainer from './components/NotificationContainer.vue'
-import PilotProChat from './components/PilotProChat.vue'
-import { useAuthStore } from './stores/auth'
 
 // Initialize Design System theme globally
 import { initializeDesignSystem } from './design-system'
 initializeDesignSystem()
-
-// Check authentication for widget
-const authStore = useAuthStore()
-const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 // Initialize WebSocket connection when app mounts
 onMounted(() => {

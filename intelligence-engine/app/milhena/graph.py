@@ -737,8 +737,9 @@ class MilhenaGraph:
         graph.add_node("[CODE] Record Feedback", self.record_feedback)
         graph.add_node("[CODE] Handle Error", self.handle_error)
 
-        # NEW: Set entry point to Supervisor
-        graph.set_entry_point("[SUPERVISOR] Route Query")
+        # SIMPLIFIED: Entry point DIRETTO al ReAct Agent (bypass supervisor)
+        # Il ReAct Agent ha memoria conversazionale nativa e decide tutto
+        graph.set_entry_point("[TOOL] Database Query")
 
         # NEW: Conditional routing from Supervisor
         graph.add_conditional_edges(
@@ -775,7 +776,8 @@ class MilhenaGraph:
             }
         )
 
-        graph.add_edge("[TOOL] Database Query", "[AGENT] Generate Response")
+        # SIMPLIFIED: ReAct Agent genera risposta autonomamente, va diretto a masking
+        graph.add_edge("[TOOL] Database Query", "[LIB] Mask Response")
 
         graph.add_edge("[AGENT] Generate Response", "[LIB] Mask Response")
         graph.add_edge("[LIB] Mask Response", "[CODE] Record Feedback")
@@ -808,12 +810,43 @@ class MilhenaGraph:
         # gpt-4.1-nano-2025-04-14: 10M tokens budget, perfect for ReAct agent
         react_model = self.openai_llm if self.openai_llm else self.groq_llm
 
+        # CRITICAL: Custom system prompt for intelligent tool selection
+        # IMPERATIVO: Forza l'uso dei tool invece di risposte generiche
+        react_system_prompt = """Sei Milhena, assistente per workflow aziendali.
+
+⚠️ REGOLA ASSOLUTA: DEVI SEMPRE chiamare un tool prima di rispondere. MAI rispondere senza consultare il database.
+
+MAPPA TOOL (scegli in base alla domanda):
+
+1. "che problemi abbiamo" / "quali errori" / "problemi recenti":
+   → CHIAMA get_all_errors_summary_tool()
+
+2. "errori di [NOME]" / "problemi con [WORKFLOW]":
+   → CHIAMA get_error_details_tool(workflow_name="NOME")
+
+3. "info su [NOME]" / "dettagli [WORKFLOW]" / "come va [NOME]":
+   → CHIAMA get_workflow_details_tool(workflow_name="NOME")
+
+4. "statistiche complete" / "dump" / "tutti i dati" / "approfondisci":
+   → CHIAMA get_full_database_dump(days=7)
+
+5. "quali workflow" / "lista processi":
+   → CHIAMA get_workflows_tool()
+
+6. "esecuzioni del [DATA]" / "cosa è successo [QUANDO]":
+   → CHIAMA get_executions_by_date_tool(date="YYYY-MM-DD")
+
+⛔ VIETATO: Rispondere senza chiamare tool. Usa SEMPRE i dati real-time dal database.
+
+Dopo aver ricevuto i dati dal tool, rispondi in italiano, sii conciso, usa terminologia business."""
+
         self.react_agent = create_react_agent(
             model=react_model,
             tools=react_tools,
-            checkpointer=checkpointer  # Share same checkpointer for unified memory
+            checkpointer=checkpointer,  # Share same checkpointer for unified memory
+            prompt=react_system_prompt  # Custom instructions for better tool selection
         )
-        logger.info("✅ ReAct Agent initialized with 10 tools (9 DB + 1 RAG) - Context-aware tool selection")
+        logger.info("✅ ReAct Agent initialized with 10 tools + custom system prompt")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
@@ -1877,40 +1910,35 @@ class MilhenaGraph:
 
             # Invoke ReAct agent with full message history
             # Agent automatically loads previous messages from checkpointer
+            logger.error(f"🔍 [DEBUG] Invoking ReAct with {len(state['messages'])} messages, session: {session_id}")
+
             result = await self.react_agent.ainvoke(
                 {"messages": state["messages"]},
                 config
             )
 
-            # Extract tool results from ToolMessages (Best Practice: LangGraph official docs)
-            # ToolMessage.content contains actual tool execution results
-            # Final AIMessage often contains generic LLM-generated text
-            from langchain_core.messages import ToolMessage
+            # Debug: Log ALL messages in result to see if tools were called
+            logger.error(f"📊 [DEBUG] ReAct result has {len(result['messages'])} messages:")
+            for i, msg in enumerate(result["messages"]):
+                msg_type = type(msg).__name__
+                content_preview = str(msg.content)[:100] if hasattr(msg, 'content') else str(msg)[:100]
+                logger.error(f"  [{i}] {msg_type}: {content_preview}")
 
-            tool_messages = [msg for msg in result["messages"] if isinstance(msg, ToolMessage)]
+            # SIMPLIFIED: Usa l'AIMessage finale che contiene risposta formattata dall'LLM
+            # Il ReAct Agent ha già elaborato tool results e generato risposta finale
+            from langchain_core.messages import AIMessage
 
-            # LOGGING: Estrai anche quale tool è stato chiamato
-            tool_names = []
-            for msg in result["messages"]:
-                if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                    for tool_call in msg.tool_calls:
-                        if 'name' in tool_call:
-                            tool_names.append(tool_call['name'])
+            # Trova l'ultimo AIMessage (risposta finale dell'agent)
+            ai_messages = [msg for msg in result["messages"] if isinstance(msg, AIMessage)]
 
-            logger.error(f"📊 [DEBUG] REACT AGENT RESULT - total messages={len(result['messages'])}, ToolMessages={len(tool_messages)}")
-            logger.error(f"🔧 [DEBUG] TOOLS CHIAMATI: {tool_names if tool_names else 'NESSUNO (risposta diretta LLM)'}")
-
-            if tool_messages:
-                # Combine all tool results (multiple tools may have been called)
-                tool_output = "\n\n".join([msg.content for msg in tool_messages])
-                state["context"]["database_result"] = tool_output
-                logger.error(f"✅ [DEBUG] Extracted {len(tool_messages)} ToolMessages: {tool_output[:150]}")
+            if ai_messages:
+                final_response = ai_messages[-1].content
+                state["response"] = final_response  # Salva direttamente in response
+                logger.error(f"✅ [DEBUG] ReAct Agent response: {final_response[:200]}")
             else:
-                # Fallback: no tools used, use final AI message
-                final_message = result["messages"][-1]
-                tool_output = final_message.content if hasattr(final_message, 'content') else ""
-                state["context"]["database_result"] = tool_output
-                logger.error(f"⚠️ [DEBUG] NO ToolMessages - using AIMessage: {tool_output[:100]}")
+                # Fallback se non c'è AIMessage
+                state["response"] = "Errore: nessuna risposta dall'agent"
+                logger.error(f"⚠️ [DEBUG] NO AIMessages found!")
 
         except Exception as e:
             logger.error(f"ReAct Agent failed: {e}")
