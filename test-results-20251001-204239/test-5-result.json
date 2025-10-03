@@ -1,9 +1,0 @@
-{
-  "passed": "false",
-  "intent": "STATUS",
-  "latency_ms": "4528",
-  "leaks": "0",
-  "failures": [
-    "Latency too high: 4528ms > 2000ms"
-  ]
-}

@@ -1,9 +1,0 @@
-{
-  "passed": "false",
-  "intent": "UNKNOWN",
-  "latency_ms": "123",
-  "leaks": "0",
-  "failures": [
-    "Intent mismatch: expected STATUS, got UNKNOWN"
-  ]
-}

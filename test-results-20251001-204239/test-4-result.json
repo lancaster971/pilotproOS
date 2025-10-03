@@ -1,9 +1,0 @@
-{
-  "passed": "false",
-  "intent": "HELP",
-  "latency_ms": "4279",
-  "leaks": "0",
-  "failures": [
-    "Latency too high: 4279ms > 3000ms"
-  ]
-}
