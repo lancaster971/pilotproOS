@@ -960,7 +960,7 @@ def get_workflow_details_tool(workflow_name: str) -> str:
 **Creato:** {created.strftime('%d/%m/%Y alle %H:%M')}
 **Ultimo aggiornamento:** {updated.strftime('%d/%m/%Y alle %H:%M')}
 
-**📊 Statistiche Esecuzioni:**
+**[STATISTICHE ESECUZIONI]**
 - Totali: {total_exec or 0}
 - Successo: {successful or 0} ({(successful/total_exec*100 if total_exec else 0):.1f}%)
 - Errori: {failed or 0} ({(failed/total_exec*100 if total_exec else 0):.1f}%)
@@ -977,6 +977,68 @@ def get_workflow_details_tool(workflow_name: str) -> str:
 
         if not last_exec:
             response += "\n\n[AVVISO] Questo processo non è mai stato eseguito."
+
+        # AGGIUNGI DETTAGLI AVANZATI
+
+        # 1. DURATA MEDIA E TREND
+        cur.execute("""
+            SELECT
+                AVG(EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt"))) as avg_duration,
+                MIN(EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt"))) as min_duration,
+                MAX(EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt"))) as max_duration
+            FROM n8n.execution_entity
+            WHERE "workflowId" = %s
+            AND "stoppedAt" IS NOT NULL
+        """, (wf_id,))
+
+        duration_stats = cur.fetchone()
+        if duration_stats and duration_stats[0]:
+            avg_dur, min_dur, max_dur = duration_stats
+            response += f"\n\n**[PERFORMANCE]**"
+            response += f"\n- Durata media: {avg_dur:.1f}s"
+            response += f"\n- Durata min/max: {min_dur:.1f}s / {max_dur:.1f}s"
+
+        # 2. TREND ULTIMI 7 GIORNI
+        cur.execute("""
+            SELECT
+                DATE("startedAt") as day,
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'success' THEN 1 END) as success
+            FROM n8n.execution_entity
+            WHERE "workflowId" = %s
+            AND "startedAt" >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY DATE("startedAt")
+            ORDER BY day DESC
+            LIMIT 7
+        """, (wf_id,))
+
+        daily_trend = cur.fetchall()
+        if daily_trend:
+            response += f"\n\n**[TREND ULTIMI 7 GIORNI]**"
+            for day, total, success in daily_trend:
+                rate = (success/total*100) if total > 0 else 0
+                response += f"\n- {day.strftime('%d/%m')}: {total} esec, {rate:.0f}% successo"
+
+        # 3. ULTIME 10 ESECUZIONI DETTAGLIATE
+        cur.execute("""
+            SELECT
+                "startedAt",
+                "stoppedAt",
+                status,
+                EXTRACT(EPOCH FROM ("stoppedAt" - "startedAt")) as duration
+            FROM n8n.execution_entity
+            WHERE "workflowId" = %s
+            ORDER BY "startedAt" DESC
+            LIMIT 10
+        """, (wf_id,))
+
+        recent_execs = cur.fetchall()
+        if recent_execs:
+            response += f"\n\n**[ULTIME 10 ESECUZIONI]**"
+            for started, stopped, status, duration in recent_execs:
+                status_icon = "[OK]" if status == "success" else "[ERR]"
+                dur_str = f"{duration:.0f}s" if duration else "N/A"
+                response += f"\n{status_icon} {started.strftime('%d/%m %H:%M')} - {dur_str}"
 
         conn.close()
         return response

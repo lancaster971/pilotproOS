@@ -545,50 +545,19 @@ class ResponseGenerator:
         return self._clean_tool_output(database_result)
 
     def _parse_workflow_details(self, tool_result: str) -> str:
-        """Extract workflow details into clean bullets (deterministic extraction)"""
-        import re
-        lines = []
+        """
+        RETURN FULL TOOL OUTPUT - NON ESTRARRE CON REGEX!
+        Il tool ora restituisce dati completi (performance, trend, ultime esecuzioni).
+        Basta pulire il formatting markdown e restituire tutto.
+        """
+        # Remove markdown bold (**) and clean up formatting
+        cleaned = tool_result.replace("**", "").replace("*", "")
 
-        # Extract processo name
-        name_match = re.search(r'Processo:\s*(.+?)(?:\*\*|$)', tool_result, re.MULTILINE)
-        if name_match:
-            lines.append(f"Processo '{name_match.group(1).strip()}':")
+        # Add "Altro?" if not present
+        if "Altro?" not in cleaned:
+            cleaned += "\n\nAltro?"
 
-        # Extract stato
-        stato_match = re.search(r'Stato:\*\*\s*(.+)', tool_result)
-        if stato_match:
-            lines.append(f"• Stato: {stato_match.group(1).strip()}")
-
-        # Extract passaggi/complessità
-        passaggi_match = re.search(r'Complessità:\*\*\s*(\d+)\s*passaggi', tool_result)
-        if passaggi_match:
-            lines.append(f"• {passaggi_match.group(1)} passaggi")
-
-        # Extract esecuzioni stats
-        totali_match = re.search(r'-\s*Totali:\s*(\d+)', tool_result)
-        successi_match = re.search(r'-\s*Successo:\s*(\d+)\s*\((.+?)\)', tool_result)
-        errori_match = re.search(r'-\s*Errori:\s*(\d+)\s*\((.+?)\)', tool_result)
-
-        if totali_match:
-            lines.append(f"• {totali_match.group(1)} esecuzioni totali")
-        if successi_match:
-            lines.append(f"• {successi_match.group(1)} successi ({successi_match.group(2)})")
-        if errori_match:
-            lines.append(f"• {errori_match.group(1)} errori ({errori_match.group(2)})")
-
-        # Extract dates
-        creato_match = re.search(r'Creato:\*\*\s*(.+)', tool_result)
-        ultima_match = re.search(r'Ultima Esecuzione:\*\*\s*(.+)', tool_result)
-
-        if creato_match:
-            lines.append(f"• Creato: {creato_match.group(1).strip()}")
-        if ultima_match:
-            lines.append(f"• Ultima esecuzione: {ultima_match.group(1).strip()}")
-
-        if not lines:
-            return "Dati non disponibili. Altro?"
-
-        return "\n".join(lines) + "\n\nAltro?"
+        return cleaned
 
     def _parse_analytics_data(self, tool_result: str) -> str:
         """Extract analytics metrics into bullets (deterministic extraction)"""
