@@ -899,13 +899,26 @@ def get_analytics_tool(query_type: str = "summary") -> str:
 @traceable(name="MilhenaWorkflowDetails", run_type="tool")
 def get_workflow_details_tool(workflow_name: str) -> str:
     """
-    Get detailed information about a specific workflow/process.
+    Get COMPLETE detailed information about a specific workflow/process.
+
+    **USE THIS when user asks about a specific workflow/process by name:**
+    - "info su ChatOne"
+    - "dettagli workflow X"
+    - "com'è andato il processo Y"
+    - "statistiche di Z"
+
+    Returns COMPLETE data:
+    - Basic info (stato, complessità, date)
+    - Execution statistics (totali, successi, errori, percentuali)
+    - Performance metrics (durata media/min/max)
+    - Trend ultimi 7 giorni (esecuzioni giornaliere)
+    - Ultime 10 esecuzioni dettagliate
 
     Args:
-        workflow_name: Name of the workflow to get details for
+        workflow_name: Name of the workflow (can be partial, will use LIKE match)
 
     Returns:
-        Detailed workflow information including execution history and status
+        Complete workflow details with performance, trends, and execution history
     """
     try:
         conn = get_db_connection()
@@ -1590,20 +1603,28 @@ def get_executions_by_date_tool(date: str, workflow_name: Optional[str] = None) 
 @traceable(name="MilhenaKnowledgeBase", run_type="tool")
 async def search_knowledge_base_tool(query: str, top_k: int = 3) -> str:
     """
-    Search the knowledge base for information about processes, system features, and procedures.
+    Search knowledge base for DOCUMENTATION, HOW-TO, PROCEDURES (NOT for workflow stats!).
 
-    Use this when:
-    - User asks "what does process X do?"
-    - User asks "how do I...?"
-    - User needs business/operational information
-    - Database tools only return technical data
+    **DO NOT USE** for workflow/process statistics or details!
+    Use get_workflow_details_tool or get_full_database_dump instead!
+
+    Use this ONLY for:
+    - "come funziona X?" (how does X work - conceptual)
+    - "how do I...?"
+    - Documentation/procedures
+    - When database tools return no data
+
+    **NEVER use for:**
+    - "info su workflow X" → use get_workflow_details_tool
+    - "statistiche X" → use get_full_database_dump
+    - "dettagli processo Y" → use get_workflow_details_tool
 
     Args:
-        query: Search query (process name, feature name, or question)
+        query: Search query (conceptual questions, procedures, documentation)
         top_k: Number of results to return (default 3)
 
     Returns:
-        Business-friendly information from knowledge base
+        Documentation from knowledge base (NOT execution stats)
     """
     try:
         from app.rag import get_rag_system
