@@ -2222,3 +2222,628 @@ async def get_automation_insights_tool() -> str:
     except Exception as e:
         logger.error(f"Error getting automation insights: {e}")
         return f"[ERRORE] Impossibile recuperare automation insights: {str(e)}"
+# ============================================================================
+# ANALYTICS & STATISTICS TOOLS - Comprehensive system metrics
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaAnalytics", run_type="tool")
+async def get_analytics_overview_tool() -> str:
+    """
+    Overview analytics completo: processi totali, esecuzioni, success rate, trend 7 giorni.
+
+    Use cases:
+    - "analytics generale"
+    - "overview sistema"
+    - "metriche complete"
+    - "statistiche generali"
+
+    Returns:
+        Total processes, executions, success rate, trend chart 7 days
+    """
+    try:
+        data = await call_backend_api("/api/business/analytics")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare analytics dal backend."
+
+        overview = data.get("overview", {})
+        trend = data.get("trendData", {})
+
+        response = "**📊 Analytics Sistema Completo**\n\n"
+        response += f"**Processi:**\n"
+        response += f"  • Totali: {overview.get('totalProcesses', 0)}\n"
+        response += f"  • Attivi: {overview.get('activeProcesses', 0)}\n\n"
+
+        response += f"**Esecuzioni:**\n"
+        response += f"  • Totali: {overview.get('totalExecutions', 0)}\n"
+        response += f"  • Success Rate: {overview.get('successRate', 0)}%\n"
+        response += f"  • Durata media: {overview.get('avgDurationSeconds', 0)}s\n\n"
+
+        if trend and trend.get('datasets'):
+            exec_data = trend['datasets'][0].get('data', [])
+            total_week = sum(exec_data)
+            response += f"**Trend 7 giorni:**\n"
+            response += f"  • Esecuzioni settimana: {total_week}\n"
+            response += f"  • Distribuzione: {exec_data}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        return f"[ERRORE] Impossibile recuperare analytics: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaStatistics", run_type="tool")
+async def get_statistics_tool() -> str:
+    """
+    Statistiche di sistema: processi, esecuzioni, success rate, processing time.
+
+    Use cases:
+    - "statistiche sistema"
+    - "numeri chiave"
+    - "KPI principali"
+
+    Returns:
+        Core KPIs: total processes, active, executions, success rate, avg time
+    """
+    try:
+        data = await call_backend_api("/api/business/statistics")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare statistiche dal backend."
+
+        stats = data.get("data", {})
+
+        response = "**📈 Statistiche Sistema**\n\n"
+        response += f"• Processi totali: {stats.get('totalProcesses', 0)}\n"
+        response += f"• Processi attivi: {stats.get('activeProcesses', 0)}\n"
+        response += f"• Esecuzioni totali: {stats.get('totalExecutions', 0)}\n"
+        response += f"• Success rate: {stats.get('successRate', 0)}%\n"
+        response += f"• Tempo elaborazione medio: {stats.get('avgProcessingTime', 0)}ms\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting statistics: {e}")
+        return f"[ERRORE] Impossibile recuperare statistiche: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaPerformanceMetrics", run_type="tool")
+async def get_performance_metrics_frontend_tool() -> str:
+    """
+    Performance metrics dettagliati dal frontend.
+
+    Use cases:
+    - "performance dettagliate"
+    - "metriche performance"
+    - "KPI performance"
+
+    Returns:
+        Performance KPIs from frontend API
+    """
+    try:
+        data = await call_backend_api("/api/business/performance-metrics")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare performance metrics dal backend."
+
+        return f"**⚡ Performance Metrics**\n\n{json.dumps(data, indent=2, ensure_ascii=False)}"
+
+    except Exception as e:
+        logger.error(f"Error getting performance metrics: {e}")
+        return f"[ERRORE] Impossibile recuperare performance metrics: {str(e)}"
+
+
+# ============================================================================
+# WORKFLOW DETAILS TOOLS - Deep dive su workflow specifici
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaWorkflowDashboard", run_type="tool")
+async def get_workflow_dashboard_tool(workflow_id: str) -> str:
+    """
+    Dashboard completo di un workflow con recentActivity (email, AI responses, orders).
+
+    Use cases:
+    - "dashboard completo di [WORKFLOW]"
+    - "attività recenti di [WORKFLOW]"
+    - "cosa ha fatto [WORKFLOW] ultimamente"
+
+    Args:
+        workflow_id: ID del workflow (es: iZnBHM7mDFS2wW0u per ChatOne)
+
+    Returns:
+        Workflow info, capabilities, recentActivity (INCLUDE EMAIL DETAILS!)
+    """
+    try:
+        data = await call_backend_api(f"/api/business/dashboard/{workflow_id}")
+
+        if "error" in data:
+            return f"[ERRORE] Impossibile recuperare dashboard per workflow {workflow_id}."
+
+        workflow = data.get("workflow", {})
+        recent = data.get("recentActivity", [])
+
+        response = f"**📊 Dashboard: {workflow.get('name', 'N/A')}**\n\n"
+        response += f"**Status:** {'Attivo' if workflow.get('active') else 'Inattivo'}\n"
+        response += f"**Complessità:** {workflow.get('nodeCount', 0)} passaggi\n\n"
+
+        if recent:
+            response += f"**🔔 Attività Recenti** ({len(recent)} eventi):\n\n"
+            for idx, activity in enumerate(recent[:10], 1):
+                activity_type = activity.get('type', 'N/A')
+                summary = activity.get('summary', 'N/A')
+                timestamp = activity.get('timestamp', 'N/A')
+
+                response += f"{idx}. [{activity_type}] {summary}\n"
+                response += f"   {timestamp}\n\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting workflow dashboard: {e}")
+        return f"[ERRORE] Impossibile recuperare dashboard workflow: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaWorkflowFullStats", run_type="tool")
+async def get_workflow_full_stats_tool(workflow_id: str, days: int = 30) -> str:
+    """
+    Statistiche complete workflow: KPIs, trend, performance (stesso dato del Command Center).
+
+    Use cases:
+    - "statistiche complete di [WORKFLOW]"
+    - "performance dettagliate [WORKFLOW]"
+    - "full stats [WORKFLOW]"
+
+    Args:
+        workflow_id: ID workflow
+        days: Periodo analisi (default 30)
+
+    Returns:
+        Complete stats: executions, success rate, durations, trend
+    """
+    try:
+        data = await call_backend_api(f"/api/business/workflow/{workflow_id}/full-stats?days={days}")
+
+        if "error" in data:
+            return f"[ERRORE] Impossibile recuperare full stats per workflow {workflow_id}."
+
+        kpis = data.get("kpis", {})
+        trend = data.get("trend", [])
+
+        response = f"**📈 Full Statistics** ({days} giorni)\n\n"
+        response += f"**KPIs:**\n"
+        response += f"  • Esecuzioni totali: {kpis.get('totalExecutions', 0)}\n"
+        response += f"  • Successi: {kpis.get('successfulExecutions', 0)}\n"
+        response += f"  • Errori: {kpis.get('failedExecutions', 0)}\n"
+        response += f"  • Canceled: {kpis.get('canceledExecutions', 0)}\n"
+        response += f"  • Success rate: {kpis.get('successRate', 0)}%\n"
+        response += f"  • Tempo medio: {kpis.get('avgRunTime', 0)}ms\n"
+        response += f"  • Ultime 24h: {kpis.get('last24hExecutions', 0)} esecuzioni\n\n"
+
+        if trend:
+            response += f"**Trend ultimi {len(trend)} giorni:**\n"
+            for day in trend[-7:]:
+                date = day.get('date', 'N/A')
+                execs = day.get('executions', 0)
+                success = day.get('successful', 0)
+                response += f"  {date}: {execs} exec ({success} successi)\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting workflow full stats: {e}")
+        return f"[ERRORE] Impossibile recuperare full stats: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaWorkflowCards", run_type="tool")
+async def get_workflow_cards_tool() -> str:
+    """
+    Card overview di TUTTI i workflow con metriche essenziali.
+
+    Use cases:
+    - "overview tutti i workflow"
+    - "card riepilogo processi"
+    - "vista generale workflow"
+
+    Returns:
+        Lista card con: nome, status, esecuzioni, success rate per ogni workflow
+    """
+    try:
+        data = await call_backend_api("/api/business/workflow-cards")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare workflow cards dal backend."
+
+        cards = data.get("cards", [])
+
+        if not cards:
+            return "[INFO] Nessun workflow trovato."
+
+        response = "**🗂️ Workflow Cards** (overview completo)\n\n"
+
+        for idx, card in enumerate(cards[:15], 1):  # Limit 15
+            name = card.get('name', 'N/A')
+            active = card.get('active', False)
+            execs = card.get('executionCount', 0)
+            success_rate = card.get('successRate', 0)
+
+            status_emoji = "🟢" if active else "⚪"
+
+            response += f"{idx}. {status_emoji} **{name}**\n"
+            response += f"   Esecuzioni: {execs} | Success: {success_rate}%\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting workflow cards: {e}")
+        return f"[ERRORE] Impossibile recuperare workflow cards: {str(e)}"
+
+
+# ============================================================================
+# EXECUTIONS TOOLS - Query su esecuzioni specifiche
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaExecutionsList", run_type="tool")
+async def get_executions_list_tool(limit: int = 20) -> str:
+    """
+    Lista esecuzioni recenti (tutte i workflow).
+
+    Use cases:
+    - "ultime esecuzioni"
+    - "lista run recenti"
+    - "cosa è stato eseguito di recente"
+
+    Args:
+        limit: Numero esecuzioni da mostrare (default 20)
+
+    Returns:
+        Lista esecuzioni: workflow, status, timestamp, duration
+    """
+    try:
+        data = await call_backend_api(f"/api/business/executions?limit={limit}")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare executions dal backend."
+
+        executions = data.get("data", [])
+
+        if not executions:
+            return "[INFO] Nessuna esecuzione recente trovata."
+
+        response = f"**🔄 Ultime {len(executions)} Esecuzioni**\n\n"
+
+        for idx, exe in enumerate(executions[:20], 1):
+            workflow_name = exe.get('workflowName', 'N/A')
+            status = exe.get('status', 'N/A')
+            started = exe.get('startedAt', 'N/A')[:19] if exe.get('startedAt') else 'N/A'
+            duration = exe.get('duration', 0)
+
+            status_emoji = "✅" if status == "success" else "❌" if status == "error" else "⏸️"
+
+            response += f"{idx}. {status_emoji} **{workflow_name}**\n"
+            response += f"   {started} | {int(duration)}ms | {status}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting executions list: {e}")
+        return f"[ERRORE] Impossibile recuperare executions: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaWorkflowExecutions", run_type="tool")
+async def get_workflow_executions_tool(workflow_id: str, limit: int = 10) -> str:
+    """
+    Esecuzioni di un workflow SPECIFICO.
+
+    Use cases:
+    - "esecuzioni di [WORKFLOW]"
+    - "run di [WORKFLOW]"
+    - "storia esecuzioni [WORKFLOW]"
+
+    Args:
+        workflow_id: ID del workflow
+        limit: Numero esecuzioni (default 10)
+
+    Returns:
+        Lista esecuzioni del workflow specifico
+    """
+    try:
+        data = await call_backend_api(f"/api/business/process-executions/{workflow_id}?limit={limit}")
+
+        if "error" in data:
+            return f"[ERRORE] Impossibile recuperare executions per workflow {workflow_id}."
+
+        executions = data.get("data", [])
+
+        if not executions:
+            return f"[INFO] Nessuna esecuzione trovata per workflow {workflow_id}."
+
+        response = f"**🔄 Esecuzioni Workflow** (ultime {len(executions)})\n\n"
+
+        for idx, exe in enumerate(executions, 1):
+            status = exe.get('status', 'N/A')
+            started = exe.get('startedAt', 'N/A')[:19] if exe.get('startedAt') else 'N/A'
+            duration = exe.get('duration', 0)
+
+            status_emoji = "✅" if status == "success" else "❌"
+
+            response += f"{idx}. {status_emoji} {started} | {int(duration)}ms | {status}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting workflow executions: {e}")
+        return f"[ERRORE] Impossibile recuperare workflow executions: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaExecutionStatus", run_type="tool")
+async def get_execution_status_tool(execution_id: int) -> str:
+    """
+    Status dettagliato di una ESECUZIONE SPECIFICA.
+
+    Use cases:
+    - "status esecuzione [ID]"
+    - "dettagli run [ID]"
+    - "cosa è successo nell'esecuzione [ID]"
+
+    Args:
+        execution_id: ID esecuzione
+
+    Returns:
+        Status, duration, error details (if any)
+    """
+    try:
+        data = await call_backend_api(f"/api/business/execution-status/{execution_id}")
+
+        if "error" in data:
+            return f"[ERRORE] Impossibile recuperare status per execution {execution_id}."
+
+        exe = data.get("data", {})
+
+        response = f"**🔍 Execution {execution_id}**\n\n"
+        response += f"• Workflow: {exe.get('workflowName', 'N/A')}\n"
+        response += f"• Status: {exe.get('status', 'N/A')}\n"
+        response += f"• Started: {exe.get('startedAt', 'N/A')[:19]}\n"
+        response += f"• Duration: {exe.get('duration', 0)}ms\n"
+
+        if exe.get('status') == 'error':
+            error_msg = exe.get('errorMessage', 'N/A')
+            response += f"\n❌ **Errore:** {error_msg}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting execution status: {e}")
+        return f"[ERRORE] Impossibile recuperare execution status: {str(e)}"
+
+
+# ============================================================================
+# TIMELINE & EVENTS TOOLS - Real-time monitoring
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaLiveEvents", run_type="tool")
+async def get_live_events_tool() -> str:
+    """
+    Eventi in tempo reale (esecuzioni attive, errori, completamenti).
+
+    Use cases:
+    - "cosa sta succedendo ora"
+    - "eventi live"
+    - "attività in tempo reale"
+    - "cosa sta girando"
+
+    Returns:
+        Live events stream con timestamp
+    """
+    try:
+        data = await call_backend_api("/api/business/live-events")
+
+        if "error" in data:
+            return "[ERRORE] Impossibile recuperare live events dal backend."
+
+        events = data.get("events", [])
+
+        if not events:
+            return "[INFO] Nessun evento live al momento. Sistema in standby."
+
+        response = "**🔴 Eventi Live**\n\n"
+
+        for idx, event in enumerate(events[:15], 1):
+            event_type = event.get('type', 'N/A')
+            workflow_name = event.get('workflowName', 'N/A')
+            timestamp = event.get('timestamp', 'N/A')
+
+            emoji = "▶️" if event_type == "started" else "✅" if event_type == "success" else "❌"
+
+            response += f"{idx}. {emoji} {workflow_name} - {event_type}\n"
+            response += f"   {timestamp}\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting live events: {e}")
+        return f"[ERRORE] Impossibile recuperare live events: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaRawModalData", run_type="tool")
+async def get_raw_modal_data_tool(workflow_id: str, execution_id: int = None) -> str:
+    """
+    Raw data per modal Timeline: NODE-LEVEL data completi con business intelligence.
+
+    QUESTO È IL TOOL PIÙ POTENTE per dettagli node-by-node!
+
+    Use cases:
+    - "dettagli completi esecuzione [WORKFLOW]"
+    - "node-by-node breakdown [WORKFLOW]"
+    - "cosa ha fatto ogni nodo"
+    - "timeline dettagliata [WORKFLOW]"
+
+    Args:
+        workflow_id: ID workflow
+        execution_id: ID esecuzione specifica (opzionale, default=latest)
+
+    Returns:
+        Business nodes con input/output, AI summaries, email details, order data
+    """
+    try:
+        url = f"/api/business/raw-data-for-modal/{workflow_id}"
+        if execution_id:
+            url += f"?executionId={execution_id}"
+
+        data = await call_backend_api(url)
+
+        if "error" in data:
+            return f"[ERRORE] Impossibile recuperare raw modal data per workflow {workflow_id}."
+
+        result = data.get("data", {})
+        business_nodes = result.get("businessNodes", [])
+        workflow = result.get("workflow", {})
+
+        response = f"**🔬 Timeline Dettagliata: {workflow.get('name', 'N/A')}**\n\n"
+
+        if not business_nodes:
+            return f"[INFO] Nessun nodo business configurato per questo workflow. Aggiungi note 'show-1', 'show-2' ai nodi in n8n."
+
+        for idx, node in enumerate(business_nodes, 1):
+            node_name = node.get('businessName') or node.get('name', 'N/A')
+            node_type = node.get('nodeType', 'N/A')
+            status = node.get('status', 'unknown')
+
+            status_emoji = "✅" if status == "success" else "❌" if status == "error" else "⚙️"
+
+            response += f"{idx}. {status_emoji} **{node_name}**\n"
+            response += f"   Tipo: {node_type}\n"
+
+            # Extract business data
+            data_obj = node.get('data', {})
+
+            # Email data
+            if data_obj.get('emailSender'):
+                response += f"   📧 Email da: {data_obj.get('emailSender')}\n"
+                response += f"   📝 Oggetto: {data_obj.get('emailSubject', 'N/A')[:60]}\n"
+
+            # AI response
+            if data_obj.get('aiResponse'):
+                ai_resp = data_obj.get('aiResponse')[:100]
+                response += f"   🤖 AI: {ai_resp}...\n"
+
+            # Order data
+            if data_obj.get('orderId'):
+                response += f"   📦 Order: {data_obj.get('orderId')}\n"
+
+            response += "\n"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting raw modal data: {e}")
+        return f"[ERRORE] Impossibile recuperare raw modal data: {str(e)}"
+
+
+# ============================================================================
+# ACTION TOOLS - Execute, toggle, stop workflows
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaExecuteWorkflow", run_type="tool")
+async def execute_workflow_tool(workflow_id: str) -> str:
+    """
+    ESEGUE un workflow manualmente (trigger manual execution).
+
+    ⚠️ AZIONE CRITICA - Esegue effettivamente il workflow!
+
+    Use cases:
+    - "esegui [WORKFLOW]"
+    - "avvia manualmente [WORKFLOW]"
+    - "triggera [WORKFLOW]"
+
+    Args:
+        workflow_id: ID del workflow da eseguire
+
+    Returns:
+        Execution ID e status iniziale
+    """
+    try:
+        import httpx
+        backend_url = os.getenv("BACKEND_URL", "http://pilotpros-backend-dev:3001")
+        service_token = os.getenv("SERVICE_AUTH_TOKEN", "intelligence-engine-service-token-2025")
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{backend_url}/api/business/execute-workflow/{workflow_id}",
+                headers={
+                    "X-Service-Auth": service_token,
+                    "Content-Type": "application/json"
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        if data.get("success"):
+            exec_id = data.get("executionId", "N/A")
+            return f"✅ Workflow avviato con successo!\n\nExecution ID: {exec_id}\n\nPuoi monitorare lo stato con get_execution_status_tool({exec_id})"
+        else:
+            return f"❌ Errore avvio workflow: {data.get('message', 'Unknown error')}"
+
+    except Exception as e:
+        logger.error(f"Error executing workflow: {e}")
+        return f"[ERRORE] Impossibile eseguire workflow: {str(e)}"
+
+
+@tool
+@traceable(name="MilhenaToggleWorkflow", run_type="tool")
+async def toggle_workflow_tool(workflow_id: str, active: bool) -> str:
+    """
+    ATTIVA o DISATTIVA un workflow.
+
+    ⚠️ AZIONE CRITICA - Modifica stato workflow!
+
+    Use cases:
+    - "attiva [WORKFLOW]"
+    - "disattiva [WORKFLOW]"
+    - "spegni [WORKFLOW]"
+
+    Args:
+        workflow_id: ID workflow
+        active: True per attivare, False per disattivare
+
+    Returns:
+        Nuovo status del workflow
+    """
+    try:
+        import httpx
+        backend_url = os.getenv("BACKEND_URL", "http://pilotpros-backend-dev:3001")
+        service_token = os.getenv("SERVICE_AUTH_TOKEN", "intelligence-engine-service-token-2025")
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{backend_url}/api/business/toggle-workflow/{workflow_id}",
+                headers={
+                    "X-Service-Auth": service_token,
+                    "Content-Type": "application/json"
+                },
+                json={"active": active}
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        if data.get("success"):
+            action = "attivato" if active else "disattivato"
+            return f"✅ Workflow {action} con successo!\n\nNuovo status: {'ATTIVO' if active else 'INATTIVO'}"
+        else:
+            return f"❌ Errore toggle workflow: {data.get('message', 'Unknown error')}"
+
+    except Exception as e:
+        logger.error(f"Error toggling workflow: {e}")
+        return f"[ERRORE] Impossibile modificare stato workflow: {str(e)}"
