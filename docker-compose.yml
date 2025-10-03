@@ -219,8 +219,11 @@ services:
 
   # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
   intelligence-engine:
-    # USA IMMAGINE MULTIAGENT CON RAG SYSTEM - POST MERGE TRAINING
-    image: pilotpros-intelligence-engine:v2.0-multiagent
+    # BUILD FROM SOURCE - v3.1 Optimized (no heavy ML packages, -50% size)
+    build:
+      context: ./intelligence-engine
+      dockerfile: Dockerfile
+    image: pilotpros-intelligence-engine:v3.1-optimized
     container_name: pilotpros-intelligence-engine-dev
     restart: unless-stopped
     depends_on:
