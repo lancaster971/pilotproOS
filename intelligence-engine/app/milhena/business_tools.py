@@ -33,13 +33,20 @@ def get_db_connection():
 @traceable(name="MilhenaWorkflows", run_type="tool")
 def get_workflows_tool(query_type: str = "active") -> str:
     """
-    Get workflow information from n8n.
+    Get BASIC workflow list (names only, NO statistics/metrics).
+
+    USE THIS ONLY for simple lists like:
+    - "quali workflow esistono?"
+    - "mostra i workflow attivi"
+    - "lista processi"
+
+    DO NOT use for statistics/metrics - use get_full_database_dump instead!
 
     Args:
         query_type: "active", "inactive", "all", "top_used", "complex", "recent", "errors"
 
     Returns:
-        Workflow information formatted for business users
+        Workflow names list (NO execution stats, NO performance data)
     """
     try:
         conn = get_db_connection()
@@ -481,22 +488,31 @@ def get_system_monitoring_tool(query_type: str = "health") -> str:
 @traceable(name="MilhenaFullData", run_type="tool")
 def get_full_database_dump(days: int = 7) -> str:
     """
+    **USE THIS FOR STATISTICS, METRICS, TRENDS, COMPLETE DATA**
+
     MASSIVA QUERY CHE ESTRAE TUTTI I DATI DISPONIBILI DAL DATABASE POSTGRESQL.
 
-    Restituisce TUTTO - poi l'LLM filtra quello che serve!
+    USE THIS when user asks for:
+    - "statistiche complete"
+    - "metriche approfondite"
+    - "dati completi"
+    - "analisi dettagliata"
+    - "trend settimanale/mensile"
+    - "performance workflow"
+    - ANY request needing execution stats, success rates, error counts
 
     Dati estratti:
     - Tutte le esecuzioni con dettagli completi (workflow, timing, stato, errori)
-    - Statistiche aggregate per workflow
-    - Trend giornalieri
+    - Statistiche aggregate per workflow (totali, success rate, durata media)
+    - Trend giornalieri (esecuzioni per giorno con tassi successo)
     - Metriche di performance
-    - Contatori di successo/errore
+    - Top errori
 
     Args:
-        days: Numero di giorni da analizzare (default: 7)
+        days: Numero di giorni da analizzare (default: 7, usa 30 per "mese")
 
     Returns:
-        Dump completo di tutti i dati in formato leggibile
+        Dump completo con 4 sezioni + riepilogo globale
     """
     try:
         conn = get_db_connection()
