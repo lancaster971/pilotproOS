@@ -5,7 +5,7 @@ langchain-core==0.3.76
 langserve==0.3.0
 langgraph==0.6.7
 langgraph-checkpoint-postgres==2.0.11
-langgraph-checkpoint-redis>=1.0.0
+langgraph-checkpoint-redis==0.1.2
 # langgraph-cli>=0.1.55  # LangGraph Studio CLI (DISABLED - incompatible with langgraph 0.6.7)
 # langgraph-runtime-inmem>=0.12.0  # In-memory runtime (DISABLED - not needed without Studio)
 langsmith>=0.3.45
