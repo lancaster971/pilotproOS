@@ -1,5 +1,7 @@
 import express from 'express';
 import axios from 'axios';
+import multer from 'multer';
+import FormData from 'form-data';
 import businessLogger from '../utils/businessLogger.js';
 
 const router = express.Router();
@@ -9,6 +11,26 @@ const INTELLIGENCE_ENGINE_URL = process.env.INTELLIGENCE_ENGINE_URL ||
   'http://pilotpros-intelligence-engine-dev:8000';
 
 const TIMEOUT = 30000; // 30 seconds
+
+// Multer configuration for file uploads (memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max file size
+    files: 10 // Max 10 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only specific file types
+    const allowedTypes = ['.pdf', '.docx', '.txt', '.md', '.html'];
+    const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${ext}. Allowed: ${allowedTypes.join(', ')}`));
+    }
+  }
+});
 
 /**
  * @route   GET /api/rag/stats
@@ -123,33 +145,89 @@ router.post('/search', async (req, res) => {
 
 /**
  * @route   POST /api/rag/upload
- * @desc    Upload documents to knowledge base
+ * @desc    Upload documents to knowledge base (FIXED multipart/form-data)
  * @access  Public
  */
-router.post('/upload', async (req, res) => {
+router.post('/upload', upload.array('files'), async (req, res) => {
   try {
-    businessLogger.log('RAG document upload');
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        error: 'No files uploaded',
+        message: 'Please select at least one file to upload'
+      });
+    }
 
-    // Forward the multipart/form-data directly to intelligence engine
+    businessLogger.log('RAG document upload', {
+      files_count: req.files.length,
+      total_size: req.files.reduce((sum, f) => sum + f.size, 0)
+    });
+
+    // Create FormData with files
+    const formData = new FormData();
+
+    // Append each file to FormData
+    req.files.forEach((file) => {
+      formData.append('files', file.buffer, {
+        filename: file.originalname,
+        contentType: file.mimetype
+      });
+    });
+
+    // Append optional metadata from request body
+    if (req.body.category) {
+      formData.append('category', req.body.category);
+    }
+    if (req.body.tags) {
+      formData.append('tags', req.body.tags);
+    }
+    if (req.body.auto_category !== undefined) {
+      formData.append('auto_category', req.body.auto_category);
+    }
+    if (req.body.extract_metadata !== undefined) {
+      formData.append('extract_metadata', req.body.extract_metadata);
+    }
+
+    // Forward to Intelligence Engine with proper headers
     const intelligenceResponse = await axios.post(
-      `${INTELLIGENCE_ENGINE_URL}/api/rag/upload`,
-      req.body,
+      `${INTELLIGENCE_ENGINE_URL}/api/rag/documents`,
+      formData,
       {
-        timeout: TIMEOUT,
+        timeout: 300000, // 5 minutes for large uploads
         headers: {
-          ...req.headers,
-          'host': undefined // Remove host header
-        }
+          ...formData.getHeaders()
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
       }
     );
+
+    businessLogger.log('RAG upload success', {
+      files_processed: req.files.length
+    });
 
     res.json(intelligenceResponse.data);
 
   } catch (error) {
     businessLogger.error('RAG upload error:', {
       message: error.message,
-      status: error.response?.status
+      status: error.response?.status,
+      detail: error.response?.data
     });
+
+    // Handle specific errors
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: 'File too large',
+        message: 'Maximum file size is 50MB'
+      });
+    }
+
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(413).json({
+        error: 'Too many files',
+        message: 'Maximum 10 files per upload'
+      });
+    }
 
     res.status(error.response?.status || 500).json({
       error: 'Upload failed',

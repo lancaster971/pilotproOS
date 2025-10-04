@@ -71,25 +71,45 @@ class MaintainableRAGSystem:
 
     def __init__(
         self,
-        collection_name: str = "pilotpros_knowledge",
+        collection_name: str = "pilotpros_knowledge_v3",  # V3 = text-embedding-3-large
         persist_directory: str = "./chroma_db",
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
+        chunk_size: int = 600,  # OPTIMIZED: Reduced from 1000 for better precision
+        chunk_overlap: int = 250,  # OPTIMIZED: Increased from 200 to prevent context loss
         embeddings_cache: Optional[OptimizedEmbeddingsCache] = None,
-        masking_engine: Optional[MultiLevelMaskingEngine] = None
+        masking_engine: Optional[MultiLevelMaskingEngine] = None,
+        embedding_model: str = "text-embedding-3-large",  # Configurable embedding model
+        embedding_dimensions: Optional[int] = 3072  # Model-specific dimensions
     ):
         """
-        Initialize RAG system with production configuration
+        Initialize RAG system with CONFIGURABLE embedding model
 
         Args:
             collection_name: ChromaDB collection name
             persist_directory: Directory for persistent storage
-            chunk_size: Text chunk size (recommended: 1000)
-            chunk_overlap: Overlap between chunks (recommended: 200)
+            chunk_size: Text chunk size (OPTIMIZED: 600 chars for better accuracy)
+            chunk_overlap: Overlap between chunks (OPTIMIZED: 250 chars to preserve context)
             embeddings_cache: Pre-configured embeddings cache
             masking_engine: Security masking for different user levels
+            embedding_model: OpenAI embedding model (default: text-embedding-3-large)
+            embedding_dimensions: Embedding dimensions (default: 3072 for 3-large, None for ada-002)
+
+        Supported Models:
+            - text-embedding-ada-002: 1536 dim (legacy, lower accuracy)
+            - text-embedding-3-small: 1536 dim (good performance)
+            - text-embedding-3-large: 3072 dim (best accuracy, default)
+
+        Performance Optimizations:
+            - text-embedding-3-large (3072 dim) for +30% accuracy vs ada-002
+            - 600 char chunks (down from 1000) for more precise matching
+            - 250 char overlap (up from 200) to prevent context boundary issues
+            - Enhanced separators for better semantic splitting
         """
         logger.info(f"Initializing MaintainableRAGSystem with collection: {collection_name}")
+        logger.info(f"Embedding model: {embedding_model} ({embedding_dimensions} dimensions)")
+
+        # Store configuration
+        self.embedding_model = embedding_model
+        self.embedding_dimensions = embedding_dimensions
 
         # Initialize embeddings cache
         self.embeddings_cache = embeddings_cache or OptimizedEmbeddingsCache()
@@ -107,12 +127,21 @@ class MaintainableRAGSystem:
         )
 
         # Initialize OpenAI embedding function (following official ChromaDB docs)
-        # Uses text-embedding-ada-002 (1536 dimensions) - official LangChain standard
         import os
-        openai_ef = OpenAIEmbeddingFunction(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            model_name="text-embedding-ada-002"
-        )
+
+        # Build embedding function parameters
+        ef_params = {
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "model_name": embedding_model
+        }
+
+        # Add dimensions only for text-embedding-3 models
+        if embedding_dimensions is not None and "text-embedding-3" in embedding_model:
+            ef_params["dimensions"] = embedding_dimensions
+
+        openai_ef = OpenAIEmbeddingFunction(**ef_params)
+
+        logger.info(f"✅ Embedding function configured: {embedding_model}")
 
         # Get or create collection with OpenAI embeddings (following official ChromaDB pattern)
         # Best practice per ChromaDB docs: use get_or_create_collection for multi-instance scenarios
@@ -120,9 +149,14 @@ class MaintainableRAGSystem:
             self.collection = self.chroma_client.get_or_create_collection(
                 name=collection_name,
                 embedding_function=openai_ef,
-                metadata={"description": "PilotProOS Knowledge Base", "embedding_model": "text-embedding-ada-002"}
+                metadata={
+                    "hnsw:space": "cosine",  # CRITICAL: Use cosine similarity instead of L2
+                    "description": "PilotProOS Knowledge Base",
+                    "embedding_model": embedding_model,
+                    "dimensions": embedding_dimensions or "default"
+                }
             )
-            logger.info(f"✅ Collection '{collection_name}' ready with OpenAI embeddings (ada-002, 1536 dim)")
+            logger.info(f"✅ Collection '{collection_name}' ready with {embedding_model} ({embedding_dimensions or 'default'} dim)")
         except Exception as e:
             # ChromaDB may raise exception even with get_or_create in concurrent scenarios
             if "already exists" in str(e).lower():
@@ -138,12 +172,16 @@ class MaintainableRAGSystem:
                 logger.error(f"❌ Failed to initialize collection: {e}")
                 raise
 
-        # Initialize text splitter per documentation recommendations
+        # Initialize text splitter with OPTIMIZED parameters for accuracy
+        # OPTIMIZED: 600 chars (down from 1000) for more precise context matching
+        # OPTIMIZED: 250 overlap (up from 200) to prevent context loss at boundaries
+        # Additional separators for better semantic chunking (! and ? for sentences)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", ". ", " ", ""],
-            length_function=len
+            separators=["\n\n", "\n", ". ", "! ", "? ", "; ", ", ", " ", ""],
+            length_function=len,
+            keep_separator=True  # Preserve separators for better readability
         )
 
         # Document version tracking

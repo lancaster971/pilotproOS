@@ -95,5 +95,5 @@ scikit-learn==1.6.1
 scipy==1.15.1
 
 # Embeddings & Similarity
-# sentence-transformers==3.3.1  # REMOVED: 2GB+ (torch), usa OpenAI embeddings API
+sentence-transformers==3.3.1  # ON-PREMISE embeddings (stella, gte-Qwen2, nomic) - ZERO token costs!
 faiss-cpu==1.9.0  # Keep: vector search (lightweight, 50MB)
