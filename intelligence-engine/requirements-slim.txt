@@ -1,0 +1,99 @@
+# LangChain Core - Latest stable version (January 2025)
+langchain==0.3.27
+langchain-community==0.3.30
+langchain-core==0.3.76
+langserve==0.3.0
+langgraph==0.6.7
+langgraph-checkpoint-postgres==2.0.11
+langgraph-checkpoint-redis==0.1.2
+# langgraph-cli>=0.1.55  # LangGraph Studio CLI (DISABLED - incompatible with langgraph 0.6.7)
+# langgraph-runtime-inmem>=0.12.0  # In-memory runtime (DISABLED - not needed without Studio)
+langsmith>=0.3.45
+langchain-openai==0.3.33
+langchain-anthropic==0.3.0
+
+# Vector Store & Embeddings
+langchain-postgres>=0.0.15
+pgvector>=0.3.6
+langchain-chroma>=0.1.4
+
+# LLM Providers
+openai>=1.104.2
+anthropic==0.40.0
+google-generativeai==0.8.3
+groq>=0.30.0
+langchain-groq==0.3.8
+langchain-google-genai==2.0.7
+# langchain-redis==0.2.1  # Rimosso per evitare conflitti con LangChain 0.3.27
+
+# FastAPI & Async
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.11.0
+
+# Redis for Memory & Cache
+redis>=5.2.1  # Updated for langgraph-checkpoint-redis compatibility
+# redis-om==0.3.2  # REMOVED: Conflicts with checkpoint-redis, not used
+
+# PostgreSQL
+asyncpg==0.30.0
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# UI Components
+streamlit==1.50.0
+plotly==5.24.1
+streamlit-chat==0.1.1
+streamlit-aggrid==0.3.5
+
+# Observability & Tracing
+opentelemetry-api==1.29.0
+opentelemetry-sdk==1.29.0
+
+# Document Processing (essenziali)
+pypdf==5.1.0
+beautifulsoup4==4.12.3
+python-docx==1.1.2  # For DOCX file processing
+Pillow==10.4.0  # For image processing in documents
+
+# WebSocket & Real-time
+python-socketio==5.11.4
+websockets==14.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.18
+
+# Monitoring & Metrics
+prometheus-client==0.21.1
+grafana-client==3.6.0
+
+# Utils
+python-dotenv==1.0.1
+httpx==0.27.2
+tenacity==9.0.0
+aiofiles==24.1.0
+rich==13.9.4
+loguru==0.7.3
+jinja2==3.1.4
+
+# Development & Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-mock==3.14.0
+black==24.10.0
+ruff==0.8.3
+mypy==1.13.0
+
+# Data Science (essenziali)
+pandas>=2.2.0
+numpy>=1.26.0
+matplotlib==3.9.2
+scikit-learn==1.6.1
+scipy==1.15.1
+
+# Embeddings & Similarity
+# sentence-transformers==3.3.1  # REMOVED: 2GB+ (torch), usa OpenAI embeddings API
+faiss-cpu==1.9.0  # Keep: vector search (lightweight, 50MB)

@@ -20,7 +20,10 @@ import numpy as np
 from collections import OrderedDict
 import logging
 
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None
 import redis
 
 logger = logging.getLogger(__name__)
@@ -57,10 +60,13 @@ class OptimizedEmbeddingsCache:
 
         # Pre-load model pool for parallel processing
         self.model_pool = []
-        for i in range(pool_size):
-            logger.info(f"Loading model {i+1}/{pool_size}...")
-            model = SentenceTransformer(model_name)
-            self.model_pool.append(model)
+        if SentenceTransformer is None:
+            logger.warning("sentence-transformers not installed - embeddings cache disabled")
+        else:
+            for i in range(pool_size):
+                logger.info(f"Loading model {i+1}/{pool_size}...")
+                model = SentenceTransformer(model_name)
+                self.model_pool.append(model)
 
         self.model_name = model_name
         self.executor = ThreadPoolExecutor(max_workers=pool_size)
