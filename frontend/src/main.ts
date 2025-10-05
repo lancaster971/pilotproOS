@@ -12,7 +12,8 @@ import './disable-animations.css'
 import './styles/insights-theme.css' // Global Insights theme applied to all pages
 import './styles/toast-theme.css' // Toast glassmorphism theme
 import './styles/rag-theme.css' // RAG components enterprise dark theme
-import './styles/milhena-theme.css' // Milhena chat enterprise dark theme
+// Milhena theme removed - chat integrated into ChatWidget
+// import './styles/milhena-theme.css' // Milhena chat enterprise dark theme
 
 // Vue Toastification - Battle-tested toast system
 import Toast, { POSITION } from 'vue-toastification'
@@ -63,9 +64,10 @@ const WorkflowCommandCenter = () => import('./pages/WorkflowCommandCenter.vue')
 const ExecutionsPage = () => import('./pages/ExecutionsPage.vue')
 const SettingsPage = () => import('./pages/SettingsPage.vue')
 const DesignSystemTestPage = () => import('./pages/DesignSystemTestPage.vue')
-const MilhenaChat = () => import('./pages/MilhenaChat.vue')
-const RAGManagerPage = () => import('./pages/RAGManagerPage.vue')
+// MilhenaChat page removed - chat integrated into ChatWidget
+// const MilhenaChat = () => import('./pages/MilhenaChat.vue')
 const LearningDashboard = () => import('./pages/LearningDashboard.vue')
+const RAGManagerPage = () => import('./pages/RAGManagerPage.vue')
 
 // Router configuration - same as n8n approach
 const routes = [
@@ -78,7 +80,8 @@ const routes = [
   { path: '/workflows/visual', redirect: '/command-center' },
   { path: '/command-center', component: WorkflowCommandCenter, name: 'command-center', meta: { requiresAuth: true } },
   { path: '/executions', component: ExecutionsPage, name: 'executions', meta: { requiresAuth: true } },
-  { path: '/milhena', component: MilhenaChat, name: 'milhena', meta: { requiresAuth: true } },
+  // Milhena chat page removed - integrated into ChatWidget component
+  // { path: '/milhena', component: MilhenaChat, name: 'milhena', meta: { requiresAuth: true } },
   { path: '/milhena/learning', component: LearningDashboard, name: 'milhena-learning', meta: { requiresAuth: true } },
   { path: '/rag', component: RAGManagerPage, name: 'rag-manager', meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsPage, name: 'settings', meta: { requiresAuth: true, requiresRole: 'admin' } },

@@ -204,15 +204,16 @@ const allNavigationItems = [
     icon: LayoutDashboard,
     roles: ['admin', 'viewer']
   },
-  {
-    name: 'milhena',
-    path: '/milhena',
-    label: 'Milhena AI',
-    description: 'Self-improving AI assistant',
-    icon: Brain,
-    badge: { text: 'NEW', type: 'new' },
-    roles: ['admin', 'viewer']
-  },
+  // Milhena chat page removed - chat integrated into ChatWidget (bottom-right corner)
+  // {
+  //   name: 'milhena',
+  //   path: '/milhena',
+  //   label: 'Milhena AI',
+  //   description: 'Self-improving AI assistant',
+  //   icon: Brain,
+  //   badge: { text: 'NEW', type: 'new' },
+  //   roles: ['admin', 'viewer']
+  // },
   {
     name: 'milhena-learning',
     path: '/milhena/learning',
