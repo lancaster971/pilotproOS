@@ -151,16 +151,22 @@ class AutoBackupService {
       this.cronJob.stop();
     }
 
-    // Create new cron job
+    // Create new cron job with error handling
     this.cronJob = cron.schedule(
       config.auto_backup_schedule,
       async () => {
-        console.log('🔄 Auto-backup triggered by schedule');
-        await this.createBackup();
+        try {
+          console.log('🔄 Auto-backup triggered by schedule');
+          const result = await this.createBackup();
+          if (!result.success) {
+            console.error('❌ Auto-backup failed:', result.error);
+          }
+        } catch (error) {
+          console.error('❌ Critical error in auto-backup cron job:', error.message);
+        }
       },
       {
-        scheduled: true,
-        timezone: 'Europe/Rome' // Italian timezone
+        timezone: 'Europe/Rome' // Italian timezone (scheduled: true is deprecated in v3+)
       }
     );
 
