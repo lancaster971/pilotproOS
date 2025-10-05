@@ -1,5 +1,6 @@
 import express from 'express';
 import { dbPool } from '../db/pg-pool.js';
+import autoBackupService from '../services/auto-backup.service.js';
 
 const router = express.Router();
 
@@ -103,6 +104,13 @@ router.put('/', async (req, res) => {
     `;
 
     const result = await dbPool.query(query, values);
+
+    // Restart auto-backup scheduler if settings changed
+    try {
+      await autoBackupService.restart();
+    } catch (error) {
+      console.error('Failed to restart auto-backup service:', error);
+    }
 
     res.json({
       success: true,

@@ -4451,6 +4451,7 @@ app.use('/api/rag', ragRoutes);
 // Backup & Restore routes
 import backupRoutes from './routes/backup.routes.js';
 import backupSettingsRoutes from './routes/backup-settings.routes.js';
+import autoBackupService from './services/auto-backup.service.js';
 app.use('/api/backup', backupRoutes);
 app.use('/api/backup-settings', authenticate, backupSettingsRoutes);
 
@@ -4682,11 +4683,18 @@ const server = createServer(app);
 // Initialize WebSocket server
 const io = initializeWebSocket(server);
 
-server.listen(port, host, () => {
+server.listen(port, host, async () => {
   businessLogger.info('PilotProOS Backend API Server started', {
     server: `http://${host}:${port}`,
     websocket: `ws://${host}:${port}`,
     environment: process.env.NODE_ENV || 'development',
     database: process.env.DB_NAME || 'pilotpros_db'
   });
+
+  // Start auto-backup scheduler
+  try {
+    await autoBackupService.start();
+  } catch (error) {
+    console.error('❌ Failed to start auto-backup service:', error);
+  }
 });
