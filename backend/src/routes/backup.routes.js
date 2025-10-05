@@ -3,12 +3,23 @@ import { exec } from 'child_process';
 import util from 'util';
 import fs from 'fs/promises';
 import path from 'path';
+import { dbPool } from '../db/pg-pool.js';
 
 const router = express.Router();
 const execPromise = util.promisify(exec);
 
-// Backup directory
-const BACKUP_DIR = '/app/backups';
+/**
+ * Get configured backup directory from database
+ */
+async function getBackupDirectory() {
+  try {
+    const result = await dbPool.query('SELECT backup_directory FROM backup_settings LIMIT 1');
+    return result.rows[0]?.backup_directory || '/app/backups';
+  } catch (error) {
+    console.error('Error fetching backup directory:', error);
+    return '/app/backups'; // Fallback to default
+  }
+}
 
 /**
  * @route POST /api/backup/create
@@ -16,6 +27,7 @@ const BACKUP_DIR = '/app/backups';
  */
 router.post('/create', async (req, res) => {
   try {
+    const BACKUP_DIR = await getBackupDirectory();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup-${timestamp}.sql`;
     const filepath = path.join(BACKUP_DIR, filename);
@@ -59,6 +71,7 @@ router.post('/create', async (req, res) => {
  */
 router.get('/list', async (req, res) => {
   try {
+    const BACKUP_DIR = await getBackupDirectory();
     await fs.mkdir(BACKUP_DIR, { recursive: true });
     const files = await fs.readdir(BACKUP_DIR);
     
@@ -98,6 +111,7 @@ router.get('/list', async (req, res) => {
  */
 router.post('/restore/:filename', async (req, res) => {
   try {
+    const BACKUP_DIR = await getBackupDirectory();
     const { filename } = req.params;
     const filepath = path.join(BACKUP_DIR, filename);
 
@@ -135,6 +149,7 @@ router.post('/restore/:filename', async (req, res) => {
  */
 router.delete('/delete/:filename', async (req, res) => {
   try {
+    const BACKUP_DIR = await getBackupDirectory();
     const { filename } = req.params;
     const filepath = path.join(BACKUP_DIR, filename);
 
@@ -159,6 +174,7 @@ router.delete('/delete/:filename', async (req, res) => {
  */
 router.get('/download/:filename', async (req, res) => {
   try {
+    const BACKUP_DIR = await getBackupDirectory();
     const { filename } = req.params;
     const filepath = path.join(BACKUP_DIR, filename);
 

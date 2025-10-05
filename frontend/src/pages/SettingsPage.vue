@@ -265,6 +265,79 @@
             </div>
           </template>
 
+          <!-- Backup Settings Section -->
+          <Card class="premium-glass mb-6">
+            <template #title>
+              <h3 class="text-lg font-semibold text-text">Impostazioni Backup</h3>
+            </template>
+            <template #content>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-text mb-2">
+                    Directory Backup
+                  </label>
+                  <div class="flex gap-2">
+                    <input
+                      v-model="backupSettings.backup_directory"
+                      type="text"
+                      class="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="/app/backups"
+                    />
+                    <Button
+                      @click="saveBackupSettings"
+                      :disabled="isSavingBackupSettings"
+                      severity="primary"
+                      size="small"
+                    >
+                      <Icon icon="mdi:content-save" class="h-4 w-4 mr-1" />
+                      Salva
+                    </Button>
+                  </div>
+                  <p class="text-xs text-text-muted mt-1">
+                    Percorso assoluto dove salvare i backup (es: /app/backups o /Volumes/BK12/backups)
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-text mb-2">
+                      Giorni di Retention
+                    </label>
+                    <input
+                      v-model.number="backupSettings.retention_days"
+                      type="number"
+                      min="1"
+                      max="365"
+                      class="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <p class="text-xs text-text-muted mt-1">
+                      Conserva backup per N giorni
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-text mb-2">
+                      Backup Automatico
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model="backupSettings.auto_backup_enabled"
+                        type="checkbox"
+                        class="w-4 h-4 text-primary bg-surface border-border rounded focus:ring-2 focus:ring-primary"
+                      />
+                      <span class="text-sm text-text-muted">
+                        {{ backupSettings.auto_backup_enabled ? 'Abilitato' : 'Disabilitato' }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-text-muted mt-1">
+                      Backup giornaliero alle 2:00 AM
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+
           <!-- Create Backup Section -->
           <Card class="premium-glass mb-6">
             <template #title>
@@ -501,6 +574,15 @@ const authConfig = ref({
     enabled: false
   }
 })
+
+// Backup Settings
+const backupSettings = ref({
+  backup_directory: '/app/backups',
+  auto_backup_enabled: false,
+  auto_backup_schedule: '0 2 * * *',
+  retention_days: 30
+})
+const isSavingBackupSettings = ref(false)
 
 const currentAuthMethod = ref({
   label: 'Local',
@@ -835,16 +917,53 @@ const formatBytes = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
-// Format date
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('it-IT', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
+// ============================================================================
+// BACKUP SETTINGS FUNCTIONS
+// ============================================================================
+
+// Load backup settings
+const loadBackupSettings = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/backup-settings`, {
+      credentials: 'include'
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      backupSettings.value = data.settings
+    }
+  } catch (error) {
+    console.error('Load backup settings error:', error)
+    toast.error('Errore nel caricamento delle impostazioni backup')
+  }
+}
+
+// Save backup settings
+const saveBackupSettings = async () => {
+  isSavingBackupSettings.value = true
+  try {
+    const response = await fetch(`${API_BASE}/api/backup-settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(backupSettings.value)
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      toast.success('Impostazioni backup salvate')
+      backupSettings.value = data.settings
+    } else {
+      toast.error(data.error || 'Errore nel salvataggio')
+    }
+  } catch (error) {
+    console.error('Save backup settings error:', error)
+    toast.error('Errore nella connessione al server')
+  } finally {
+    isSavingBackupSettings.value = false
+  }
 }
 
 // Initialize on mount
@@ -852,6 +971,7 @@ onMounted(() => {
   loadUsers()
   loadAuthConfig()
   loadBackups()
+  loadBackupSettings()
 })
 </script>
 

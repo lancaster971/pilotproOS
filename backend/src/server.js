@@ -4450,7 +4450,9 @@ app.use('/api/rag', ragRoutes);
 
 // Backup & Restore routes
 import backupRoutes from './routes/backup.routes.js';
+import backupSettingsRoutes from './routes/backup-settings.routes.js';
 app.use('/api/backup', backupRoutes);
+app.use('/api/backup-settings', authenticate, backupSettingsRoutes);
 
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
