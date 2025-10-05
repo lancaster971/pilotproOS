@@ -31,6 +31,7 @@ from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 from app.cache.optimized_embeddings_cache import OptimizedEmbeddingsCache
 from app.security.masking_engine import MultiLevelMaskingEngine, UserLevel
+from app.rag.nomic_embeddings import NomicEmbeddingFunction
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +72,14 @@ class MaintainableRAGSystem:
 
     def __init__(
         self,
-        collection_name: str = "pilotpros_knowledge_v3",  # V3 = text-embedding-3-large
+        collection_name: str = "pilotpros_knowledge_nomic",  # V4 = nomic-embed-text-v1.5 (FREE!)
         persist_directory: str = "./chroma_db",
         chunk_size: int = 600,  # OPTIMIZED: Reduced from 1000 for better precision
         chunk_overlap: int = 250,  # OPTIMIZED: Increased from 200 to prevent context loss
         embeddings_cache: Optional[OptimizedEmbeddingsCache] = None,
         masking_engine: Optional[MultiLevelMaskingEngine] = None,
-        embedding_model: str = "text-embedding-3-large",  # Configurable embedding model
-        embedding_dimensions: Optional[int] = 3072  # Model-specific dimensions
+        embedding_model: str = "nomic",  # "nomic" (FREE!) or "openai"
+        embedding_dimensions: Optional[int] = 768  # 768 for NOMIC, 3072 for OpenAI 3-large
     ):
         """
         Initialize RAG system with CONFIGURABLE embedding model
@@ -126,34 +127,40 @@ class MaintainableRAGSystem:
             )
         )
 
-        # Initialize OpenAI embedding function (following official ChromaDB docs)
+        # Initialize embedding function based on model choice
         import os
 
-        # Build embedding function parameters
-        ef_params = {
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "model_name": embedding_model
-        }
+        if embedding_model == "nomic":
+            # NOMIC on-premise embeddings (100% FREE!)
+            embedding_func = NomicEmbeddingFunction()
+            logger.info(f"✅ NOMIC embedding function configured (FREE on-premise!)")
+        else:
+            # OpenAI embeddings (fallback for compatibility)
+            ef_params = {
+                "api_key": os.getenv("OPENAI_API_KEY"),
+                "model_name": embedding_model
+            }
 
-        # Add dimensions only for text-embedding-3 models
-        if embedding_dimensions is not None and "text-embedding-3" in embedding_model:
-            ef_params["dimensions"] = embedding_dimensions
+            # Add dimensions only for text-embedding-3 models
+            if embedding_dimensions is not None and "text-embedding-3" in embedding_model:
+                ef_params["dimensions"] = embedding_dimensions
 
-        openai_ef = OpenAIEmbeddingFunction(**ef_params)
+            embedding_func = OpenAIEmbeddingFunction(**ef_params)
+            logger.info(f"✅ OpenAI embedding function configured: {embedding_model}")
 
-        logger.info(f"✅ Embedding function configured: {embedding_model}")
-
-        # Get or create collection with OpenAI embeddings (following official ChromaDB pattern)
+        # Get or create collection with configured embeddings (NOMIC or OpenAI)
         # Best practice per ChromaDB docs: use get_or_create_collection for multi-instance scenarios
         try:
+            logger.info(f"🔍 DEBUG: embedding_func type: {type(embedding_func)}, callable: {callable(embedding_func)}")
+
             self.collection = self.chroma_client.get_or_create_collection(
                 name=collection_name,
-                embedding_function=openai_ef,
+                embedding_function=embedding_func,
                 metadata={
                     "hnsw:space": "cosine",  # CRITICAL: Use cosine similarity instead of L2
                     "description": "PilotProOS Knowledge Base",
                     "embedding_model": embedding_model,
-                    "dimensions": embedding_dimensions or "default"
+                    "dimensions": str(embedding_dimensions or "default")  # Convert to string for metadata
                 }
             )
             logger.info(f"✅ Collection '{collection_name}' ready with {embedding_model} ({embedding_dimensions or 'default'} dim)")
@@ -161,15 +168,17 @@ class MaintainableRAGSystem:
             # ChromaDB may raise exception even with get_or_create in concurrent scenarios
             if "already exists" in str(e).lower():
                 # This is expected in multi-instance setup (API + GraphSupervisor)
-                logger.info(f"ℹ️ Collection '{collection_name}' already exists, retrieving...")
+                logger.info(f"ℹ️  Collection '{collection_name}' already exists, retrieving...")
                 self.collection = self.chroma_client.get_collection(
                     name=collection_name,
-                    embedding_function=openai_ef
+                    embedding_function=embedding_func
                 )
                 logger.info(f"✅ Collection '{collection_name}' retrieved successfully")
             else:
-                # Unexpected error, re-raise
+                # Unexpected error, log traceback and re-raise
+                import traceback
                 logger.error(f"❌ Failed to initialize collection: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 raise
 
         # Initialize text splitter with OPTIMIZED parameters for accuracy
@@ -232,7 +241,7 @@ class MaintainableRAGSystem:
             else:
                 chunks = [content]
 
-            logger.info(f"Adding {len(chunks)} chunks to ChromaDB (embeddings auto-generated by OpenAI)...")
+            logger.info(f"Adding {len(chunks)} chunks to ChromaDB (embeddings: {self.embedding_model})...")
 
             # Prepare documents for ChromaDB
             ids = []
@@ -260,8 +269,8 @@ class MaintainableRAGSystem:
                 }
                 metadatas.append(chunk_metadata)
 
-            # Add to ChromaDB (embeddings auto-generated by collection's OpenAI function)
-            # Following official ChromaDB docs: omit embeddings parameter to use embedding_function
+            # Add to ChromaDB (embeddings auto-generated by collection's embedding function)
+            # Following official ChromaDB docs: omit embeddings parameter to use configured embedding_function
             self.collection.add(
                 ids=ids,
                 documents=documents,
