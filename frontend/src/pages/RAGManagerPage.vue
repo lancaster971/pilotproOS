@@ -464,8 +464,9 @@ const getDocIcon = (filename: string) => {
 }
 
 .action-btn.primary {
-  background: white;
-  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 .action-btn.secondary {
@@ -493,13 +494,14 @@ const getDocIcon = (filename: string) => {
 }
 
 .stat-card {
-  background: white;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   transition: transform 0.2s;
 }
 
@@ -527,39 +529,40 @@ const getDocIcon = (filename: string) => {
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .stat-label {
-  color: #718096;
+  color: #9ca3af;
   font-size: 0.9rem;
 }
 
 /* Search Section */
 .search-section {
-  background: white;
+  background: rgba(30, 30, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .search-header h2 {
   margin: 0 0 0.5rem 0;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .search-header p {
   margin: 0;
-  color: #718096;
+  color: #9ca3af;
 }
 
 .search-box {
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: #f7fafc;
-  border: 2px solid #e2e8f0;
+  background: rgba(30, 30, 30, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 0.75rem 1rem;
   margin-top: 1.5rem;
@@ -572,7 +575,7 @@ const getDocIcon = (filename: string) => {
 
 .search-icon {
   font-size: 1.5rem;
-  color: #a0aec0;
+  color: #9ca3af;
 }
 
 .search-input {
@@ -581,7 +584,7 @@ const getDocIcon = (filename: string) => {
   background: transparent;
   font-size: 1rem;
   outline: none;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .search-btn {
@@ -618,7 +621,7 @@ const getDocIcon = (filename: string) => {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .clear-btn {
@@ -627,7 +630,7 @@ const getDocIcon = (filename: string) => {
   gap: 0.25rem;
   background: none;
   border: none;
-  color: #718096;
+  color: #9ca3af;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -635,8 +638,8 @@ const getDocIcon = (filename: string) => {
 }
 
 .clear-btn:hover {
-  background: #f7fafc;
-  color: #2d3748;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
 }
 
 .results-list {
@@ -647,14 +650,15 @@ const getDocIcon = (filename: string) => {
 
 .result-item {
   padding: 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  background: rgba(30, 30, 30, 0.3);
   transition: all 0.2s;
 }
 
 .result-item:hover {
   border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .result-header {
@@ -669,7 +673,7 @@ const getDocIcon = (filename: string) => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .doc-icon {
@@ -691,11 +695,11 @@ const getDocIcon = (filename: string) => {
 
 .score-text {
   font-size: 0.85rem;
-  color: #718096;
+  color: #9ca3af;
 }
 
 .result-content {
-  color: #4a5568;
+  color: #cbd5e0;
   line-height: 1.6;
   margin: 0.5rem 0;
 }
@@ -716,16 +720,17 @@ const getDocIcon = (filename: string) => {
 }
 
 .meta-date {
-  color: #a0aec0;
+  color: #9ca3af;
   font-size: 0.85rem;
 }
 
 /* Documents Section */
 .documents-section {
-  background: white;
+  background: rgba(30, 30, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .section-header {
@@ -737,7 +742,7 @@ const getDocIcon = (filename: string) => {
 
 .section-header h2 {
   margin: 0;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .view-options {
@@ -746,12 +751,12 @@ const getDocIcon = (filename: string) => {
 }
 
 .view-btn {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 0.5rem;
   cursor: pointer;
-  color: #718096;
+  color: #9ca3af;
   transition: all 0.2s;
 }
 
@@ -775,7 +780,8 @@ const getDocIcon = (filename: string) => {
 }
 
 .document-card {
-  border: 1px solid #e2e8f0;
+  background: rgba(30, 30, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -800,7 +806,7 @@ const getDocIcon = (filename: string) => {
 
 .doc-title {
   font-weight: 600;
-  color: #2d3748;
+  color: #e2e8f0;
   margin-bottom: 0.5rem;
 }
 
@@ -809,7 +815,7 @@ const getDocIcon = (filename: string) => {
   gap: 1rem;
   flex-wrap: wrap;
   font-size: 0.85rem;
-  color: #718096;
+  color: #9ca3af;
 }
 
 .doc-category {
@@ -826,12 +832,12 @@ const getDocIcon = (filename: string) => {
 }
 
 .doc-action-btn {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 0.5rem;
   cursor: pointer;
-  color: #718096;
+  color: #9ca3af;
   transition: all 0.2s;
 }
 
@@ -850,7 +856,7 @@ const getDocIcon = (filename: string) => {
 .empty-state {
   text-align: center;
   padding: 3rem;
-  color: #a0aec0;
+  color: #9ca3af;
 }
 
 .empty-icon {
@@ -893,11 +899,12 @@ const getDocIcon = (filename: string) => {
 }
 
 .modal-content {
-  background: white;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   width: 90%;
   max-width: 600px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
 .modal-header {
@@ -905,12 +912,12 @@ const getDocIcon = (filename: string) => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-header h3 {
   margin: 0;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .modal-close {
@@ -918,15 +925,15 @@ const getDocIcon = (filename: string) => {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #718096;
+  color: #9ca3af;
   padding: 0.25rem;
   border-radius: 4px;
   transition: all 0.2s;
 }
 
 .modal-close:hover {
-  background: #f7fafc;
-  color: #2d3748;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
 }
 
 .modal-body {
@@ -934,21 +941,22 @@ const getDocIcon = (filename: string) => {
 }
 
 .upload-area {
-  border: 2px dashed #cbd5e0;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 3rem;
   text-align: center;
   transition: all 0.2s;
+  color: #9ca3af;
 }
 
 .upload-area:hover {
   border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .upload-icon {
   font-size: 3rem;
-  color: #a0aec0;
+  color: #9ca3af;
   margin-bottom: 1rem;
 }
 
@@ -980,8 +988,10 @@ const getDocIcon = (filename: string) => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: #f7fafc;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  color: #e2e8f0;
 }
 
 .remove-file-btn {
@@ -989,7 +999,7 @@ const getDocIcon = (filename: string) => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #718096;
+  color: #9ca3af;
   padding: 0.25rem;
 }
 
@@ -1002,7 +1012,7 @@ const getDocIcon = (filename: string) => {
   justify-content: flex-end;
   gap: 1rem;
   padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-btn {
@@ -1023,8 +1033,9 @@ const getDocIcon = (filename: string) => {
 }
 
 .modal-btn.secondary {
-  background: #e2e8f0;
-  color: #4a5568;
+  background: rgba(30, 30, 30, 0.6);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .modal-btn:hover:not(:disabled) {
