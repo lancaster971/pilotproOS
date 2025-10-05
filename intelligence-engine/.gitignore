@@ -1,0 +1,8 @@
+
+# Temporary test and migration scripts
+test_*.py
+*migrate*.py
+clean_and_*.py
+
+# ChromaDB data
+chroma_db/*/
