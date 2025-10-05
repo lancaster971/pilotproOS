@@ -4,7 +4,7 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-04 - Milhena v3.1 with Smart Tools + AsyncRedisSaver Persistent Memory
+**LAST UPDATED**: 2025-10-05 - Auto-Backup System with node-cron Scheduler
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
@@ -18,6 +18,7 @@ PilotProOS - Containerized Business Process Operating System
 - ✅ **RAG System Backend** - ChromaDB + OpenAI embeddings (0.644 accuracy)
 - ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport
 - ✅ **Stack Services** - 7 core services + Redis Stack (RediSearch module)
+- ✅ **Auto-Backup System** - Configurable directory + Scheduled backups (node-cron v3.0.3)
 
 ## 🏗️ **SIMPLIFIED ARCHITECTURE (2025-10-03)**
 
@@ -188,6 +189,154 @@ npm run test              # All tests in Docker
 5. **Intelligence Engine** ✅ - LangChain ReAct Agent with LangGraph 0.6.7
 6. **Automation** ✅ - n8n workflow engine (integrated with Intelligence Engine)
 7. **Monitor** ✅ - Nginx reverse proxy
+
+---
+
+## 💾 **AUTO-BACKUP SYSTEM (2025-10-05)**
+
+### **Overview**
+Production-ready automatic backup system with configurable directory, scheduled backups, and retention management.
+
+**Library**: node-cron v3.0.3 (battle-tested)
+- 1.7M weekly downloads, 3.1K GitHub stars
+- Pure JavaScript, zero dependencies
+- Full crontab syntax support
+- Timezone support (Europe/Rome)
+
+### **Features**
+
+**1. Configurable Backup Directory**
+- Database-backed configuration (`backup_settings` table)
+- Settings UI in Frontend (Settings → Backup & Ripristino)
+- Validation: prevents system directories (/etc, /bin, etc.)
+- Default: `/app/backups`
+
+**2. Scheduled Automatic Backups**
+- Cron scheduler with custom schedule (default: 2AM daily)
+- Auto-start on backend startup
+- Auto-restart on settings change
+- Error handling with try-catch (async tasks)
+- Prefixed filenames: `auto-backup-YYYY-MM-DDTHH-mm-ss-sssZ.sql`
+
+**3. Retention Management**
+- Auto-cleanup old backups based on `retention_days` (default: 30)
+- Runs after each auto-backup
+- Detailed logs: "🗑️  Deleted old backup: file.sql (45 days old)"
+
+**4. Manual Backups**
+- API endpoint: `POST /api/backup/create`
+- Settings UI: "Crea Backup Ora" button
+- Prefixed filenames: `backup-YYYY-MM-DDTHH-mm-ss-sssZ.sql`
+
+### **Configuration**
+
+**Database Table**: `backup_settings`
+```sql
+backup_directory       VARCHAR(500)  DEFAULT '/app/backups'
+auto_backup_enabled    BOOLEAN       DEFAULT false
+auto_backup_schedule   VARCHAR(50)   DEFAULT '0 2 * * *'  -- 2AM daily
+retention_days         INTEGER       DEFAULT 30
+```
+
+**Settings UI** (Frontend → Settings → Backup & Ripristino):
+- Directory path input with validation
+- Retention days (1-365)
+- Auto-backup ON/OFF checkbox
+- Save button (triggers scheduler restart)
+
+### **API Endpoints**
+
+**Backup Operations** (`/api/backup`):
+- `POST /create` - Create manual backup
+- `GET /list` - List all backups (from configured directory)
+- `POST /restore/:filename` - Restore database from backup
+- `DELETE /delete/:filename` - Delete backup file
+- `GET /download/:filename` - Download backup file
+
+**Settings** (`/api/backup-settings`, requires auth):
+- `GET /` - Get current configuration
+- `PUT /` - Update configuration (auto-restarts scheduler)
+- `POST /validate-directory` - Validate directory path
+
+### **Implementation**
+
+**Service**: `backend/src/services/auto-backup.service.js`
+- Singleton pattern
+- Methods: `start()`, `stop()`, `restart()`, `createBackup()`, `cleanupOldBackups()`
+- Timezone: Europe/Rome
+- Error handling: try-catch in cron callback
+
+**Routes**:
+- `backend/src/routes/backup.routes.js` - Backup operations
+- `backend/src/routes/backup-settings.routes.js` - Configuration
+
+**Frontend**:
+- `frontend/src/pages/SettingsPage.vue` - Settings UI with backup tab
+
+### **Testing (RIGOROUSLY TESTED WITH REAL DATA)**
+
+✅ **Cleanup Function**:
+- Created 3 fake old backups (430, 426, 370 days old)
+- Executed cleanupOldBackups() - all 3 deleted correctly
+
+✅ **Error Handling**:
+- Simulated pg_dump failure (wrong password)
+- Result: {success: false, error: "..."} - NO CRASH
+
+✅ **Cron Validation**:
+- Valid: '0 2 * * *' → true, '*/5 * * * *' → true
+- Invalid: '9 9 9 9 9 9' → false, '60 * * * *' → false
+
+✅ **Timezone**:
+- System: UTC, Rome: UTC+2 (DST)
+- node-cron respects Europe/Rome timezone
+
+✅ **Auto-Execution**:
+- Schedule: */1 * * * * (tested every minute)
+- Created 2 backups automatically (114KB each)
+
+### **Console Logs**
+
+**Startup**:
+```
+✅ Auto-backup scheduler started: 0 2 * * * (Europe/Rome)
+📁 Backup directory: /app/backups
+🗓️  Retention: 30 days
+```
+
+**Execution**:
+```
+🔄 Auto-backup triggered by schedule
+✅ Auto-backup created: auto-backup-2025-10-05T08-58-00-600Z.sql (114KB)
+```
+
+**Cleanup**:
+```
+🗑️  Deleted old backup: old-backup-1.sql (430 days old)
+✅ Cleanup complete: 3 old backup(s) deleted
+```
+
+**Errors**:
+```
+❌ Auto-backup error: Command failed: pg_dump...
+❌ Critical error in auto-backup cron job: <error message>
+```
+
+### **Known Limitations**
+
+1. **No retry mechanism** - node-cron doesn't support built-in retries
+2. **Single scheduler** - One schedule for all backups (no per-workflow backup)
+3. **No compression** - Backups stored as raw .sql files
+4. **No cloud upload** - Local directory only (MEGA/Azure not implemented)
+
+### **Migration & Setup**
+
+**Migration**: `backend/db/migrations/003_backup_settings.sql`
+- Creates `backup_settings` table
+- Inserts default configuration
+- Auto-update trigger
+
+**Auto-start**: Backend `server.js` calls `autoBackupService.start()` on startup
 
 ---
 
