@@ -255,6 +255,136 @@
             </template>
           </Card>
         </TabPanel>
+
+        <!-- Backup & Restore Tab -->
+        <TabPanel>
+          <template #header>
+            <div class="flex items-center gap-2">
+              <Icon icon="mdi:database-export" class="h-4 w-4" />
+              <span>Backup & Ripristino</span>
+            </div>
+          </template>
+
+          <!-- Create Backup Section -->
+          <Card class="premium-glass mb-6">
+            <template #title>
+              <h3 class="text-lg font-semibold text-text">Crea Backup</h3>
+            </template>
+            <template #content>
+              <div class="space-y-4">
+                <p class="text-text-muted text-sm">
+                  Crea un backup completo del database inclusi workflow, credenziali, esecuzioni e configurazioni.
+                </p>
+                <Button
+                  @click="createBackup"
+                  :disabled="isCreatingBackup"
+                  severity="success"
+                  class="premium-button"
+                >
+                  <Icon icon="mdi:database-export" :class="['h-4 w-4 mr-2', { 'animate-spin': isCreatingBackup }]" />
+                  {{ isCreatingBackup ? 'Creazione in corso...' : 'Crea Backup Ora' }}
+                </Button>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Backup List -->
+          <Card class="premium-glass">
+            <template #title>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-text">Backup Disponibili</h3>
+                <Button
+                  @click="loadBackups"
+                  :disabled="isLoadingBackups"
+                  severity="secondary"
+                  size="small"
+                  text
+                >
+                  <Icon icon="mdi:refresh" :class="['h-4 w-4', { 'animate-spin': isLoadingBackups }]" />
+                </Button>
+              </div>
+            </template>
+            <template #content>
+              <!-- Loading State -->
+              <div v-if="isLoadingBackups && backups.length === 0" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p class="mt-3 text-text-muted text-sm">Caricamento backup...</p>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else-if="backups.length === 0" class="text-center py-8">
+                <Icon icon="mdi:database-off" class="h-12 w-12 text-text-muted mb-3" />
+                <p class="text-text-muted">Nessun backup disponibile</p>
+                <p class="text-text-muted text-sm mt-1">Crea il tuo primo backup per proteggere i dati</p>
+              </div>
+
+              <!-- Backups Table -->
+              <DataTable
+                v-else
+                :value="backups"
+                class="premium-table"
+                :paginator="true"
+                :rows="5"
+                stripedRows
+              >
+                <Column field="filename" header="Nome File">
+                  <template #body="{ data }">
+                    <div class="flex items-center">
+                      <Icon icon="mdi:file-document" class="h-5 w-5 text-primary mr-2" />
+                      <span class="text-sm font-mono">{{ data.filename }}</span>
+                    </div>
+                  </template>
+                </Column>
+
+                <Column field="size" header="Dimensione">
+                  <template #body="{ data }">
+                    <span class="text-sm">{{ formatBytes(data.size) }}</span>
+                  </template>
+                </Column>
+
+                <Column field="created" header="Data Creazione">
+                  <template #body="{ data }">
+                    <span class="text-sm">{{ formatDate(data.created) }}</span>
+                  </template>
+                </Column>
+
+                <Column header="Azioni">
+                  <template #body="{ data }">
+                    <div class="flex gap-2">
+                      <Button
+                        @click="downloadBackup(data.filename)"
+                        severity="secondary"
+                        size="small"
+                        text
+                        v-tooltip.top="'Scarica'"
+                      >
+                        <Icon icon="mdi:download" class="h-4 w-4" />
+                      </Button>
+                      <Button
+                        @click="confirmRestore(data.filename)"
+                        severity="warning"
+                        size="small"
+                        text
+                        v-tooltip.top="'Ripristina'"
+                      >
+                        <Icon icon="mdi:database-import" class="h-4 w-4" />
+                      </Button>
+                      <Button
+                        @click="confirmDelete(data.filename)"
+                        severity="danger"
+                        size="small"
+                        text
+                        v-tooltip.top="'Elimina'"
+                      >
+                        <Icon icon="mdi:delete" class="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </template>
+          </Card>
+        </TabPanel>
       </TabView>
 
       <!-- Create User Modal -->
@@ -292,6 +422,28 @@
         :config="authConfig"
         :is-editing="true"
         @saved="handleAuthConfigSaved"
+      />
+
+      <!-- Restore Backup Confirmation Modal -->
+      <ConfirmModal
+        v-if="showRestoreModal && selectedBackup"
+        title="Conferma Ripristino"
+        :message="`Sei sicuro di voler ripristinare il database dal backup ${selectedBackup}? Tutti i dati attuali saranno sovrascritti. Questa azione non può essere annullata.`"
+        confirm-text="Ripristina"
+        confirm-class="bg-yellow-600 hover:bg-yellow-700"
+        @close="showRestoreModal = false; selectedBackup = null"
+        @confirm="restoreBackup"
+      />
+
+      <!-- Delete Backup Confirmation Modal -->
+      <ConfirmModal
+        v-if="showDeleteBackupModal && selectedBackup"
+        title="Conferma Eliminazione Backup"
+        :message="`Sei sicuro di voler eliminare il backup ${selectedBackup}? Questa azione non può essere annullata.`"
+        confirm-text="Elimina"
+        confirm-class="bg-red-600 hover:bg-red-700"
+        @close="showDeleteBackupModal = false; selectedBackup = null"
+        @confirm="deleteBackup"
       />
     </div>
   </MainLayout>
@@ -355,6 +507,14 @@ const currentAuthMethod = ref({
   severity: 'info',
   description: 'Autenticazione tramite database locale con username e password'
 })
+
+// Backup & Restore State
+const backups = ref([])
+const isLoadingBackups = ref(false)
+const isCreatingBackup = ref(false)
+const showRestoreModal = ref(false)
+const showDeleteBackupModal = ref(false)
+const selectedBackup = ref(null)
 
 // API configuration - use dynamic base URL
 import { API_BASE_URL } from '../utils/api-config'
@@ -553,10 +713,145 @@ const getRoleSeverity = (role) => {
   return severities[role] || 'info'
 }
 
+// ============================================================================
+// BACKUP & RESTORE FUNCTIONS
+// ============================================================================
+
+// Load available backups
+const loadBackups = async () => {
+  isLoadingBackups.value = true
+  try {
+    const response = await fetch(`${API_BASE}/api/backup/list`, {
+      credentials: 'include'
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      backups.value = data.backups
+    } else {
+      toast.error('Errore nel caricamento dei backup')
+    }
+  } catch (error) {
+    console.error('Load backups error:', error)
+    toast.error('Errore nella connessione al server')
+  } finally {
+    isLoadingBackups.value = false
+  }
+}
+
+// Create new backup
+const createBackup = async () => {
+  isCreatingBackup.value = true
+  try {
+    const response = await fetch(`${API_BASE}/api/backup/create`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      toast.success('Backup creato con successo!')
+      await loadBackups()
+    } else {
+      toast.error('Errore nella creazione del backup')
+    }
+  } catch (error) {
+    console.error('Create backup error:', error)
+    toast.error('Errore nella connessione al server')
+  } finally {
+    isCreatingBackup.value = false
+  }
+}
+
+// Download backup file
+const downloadBackup = (filename) => {
+  window.location.href = `${API_BASE}/api/backup/download/${filename}`
+  toast.success('Download avviato')
+}
+
+// Confirm restore
+const confirmRestore = (filename) => {
+  selectedBackup.value = filename
+  showRestoreModal.value = true
+}
+
+// Restore from backup
+const restoreBackup = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/backup/restore/${selectedBackup.value}`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      toast.success('Database ripristinato con successo!')
+      showRestoreModal.value = false
+      // Reload page after 2 seconds
+      setTimeout(() => window.location.reload(), 2000)
+    } else {
+      toast.error('Errore nel ripristino del database')
+    }
+  } catch (error) {
+    console.error('Restore error:', error)
+    toast.error('Errore nella connessione al server')
+  }
+}
+
+// Confirm delete backup
+const confirmDelete = (filename) => {
+  selectedBackup.value = filename
+  showDeleteBackupModal.value = true
+}
+
+// Delete backup
+const deleteBackup = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/backup/delete/${selectedBackup.value}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    const data = await response.json()
+
+    if (data.success) {
+      toast.success('Backup eliminato')
+      showDeleteBackupModal.value = false
+      await loadBackups()
+    } else {
+      toast.error('Errore nell\'eliminazione del backup')
+    }
+  } catch (error) {
+    console.error('Delete backup error:', error)
+    toast.error('Errore nella connessione al server')
+  }
+}
+
+// Format bytes to human readable
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// Format date
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('it-IT', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
 // Initialize on mount
 onMounted(() => {
   loadUsers()
   loadAuthConfig()
+  loadBackups()
 })
 </script>
 

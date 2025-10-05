@@ -165,6 +165,7 @@ services:
     volumes:
       - ./backend:/app
       - ./logs/backend-dev:/app/logs
+      - backend_backups:/app/backups  # Database backups storage
       - /app/node_modules  # Anonymous volume for node_modules
     ports:
       - "3001:3001"
@@ -394,3 +395,5 @@ volumes:
     name: pilotpros_intelligence_engine_cache
   embeddings_models:
     name: pilotpros_embeddings_models
+  backend_backups:
+    name: pilotpros_backend_backups

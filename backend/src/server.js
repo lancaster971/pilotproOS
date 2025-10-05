@@ -4448,6 +4448,10 @@ app.use('/api/milhena', milhenaRoutes);
 import ragRoutes from './routes/rag.routes.js';
 app.use('/api/rag', ragRoutes);
 
+// Backup & Restore routes
+import backupRoutes from './routes/backup.routes.js';
+app.use('/api/backup', backupRoutes);
+
 // ============================================================================
 // USER MANAGEMENT ROUTES (Settings Page)
 // ============================================================================
