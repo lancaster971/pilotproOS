@@ -220,7 +220,6 @@ const allNavigationItems = [
     label: 'Learning Analytics',
     description: 'AI accuracy & continuous improvement',
     icon: BarChart3,
-    badge: { text: 'BETA', type: 'info' },
     roles: ['admin', 'viewer']
   },
   {
@@ -229,7 +228,6 @@ const allNavigationItems = [
     label: 'Knowledge Base',
     description: 'Document management & semantic search',
     icon: BookOpen,
-    badge: { text: 'NEW', type: 'new' },
     roles: ['admin', 'viewer']
   },
   {
