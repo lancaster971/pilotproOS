@@ -339,6 +339,41 @@ services:
     profiles:
       - tools  # Solo quando esplicitamente richiesto
 
+  # ON-PREMISE Embeddings Service - 100% GRATUITO (ZERO token costs!)
+  # Uses nomic-embed-text-v1.5: 137M params, 2-3GB RAM (vs stella 1.5B/8GB)
+  embeddings-service-dev:
+    build:
+      context: ./intelligence-engine
+      dockerfile: Dockerfile.embeddings
+    image: pilotpros-embeddings:latest
+    container_name: pilotpros-embeddings-dev
+    restart: unless-stopped
+    environment:
+      TRANSFORMERS_CACHE: /models
+      HF_HOME: /models
+      SENTENCE_TRANSFORMERS_HOME: /models
+      DEFAULT_MODEL: nomic  # nomic (leggero) invece di stella (pesante)
+    volumes:
+      - embeddings_models:/models  # Cache for downloaded models (~500MB nomic)
+    ports:
+      - "8002:8001"  # 8002 (host) -> 8001 (container)
+    networks:
+      - pilotpros-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Nomic downloads faster (~500MB vs 6GB)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G  # Reduced: nomic needs only 2-3GB
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
 networks:
   pilotpros-dev:
     driver: bridge
@@ -357,3 +392,5 @@ volumes:
     name: pilotpros_intelligence_engine_data
   intelligence_engine_cache:
     name: pilotpros_intelligence_engine_cache
+  embeddings_models:
+    name: pilotpros_embeddings_models

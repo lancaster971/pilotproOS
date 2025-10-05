@@ -1,0 +1,58 @@
+# =============================================================================
+# ON-PREMISE EMBEDDINGS SERVICE - 100% GRATUITO
+# =============================================================================
+# Container dedicato per embedding models self-hosted (stella, gte-qwen2, nomic)
+# ZERO token costs, ZERO API calls, privacy totale
+#
+# Build: docker build -f Dockerfile.embeddings -t pilotpros-embeddings:latest .
+# Run: docker run -p 8001:8001 --name pilotpros-embeddings pilotpros-embeddings:latest
+# =============================================================================
+
+FROM python:3.11-slim
+
+# Metadata
+LABEL maintainer="PilotProOS Team"
+LABEL description="ON-PREMISE Embeddings Service - stella/gte-qwen2/nomic"
+LABEL version="1.0.0"
+
+# Environment
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    TRANSFORMERS_CACHE=/models \
+    HF_HOME=/models \
+    SENTENCE_TRANSFORMERS_HOME=/models
+
+# Working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements (minimal for embeddings only)
+COPY requirements.embeddings.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.embeddings.txt
+
+# Create models directory for caching
+RUN mkdir -p /models
+
+# Copy embedding service code
+COPY app/rag/on_premise_embeddings.py app/rag/
+COPY app/embeddings_service.py app/
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run embeddings service
+CMD ["uvicorn", "app.embeddings_service:app", "--host", "0.0.0.0", "--port", "8001"]
