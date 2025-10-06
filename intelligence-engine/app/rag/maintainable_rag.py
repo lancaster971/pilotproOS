@@ -569,22 +569,34 @@ class MaintainableRAGSystem:
                 include=["metadatas"]
             )
 
-            # Group by doc_id to get unique documents
+            # Group by doc_id to get unique documents WITH chunks count
             documents_map = {}
+            chunks_count = {}
+
             for metadata in results["metadatas"]:
                 doc_id = metadata.get("doc_id")
+
+                # Count chunks per document
+                chunks_count[doc_id] = chunks_count.get(doc_id, 0) + 1
+
                 if doc_id not in documents_map:
                     documents_map[doc_id] = {
-                        "doc_id": doc_id,
-                        "title": metadata.get("title"),
-                        "source": metadata.get("source"),
-                        "version": metadata.get("version"),
-                        "status": metadata.get("status"),
-                        "created_at": metadata.get("created_at"),
-                        "author": metadata.get("author"),
-                        "category": metadata.get("category"),
-                        "tags": json.loads(metadata.get("tags", "[]"))
+                        "id": doc_id,  # Frontend expects "id" not "doc_id"
+                        "metadata": {
+                            "filename": metadata.get("title", "Senza nome"),
+                            "category": metadata.get("category"),
+                            "tags": json.loads(metadata.get("tags", "[]")),
+                            "size": metadata.get("content_length", 0),
+                            "created_at": metadata.get("created_at"),
+                            "updated_at": metadata.get("updated_at"),
+                        },
+                        "chunks_count": 0  # Will be updated below
                     }
+
+            # Update chunks_count for each document
+            for doc_id, count in chunks_count.items():
+                if doc_id in documents_map:
+                    documents_map[doc_id]["chunks_count"] = count
 
             return list(documents_map.values())
 

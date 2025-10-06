@@ -392,9 +392,9 @@ async def get_rag_statistics():
         rag = get_rag_system()
         stats = await rag.get_statistics()
 
-        # Extract categories (dict → list)
+        # Extract categories (dict → list), filter out None keys
         categories_dict = stats.get("categories", {})
-        categories_list = list(categories_dict.keys()) if isinstance(categories_dict, dict) else []
+        categories_list = [str(k) for k in categories_dict.keys() if k is not None] if isinstance(categories_dict, dict) else []
 
         # Calculate size estimation (avg 1KB per chunk)
         total_chunks = stats.get("total_chunks", 0)
