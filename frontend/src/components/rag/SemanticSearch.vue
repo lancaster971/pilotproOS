@@ -215,6 +215,9 @@ import Skeleton from 'primevue/skeleton'
 import { useToast } from 'primevue/usetoast'
 import ragApi from '../../api/rag'
 
+// Emits
+const emit = defineEmits(['view-document'])
+
 // Composables
 const toast = useToast()
 
@@ -312,15 +315,37 @@ const onPageChange = (event: any) => {
   performSearch()
 }
 
-const viewDocument = (result: any) => {
-  // TODO: Implementare visualizzazione documento
-  console.log('View document:', result)
-  toast.add({
-    severity: 'info',
-    summary: 'Funzionalità in sviluppo',
-    detail: 'La visualizzazione completa del documento sarà disponibile a breve',
-    life: 3000
-  })
+const viewDocument = async (result: any) => {
+  try {
+    // Fetch full document from API
+    const docId = result.doc_id || result.metadata?.doc_id
+    if (!docId) {
+      throw new Error('Document ID not found')
+    }
+
+    const response = await fetch(`http://localhost:8000/api/rag/documents/${docId}`)
+    if (!response.ok) throw new Error('Failed to fetch document')
+
+    const fullDoc = await response.json()
+
+    // Open view dialog (emit event to parent or use local dialog)
+    emit('view-document', fullDoc)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Documento Caricato',
+      detail: `${fullDoc.metadata?.filename || 'Documento'} caricato`,
+      life: 2000
+    })
+  } catch (error) {
+    console.error('Error fetching document:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Errore',
+      detail: 'Impossibile caricare i dettagli del documento',
+      life: 5000
+    })
+  }
 }
 
 const copyContent = (content: string) => {

@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     g++ \
     postgresql-client \
     curl \
+    graphviz \
+    graphviz-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -23,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     netcat-openbsd \
     curl \
+    graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user

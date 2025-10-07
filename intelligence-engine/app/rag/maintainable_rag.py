@@ -242,9 +242,11 @@ class MaintainableRAGSystem:
                     "version": metadata.version,
                     "status": metadata.status,
                     "created_at": metadata.created_at.isoformat(),
+                    "updated_at": metadata.created_at.isoformat(),  # Same as created_at on first upload
                     "author": metadata.author,
                     "category": metadata.category or "",
                     "tags": json.dumps(metadata.tags),
+                    "content_length": metadata.content_length if hasattr(metadata, 'content_length') else len(content),
                     "chunk_index": i,
                     "total_chunks": len(chunks)
                 }
@@ -692,9 +694,12 @@ class MaintainableRAGSystem:
     async def _archive_version(self, doc_id: str, version: int):
         """Archive specific document version"""
         try:
+            # ChromaDB requires $and operator for multiple conditions
             where_filter = {
-                "doc_id": doc_id,
-                "version": version
+                "$and": [
+                    {"doc_id": doc_id},
+                    {"version": version}
+                ]
             }
 
             # Get chunk IDs

@@ -103,13 +103,14 @@ export const ragApi = {
   /**
    * Delete document
    * @param {string} docId - Document ID
-   * @param {boolean} softDelete - Whether to soft delete (default: true)
+   * @param {boolean} softDelete - Whether to soft delete (default: false = hard delete)
    * @returns {Promise<Object>} Delete response
    */
-  async deleteDocument(docId, softDelete = true) {
-    return await ragApiClient(`/documents/${docId}`, {
-      method: 'DELETE',
-      query: { soft_delete: softDelete }
+  async deleteDocument(docId, softDelete = false) {
+    // IMPORTANT: ofetch DELETE with query params causes issues - use params in URL if needed
+    const url = `/documents/${docId}${softDelete ? '?soft_delete=true' : ''}`
+    return await ragApiClient(url, {
+      method: 'DELETE'
     })
   },
 

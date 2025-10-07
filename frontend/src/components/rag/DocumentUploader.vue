@@ -14,22 +14,25 @@
       :accept="acceptedFormats"
       :maxFileSize="maxFileSize"
       :customUpload="true"
-      @upload="customUploader"
+      @uploader="uploadFiles"
       @select="onFileSelect"
       @remove="onFileRemove"
       @clear="onClear"
+      :auto="false"
       :showUploadButton="false"
       :showCancelButton="false"
       class="file-uploader"
     >
-      <template #header>
+      <template #header="{ chooseCallback }">
         <div class="upload-header-actions">
           <Button
             @click="uploadFiles"
-            icon="pi pi-upload"
-            label="Carica Tutti"
+            :icon="isUploading ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
+            :label="isUploading ? 'Caricamento in corso...' : 'Carica Tutti'"
             :disabled="!selectedFiles.length || isUploading"
-            severity="success"
+            :severity="isUploading ? 'secondary' : 'success'"
+            :loading="isUploading"
+            v-tooltip.bottom="'Carica tutti i file selezionati nella Knowledge Base'"
           />
           <Button
             @click="clearFiles"
@@ -37,18 +40,28 @@
             label="Rimuovi Tutti"
             :disabled="!selectedFiles.length || isUploading"
             severity="secondary"
+            v-tooltip.bottom="'Rimuovi tutti i file dalla lista'"
           />
         </div>
       </template>
 
       <template #empty>
-        <div class="upload-empty-state">
+        <div class="upload-empty-state" @click="triggerFileSelect">
           <Icon icon="lucide:upload-cloud" class="upload-icon" />
           <p>Trascina qui i documenti o clicca per selezionare</p>
         </div>
       </template>
 
       <template #content="{ files, uploadedFiles, removeFileCallback }">
+        <!-- Progress bar globale durante upload -->
+        <div v-if="isUploading" class="global-upload-progress">
+          <ProgressBar mode="indeterminate" style="height: 6px" />
+          <p class="upload-status">
+            <Icon icon="lucide:upload" class="upload-icon-animated" />
+            Caricamento in corso... Elaborazione embeddings e chunking
+          </p>
+        </div>
+
         <div v-if="files.length > 0" class="files-list">
           <div v-for="(file, index) in files" :key="file.name + file.type + file.size" class="file-item">
             <div class="file-info">
@@ -60,11 +73,15 @@
             </div>
 
             <div class="file-metadata">
-              <InputText
+              <Dropdown
                 v-model="fileMetadata[file.name].category"
-                placeholder="Categoria (opzionale)"
+                :options="predefinedCategories"
+                placeholder="Seleziona categoria"
                 class="metadata-input"
                 :disabled="isUploading"
+                :showClear="true"
+                optionLabel="label"
+                optionValue="value"
               />
               <InputText
                 v-model="fileMetadata[file.name].tags"
@@ -84,12 +101,14 @@
               <Button
                 v-else
                 @click="removeFileCallback(index)"
-                icon="pi pi-trash"
                 severity="danger"
                 text
                 rounded
                 :disabled="isUploading"
-              />
+                v-tooltip.left="'Rimuovi file dalla lista'"
+              >
+                <Icon icon="lucide:x" style="font-size: 1.2rem" />
+              </Button>
             </div>
           </div>
         </div>
@@ -130,6 +149,7 @@ import { Icon } from '@iconify/vue'
 import FileUpload from 'primevue/fileupload'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
 import ProgressBar from 'primevue/progressbar'
 import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
@@ -161,6 +181,18 @@ const uploadSummary = reactive({
 // Constants
 const acceptedFormats = '.pdf,.docx,.doc,.txt,.md,.html'
 const maxFileSize = 50 * 1024 * 1024 // 50MB
+
+// Predefined categories for better organization (NO EMOJI)
+const predefinedCategories = [
+  { label: 'Generale', value: 'generale' },
+  { label: 'Business & Strategie', value: 'business' },
+  { label: 'Tecnico & Manuali', value: 'tecnico' },
+  { label: 'Risorse Umane', value: 'hr' },
+  { label: 'Legale & Compliance', value: 'legale' },
+  { label: 'Finanza & Contabilita', value: 'finanza' },
+  { label: 'Marketing & Vendite', value: 'marketing' },
+  { label: 'Formazione & Guide', value: 'formazione' }
+]
 
 // Computed
 const canUpload = computed(() => selectedFiles.value.length > 0 && !isUploading.value)
@@ -215,6 +247,14 @@ const clearFiles = () => {
   onClear()
 }
 
+const triggerFileSelect = () => {
+  // Trova il file input nascosto e triggeralo
+  const fileInput = fileUploadRef.value?.$el?.querySelector('input[type="file"]')
+  if (fileInput) {
+    fileInput.click()
+  }
+}
+
 const uploadFiles = async () => {
   if (!canUpload.value) return
 
@@ -223,23 +263,41 @@ const uploadFiles = async () => {
   uploadSummary.success = 0
   uploadSummary.failed = 0
 
+  // Toast info inizio upload
+  toast.add({
+    severity: 'info',
+    summary: 'Upload avviato',
+    detail: `Caricamento di ${selectedFiles.value.length} file in corso...`,
+    life: 3000
+  })
+
   const formData = new FormData()
 
   // Aggiungi tutti i file al FormData
   selectedFiles.value.forEach(file => {
     formData.append('files', file)
-
-    // Aggiungi metadata se presente
-    const meta = fileMetadata[file.name]
-    if (meta.category || meta.tags) {
-      const metadata = {
-        filename: file.name,
-        category: meta.category,
-        tags: meta.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-      }
-      formData.append('metadata', JSON.stringify(metadata))
-    }
   })
+
+  // Aggiungi categoria e tags come campi separati (NON JSON)
+  // Nota: Backend si aspetta category e tags come field separati, NON in metadata object
+  const firstFile = selectedFiles.value[0]
+  if (firstFile) {
+    const meta = fileMetadata[firstFile.name]
+
+    // LOGIC:
+    // - Se utente seleziona categoria → invia category + auto_category=false
+    // - Se utente NON seleziona categoria → NON inviare niente (usa default backend auto_category=true)
+    if (meta.category) {
+      formData.append('category', meta.category)
+      formData.append('auto_category', 'false')  // Disable auto quando user sceglie
+    }
+    // Se meta.category è vuoto/null, NON inviare niente (backend userà auto_category=true di default)
+
+    if (meta.tags) {
+      const tagArray = meta.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+      formData.append('tags', JSON.stringify(tagArray))
+    }
+  }
 
   try {
     // Upload con progress tracking
@@ -290,11 +348,6 @@ const uploadFiles = async () => {
   } finally {
     isUploading.value = false
   }
-}
-
-const customUploader = async (event: any) => {
-  // Non usiamo l'upload automatico, gestiamo manualmente
-  await uploadFiles()
 }
 
 const resetUploader = () => {
@@ -379,6 +432,13 @@ const formatFileSize = (bytes: number) => {
   padding: 3rem 2rem;
   text-align: center;
   color: #a0a0a0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-empty-state:hover {
+  background: rgba(16, 185, 129, 0.05);
+  color: #10b981;
 }
 
 .upload-icon {
@@ -390,6 +450,35 @@ const formatFileSize = (bytes: number) => {
 .upload-empty-state p {
   margin: 0;
   font-size: 1rem;
+}
+
+/* Global upload progress */
+.global-upload-progress {
+  padding: 1.5rem;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.upload-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  color: #10b981;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.upload-icon-animated {
+  font-size: 1.25rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
 }
 
 /* Files list */

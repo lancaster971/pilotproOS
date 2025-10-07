@@ -120,13 +120,16 @@ const onUploadSuccess = async () => {
     life: 3000
   })
 
-  // Aggiorna statistiche e lista documenti
+  // Aggiorna statistiche SEMPRE
   await ragStore.fetchStatistics()
 
-  // Se siamo nella tab documenti, aggiorna la lista
-  if (activeTab.value === 2 && documentListRef.value) {
+  // Aggiorna lista documenti SEMPRE (anche se non visibile ora)
+  if (documentListRef.value) {
     documentListRef.value.refresh()
   }
+
+  // Switch automatico al tab Gestione Documenti per vedere il risultato
+  activeTab.value = 2
 }
 
 // Lifecycle

@@ -166,8 +166,24 @@ async def upload_documents(
         rag = get_rag_system()
         results = []
 
-        # Parse tags if provided
-        tag_list = json.loads(tags) if tags else []
+        # Parse tags if provided (validate JSON format)
+        tag_list = []
+        if tags:
+            try:
+                tag_list = json.loads(tags)
+                if not isinstance(tag_list, list):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Tags must be a JSON array (e.g., '[\"tag1\", \"tag2\"]')"
+                    )
+            except json.JSONDecodeError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid tags format: {str(e)}. Expected JSON array like '[\"tag1\", \"tag2\"]'"
+                )
+
+        # Normalize category: treat empty string as None
+        category = category.strip() if category else None
 
         for file in files:
             # Validate file type
@@ -327,9 +343,9 @@ async def update_document(
 @router.delete("/documents/{doc_id}")
 async def delete_document(
     doc_id: str,
-    soft_delete: bool = True
+    soft_delete: bool = False  # Default to HARD DELETE (permanent removal)
 ):
-    """Delete document with audit trail"""
+    """Delete document (default: permanent removal, set soft_delete=true for soft delete)"""
     try:
         rag = get_rag_system()
 

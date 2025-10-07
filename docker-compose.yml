@@ -221,6 +221,9 @@ services:
   # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
   intelligence-engine:
     # v3.1-slim: Optimized image without sentence-transformers (-24% size: 3.17GB vs 4.16GB)
+    build:
+      context: ./intelligence-engine
+      dockerfile: Dockerfile
     image: pilotpros-intelligence-engine:v3.1-slim
     container_name: pilotpros-intelligence-engine-dev
     restart: unless-stopped

@@ -118,28 +118,31 @@
           <div class="action-buttons">
             <Button
               @click="viewDocument(data)"
-              icon="pi pi-eye"
               severity="info"
               text
               rounded
-              v-tooltip="'Visualizza'"
-            />
+              v-tooltip="'Visualizza Contenuto'"
+            >
+              <Icon icon="lucide:eye" class="action-icon" />
+            </Button>
             <Button
               @click="editDocument(data)"
-              icon="pi pi-pencil"
               severity="warning"
               text
               rounded
-              v-tooltip="'Modifica'"
-            />
+              v-tooltip="'Modifica Metadata'"
+            >
+              <Icon icon="lucide:pencil" class="action-icon" />
+            </Button>
             <Button
               @click="confirmDelete(data)"
-              icon="pi pi-trash"
               severity="danger"
               text
               rounded
-              v-tooltip="'Elimina'"
-            />
+              v-tooltip="'Elimina Documento'"
+            >
+              <Icon icon="lucide:trash-2" class="action-icon" />
+            </Button>
           </div>
         </template>
       </Column>
@@ -224,6 +227,65 @@
       </template>
     </Dialog>
 
+    <!-- View Document Dialog -->
+    <Dialog
+      v-model:visible="viewDialogVisible"
+      modal
+      header="Dettagli Documento"
+      :style="{ width: '700px' }"
+      class="view-dialog"
+    >
+      <div v-if="viewingDocument" class="view-content">
+        <!-- Metadata -->
+        <div class="metadata-section">
+          <h4>Informazioni</h4>
+          <div class="metadata-grid">
+            <div class="metadata-item">
+              <label>Nome File:</label>
+              <span>{{ viewingDocument.metadata?.filename || 'N/A' }}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Categoria:</label>
+              <Tag v-if="viewingDocument.metadata?.category" :value="viewingDocument.metadata.category" severity="info" />
+              <span v-else>-</span>
+            </div>
+            <div class="metadata-item">
+              <label>Dimensione:</label>
+              <span>{{ formatFileSize(viewingDocument.metadata?.size || 0) }}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Data Creazione:</label>
+              <span>{{ formatDate(viewingDocument.metadata?.created_at) }}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Frammenti:</label>
+              <span>{{ viewingDocument.chunks_count || 0 }}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Tags:</label>
+              <div class="tags-list">
+                <Tag v-for="tag in viewingDocument.metadata?.tags || []" :key="tag" :value="tag" severity="secondary" />
+                <span v-if="!viewingDocument.metadata?.tags?.length">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Preview -->
+        <div v-if="viewingDocument.content" class="content-section">
+          <h4>Anteprima Contenuto</h4>
+          <div class="content-preview">
+            {{ viewingDocument.content.substring(0, 1000) }}
+            <span v-if="viewingDocument.content.length > 1000">...</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button label="Chiudi" @click="viewDialogVisible = false" text />
+      </template>
+    </Dialog>
+
     <!-- Confirm Delete Dialog -->
     <ConfirmDialog group="delete">
       <template #message="slotProps">
@@ -274,7 +336,20 @@ const selectedDocuments = ref<any[]>([])
 const loading = ref(false)
 const editDialogVisible = ref(false)
 const editingDocument = ref<any>(null)
-const categories = ref<string[]>([])
+const viewDialogVisible = ref(false)
+const viewingDocument = ref<any>(null)
+// Predefined categories (same as DocumentUploader)
+const predefinedCategories = [
+  'generale',
+  'business',
+  'tecnico',
+  'hr',
+  'legale',
+  'finanza',
+  'marketing',
+  'formazione'
+]
+const categories = ref<string[]>(predefinedCategories)
 
 // Filters
 const filters = ref({
@@ -289,15 +364,7 @@ const loadDocuments = async () => {
   try {
     const response = await ragApi.listDocuments()
     documents.value = response.documents || []
-
-    // Extract unique categories
-    const uniqueCategories = new Set<string>()
-    documents.value.forEach(doc => {
-      if (doc.metadata?.category) {
-        uniqueCategories.add(doc.metadata.category)
-      }
-    })
-    categories.value = Array.from(uniqueCategories).sort()
+    // Categories are predefined, no need to extract
 
   } catch (error) {
     console.error('Error loading documents:', error)
@@ -322,15 +389,24 @@ const refresh = async () => {
   })
 }
 
-const viewDocument = (document: any) => {
-  // TODO: Implementare visualizzazione completa
-  console.log('View document:', document)
-  toast.add({
-    severity: 'info',
-    summary: 'Funzionalità in sviluppo',
-    detail: 'La visualizzazione completa sarà disponibile a breve',
-    life: 3000
-  })
+const viewDocument = async (document: any) => {
+  try {
+    // Fetch full document content from API
+    const response = await fetch(`http://localhost:8000/api/rag/documents/${document.id}`)
+    if (!response.ok) throw new Error('Failed to fetch document')
+
+    const fullDoc = await response.json()
+    viewingDocument.value = fullDoc
+    viewDialogVisible.value = true
+  } catch (error) {
+    console.error('Error fetching document:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Errore',
+      detail: 'Impossibile caricare i dettagli del documento',
+      life: 5000
+    })
+  }
 }
 
 const editDocument = (document: any) => {
@@ -440,13 +516,44 @@ const deleteSelected = () => {
 }
 
 const exportSelected = () => {
-  // TODO: Implementare export
-  toast.add({
-    severity: 'info',
-    summary: 'Funzionalità in sviluppo',
-    detail: 'L\'export dei documenti sarà disponibile a breve',
-    life: 3000
-  })
+  try {
+    // Export selected documents as JSON
+    const exportData = selectedDocuments.value.map(doc => ({
+      id: doc.id,
+      filename: doc.metadata?.filename,
+      category: doc.metadata?.category,
+      tags: doc.metadata?.tags,
+      size: doc.metadata?.size,
+      created_at: doc.metadata?.created_at,
+      chunks_count: doc.chunks_count
+    }))
+
+    // Create blob and download
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `rag-documents-export-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Export Completato',
+      detail: `${selectedDocuments.value.length} documenti esportati`,
+      life: 3000
+    })
+  } catch (error) {
+    console.error('Error exporting documents:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Errore',
+      detail: 'Impossibile esportare i documenti',
+      life: 5000
+    })
+  }
 }
 
 const getFileIcon = (filename?: string) => {
@@ -615,6 +722,10 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: 0.25rem;
+}
+
+.action-icon {
+  font-size: 1.1rem;
 }
 
 /* Empty & Loading States */

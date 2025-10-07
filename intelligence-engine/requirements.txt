@@ -6,8 +6,8 @@ langserve==0.3.0
 langgraph==0.6.7
 langgraph-checkpoint-postgres==2.0.11
 langgraph-checkpoint-redis==0.1.2
-# langgraph-cli>=0.1.55  # LangGraph Studio CLI (DISABLED - incompatible with langgraph 0.6.7)
-# langgraph-runtime-inmem>=0.12.0  # In-memory runtime (DISABLED - not needed without Studio)
+pygraphviz>=1.13  # Required for LangGraph draw_png() native visualization
+langgraph-cli[inmem]>=0.1.55  # LangGraph Studio CLI + in-memory runtime
 langsmith>=0.3.45
 langchain-openai==0.3.33
 langchain-anthropic==0.3.0

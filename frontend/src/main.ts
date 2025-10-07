@@ -36,7 +36,7 @@ import {
   LineElement,
   BarElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
   ArcElement,
   RadialLinearScale
@@ -50,7 +50,7 @@ ChartJS.register(
   LineElement,
   BarElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend,
   ArcElement,
   RadialLinearScale
@@ -120,6 +120,9 @@ router.beforeEach(async (to, from, next) => {
 const app = createApp(App)
 const pinia = createPinia()
 
+// Register Pinia FIRST - before any service that might use stores
+app.use(pinia)
+
 // CLEAN PrimeVue Configuration - No more inline CSS chaos!
 app.use(PrimeVue, {
   theme: {
@@ -140,11 +143,12 @@ app.use(PrimeVue, {
 // PrimeVue Services for RAG components
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
+import Tooltip from 'primevue/tooltip'
 
 app.use(ConfirmationService)
 app.use(ToastService)
+app.directive('tooltip', Tooltip)
 
-app.use(pinia)
 app.use(router)
 
 // Vue Toastification configuration - Insights theme
