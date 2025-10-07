@@ -1,0 +1,20 @@
+# Dev Tools - Git Ignore
+# Security: Reports contain sensitive workflow information
+
+# Scan reports (HTML contains workflow logic, credentials, etc.)
+reports/
+
+# Temporary files
+*.tmp
+*.log
+*.cache
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Keep directory structure
+!reports/.gitkeep

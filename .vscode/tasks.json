@@ -1,0 +1,90 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🎨 Visual Debug: Milhena READABLE Graph (PNG)",
+      "type": "shell",
+      "command": "./dev-tools/scan-milhena-readable.sh",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Generate READABLE static PNG graph (no compression!) + JSON export"
+    },
+    {
+      "label": "🔍 Visual Debug: Scan Milhena Agent",
+      "type": "shell",
+      "command": "./dev-tools/scan-milhena.sh",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Scan Milhena ReAct Agent with Agentic Radar - Visual debugging with interactive graph"
+    },
+    {
+      "label": "🔍 Visual Debug: Scan n8n Workflows",
+      "type": "shell",
+      "command": "./dev-tools/scan-n8n.sh",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Scan n8n workflows with Agentic Radar - Visual security analysis"
+    },
+    {
+      "label": "🗂️  Open Latest Milhena Report",
+      "type": "shell",
+      "command": "open $(ls -t dev-tools/reports/milhena-*.html | head -1)",
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": {
+        "echo": false,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared"
+      },
+      "detail": "Open most recent Milhena scan report in browser"
+    },
+    {
+      "label": "📊 List All Scan Reports",
+      "type": "shell",
+      "command": "ls -lht dev-tools/reports/ | head -10",
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "detail": "Show all available scan reports (latest 10)"
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-07 - RAG UI Complete Integration + Category System
+**LAST UPDATED**: 2025-10-07 - LangGraph Studio + RAG UI Complete
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
@@ -20,6 +20,7 @@ PilotProOS - Containerized Business Process Operating System
 - ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport
 - ✅ **Stack Services** - 7 core services + Redis Stack (RediSearch module)
 - ✅ **Auto-Backup System** - Configurable directory + Scheduled backups (node-cron v3.0.3)
+- ✅ **LangGraph Studio** - Web-based graph visualization with auto-recovery (./graph)
 
 ## 🏗️ **SIMPLIFIED ARCHITECTURE (2025-10-03)**
 
@@ -59,6 +60,7 @@ User Query
 ```bash
 ./stack                   # Interactive CLI (password: PilotPro2025!)
 ./stack-safe.sh start     # Direct start command
+./graph                   # LangGraph Studio visualization (auto-starts stack)
 ```
 
 **ACCESS POINTS:**
@@ -602,29 +604,57 @@ Il container Intelligence Engine esegue 4 microservizi:
 - **D3.js**: Force-directed graph with zoom/pan
 - **Auto-refresh**: Live updates every 5 seconds
 
-### **LangGraph Studio Setup**
-**NOTE**: LangGraph Studio Desktop app deprecated (archived July 29, 2025)
+### **LangGraph Studio - PRODUCTION READY (2025-10-07)**
 
-**Web-based Studio Access**:
+**ONE-COMMAND LAUNCHER** - Fully automated setup:
 ```bash
-# Start LangGraph Studio server (auto-starts with Intelligence Engine container)
-cd intelligence-engine
-langgraph dev --port 2024 --host 0.0.0.0
-
-# Access Web Studio (requires LangSmith account)
-open https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+./graph                   # Auto-starts Docker + Stack + LangGraph Studio + Cloudflare Tunnel
 ```
+
+**What it does automatically:**
+1. ✅ Checks and starts Docker Desktop if not running
+2. ✅ Checks and starts Docker stack (7 services) if not running
+3. ✅ Activates Python venv (`/Volumes/BK12/python-langgraph-venv`)
+4. ✅ Starts LangGraph server on port 2026 (waits for NOMIC model loading ~40s)
+5. ✅ Creates Cloudflare tunnel with DNS propagation wait (20s)
+6. ✅ Opens browser with LangGraph Studio Web UI automatically
+
+**Requirements (ALREADY INSTALLED):**
+- Virtual environment: `/Volumes/BK12/python-langgraph-venv` (4GB)
+- `langgraph-cli[inmem]>=0.2.6` (installed: 0.4.2)
+- `cloudflared` (brew installed)
+- Docker Desktop (auto-starts if needed)
+
+**Critical Fix Applied:**
+- `graph.py` uses `checkpointer = None` (no custom checkpointer)
+- LangGraph Studio API manages persistence automatically
+- Prevents ValueError: "custom checkpointer not allowed"
+
+**Access:**
+- Web UI: Opens automatically in browser
+- URL format: `https://smith.langchain.com/studio/?baseUrl=https://[random].trycloudflare.com`
+- Graph ID: `milhena`
+
+**Stop Services:**
+```bash
+Ctrl+C                    # Stops LangGraph + Cloudflare (Docker stack keeps running)
+./stack-safe.sh stop      # Stop Docker stack
+```
+
+**Logs:**
+- LangGraph server: `/tmp/lg.log`
+- Cloudflare tunnel: `/tmp/cf.log`
 
 **LangSmith Integration**:
 - Project: `milhena-v3-production` (UUID: d97bd0e6-0e8d-4777-82b7-6ad726a4213a)
 - Tracing: https://smith.langchain.com/
-- API Key: Configured in `.env` (LANGCHAIN_API_KEY)
+- API Key: Configured in `intelligence-engine/.env`
 
-### **Configuration Files**
-- `intelligence-engine/langgraph.json` - Studio configuration
-- `intelligence-engine/app/graph.py` - Graph definition
-- `intelligence-engine/.env` - Environment variables
-- `intelligence-engine/requirements.txt` - Includes `langgraph-cli[inmem]>=0.1.55`
+**Known Limitations:**
+- Cloudflare tunnel URL changes every launch (free tier, no persistent domain)
+- DNS propagation takes 15-20 seconds (script waits automatically)
+- Tunnel requires internet connection
+- Server loads NOMIC model on startup (~40s)
 
 ---
 
