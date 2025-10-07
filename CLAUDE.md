@@ -4,7 +4,7 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-05 - NOMIC RAG System + Complete UI Integration
+**LAST UPDATED**: 2025-10-07 - RAG UI Complete Integration + Category System
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
@@ -15,7 +15,8 @@ PilotProOS - Containerized Business Process Operating System
 - ✅ **AsyncRedisSaver** - INFINITE persistent memory (Redis Stack, NO degradation!)
 - ✅ **28 Frontend API Integration** - Complete system visibility (node-level + aggregated)
 - ✅ **Rephraser Pre-check** - Ambiguous query reformulation before ReAct Agent
-- ✅ **RAG System Backend** - ChromaDB + OpenAI embeddings (0.644 accuracy)
+- ✅ **RAG System Backend** - ChromaDB + NOMIC embeddings (on-premise, FREE)
+- ✅ **RAG Manager Frontend** - Complete UI with category system + document management
 - ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport
 - ✅ **Stack Services** - 7 core services + Redis Stack (RediSearch module)
 - ✅ **Auto-Backup System** - Configurable directory + Scheduled backups (node-cron v3.0.3)
@@ -493,6 +494,79 @@ Il container Intelligence Engine esegue 4 microservizi:
 - `POST /api/rag/upload` - Document upload proxy
 - `POST /api/rag/search` - Search proxy
 - `GET /api/rag/stats` - Stats proxy
+- `DELETE /api/rag/documents/:id` - Delete document proxy
+
+### **RAG Manager Frontend UI (2025-10-07)**
+
+**Complete Knowledge Base Management Interface** - Production Ready
+
+**Location**: `frontend/src/pages/RAGManagerPage.vue`
+
+**Features**:
+1. **Document Upload** (`DocumentUploader.vue`):
+   - Drag & drop + file selection (PDF, DOCX, TXT, MD, HTML)
+   - Category dropdown (8 predefined categories, NO emoji)
+   - Tag input (comma-separated)
+   - Progress bar with status message during upload
+   - Auto-switch to documents tab after upload
+   - Max file size: 50MB per file
+
+2. **Document Management** (`DocumentList.vue`):
+   - DataTable with pagination, sorting, filtering
+   - Search by filename
+   - Filter by category (dropdown)
+   - Action buttons with Lucide icons:
+     - 👁️ Eye - View document content (Dialog modal)
+     - ✏️ Pencil - Edit metadata (category, tags)
+     - 🗑️ Trash - Delete document (hard delete by default)
+   - Bulk selection + bulk delete
+   - Metadata display: size, date, chunks count
+   - Category badges (color-coded)
+
+3. **Semantic Search** (`SemanticSearch.vue`):
+   - Query input with search button
+   - Top K results slider (1-20)
+   - Results display with relevance score
+   - Highlighted matching chunks
+   - Source document reference
+
+4. **Statistics Dashboard** (`RAGManagerPage.vue`):
+   - Total documents count
+   - Total embeddings count
+   - Storage size (calculated from metadata)
+   - Refresh button for real-time stats
+
+**Category System**:
+- Single ChromaDB collection: `pilotpros_knowledge_nomic`
+- Categories stored in metadata (NOT separate collections)
+- 8 predefined categories:
+  1. Generale
+  2. Business & Strategie
+  3. Tecnico & Manuali
+  4. Risorse Umane
+  5. Legale & Compliance
+  6. Finanza & Contabilita
+  7. Marketing & Vendite
+  8. Formazione & Guide
+
+**Key Fixes Applied**:
+- ✅ Tooltip directive globally registered (PrimeVue)
+- ✅ Chart.js/PrimeVue Tooltip naming conflict resolved
+- ✅ Pinia initialization timing fixed (before PrimeVue)
+- ✅ Upload category bug fixed (auto_category=false when user selects)
+- ✅ Backend category normalization (empty string → None)
+- ✅ Delete method fixed (ofetch DELETE query params issue)
+- ✅ All action icons visible (Lucide icons)
+
+**Technical Stack**:
+- **Frontend**: Vue 3 Composition API + TypeScript
+- **UI Library**: PrimeVue Nora theme (dark mode)
+- **Icons**: Iconify Lucide icons (NO emoji/pictographics)
+- **HTTP Client**: ofetch (same as rest of frontend)
+- **State Management**: Pinia stores (rag-store.ts)
+- **Backend**: Express proxy → Intelligence Engine FastAPI
+
+**Access**: http://localhost:3000 → RAG Manager (sidebar navigation)
 
 ### **n8n Workflow Integration**
 **Workflow ID**: `dBFVzxfHl4UfaYCa` (Customer Support Agent)
