@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# ============================================================================
+# LANGGRAPH STUDIO - Visualizzazione grafo Milhena
+# ============================================================================
+
+PROJECT_DIR="/Volumes/BK12/Dropbox/Dropbox/TIZIANO/AI/PilotProOS"
+VENV_PATH="/Volumes/BK12/python-langgraph-venv"
+LANGGRAPH_DIR="${PROJECT_DIR}/intelligence-engine"
+PORT=2026
+
+echo "🚀 LangGraph Studio"
+echo "==================="
+echo ""
+
+cd "$PROJECT_DIR"
+
+# Check Docker
+if ! docker info > /dev/null 2>&1; then
+    open -a Docker
+    for i in {1..60}; do
+        sleep 2
+        docker info > /dev/null 2>&1 && break
+    done
+fi
+
+# Check stack
+RUNNING=$(docker ps --filter "name=pilotpros-" -q | wc -l | tr -d ' ')
+if [ "$RUNNING" -lt 7 ]; then
+    ./stack-safe.sh start > /dev/null
+    sleep 10
+fi
+
+echo "✅ Docker ready"
+
+# Start LangGraph
+source "$VENV_PATH/bin/activate"
+cd "$LANGGRAPH_DIR"
+export LANGCHAIN_TRACING_V2=true
+export LANGCHAIN_PROJECT="milhena-v3-production"
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+
+langgraph dev --port $PORT --host 0.0.0.0 --no-browser > /tmp/lg.log 2>&1 &
+LG_PID=$!
+
+echo "⏳ Loading models..."
+for i in {1..90}; do
+    sleep 1
+    curl -s http://localhost:$PORT/ok > /dev/null 2>&1 && break
+done
+echo "✅ Server ready"
+
+# Start Cloudflare tunnel
+cloudflared tunnel --url http://127.0.0.1:$PORT > /tmp/cf.log 2>&1 &
+CF_PID=$!
+
+echo "⏳ Getting tunnel URL (waiting for DNS propagation ~15s)..."
+sleep 15
+
+TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/cf.log 2>/dev/null | head -1)
+
+if [ -z "$TUNNEL_URL" ]; then
+    echo "❌ Tunnel failed - check /tmp/cf.log"
+    kill $LG_PID $CF_PID 2>/dev/null
+    exit 1
+fi
+
+# Verify tunnel works
+echo "⏳ Verifying tunnel connectivity..."
+sleep 5
+if ! curl -s --max-time 10 "$TUNNEL_URL/ok" > /dev/null 2>&1; then
+    echo "⚠️  Tunnel DNS not ready yet - opening anyway..."
+fi
+
+STUDIO_URL="https://smith.langchain.com/studio/?baseUrl=${TUNNEL_URL}"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🌐 STUDIO: $STUDIO_URL"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+open "$STUDIO_URL"
+
+cleanup() {
+    echo "🛑 Stopping..."
+    kill $LG_PID $CF_PID 2>/dev/null || true
+    exit 0
+}
+trap cleanup INT TERM
+
+tail -f /tmp/lg.log

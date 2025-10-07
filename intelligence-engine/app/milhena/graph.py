@@ -639,19 +639,8 @@ class MilhenaGraph:
 
     def __init__(self, config: Optional[MilhenaConfig] = None):
         self.config = config or MilhenaConfig()
-        self._redis_setup_done = False
         self._initialize_components()
         self._build_graph()
-
-    async def _ensure_redis_setup(self):
-        """Lazy async setup for Redis indices (called on first use)"""
-        if not self._redis_setup_done and hasattr(self, '_checkpointer_setup_pending'):
-            try:
-                await self._checkpointer_setup_pending.asetup()
-                logger.info("✅ Redis indices created (checkpoint_writes, etc.)")
-                self._redis_setup_done = True
-            except Exception as e:
-                logger.error(f"Failed to setup Redis indices: {e}")
 
     def _initialize_components(self):
         """Initialize all Milhena components"""
@@ -834,17 +823,11 @@ class MilhenaGraph:
 
         redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379")
 
-        # Use MemorySaver for LangGraph Studio (no event loop), AsyncRedisSaver for production
-        use_memory_saver = os.getenv("USE_MEMORY_SAVER", "false").lower() == "true"
-
-        if use_memory_saver:
-            from langgraph.checkpoint.memory import MemorySaver
-            checkpointer = MemorySaver()
-            logger.info("✅ MemorySaver initialized - In-memory checkpoints (LangGraph Studio mode)")
-        else:
-            # Initialize AsyncRedisSaver using from_conn_string (proper async context)
-            checkpointer = AsyncRedisSaver.from_conn_string(redis_url)
-            logger.info(f"✅ AsyncRedisSaver initialized - Persistent memory (Redis: {redis_url})")
+        # LangGraph Studio compatibility: NO custom checkpointer
+        # When running via `langgraph dev`, the platform manages persistence automatically
+        # and rejects graphs compiled with custom checkpointers
+        checkpointer = None
+        logger.info("✅ NO checkpointer (LangGraph Studio manages persistence automatically)")
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
@@ -896,8 +879,6 @@ Usa SEMPRE i dati real-time provenienti dal database o dai tool forniti.
    - "stanotte" / "questa notte" → data corrente
    - "ultimi giorni" / "recenti" → usa ultimi 7 giorni
 5. Dopo aver chiamato un tool e ricevuto i dati:
-   - **USA I DATI DEL TOOL NELLA RISPOSTA FINALE** (NON rispondere in modo generico!)
-   - Se search_knowledge_base_tool trova documenti, RIASSUMI il contenuto trovato
    - Genera una risposta in italiano
    - Usa linguaggio semplice, conciso, business-friendly
    - Se possibile, suggerisci una domanda di follow-up
@@ -1016,10 +997,6 @@ User: "Ci sono problemi?"
 
 User: "Email ricevute oggi dal bot"
 → Tool: get_chatone_email_details_tool(date="oggi")
-
-User: "Come funziona Milhena?" / "Cerca nella knowledge base X"
-→ Tool: search_knowledge_base_tool(query="Come funziona Milhena?")
-→ IMPORTANTE: Nella risposta finale INCLUDI SEMPRE i dettagli trovati nella knowledge base, NON rispondere in modo generico!
 
 User: "Output del nodo Rispondi a mittente"
 → Tool: get_node_execution_details_tool(workflow_name="ChatOne", node_name="Rispondi a mittente")
@@ -1179,14 +1156,12 @@ Usa terminologia business, evita tecnicismi."""
         logger.info("✅ Custom ReAct Agent with controlled multi-tool loop (12 tools, deep-dive enabled)")
 
         # Compile the graph with checkpointer for memory
-        # NOTE: LangGraph Studio (langgraph dev) gestisce il checkpointer automaticamente
-        # Se presente USE_MEMORY_SAVER=true, compila SENZA checkpointer per evitare ValueError
-        if use_memory_saver:
-            self.compiled_graph = graph.compile(debug=False)
-            logger.info("MilhenaGraph compiled WITHOUT checkpointer (LangGraph Studio mode)")
-        else:
-            self.compiled_graph = graph.compile(checkpointer=checkpointer, debug=False)
-            logger.info("MilhenaGraph compiled with Supervisor entry point + Memory")
+        self.compiled_graph = graph.compile(
+            checkpointer=checkpointer,
+            debug=False
+        )
+
+        logger.info("MilhenaGraph compiled with Supervisor entry point + Memory")
 
     # ============================================================================
     # NODE IMPLEMENTATIONS - ALL WITH LANGSMITH TRACING
@@ -1988,6 +1963,10 @@ Usa terminologia business, evita tecnicismi."""
         Rule-based ambiguity detection (<10ms overhead).
         Checks if query is too vague for direct ReAct Agent processing.
         """
+        # FIX 1: Initialize session_id if missing (LangGraph Studio compatibility)
+        if "session_id" not in state:
+            state["session_id"] = f"session-{datetime.now().timestamp()}"
+
         # Extract query from messages if not present
         if "query" not in state or not state.get("query"):
             messages = state.get("messages", [])
@@ -2425,8 +2404,17 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             ai_messages = [msg for msg in result["messages"] if isinstance(msg, AIMessage)]
 
             if ai_messages:
-                final_response = ai_messages[-1].content
-                state["response"] = final_response  # Salva direttamente in response
+                content = ai_messages[-1].content
+                # FIX 3: Handle both string and list (multimodal) content
+                if isinstance(content, list):
+                    final_response = " ".join([
+                        part.get("text", "") if isinstance(part, dict) else str(part)
+                        for part in content
+                    ])
+                else:
+                    final_response = str(content)
+
+                state["response"] = final_response
                 logger.error(f"✅ [DEBUG] ReAct Agent response: {final_response[:200]}")
             else:
                 # Fallback se non c'è AIMessage
@@ -2842,9 +2830,6 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         """
         import time
         start_time = time.time()
-
-        # Ensure Redis indices are created (lazy setup on first use)
-        await self._ensure_redis_setup()
 
         # Call the base process method
         result = await self.process(query, session_id, context)
