@@ -1289,7 +1289,7 @@
         function buildExecutionTrace(data, latency, query, agent, tool, sessionId) {
             const traceContent = document.getElementById('traceContent');
 
-            // Build detailed execution trace from response data
+            // Build detailed execution trace - MATCHES REAL GRAPH NODES
             const trace = {
                 sessionId: sessionId,
                 timestamp: new Date().toISOString(),
@@ -1304,56 +1304,65 @@
                     },
                     {
                         step: 2,
-                        name: 'Supervisor LLM Routing',
+                        name: '[AI] Classifier',
                         type: 'llm',
-                        model: 'gpt-4o-mini',
-                        time: '~100-200ms',
-                        input: `Query analysis: "${query}"`,
-                        output: `Selected agent: ${agent}`,
-                        reasoning: `Intent: ${data.intent || 'GENERAL'}`
+                        model: 'Fast-path (95%) + llama-3.3-70b',
+                        time: '~10-200ms',
+                        node_function: 'supervisor_orchestrator',
+                        input: `Query: "${query}"`,
+                        output: `Intent: ${data.intent || 'GENERAL'}`,
+                        reasoning: data.metadata?.llm_used === 'fast-path' ? 'Fast-path rule matched' : 'LLM classification'
                     },
                     {
                         step: 3,
-                        name: 'Agent Selection',
-                        type: 'routing',
-                        time: '~50ms',
-                        selected: agent,
-                        available: ['Milhena', 'N8N Expert', 'Data Analyst']
+                        name: '[AI] ReAct Call Model',
+                        type: 'llm',
+                        model: 'gpt-4.1-nano-2025-04-14',
+                        time: '~500-2000ms',
+                        node_function: 'react_call_model',
+                        reasoning: 'Tool selection reasoning',
+                        action: `Selected tool: ${tool}`,
+                        observation: 'Waiting for tool execution...'
                     },
                     {
                         step: 4,
-                        name: `${agent} Agent (ReAct Loop)`,
-                        type: 'llm',
-                        model: 'gpt-4o-mini',
-                        time: '~2000-8000ms',
-                        reasoning: 'Analyzing query to select appropriate tool',
-                        action: `Call tool: ${tool}`,
-                        observation: 'Tool executed successfully'
+                        name: '[TOOL] ReAct Execute Tools',
+                        type: 'tool',
+                        tool: tool,
+                        time: '~200-1000ms',
+                        node_function: 'ToolNode(react_tools)',
+                        database: 'PostgreSQL n8n schema',
+                        tables: ['execution_entity', 'workflow_entity'],
+                        query: 'SQL query executed by tool function'
                     },
                     {
                         step: 5,
-                        name: 'Tool Execution',
-                        type: 'tool',
-                        tool: tool,
-                        time: '~100-500ms',
-                        query: 'SQL query to PostgreSQL n8n schema'
+                        name: '[AI] Responder',
+                        type: 'llm',
+                        model: 'llama-3.3-70b (Groq FREE)',
+                        time: '~300-800ms',
+                        node_function: 'generate_final_response',
+                        input: 'Raw tool data',
+                        output: 'Business-friendly response',
+                        synthesis: 'Converting technical data to natural language'
                     },
                     {
                         step: 6,
-                        name: 'Database Query',
-                        type: 'database',
-                        database: 'PostgreSQL',
-                        schema: 'n8n',
-                        tables: ['execution_entity', 'workflow_entity'],
-                        time: '~50-200ms'
+                        name: '[LIB] Mask Response',
+                        type: 'masking',
+                        time: '~10-50ms',
+                        node_function: 'mask_response',
+                        masked_terms: checkTechnicalLeaks(data.response) ? 'Some leaks detected' : 'All technical terms masked',
+                        transformations: ['workflow → processo', 'execution → elaborazione', 'node → passaggio']
                     },
                     {
                         step: 7,
-                        name: 'Business Masking',
-                        type: 'masking',
-                        time: '~10-50ms',
-                        masked_terms: checkTechnicalLeaks(data.response) ? 'Some leaks detected' : 'All technical terms masked',
-                        transformations: ['workflow → processo', 'execution → elaborazione', 'node → passaggio']
+                        name: '[DB] Record Feedback',
+                        type: 'database',
+                        time: '~50-150ms',
+                        node_function: 'record_feedback',
+                        action: 'Saving query pattern to learning system',
+                        storage: 'PostgreSQL intelligence schema'
                     },
                     {
                         step: 8,
@@ -1361,7 +1370,8 @@
                         type: 'output',
                         time: '0ms',
                         length: `${data.response?.length || 0} chars`,
-                        cached: data.cached || false
+                        cached: data.cached || false,
+                        masked: data.metadata?.masked || false
                     }
                 ]
             };
