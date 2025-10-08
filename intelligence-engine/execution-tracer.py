@@ -273,7 +273,7 @@ class ExecutionTracer:
         header.append("╔" + "═" * 78 + "╗\n", style="bright_cyan")
         header.append("║  ", style="bright_cyan")
         header.append("EXECUTION TRACE", style="bold bright_white")
-        header.append(f": {session_id:<60}║\n", style="bright_cyan")
+        header.append(f": {run_id[:30]:<47}║\n", style="bright_cyan")
         header.append("║  ", style="bright_cyan")
         header.append(f"Query: ", style="bold")
         header.append(f'"{query[:50]}..."', style="yellow")
