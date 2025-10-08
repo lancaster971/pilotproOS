@@ -822,15 +822,16 @@
         let sessionCounter = 0;
         let executionStats = { totalQueries: 0, avgLatency: 0, successRate: 100 };
 
+        // 6 REAL NODES from graph.py (EXACT MIRROR)
         const flowSteps = [
-            { num: 1, title: 'USER QUERY', detail: 'Your question', icon: '👤', type: 'input' },
-            { num: 2, title: 'CLASSIFIER AGENT', detail: 'Intent analysis + fast-path', icon: '🎯', type: 'llm', llmModel: 'Fast-path (95%) + llama-3.3-70b', prompt: 'Rule-based instant match OR LLM classification' },
-            { num: 3, title: 'REACT AGENT', detail: 'Tool selection (18 tools)', icon: '🤖', type: 'llm', llmModel: 'gpt-4.1-nano-2025-04-14', prompt: 'Reason → Select Tool → Execute → Observe (multi-tool loop)' },
-            { num: 4, title: 'TOOL EXECUTION', detail: 'Database query', icon: '🔧', type: 'technical' },
-            { num: 5, title: 'DATABASE', detail: 'PostgreSQL n8n schema (REAL data)', icon: '🗄️', type: 'technical' },
-            { num: 6, title: 'RESPONSE AGENT', detail: 'Business synthesis', icon: '💬', type: 'llm', llmModel: 'llama-3.3-70b (Groq FREE)', prompt: 'Synthesize data → Business-friendly response' },
-            { num: 7, title: 'MASKING MODULE', detail: 'Technical → Business terminology', icon: '🔒', type: 'technical' },
-            { num: 8, title: 'FINAL RESPONSE', detail: 'Zero technical leaks', icon: '✅', type: 'output' }
+            { num: 1, title: 'USER QUERY', detail: 'Your question', icon: '👤', type: 'input', node: null },
+            { num: 2, title: '[AI] Classifier', detail: 'Intent analysis + fast-path', icon: '🎯', type: 'llm', llmModel: 'Fast-path (95%) + llama-3.3-70b', prompt: 'Rule-based instant match OR LLM classification', node: 'supervisor_orchestrator' },
+            { num: 3, title: '[AI] ReAct Call Model', detail: 'Tool selection (18 tools)', icon: '🤖', type: 'llm', llmModel: 'gpt-4.1-nano-2025-04-14', prompt: 'Reason → Select Tool → Execute → Observe', node: 'react_call_model' },
+            { num: 4, title: '[TOOL] ReAct Execute Tools', detail: 'Database query (PostgreSQL n8n schema)', icon: '🔧', type: 'technical', node: 'ToolNode(react_tools)' },
+            { num: 5, title: '[AI] Responder', detail: 'Business synthesis', icon: '💬', type: 'llm', llmModel: 'llama-3.3-70b (Groq FREE)', prompt: 'Synthesize data → Business-friendly response', node: 'generate_final_response' },
+            { num: 6, title: '[LIB] Mask Response', detail: 'Technical → Business terminology', icon: '🔒', type: 'technical', node: 'mask_response' },
+            { num: 7, title: '[DB] Record Feedback', detail: 'Learning system persistence', icon: '💾', type: 'technical', node: 'record_feedback' },
+            { num: 8, title: 'FINAL RESPONSE', detail: 'Zero technical leaks', icon: '✅', type: 'output', node: null }
         ];
 
         function initializeFlowSteps() {
@@ -952,53 +953,53 @@
         async function processResponse(data, latency, query, sessionId) {
             const intent = data.intent || 'UNKNOWN';
 
-            // Step 2: Classifier Agent
+            // Step 2: [AI] Classifier
             activateStep(2);
             const classifierPath = data.metadata?.llm_used === 'fast-path' ? 'Fast-path match' : `LLM classification: ${intent}`;
             updateStepDetail(2, classifierPath);
             await sleep(200);
             completeStep(2);
 
-            // Step 3: ReAct Agent
+            // Step 3: [AI] ReAct Call Model
             activateStep(3);
             const tool = inferTool(query);
             updateStepDetail(3, `Tool selected: ${tool}`);
             await sleep(200);
             completeStep(3);
 
-            // Step 4: Tool Execution
+            // Step 4: [TOOL] ReAct Execute Tools (DB query included here!)
             activateStep(4);
-            updateStepDetail(4, `Executing ${tool}...`);
-            await sleep(200);
+            updateStepDetail(4, `Executing ${tool} on PostgreSQL n8n schema`);
+            await sleep(300); // Longer for DB query
             completeStep(4);
 
-            // Step 5: Database
+            // Step 5: [AI] Responder
             activateStep(5);
-            updateStepDetail(5, 'PostgreSQL n8n schema query');
+            updateStepDetail(5, 'Synthesizing business-friendly response...');
             await sleep(200);
             completeStep(5);
 
-            // Step 6: Response Agent
+            // Step 6: [LIB] Mask Response
             activateStep(6);
-            updateStepDetail(6, 'Synthesizing business response...');
+            const hasTechLeaks = checkTechnicalLeaks(data.response);
+            updateStepDetail(6, hasTechLeaks ? '⚠️ Leaks detected' : '✓ Clean (no technical leaks)');
             await sleep(200);
             completeStep(6);
 
-            // Step 7: Masking Module
+            // Step 7: [DB] Record Feedback
             activateStep(7);
-            const hasTechLeaks = checkTechnicalLeaks(data.response);
-            updateStepDetail(7, hasTechLeaks ? '⚠️ Leaks detected' : '✓ Clean');
-            await sleep(200);
+            updateStepDetail(7, 'Saving to learning system...');
+            await sleep(150);
             completeStep(7);
 
             // Step 8: Final Response
             activateStep(8);
             const model = data.metadata?.model || 'milhena-v3.1-4-agents';
-            updateStepDetail(8, `${model} | ${latency}ms`);
+            updateStepDetail(8, `${model} | ${latency}ms | Masked: ${data.metadata?.masked || false}`);
             await sleep(200);
             completeStep(8);
 
-            const agent = 'v3.1 Pipeline'; // No agent selection in v3.1
+            const agent = 'MilhenaGraph (6 nodes)';
             displayResponse(data, latency, query, sessionId, agent, tool, hasTechLeaks);
             queryHistory.unshift({ query, response: data.response, latency, timestamp: new Date(), intent, agent, tool });
             if (queryHistory.length > 10) queryHistory.pop();
