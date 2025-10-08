@@ -615,11 +615,11 @@ class MilhenaGraph:
 
         redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379")
 
-        # LangGraph Studio compatibility: NO custom checkpointer
-        # When running via `langgraph dev`, the platform manages persistence automatically
-        # and rejects graphs compiled with custom checkpointers
+        # v3.1: Checkpointer DISABLED temporaneamente (AsyncRedisSaver async init issues)
+        # TODO: Fix async initialization for AsyncRedisSaver
+        # For now: Use in-memory checkpointer for execution tracer demo
         checkpointer = None
-        logger.info("✅ NO checkpointer (LangGraph Studio manages persistence automatically)")
+        logger.info("⚠️  NO checkpointer (temporary - using stateless execution for tracer demo)")
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
@@ -1100,7 +1100,26 @@ Usa terminologia business, evita tecnicismi."""
         # STEP 3: Save decision
         try:
             logger.error(f"[DEBUG] Creating SupervisorDecision with classification: {classification}")
-            decision_obj = SupervisorDecision(**classification)
+
+            # FIX: Ensure all required fields exist with defaults
+            required_defaults = {
+                "action": "react",
+                "category": "SIMPLE_QUERY",
+                "confidence": 0.7,
+                "reasoning": "Auto-generated",
+                "direct_response": None,
+                "needs_rag": False,
+                "needs_database": True,
+                "clarification_options": None,
+                "llm_used": classification.get("llm_used", "unknown")
+            }
+
+            # Merge with defaults (classification wins)
+            full_classification = {**required_defaults, **classification}
+
+            logger.error(f"[DEBUG] FULL classification with defaults: {full_classification}")
+
+            decision_obj = SupervisorDecision(**full_classification)
             # CRITICAL: Convert BaseModel to dict for LangGraph state compatibility
             decision = decision_obj.model_dump()
             state["supervisor_decision"] = decision
