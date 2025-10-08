@@ -783,103 +783,96 @@ class MilhenaGraph:
         # Create the graph
         graph = StateGraph(MilhenaState)
 
-        # Add nodes with CLEAR PREFIXES
-        # NEW: Rephraser pre-check nodes (lightweight, rule-based)
-        graph.add_node("[REPHRASER] Check Ambiguity", self.check_ambiguity)
-        graph.add_node("[REPHRASER] Rephrase Query", self.rephrase_query)
+        # Add nodes with VISUAL PREFIXES (v3.2: [AI]=LLM, [LIB]=Deterministic, [TOOL]=Execution)
+        # Rephraser pre-check nodes
+        graph.add_node("[LIB] Rephraser Check Ambiguity", self.check_ambiguity)
+        graph.add_node("[AI] Rephraser Rephrase Query", self.rephrase_query)
 
-        # NEW: Supervisor as entry point
-        graph.add_node("[SUPERVISOR] Route Query", self.supervisor_orchestrator)
+        # Supervisor orchestrator
+        graph.add_node("[AI] Supervisor Route Query", self.supervisor_orchestrator)
 
-        # EXISTING nodes (NON TOCCARE)
-        # NOTE: [CODE] Check Cache removed - Supervisor handles routing directly
-        graph.add_node("[LEARNING] Apply Patterns", self.apply_learned_patterns)
-        graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
-        graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
-        graph.add_node("[RAG] Retrieve Context", self.retrieve_rag_context)
+        # Pipeline nodes
+        graph.add_node("[LIB] Learning Apply Patterns", self.apply_learned_patterns)
+        graph.add_node("[AI] Agent Disambiguate", self.disambiguate_query)
+        graph.add_node("[AI] Agent Analyze Intent", self.analyze_intent)
+        graph.add_node("[LIB] RAG Retrieve Context", self.retrieve_rag_context)
 
         # v3.2 FLATTENED REACT NODES: Direct integration (no nested graph)
-        # NOTE: react_tools will be set before this point in build_graph()
-        graph.add_node("[REACT] Call Model", self.react_call_model)
-        graph.add_node("[REACT] Execute Tools", ToolNode(react_tools))
+        # NOTE: [REACT] Execute Tools node will be added AFTER react_tools is defined
+        graph.add_node("[AI] ReAct Call Model", self.react_call_model)
 
-        graph.add_node("[AGENT] Generate Response", self.generate_response)
+        graph.add_node("[AI] Agent Generate Response", self.generate_response)
         graph.add_node("[LIB] Mask Response", self.mask_response)
-        graph.add_node("[CODE] Record Feedback", self.record_feedback)
-        graph.add_node("[CODE] Handle Error", self.handle_error)
+        graph.add_node("[DB] Record Feedback", self.record_feedback)
+        graph.add_node("[LIB] Handle Error", self.handle_error)
 
         # NEW ENTRY POINT: Rephraser check BEFORE ReAct Agent
-        # Pattern: Ambiguity Check → (if ambiguous) Rephrase → ReAct Agent
-        graph.set_entry_point("[REPHRASER] Check Ambiguity")
+        graph.set_entry_point("[LIB] Rephraser Check Ambiguity")
 
-        # NEW: Conditional routing from Rephraser Check
+        # Conditional routing from Rephraser Check
         graph.add_conditional_edges(
-            "[REPHRASER] Check Ambiguity",
+            "[LIB] Rephraser Check Ambiguity",
             self.route_after_ambiguity_check,
             {
-                "rephrase": "[REPHRASER] Rephrase Query",  # Query ambigua → rephrase
-                "proceed": "[REACT] Call Model"  # v3.2: Direct to flattened ReAct
+                "rephrase": "[AI] Rephraser Rephrase Query",
+                "proceed": "[AI] Supervisor Route Query"
             }
         )
 
-        # After rephrasing, always proceed to ReAct Agent
-        graph.add_edge("[REPHRASER] Rephrase Query", "[REACT] Call Model")  # v3.2: Flattened ReAct
+        # After rephrasing, proceed to Supervisor
+        graph.add_edge("[AI] Rephraser Rephrase Query", "[AI] Supervisor Route Query")
 
-        # NEW: Conditional routing from Supervisor
+        # Conditional routing from Supervisor
         graph.add_conditional_edges(
-            "[SUPERVISOR] Route Query",
+            "[AI] Supervisor Route Query",
             self.route_from_supervisor,
             {
-                "mask_response": "[LIB] Mask Response",  # Direct responses (GREETING, DANGER, CLARIFICATION)
-                "database_query": "[REACT] Call Model",  # v3.2: Flattened ReAct (simple queries)
-                "apply_patterns": "[LEARNING] Apply Patterns"  # Complex queries (full pipeline)
+                "mask_response": "[LIB] Mask Response",
+                "database_query": "[AI] ReAct Call Model",
+                "apply_patterns": "[LIB] Learning Apply Patterns"
             }
         )
 
-        # EXISTING edges (NON TOCCARE - pipeline rimane identica)
-        graph.add_edge("[LEARNING] Apply Patterns", "[AGENT] Disambiguate")
-        graph.add_edge("[AGENT] Disambiguate", "[AGENT] Analyze Intent")
+        # Pipeline edges
+        graph.add_edge("[LIB] Learning Apply Patterns", "[AI] Agent Disambiguate")
+        graph.add_edge("[AI] Agent Disambiguate", "[AI] Agent Analyze Intent")
 
         graph.add_conditional_edges(
-            "[AGENT] Analyze Intent",
+            "[AI] Agent Analyze Intent",
             self.route_from_intent,
             {
-                "technical": "[CODE] Handle Error",
-                "needs_data": "[RAG] Retrieve Context",
-                "business": "[AGENT] Generate Response"
+                "technical": "[LIB] Handle Error",
+                "needs_data": "[LIB] RAG Retrieve Context",
+                "business": "[AI] Agent Generate Response"
             }
         )
 
-        # RAG retrieves context, then goes to DB query or direct response
+        # RAG routing
         graph.add_conditional_edges(
-            "[RAG] Retrieve Context",
+            "[LIB] RAG Retrieve Context",
             self.route_after_rag,
             {
-                "needs_db": "[REACT] Call Model",  # v3.2: Flattened ReAct
-                "has_answer": "[AGENT] Generate Response"
+                "needs_db": "[AI] ReAct Call Model",
+                "has_answer": "[AI] Agent Generate Response"
             }
         )
 
-        # v3.2: FLATTENED REACT LOOP
-        # ReAct Call Model → (if tools) Execute Tools → back to Call Model
-        # OR → (if done) Mask Response
+        # ReAct loop
         graph.add_conditional_edges(
-            "[REACT] Call Model",
+            "[AI] ReAct Call Model",
             self.route_react_loop,
             {
-                "execute_tools": "[REACT] Execute Tools",
+                "execute_tools": "[TOOL] ReAct Execute Tools",
                 "mask_response": "[LIB] Mask Response"
             }
         )
-        graph.add_edge("[REACT] Execute Tools", "[REACT] Call Model")
-
-        # Generate Response → Mask
-        graph.add_edge("[AGENT] Generate Response", "[LIB] Mask Response")
+        graph.add_edge("[TOOL] ReAct Execute Tools", "[AI] ReAct Call Model")
 
         # Final edges
-        graph.add_edge("[LIB] Mask Response", "[CODE] Record Feedback")
-        graph.add_edge("[CODE] Record Feedback", END)
-        graph.add_edge("[CODE] Handle Error", END)
+        graph.add_edge("[AI] Agent Generate Response", "[LIB] Mask Response")
+        graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
+        graph.add_edge("[DB] Record Feedback", END)
+        graph.add_edge("[LIB] Handle Error", END)
 
         # Initialize Redis Checkpointer for PERSISTENT conversation memory
         # Pattern from official docs: Use Redis client directly (NOT context manager in __init__)
@@ -1149,6 +1142,9 @@ Usa terminologia business, evita tecnicismi."""
         self.react_model_with_tools = react_model.bind_tools(react_tools)
         self.react_system_prompt = react_system_prompt
         self.react_tools = react_tools
+
+        # v3.2: Add [TOOL] ReAct Execute Tools node NOW (after react_tools is defined)
+        graph.add_node("[TOOL] ReAct Execute Tools", ToolNode(react_tools))
 
         logger.info("✅ ReAct Agent flattened into main graph (12 tools, deep-dive enabled, visualization-friendly)")
 

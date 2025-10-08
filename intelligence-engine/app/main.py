@@ -518,23 +518,54 @@ async def visualize_graph():
 @app.get("/graph/mermaid")
 async def get_graph_mermaid():
     """
-    Ritorna il grafo in formato Mermaid (testo)
-    Utile per embedding in documentazione o dashboard
+    Ritorna il grafo in formato Mermaid (testo) con colori custom per categoria
+    v3.2: [AI]=Rosso, [LIB]=Verde, [TOOL]=Blu, [DB]=Giallo
     """
     try:
         graph = app.state.milhena.compiled_graph
         mermaid_text = graph.draw_mermaid()
 
+        # v3.2: Inject custom classDef for colored nodes by category
+        custom_styles = """
+%%{init: {'theme':'dark'}}%%
+
+classDef aiNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+classDef libNode fill:#51cf66,stroke:#2f9e44,stroke-width:3px,color:#000
+classDef toolNode fill:#339af0,stroke:#1971c2,stroke-width:3px,color:#fff
+classDef dbNode fill:#ffd43b,stroke:#fab005,stroke-width:3px,color:#000
+"""
+
+        # Insert custom styles after first line
+        lines = mermaid_text.split('\n')
+        styled_mermaid = lines[0] + '\n' + custom_styles + '\n' + '\n'.join(lines[1:])
+
+        # Add class assignments at the end (before closing)
+        # Extract node names and assign classes based on prefix
+        node_assignments = []
+        for line in lines:
+            if '[AI]' in line:
+                # Extract node ID (between quotes or brackets)
+                node_assignments.append(f"class node containing [AI] in name:::aiNode")
+            elif '[LIB]' in line:
+                node_assignments.append(f"class node containing [LIB] in name:::libNode")
+            elif '[TOOL]' in line:
+                node_assignments.append(f"class node containing [TOOL] in name:::toolNode")
+            elif '[DB]' in line:
+                node_assignments.append(f"class node containing [DB] in name:::dbNode")
+
+        # Append class assignments
+        styled_mermaid += '\n\n' + '\n'.join(set(node_assignments))
+
         return {
-            "mermaid": mermaid_text,
-            "description": "ReAct Agent Flow Diagram",
-            "nodes": {
-                "START": "Entry point - receives user message",
-                "agent": "LLM decides next action",
-                "tools": "Execute selected tool",
-                "END": "Return final response"
+            "mermaid": styled_mermaid,
+            "description": "Milhena v3.2 Flow - Color-coded by Type",
+            "legend": {
+                "[AI]": "🔴 LLM Nodes (Probabilistic) - Red",
+                "[LIB]": "🟢 Library Nodes (Deterministic) - Green",
+                "[TOOL]": "🔵 Tool Execution - Blue",
+                "[DB]": "🟡 Database Operations - Yellow"
             },
-            "usage": "Copy mermaid text and paste in any Mermaid viewer"
+            "usage": "Copy mermaid text and paste in Mermaid Live Editor or LangGraph Studio"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cannot generate Mermaid: {str(e)}")
