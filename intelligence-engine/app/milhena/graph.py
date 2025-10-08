@@ -5,6 +5,7 @@ FULL LANGSMITH TRACING ENABLED
 """
 from typing import List, Dict, Any, Optional, Annotated
 from typing_extensions import TypedDict
+from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.graph.message import add_messages
@@ -115,7 +116,7 @@ else:
 
 CLASSIFIER_PROMPT = """Sei un CLASSIFICATORE INTELLIGENTE per Milhena, Business Process Assistant.
 
-UNICO COMPITO: Analizzare la query e decidere come gestirla (VELOCE <100ms).
+COMPITO: Analizzare la query e decidere come gestirla (VELOCE <100ms).
 
 ---
 
@@ -164,276 +165,17 @@ Esempio risposta:
 1. DANGER ha priorità assoluta
 2. HELP è semplice - saluti e "cosa puoi fare" → respond
 3. Se dubbio tra simple/complex → SIMPLE
-4. direct_response OBBLIGATORIA se action=respond
-5. suggested_tool utile per guidare ReAct
+4. **OBBLIGATORIO**: Campo "action" SEMPRE presente (respond o react)
+5. direct_response OBBLIGATORIA se action=respond
+6. suggested_tool utile per guidare ReAct
 
 ---
 
 Query: "{query}"
 
 Rispondi SOLO con JSON valido, niente altro.
-
----
-
-## 🎯 OBIETTIVO
-Analizza ogni query utente (e la cronologia chat) e:
-1. **Classifica** la richiesta in una categoria chiara
-2. **Scegli** una delle tre azioni disponibili (`respond`, `tool`, `route`)
-3. **Fornisci** la risposta o le istruzioni per l'orchestrazione
-4. **Rispondi SOLO con JSON valido**, nessun testo extra
-
----
-
-## 📥 INPUT
-**Query corrente**: "{query}"
-**Conversazione precedente**: {chat_history}
-**Contesto aggiuntivo**: {context}
-
-## 💬 GESTIONE CONTESTO CONVERSAZIONE
-
-**CRITICAL PRIORITY**: Se la query contiene pronomi o riferimenti temporali vaghi, **USA SEMPRE LA CRONOLOGIA**
-
-**Riferimenti anaforici (PRIORITY 1)**:
-- "e ieri?", "e oggi?", "e domani?" → Inferisci topic dall'ultimo messaggio HUMAN
-- "anche quello", "lo stesso", "pure" → Ripeti topic precedente
-- "questo", "quello", "la cosa" → Cerca referente in cronologia
-
-**Come inferire topic**:
-1. Trova ultimo messaggio Human in cronologia
-2. Estrai il **sostantivo chiave** (ordini, errori, fatture, processi, utenti, etc.)
-3. **Combina** sostantivo + nuovo contesto temporale
-
-**Esempi PRATICI (da seguire ESATTAMENTE)**:
-- User: "quanti ordini oggi?" → Milhena: "(risposta)" → User: "e ieri?"
-  → **INFERISCI**: "quanti ordini ieri?" → SIMPLE_METRIC (NON clarification!)
-
-- User: "ci sono errori?" → Milhena: "(risposta)" → User: "anche oggi?"
-  → **INFERISCI**: "ci sono errori anche oggi?" → SIMPLE_STATUS
-
-- User: "ciao" → Milhena: "ciao!" → User: "come è andato?"
-  → **AMBIGUO**: history non ha topic → CLARIFICATION_NEEDED
-
-**REGOLA D'ORO**: Se cronologia contiene topic chiaro (ordini, errori, fatture, processi, PilotPro, sistema, architettura) → NON chiedere clarification, continua topic
-
-**DOMANDE GENERICHE CON CONTESTO**:
-- User: "come è organizzata l'architettura di PilotPro?" → Milhena: "(risposta)" → User: "utilizza intelligenza artificiale?"
-  → **INFERISCI**: "PilotPro utilizza intelligenza artificiale?" (NON parlare di te stessa Milhena!)
-  → Usa RAG per cercare informazioni su PilotPro + AI
-
-**IMPORTANTE**: Se l'ultimo topic era un sistema/prodotto (PilotPro, sistema X, etc.), domande generiche si riferiscono A QUEL SISTEMA, non a Milhena!
-
----
-
-## 🧭 MATRICE DI DECISIONE RAPIDA
-
-| Tipo di Query                               | Azione   | Categoria            | Output Atteso               |
-|--------------------------------------------|----------|----------------------|-----------------------------|
-| Saluti o convenevoli                       | respond  | GREETING             | Risposta cortese            |
-| Richieste di credenziali o dati sensibili  | respond  | DANGER               | Blocco sicurezza            |
-| Query vaga o incompleta                    | respond  | CLARIFICATION_NEEDED | Domanda con opzioni         |
-| Domanda chiara sullo stato del sistema     | tool     | SIMPLE_STATUS        | Query al DB status          |
-| Domanda chiara su numeri/metriche          | tool     | SIMPLE_METRIC        | Query al DB metrica         |
-| Analisi complessa o richiesta articolata   | route    | COMPLEX_ANALYSIS     | Pipeline completa (RAG etc) |
-
----
-
-## ⚙️ LE TUE 3 AZIONI DISPONIBILI
-
-### ACTION: `"respond"`
-**Quando**: puoi rispondere direttamente senza tool o pipeline
-**Casi**:
-- **GREETING**: "ciao", "grazie"
-- **DANGER**: "password database"
-- **CLARIFICATION**: query vaga ("come è andata oggi?")
-- **PATTERN APPRESO**: query già vista con risposta nota
-**Risultato**: `direct_response` testuale
-**Latenza target**: <1000ms
-
----
-
-### ACTION: `"tool"`
-**Quando**: serve un dato specifico da DB/API
-**Casi**:
-- **SIMPLE_STATUS**: "tutto ok?"
-- **SIMPLE_METRIC**: "quante fatture oggi?"
-**Risultato**: Query DB → risposta → fine
-**Latenza target**: <1500ms
-
----
-
-### ACTION: `"route"`
-**Quando**: query complessa o analisi approfondita
-**Casi**:
-- "analizza trend performance ultimo mese"
-- "perché workflow è lento?"
-- slang complesso non interpretabile subito
-**Risultato**: Disambiguate → RAG → Generate → fine
-**Latenza target**: <3500ms
-
----
-
-## 📚 CATEGORIE
-
-### GREETING
-- **Azione**: respond
-- **Esempi**: "ciao", "grazie"
-- **Risposta**: `"Ciao! Come posso aiutarti con i processi aziendali?"`
-
-### DANGER
-- **Azione**: respond
-- **Esempi**: "password database", "credenziali"
-- **Risposta**: `"Non posso fornire informazioni sensibili. Contatta il team IT."`
-
-### CLARIFICATION_NEEDED
-- **Azione**: respond
-- **Quando**: query vaga, ambigua, o manca contesto
-- **Trigger Ambiguity Types** (basato su CLAMBER research):
-  - **Semantic**: "info sul sistema", "come va", "dimmi tutto" (manca specificità)
-  - **Who**: "dammi dati utente" (quale utente?)
-  - **When**: "errori recenti" (quanto recenti?)
-  - **What**: "mostrami report" (quale report?)
-  - **Where**: "processi" (quali processi?)
-- **Risposta**: domanda + 3-5 opzioni con emoji
-- **Esempio**:
-```
-Da quale punto di vista vuoi sapere come è andata oggi?
-📊 Status generale sistema
-❌ Errori e problemi
-✅ Successi
-📈 Metriche
-🔄 Esecuzioni
-```
-- **CRITICAL**: Preferisci CLARIFICATION over simple classification - è meglio chiedere che rispondere male
-
-### SIMPLE_STATUS
-- **Azione**: tool
-- **Tool**: `query_system_status_tool`
-- **Esempi**: "sistema ok?", "tutto funziona?"
-
-### SIMPLE_METRIC
-- **Azione**: tool
-- **Tool**: `query_business_data_tool`
-- **Esempi**: "quante fatture oggi?", "quanti utenti?"
-
-### COMPLEX_ANALYSIS
-- **Azione**: route
-- **Esempi**: "analizza trend ultimo mese", "perché workflow è lento?"
-
----
-
-## 🎓 LEARNING INTEGRATION
-Se nel contesto ci sono `learned_patterns` con:
-- `confidence ≥ 0.7`
-- `count ≥ 2`
-→ Usa direttamente quel pattern → **action = respond**
-
----
-
-## 💬 DISAMBIGUAZIONE SLANG
-Traduci slang in linguaggio business:
-
-| Slang         | Business Meaning            |
-|---------------|-----------------------------|
-| "a puttane"   | problemi critici            |
-| "casino"      | situazione disorganizzata   |
-| "rotto"       | non funzionante             |
-| "workflow"    | processo aziendale          |
-
-- Se slang semplice con contesto → disambigua subito
-- Se slang complesso → usa `route` con nodo di disambiguazione
-
----
-
-## 🧩 OUTPUT JSON RICHIESTO
-
-⚠️ Rispondi **SOLO** con JSON valido (nessun markdown, nessun testo extra)
-
-```json
-{{
-  "action": "respond|tool|route",
-  "category": "GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS",
-  "confidence": 0.95,
-  "reasoning": "spiegazione decisione (max 40 parole)",
-  "direct_response": "testo se action=respond, altrimenti null",
-  "needs_rag": true/false,
-  "needs_database": true/false,
-  "clarification_options": ["opz1", "opz2", "opz3"] o null
-}}
-```
-
----
-
-## 📚 QUANDO USARE RAG vs DATABASE
-
-**needs_rag = true** quando la domanda riguarda:
-- **Cos'è PilotProOS?** → Panoramica sistema
-- **Come funziona...?** → Documentazione/guide
-- **PilotPro utilizza AI?** → Caratteristiche sistema
-- **FAQ generali** → Domande frequenti
-- **Troubleshooting** → "Cosa faccio se...?"
-
-**needs_database = true** quando la domanda riguarda:
-- **Quali processi...?** → Elenco workflow live
-- **Quante esecuzioni...?** → Statistiche real-time
-- **Ci sono errori...?** → Status errori correnti
-- **Quando è stato eseguito...?** → Timestamp specifici
-- **Processo X funziona?** → Status specifico workflow
-
-**Entrambi true** quando serve sia contesto che dati:
-- "Cosa fa il processo X?" → RAG (descrizione) + DB (status)
-
-**REGOLA CRITICA**:
-- Domande su WORKFLOW SPECIFICI → `needs_database: true` (priorità DB!)
-- Domande su SISTEMA/CONCETTI → `needs_rag: true`
-
-## 🔄 TEMPLATE DI FALLBACK
-Usa questo se non sei sicuro:
-```json
-{{
-  "action": "respond",
-  "category": "CLARIFICATION_NEEDED",
-  "confidence": 0.50,
-  "reasoning": "Query non classificabile, meglio chiedere chiarimenti",
-  "direct_response": "Puoi chiarire meglio cosa intendi?",
-  "needs_rag": false,
-  "needs_database": false,
-  "clarification_options": null
-}}
-```
-
----
-
-## 🧠 PRIORITÀ (ordinata per importanza)
-1. **DANGER** → blocca subito (massima priorità)
-2. **LEARNED PATTERN** → rispondi diretto (se confidence ≥ 0.7)
-3. **GREETING** → rispondi cortese (solo se inequivocabile: "ciao", "grazie")
-4. **SIMPLE_*/DATABASE_QUERY** → usa tool (anche con confidence >= 0.6) ⚠️ PRIORITÀ ALTA
-5. **COMPLEX_ANALYSIS** → pipeline completa se serve analisi approfondita
-6. **CLARIFICATION_NEEDED** → ultima risorsa (solo se impossibile interpretare)
-
-## 🔍 WHEN TO TRIGGER CLARIFICATION_NEEDED
-**⚠️ ATTENZIONE: Usa CLARIFICATION solo come ULTIMA RISORSA**
-
-**CASI AMMESSI (molto rari)**:
-- Queries generiche SENZA topic chiaro: "come è andata?" (senza contesto)
-- Pronomi vaghi SENZA cronologia: "questo", "quello" (primo messaggio)
-- SOLO se tecnicamente impossibile inferire: nessun topic in cronologia + query ambigua
-
-**⚠️ NON USARE CLARIFICATION PER**:
-- "errori" → interroga DB per errori recenti (action: tool)
-- "come va" → interroga DB per status generale (action: tool)
-- "workflow" / "processi" → interroga DB (action: tool)
-- "oggi" / "ieri" → usa timestamp automaticamente (action: tool)
-- Query vaghe MA su topic workflow → SEMPRE tool
-
-**REGOLA D'ORO NUOVA**: Se la query menziona workflow/processi/esecuzioni/errori → SEMPRE `action: tool`
-
-**Regola d'oro**: minimizza latenza → preferisci `respond` quando possibile.
-
----
-
-Rispondi SOLO con JSON valido. NO markdown blocks. NO testo extra.
 """
+
 
 # ============================================================================
 # LANGSMITH CONFIGURATION FOR MILHENA
@@ -456,16 +198,16 @@ else:
 # STATE DEFINITION - Following LangGraph best practices
 # ============================================================================
 
-class SupervisorDecision(TypedDict):
-    """Supervisor classification decision"""
-    action: str  # respond|tool|route
-    category: str  # GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS
-    confidence: float
+class SupervisorDecision(BaseModel):
+    """Supervisor classification decision - FIXED: BaseModel instead of TypedDict (LangGraph compatibility)"""
+    action: str = Field(description="respond|tool|route")
+    category: str = Field(description="GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS")
+    confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
-    direct_response: Optional[str]
-    needs_rag: bool
-    needs_database: bool
-    clarification_options: Optional[List[str]]
+    direct_response: Optional[str] = None
+    needs_rag: bool = False
+    needs_database: bool = False
+    clarification_options: Optional[List[str]] = None
     llm_used: str
 
 class MilhenaState(TypedDict):
@@ -1304,6 +1046,19 @@ Usa terminologia business, evita tecnicismi."""
                 logger.error(f"[DEBUG] GROQ CLEANED: {content[:200]}")
 
                 classification = json.loads(content)
+
+                # FIX: Add default 'action' if missing (LLM sometimes omits it)
+                if "action" not in classification:
+                    # Infer action from category
+                    category = classification.get("category", "")
+                    if category in ["DANGER", "HELP", "GREETING"]:
+                        classification["action"] = "respond"
+                    elif category in ["COMPLEX_QUERY"]:
+                        classification["action"] = "react"
+                    else:
+                        classification["action"] = "react"  # Default to ReAct for safety
+                    logger.warning(f"[FIX] Added missing 'action' field: {classification['action']}")
+
                 classification["llm_used"] = "groq"
                 logger.info(f"[CLASSIFIER v4.0] GROQ: {classification.get('category')} action={classification.get('action')}")
             else:
@@ -1322,8 +1077,20 @@ Usa terminologia business, evita tecnicismi."""
                     content = content.replace("```json", "").replace("```", "").strip()
 
                 classification = json.loads(content)
+
+                # FIX: Add default 'action' if missing (same as GROQ fallback)
+                if "action" not in classification:
+                    category = classification.get("category", "")
+                    if category in ["DANGER", "HELP", "GREETING"]:
+                        classification["action"] = "respond"
+                    elif category in ["COMPLEX_QUERY"]:
+                        classification["action"] = "react"
+                    else:
+                        classification["action"] = "react"  # Default to ReAct for safety
+                    logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
+
                 classification["llm_used"] = "openai-nano"
-                logger.info(f"[CLASSIFIER v4.0] OpenAI: {classification.get('category')}")
+                logger.info(f"[CLASSIFIER v4.0] OpenAI: {classification.get('category')} action={classification.get('action')}")
             else:
                 # Ultimate fallback: rule-based
                 classification = self._fallback_classification(query)
@@ -1331,8 +1098,17 @@ Usa terminologia business, evita tecnicismi."""
                 logger.warning("[SUPERVISOR] Using rule-based fallback")
 
         # STEP 3: Save decision
-        decision = SupervisorDecision(**classification)
-        state["supervisor_decision"] = decision
+        try:
+            logger.error(f"[DEBUG] Creating SupervisorDecision with classification: {classification}")
+            decision_obj = SupervisorDecision(**classification)
+            # CRITICAL: Convert BaseModel to dict for LangGraph state compatibility
+            decision = decision_obj.model_dump()
+            state["supervisor_decision"] = decision
+        except Exception as dec_error:
+            logger.error(f"[CRITICAL] Failed to create SupervisorDecision: {dec_error}")
+            logger.error(f"[CRITICAL] Classification keys: {list(classification.keys())}")
+            logger.error(f"[CRITICAL] Classification values: {classification}")
+            raise
 
         # STEP 4: Handle waiting clarification
         if decision["category"] == "CLARIFICATION_NEEDED":

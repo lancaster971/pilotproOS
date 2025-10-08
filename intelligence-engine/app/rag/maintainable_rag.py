@@ -30,7 +30,10 @@ from chromadb.config import Settings
 
 from app.cache.optimized_embeddings_cache import OptimizedEmbeddingsCache
 from app.security.masking_engine import MultiLevelMaskingEngine, UserLevel
-from app.rag.nomic_embeddings import NomicEmbeddingFunction
+# REMOVED: from app.rag.nomic_embeddings import NomicEmbeddingFunction
+# Now using Embeddings container via HTTP instead of loading NOMIC in RAM
+
+import httpx  # For calling Embeddings container
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +128,11 @@ class MaintainableRAGSystem:
             )
         )
 
-        # Initialize NOMIC embedding function (100% FREE on-premise!)
-        embedding_func = NomicEmbeddingFunction()
-        logger.info(f"✅ NOMIC embedding function configured (FREE on-premise!)")
+        # TEMPORANEO: NOMIC disabilitato per debugging
+        # TODO: Implementare chiamata HTTP al container Embeddings
+        # embedding_func = NomicEmbeddingFunction()
+        embedding_func = None  # ChromaDB userà embeddings di default (sentence-transformers)
+        logger.warning(f"⚠️ NOMIC DISABILITATO - Usando embeddings di default per debugging")
 
         # Get or create collection with NOMIC embeddings
         # Best practice per ChromaDB docs: use get_or_create_collection for multi-instance scenarios

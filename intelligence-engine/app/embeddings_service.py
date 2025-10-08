@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 from loguru import logger
 import sys
+import os
 
 # Configure logging
 logger.remove()
