@@ -233,12 +233,19 @@ class ExecutionTracer:
         """Trace complete execution from LangSmith run"""
         import aiohttp
         import os
+        import ssl
 
         api_key = os.getenv("LANGSMITH_API_KEY", "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")
 
+        # Disable SSL verification
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
         # Get run details from LangSmith
         try:
-            async with aiohttp.ClientSession() as session:
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(
                     f"https://api.smith.langchain.com/runs/{run_id}",
                     headers={"x-api-key": api_key}
@@ -455,12 +462,19 @@ class ExecutionTracer:
         """Get latest LangSmith run ID for query"""
         import aiohttp
         import os
+        import ssl
 
         api_key = os.getenv("LANGSMITH_API_KEY", "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")
         project_name = os.getenv("LANGSMITH_PROJECT", "milhena-v3-production")
 
+        # Disable SSL verification
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
         try:
-            async with aiohttp.ClientSession() as session:
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(
                     "https://api.smith.langchain.com/runs",
                     params={
