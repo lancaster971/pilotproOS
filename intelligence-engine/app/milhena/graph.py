@@ -113,31 +113,65 @@ else:
 # SUPERVISOR ORCHESTRATOR PROMPT
 # ============================================================================
 
-SUPERVISOR_PROMPT = """# 🧠 SUPERVISOR ORCHESTRATOR PROMPT – MILHENA
+CLASSIFIER_PROMPT = """Sei un CLASSIFICATORE INTELLIGENTE per Milhena, Business Process Assistant.
 
-Sei un **agente di orchestrazione intelligente**, il **CERVELLO** del sistema **Milhena**, Business Process Assistant.
-Il tuo obiettivo è **restituire SEMPRE un JSON valido** che classifichi la query utente e determini l'azione corretta, ottimizzando **velocità**, **chiarezza** e **coerenza**.
+UNICO COMPITO: Analizzare la query e decidere come gestirla (VELOCE <100ms).
 
 ---
 
-## 🎯 TUA MISSIONE PRINCIPALE: FORNIRE DATI SUI WORKFLOW
+## 🎯 CLASSIFICAZIONI (priorità in ordine)
 
-**WORKFLOW = ANIMA DI PILOTPRO**
-- I workflow sono il cuore del business dell'utente
-- Il tuo compito è FORNIRE DATI PRECISI su workflow, esecuzioni, errori, statistiche
-- È MEGLIO fornire dati approssimativi che chiedere chiarimenti
-- Anche query vaghe come "come va?" → interroga il database per dare risposte concrete
+### 1. DANGER (⛔ BLOCCA - risposta diretta)
+Query che richiedono info sensibili o tecniche:
+- Password, credenziali, token, API key
+- "dammi password database", "utenti e password"
+- Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
 
-**TERMINOLOGIA BUSINESS (CRITICA - NON VIOLARE MAI)**:
-- ✅ USA SEMPRE: processo, esecuzione, elaborazione, errore applicativo, sistema
-- ❌ MAI NOMINARE: n8n, postgres, langchain, docker, redis, nginx, kubernetes, container, database
+Esempio risposta:
+{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}
 
-Questi termini tecnici verranno mascherati automaticamente DOPO la tua risposta.
+### 2. HELP/GREETING (💬 risposta diretta)
+Saluti, help, capabilities:
+- "ciao", "buongiorno", "hey"
+- "cosa puoi fare per me?", "come funzioni?", "aiutami", "help"
+- "grazie", "ok grazie"
 
-**PRIORITÀ ASSOLUTA**:
-1. Query su workflow/processi/esecuzioni/errori → **SEMPRE** `action: tool` + `needs_database: true`
-2. Anche query generiche ("tutto ok?", "come va?") → interroga database
-3. CLARIFICATION solo se tecnicamente impossibile interpretare (es: "ciao come è andata?" senza context)
+Esempio risposta:
+{"action": "respond", "category": "HELP", "direct_response": "Ciao! Sono Milhena, assistente per processi aziendali. Posso aiutarti con stato processi, errori, statistiche e performance. Chiedi pure!"}
+
+### 3. SIMPLE_QUERY (🔧 passa al ReAct - 1 tool)
+Query chiare, un tool basta:
+- "quali processi abbiamo?"
+- "ci sono errori?"
+- "quante esecuzioni oggi?"
+
+Esempio risposta:
+{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "get_workflows_tool"}
+
+### 4. COMPLEX_QUERY (🧠 passa al ReAct - multi tool)
+Query che richiedono analisi approfondita:
+- "analizza performance ultimo mese"
+- "report completo errori"
+- "approfondisci processo X"
+
+Esempio risposta:
+{"action": "react", "category": "COMPLEX_QUERY", "hint": "use 3+ tools for complete analysis"}
+
+---
+
+## ⚡ REGOLE
+
+1. DANGER ha priorità assoluta
+2. HELP è semplice - saluti e "cosa puoi fare" → respond
+3. Se dubbio tra simple/complex → SIMPLE
+4. direct_response OBBLIGATORIA se action=respond
+5. suggested_tool utile per guidare ReAct
+
+---
+
+Query: "{query}"
+
+Rispondi SOLO con JSON valido, niente altro.
 
 ---
 
@@ -783,96 +817,55 @@ class MilhenaGraph:
         # Create the graph
         graph = StateGraph(MilhenaState)
 
-        # Add nodes with VISUAL PREFIXES (v3.2: [AI]=LLM, [LIB]=Deterministic, [TOOL]=Execution)
-        # Rephraser pre-check nodes
-        graph.add_node("[LIB] Rephraser Check Ambiguity", self.check_ambiguity)
-        graph.add_node("[AI] Rephraser Rephrase Query", self.rephrase_query)
+        # v4.0 MICROSERVICES ARCHITECTURE - 6 Nodes (PDF Best Practices)
+        # 3 AI Agents: Classifier → ReAct (tools only) → Responder (synthesis)
 
-        # Supervisor orchestrator
-        graph.add_node("[AI] Supervisor Route Query", self.supervisor_orchestrator)
+        # Agent 1: Classifier (interprets ALL queries, NO whitelist)
+        graph.add_node("[AI] Classifier", self.supervisor_orchestrator)
 
-        # Pipeline nodes
-        graph.add_node("[LIB] Learning Apply Patterns", self.apply_learned_patterns)
-        graph.add_node("[AI] Agent Disambiguate", self.disambiguate_query)
-        graph.add_node("[AI] Agent Analyze Intent", self.analyze_intent)
-        graph.add_node("[LIB] RAG Retrieve Context", self.retrieve_rag_context)
-
-        # v3.2 FLATTENED REACT NODES: Direct integration (no nested graph)
-        # NOTE: [REACT] Execute Tools node will be added AFTER react_tools is defined
+        # Agent 2: ReAct (ONLY calls tools, returns RAW data)
         graph.add_node("[AI] ReAct Call Model", self.react_call_model)
+        # NOTE: [TOOL] Execute Tools added after react_tools definition
 
-        graph.add_node("[AI] Agent Generate Response", self.generate_response)
+        # Agent 3: Responder (ONLY synthesizes user-friendly response from tool data)
+        graph.add_node("[AI] Responder", self.generate_final_response)
+
+        # Libraries: Masking & Persistence
         graph.add_node("[LIB] Mask Response", self.mask_response)
         graph.add_node("[DB] Record Feedback", self.record_feedback)
-        graph.add_node("[LIB] Handle Error", self.handle_error)
 
-        # NEW ENTRY POINT: Rephraser check BEFORE ReAct Agent
-        graph.set_entry_point("[LIB] Rephraser Check Ambiguity")
+        # v4.0 MICROSERVICES ROUTING (clean separation of concerns)
 
-        # Conditional routing from Rephraser Check
+        # ENTRY POINT: Classifier (interprets ALL queries with LLM)
+        graph.set_entry_point("[AI] Classifier")
+
+        # Classifier decides: respond directly OR use ReAct
         graph.add_conditional_edges(
-            "[LIB] Rephraser Check Ambiguity",
-            self.route_after_ambiguity_check,
+            "[AI] Classifier",
+            self.route_supervisor_simplified,
             {
-                "rephrase": "[AI] Rephraser Rephrase Query",
-                "proceed": "[AI] Supervisor Route Query"
+                "react": "[AI] ReAct Call Model",       # Queries needing tools
+                "respond": "[LIB] Mask Response"        # Direct response (HELP/DANGER)
             }
         )
 
-        # After rephrasing, proceed to Supervisor
-        graph.add_edge("[AI] Rephraser Rephrase Query", "[AI] Supervisor Route Query")
-
-        # Conditional routing from Supervisor
-        graph.add_conditional_edges(
-            "[AI] Supervisor Route Query",
-            self.route_from_supervisor,
-            {
-                "mask_response": "[LIB] Mask Response",
-                "database_query": "[AI] ReAct Call Model",
-                "apply_patterns": "[LIB] Learning Apply Patterns"
-            }
-        )
-
-        # Pipeline edges
-        graph.add_edge("[LIB] Learning Apply Patterns", "[AI] Agent Disambiguate")
-        graph.add_edge("[AI] Agent Disambiguate", "[AI] Agent Analyze Intent")
-
-        graph.add_conditional_edges(
-            "[AI] Agent Analyze Intent",
-            self.route_from_intent,
-            {
-                "technical": "[LIB] Handle Error",
-                "needs_data": "[LIB] RAG Retrieve Context",
-                "business": "[AI] Agent Generate Response"
-            }
-        )
-
-        # RAG routing
-        graph.add_conditional_edges(
-            "[LIB] RAG Retrieve Context",
-            self.route_after_rag,
-            {
-                "needs_db": "[AI] ReAct Call Model",
-                "has_answer": "[AI] Agent Generate Response"
-            }
-        )
-
-        # ReAct loop
+        # ReAct loop (Call Model ↔ Execute Tools - returns RAW data)
         graph.add_conditional_edges(
             "[AI] ReAct Call Model",
             self.route_react_loop,
             {
                 "execute_tools": "[TOOL] ReAct Execute Tools",
-                "mask_response": "[LIB] Mask Response"
+                "responder": "[AI] Responder"           # v4.0: Go to Responder when done
             }
         )
         graph.add_edge("[TOOL] ReAct Execute Tools", "[AI] ReAct Call Model")
 
+        # Responder synthesizes final response
+        graph.add_edge("[AI] Responder", "[LIB] Mask Response")
+
         # Final edges
-        graph.add_edge("[AI] Agent Generate Response", "[LIB] Mask Response")
         graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
         graph.add_edge("[DB] Record Feedback", END)
-        graph.add_edge("[LIB] Handle Error", END)
 
         # Initialize Redis Checkpointer for PERSISTENT conversation memory
         # Pattern from official docs: Use Redis client directly (NOT context manager in __init__)
@@ -1290,32 +1283,47 @@ Usa terminologia business, evita tecnicismi."""
         # Additional context (metadata, etc.)
         context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
 
-        prompt = SUPERVISOR_PROMPT.format(
-            query=query,
-            chat_history=chat_history_str,
-            context=context_str
-        )
+        # v4.0: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
+        prompt = CLASSIFIER_PROMPT.format(query=query)
 
         try:
             # Try GROQ first (free + fast)
             if self.supervisor_llm:
-                logger.info("[SUPERVISOR] Using GROQ for classification")
+                logger.info("[CLASSIFIER v4.0] Using GROQ")
                 response = await self.supervisor_llm.ainvoke(prompt)
-                classification = json.loads(response.content)
+
+                # v4.0: Clean JSON response (remove markdown wrappers)
+                content = response.content.strip()
+                logger.error(f"[DEBUG] GROQ RAW response: {content[:200]}")
+
+                if content.startswith("```json"):
+                    content = content.replace("```json", "").replace("```", "").strip()
+                elif content.startswith("```"):
+                    content = content.replace("```", "").strip()
+
+                logger.error(f"[DEBUG] GROQ CLEANED: {content[:200]}")
+
+                classification = json.loads(content)
                 classification["llm_used"] = "groq"
-                logger.info(f"[SUPERVISOR] GROQ: {classification['category']} (conf: {classification['confidence']:.2f})")
+                logger.info(f"[CLASSIFIER v4.0] GROQ: {classification.get('category')} action={classification.get('action')}")
             else:
                 raise Exception("GROQ not available")
 
         except Exception as e:
             # Fallback to OpenAI
-            logger.warning(f"[SUPERVISOR] GROQ failed: {e}, using OpenAI fallback")
+            logger.warning(f"[CLASSIFIER v4.0] GROQ failed: {e}, using OpenAI")
 
             if self.supervisor_fallback:
                 response = await self.supervisor_fallback.ainvoke(prompt)
-                classification = json.loads(response.content)
+
+                # Clean JSON
+                content = response.content.strip()
+                if content.startswith("```json"):
+                    content = content.replace("```json", "").replace("```", "").strip()
+
+                classification = json.loads(content)
                 classification["llm_used"] = "openai-nano"
-                logger.info(f"[SUPERVISOR] OpenAI: {classification['category']} (conf: {classification['confidence']:.2f})")
+                logger.info(f"[CLASSIFIER v4.0] OpenAI: {classification.get('category')}")
             else:
                 # Ultimate fallback: rule-based
                 classification = self._fallback_classification(query)
@@ -2423,8 +2431,9 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools)")
             return "execute_tools"
         else:
-            logger.info("[REACT] No tools needed, routing to mask_response")
-            return "mask_response"
+            # v4.0: ReAct finished calling tools → go to Responder for synthesis
+            logger.info("[REACT v4.0] Tools done, routing to Responder for final synthesis")
+            return "responder"
 
     @traceable(
         name="MilhenaReActAgent_DEPRECATED",
@@ -2548,7 +2557,85 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         return state
 
-    @traceable(name="MilhenaGenerateResponse")
+    # ============================================================================
+    # v4.0 RESPONDER - Synthesizes user-friendly response from tool data
+    # ============================================================================
+
+    @traceable(
+        name="MilhenaResponder",
+        run_type="chain",
+        metadata={"component": "responder", "version": "4.0"}
+    )
+    async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
+        """
+        v4.0 RESPONDER: Synthesizes final user-friendly response from RAW tool data
+
+        Separation of concerns:
+        - ReAct Agent: ONLY calls tools, returns RAW data
+        - Responder: ONLY synthesizes response from tool data
+        """
+        from langchain_core.messages import AIMessage, ToolMessage
+
+        query = state["query"]
+        messages = state["messages"]
+        classification = state.get("supervisor_decision", {}).get("category", "GENERAL")
+
+        logger.info(f"[RESPONDER] Synthesizing response for: {query[:50]}")
+
+        # Extract tool results from messages
+        tool_results = [msg.content for msg in messages if isinstance(msg, ToolMessage)]
+
+        if not tool_results:
+            logger.warning("[RESPONDER] No tool results found - generating fallback")
+            state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."
+            return state
+
+        # Combine all tool data
+        tool_data_combined = "\n\n".join(tool_results)
+
+        # Build Responder prompt
+        responder_prompt = f"""Sei un RESPONSE GENERATOR per Milhena, assistente processi aziendali.
+
+COMPITO: Sintetizza i dati ricevuti dai tools in una risposta user-friendly.
+
+Query utente: "{query}"
+Classification: {classification}
+
+Dati tools (RAW):
+{tool_data_combined}
+
+REGOLE:
+- Italiano chiaro e business-friendly
+- Conciso ma completo
+- Usa bullet points se ci sono 3+ elementi
+- Numeri chiari (es: "145 esecuzioni oggi")
+- Se ci sono trend, mostrali (es: "↑ +12% vs ieri")
+- NON menzionare "workflow", "execution", "node" - usa linguaggio business
+
+Genera risposta utile basata SOLO sui dati ricevuti."""
+
+        try:
+            # Try GROQ first (free + fast) per sintesi
+            if self.groq_llm:
+                response = await self.groq_llm.ainvoke(responder_prompt)
+                final_response = response.content
+                logger.info(f"[RESPONDER] GROQ response: {final_response[:100]}")
+            else:
+                # Fallback OpenAI
+                response = await self.openai_llm.ainvoke(responder_prompt)
+                final_response = response.content
+                logger.info(f"[RESPONDER] OpenAI response: {final_response[:100]}")
+
+            state["response"] = final_response
+
+        except Exception as e:
+            logger.error(f"[RESPONDER] Failed: {e}")
+            # Fallback: use first tool result as-is
+            state["response"] = tool_results[0][:500] if tool_results else "Errore nella generazione della risposta."
+
+        return state
+
+    @traceable(name="MilhenaGenerateResponse_DEPRECATED")
     async def generate_response(self, state: MilhenaState) -> MilhenaState:
         """Generate appropriate response"""
         query = state["query"]
@@ -2621,8 +2708,8 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
     async def record_feedback(self, state: MilhenaState) -> MilhenaState:
         """Record interaction for learning"""
         query = state["query"]
-        intent = state["intent"]
-        response = state["response"]
+        intent = state.get("intent")  # v3.2 FIX: Optional intent (fast-path bypasses intent analysis)
+        response = state.get("response", "")
         session_id = state["session_id"]
 
         await self.learning_system.record_feedback(
@@ -2708,8 +2795,35 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             logger.info("[OPTIMIZATION] Taking FULL PATH - complex query needs full pipeline")
             return "complex"
 
+    def route_supervisor_simplified(self, state: MilhenaState) -> str:
+        """
+        v4.0 SIMPLIFIED routing (PDF Best Practice: minimal branching)
+        Supervisor decides: respond directly (GREETING/HELP) OR use ReAct agent
+        """
+        decision = state.get("supervisor_decision")
+
+        if not decision:
+            logger.warning("[ROUTING v4.0] No supervisor decision - default to ReAct")
+            return "react"
+
+        action = decision.get("action", "tool")
+        category = decision.get("category", "GENERAL")
+
+        logger.info(f"[ROUTING v4.0] action={action}, category={category}")
+
+        # SIMPLE LOGIC: respond directly OR use ReAct agent
+        if action == "respond":
+            # Supervisor generated direct_response (GREETING, HELP, CLARIFICATION)
+            state["response"] = decision.get("direct_response", "Come posso aiutarti?")
+            logger.info(f"[ROUTING v4.0] Direct response: {category}")
+            return "respond"
+        else:
+            # Everything else → ReAct agent (tools, database, RAG)
+            logger.info(f"[ROUTING v4.0] Using ReAct agent for: {category}")
+            return "react"
+
     def route_from_intent(self, state: MilhenaState) -> str:
-        """Route based on intent"""
+        """Route based on intent (DEPRECATED in v4.0 - kept for backward compatibility)"""
         intent = state.get("intent", "GENERAL")
 
         if intent == "TECHNICAL":
