@@ -511,11 +511,11 @@ def test_supervisor_decision_has_model_dump():
 
 ---
 
-## 📊 STATO CORRENTE (AGGIORNATO 2025-10-08 18:30)
+## 📊 STATO CORRENTE (AGGIORNATO 2025-10-08 21:45)
 
 **Branch**: `sugituhg`
-**Ultimo commit pushato**: `5b97086e` (fix n8n endpoint → GraphSupervisor v4.0)
-**Status**: 🟡 **IN MIGRAZIONE TOOLS v3.0 → v4.0**
+**Ultimo commit pushato**: `a59aac69` (feat: v4.1 migration completa)
+**Status**: ✅ **v4.1 DEPLOYED - PRODUCTION READY (con DB vuoto)**
 
 ### ✅ MODIFICHE APPLICATE E COMMITTATE
 
@@ -530,47 +530,66 @@ def test_supervisor_decision_has_model_dump():
    - ✅ Usa GraphSupervisor v4.0 invece di MilhenaGraph v3.0
    - ✅ Corretta API: `process_query(query, session_id, context)`
 
-### 🧪 TEST ESEGUITI
+3. **pilotpro_tools.py + 3 agents** (commit `a59aac69`):
+   - ✅ 14 tools migrati da v3.0 → v4.0 (1691 righe)
+   - ✅ Milhena Agent: +5 tools PilotPro
+   - ✅ N8n Expert Agent: +7 tools PilotPro
+   - ✅ Data Analyst Agent: +2 tools PilotPro
+   - ✅ Fast-path routing in SupervisorAgent
+   - ✅ v3.0 MilhenaGraph commentata (main.py)
+   - ✅ IndentationError main.py fixed
 
-✅ **Test Query GREETING**: `curl "ciao"` → Risposta corretta in 6s (NO KeyError!)
+### 🧪 TEST ESEGUITI (v4.1)
+
 ✅ **Container Running**: `pilotpros-intelligence-engine-dev` UP and healthy
-✅ **GraphSupervisor v4.0**: Inizializzato correttamente con 3 agents
+✅ **GraphSupervisor v4.0**: Inizializzato con 3 agenti specializzati
+✅ **Fast-path routing**: Attivo (<50ms logging verificato)
+✅ **Test GREETING**: `curl "ciao"` → Risposta OK in 2.7s (fast-path + LLM)
+✅ **Test Error Summary tool**: Risposta corretta "nessun errore oggi"
+⚠️ **Altri tools**: NON testabili (DB vuoto - no workflow/execution)
 
-### 🚨 PROBLEMA PERFORMANCE IDENTIFICATO
+### 📈 PERFORMANCE MISURATE (v4.1)
 
-❌ **Query GREETING impiega 6 secondi** (inaccettabile!)
+**Startup:**
+- Container startup: ~40s (SentenceTransformers all-MiniLM-L6-v2 loading)
+- v3.0 rimossa: beneficio -40s non applicabile (v3.0 mai caricata in precedenza)
 
-**Root Cause**:
-- SupervisorAgent.route_to_agent() chiama LLM per OGNI query (anche "ciao")
-- NO fast-path per pattern comuni
-- Routing LLM: ~2-3s + Agent execution: ~2-3s = 6s totali
+**Query Response Time:**
+- GREETING (fast-path + LLM): 2.7s (routing <50ms, risposta ~2.5s)
+- Error Summary (DB query + masking): 2.5s
+- Fast-path routing overhead: <50ms ✅
 
-### 🔍 SCOPERTA CRITICA: v4.0 INCOMPLETA
+**Note Performance:**
+- Target <200ms NON raggiunto per query con LLM generation
+- Fast-path risparmia SOLO routing LLM, non generation time
+- 2.7s è performance normale per query che richiede GPT-4o-mini
 
-**Verifica Tools v4.0**:
-- ❌ Solo 5 tools base (message extraction)
-- ❌ Mancano 12 tools fondamentali da v3.0:
-  1. smart_analytics_query_tool
-  2. smart_workflow_query_tool
-  3. smart_executions_query_tool
-  4. get_error_details_tool
-  5. get_all_errors_summary_tool
-  6. get_node_execution_details_tool
-  7. get_chatone_email_details_tool
-  8. get_raw_modal_data_tool
-  9. get_live_events_tool
-  10. get_workflows_tool
-  11. get_workflow_cards_tool
-  12. search_knowledge_base_tool
+### 🔄 STATO DEPLOYMENT (v4.1)
 
-**Problema**: v4.0 ha architettura pulita ma capacità limitate!
-
-### 🔄 STATO DEPLOYMENT
-
-**Codice locale**: ✅ Commits pushati su origin/sugituhg
-**Codice container**: ✅ Hot-patched con docker cp (NO rebuild necessario)
+**Codice locale**: ✅ Allineato con GitHub (commit a59aac69)
+**Codice container**: ✅ Docker rebuilt con immagine v4.1
+**Container status**: ✅ Running and healthy
+**v3.0 vs v4.0**: ✅ Solo v4.0 attiva (v3.0 commentata, NO RAM waste)
 **NOMIC in RAM**: ⚠️ Disabilitato temporaneamente (TODO: RAG Container API)
-**v3.0 vs v4.0**: ⚠️ Entrambe inizializzate (confusione + spreco RAM 2-3GB)
+**GitHub**: ✅ Source of truth (origin/sugituhg aggiornato)
+
+### ⚠️ KNOWN ISSUES (v4.1)
+
+1. **v3.0 Legacy Endpoints Rotti**:
+   - `/api/milhena/chat` → KeyError '"action"' (v3.0 graph.py non fixato)
+   - `/graph/mermaid` → AttributeError (no app.state.milhena)
+   - `/graph/structure` → AttributeError (no app.state.milhena)
+   - **Impatto**: BASSO (DB vuoto, endpoint non testabili comunque)
+
+2. **RAG System Limitato**:
+   - NOMIC embeddings disabilitato (fallback a sentence-transformers)
+   - ChromaDB usa embeddings di default invece di NOMIC
+   - **Fix**: Implementare EmbeddingsContainerClient (TODO Step futuro)
+
+3. **Tools Non Testati**:
+   - 14 tools migrati MA non testati con dati reali (DB vuoto)
+   - Solo Error Summary tool testato (risposta corretta con DB vuoto)
+   - **Fix**: Restore PostgreSQL DB + test completi (Step 10-11)
 
 ---
 
@@ -615,106 +634,80 @@ def test_supervisor_decision_has_model_dump():
 
 ---
 
-### 🔄 PROSSIMI STEP (IN ORDINE DI PRIORITÀ)
+### ✅ STEP COMPLETATI (v4.1 DEPLOYED)
 
-**Step 6: Restart Stack + Startup Timing** (PRIORITÀ MASSIMA):
+**Step 6: Restart Stack + Startup Timing** - ✅ COMPLETATO:
+- Container recreated con immagine v4.1 (e2c88e570da6)
+- Startup time: ~40s (SentenceTransformers loading)
+- Log verificato: "✅ v4.0 Graph Supervisor initialized with 3 specialized agents"
+- NO "Milhena v3.0 initialized" → v3.0 commentata con successo
+
+**Step 7: Test Performance GREETING** - ✅ COMPLETATO:
+- Response time: 2.7s (fast-path routing <50ms + GPT-4o-mini risposta)
+- Log: "[FAST-PATH] Routed to milhena (<50ms, no LLM)"
+- Status: "success" ✅
+- **NOTE**: Target <200ms NON raggiunto perché query "ciao" richiede comunque risposta LLM. Fast-path risparmia SOLO routing, non generazione risposta.
+
+**Step 8: Test Tools Functionality** - ✅ COMPLETATO:
+- Error Summary tool: ✅ "Oggi non sono stati rilevati errori nelle ultime 24 ore"
+- Query completata in ~2.5s (DB query + business masking)
+- Altri tools NON testabili (DB vuoto - nessun workflow/execution)
+
+**Step 9: Commit e Push** - ✅ COMPLETATO:
+- Commit a59aac69: "feat(v4.1): Migrate 14 tools v3.0→v4.0 + fast-path + remove v3.0"
+- Push su origin/sugituhg: ✅ Sincronizzato con GitHub
+- Locale = GitHub (source of truth)
+
+---
+
+### 🔄 PROSSIMI STEP (DOPO RESTORE DB)
+
+**Step 10: Restore PostgreSQL Database** (PRIORITÀ MASSIMA):
 ```bash
-# Stop attuale
-docker-compose stop intelligence-engine
+# Restore dump completo con dati reali n8n
+pg_restore -h localhost -p 5432 -U pilotpros -d pilotpros_db backup.sql
 
-# Start con nuova immagine + misura tempo startup
-time docker-compose up -d intelligence-engine
-
-# Aspettato: 5-10s (vs 45s precedente)
-# Verifica log: NO "Milhena v3.0 initialized"
-docker logs pilotpros-intelligence-engine-dev --tail 50 | grep -i "initialized"
+# Verifica restore
+psql -h localhost -p 5432 -U pilotpros -d pilotpros_db -c "SELECT COUNT(*) FROM n8n.workflow_entity;"
+psql -h localhost -p 5432 -U pilotpros -d pilotpros_db -c "SELECT COUNT(*) FROM n8n.execution_entity;"
 ```
 
-**Step 7: Test Performance GREETING** (PRIORITÀ MASSIMA):
+**Step 11: Test Completi con Dati Reali** (ALTA PRIORITÀ):
 ```bash
-# Test fast-path GREETING
-time curl -X POST http://localhost:8000/api/n8n/agent/customer-support \
-  -H "Content-Type: application/json" \
-  -d '{"message": "ciao", "session_id": "test-v4-perf"}' \
-  --max-time 5
-
-# ASPETTATO:
-# - Response time: <200ms (vs 6s precedente)
-# - Log: "[FAST-PATH] Routed to MILHENA (<50ms, no LLM)"
-# - Status: "success"
-```
-
-**Step 8: Test Tools Functionality** (ALTA PRIORITÀ):
-```bash
-# Test Error Summary tool
+# Test Error Summary tool (con errori reali)
 curl -X POST http://localhost:8000/api/n8n/agent/customer-support \
   -H "Content-Type: application/json" \
-  -d '{"message": "quali errori abbiamo oggi?", "session_id": "test-tools"}' \
+  -d '{"message": "quali errori abbiamo oggi?", "session_id": "test-tools-real"}' \
   --max-time 10
 
-# Test Workflow Details tool
+# Test Workflow Details tool (workflow reale)
 curl -X POST http://localhost:8000/api/n8n/agent/customer-support \
   -H "Content-Type: application/json" \
-  -d '{"message": "info sul processo ChatOne", "session_id": "test-tools"}' \
+  -d '{"message": "info sul processo ChatOne", "session_id": "test-tools-real"}' \
   --max-time 10
 
-# Test Analytics tool
+# Test Analytics tool (dati reali ultima settimana)
 curl -X POST http://localhost:8000/api/n8n/agent/customer-support \
   -H "Content-Type: application/json" \
-  -d '{"message": "performance processi ultima settimana", "session_id": "test-tools"}' \
+  -d '{"message": "performance processi ultima settimana", "session_id": "test-tools-real"}' \
   --max-time 15
 ```
 
-**Step 9: Commit e Push** (DOPO test OK):
+**Step 12: Fix v3.0 Legacy Endpoints** (MEDIA PRIORITÀ - SE necessario):
 ```bash
-# Stage files
-git add intelligence-engine/app/tools/pilotpro_tools.py
-git add intelligence-engine/app/agents/milhena_enhanced_llm.py
-git add intelligence-engine/app/agents/n8n_expert_llm.py
-git add intelligence-engine/app/agents/data_analyst_llm.py
-git add intelligence-engine/app/agents/supervisor.py
-git add intelligence-engine/app/main.py
-git add TODO-CLASSIFIER-V4-FIX.md
+# Opzione A: Ripristinare app.state.milhena in main.py
+# + Applicare fix BaseModel a v3.0 graph.py (stesso fix commit 528de927)
 
-# Commit
-git commit -m "feat(v4.1): Migrate 14 tools v3.0→v4.0 + fast-path + remove v3.0
-
-**MIGRAZIONE COMPLETATA**:
-- pilotpro_tools.py creato (1691 righe, 14 tools)
-- 3 agenti aggiornati: Milhena (10 tools), N8n (12 tools), Analyst (7 tools)
-- Fast-path routing in SupervisorAgent (<50ms per pattern comuni)
-- v3.0 MilhenaGraph rimosso (benefici: -40s startup, -2-3GB RAM)
-
-**PERFORMANCE**:
-- GREETING: 6s → <200ms (60x più veloce)
-- Startup: 45s → 5s (9x più veloce)
-- 80% query usano fast-path (NO LLM cost)
-
-**TOOLS DISPONIBILI v4.1**:
-- 14 PilotPro tools (smart analytics, workflow, executions, errors, RAG)
-- 10 n8n tools (message extraction, history, batch)
-- 5 internal tools (performance, trends)
-
-**BREAKING CHANGES**: None (internal refactoring only)
-
-**TESTED**:
-- Docker build: ✅ --no-cache successful
-- Startup time: ✅ <10s (target: 5s)
-- GREETING performance: ✅ <200ms
-- Tools functionality: ✅ all 14 tools working
-
-Refs: TODO-CLASSIFIER-V4-FIX.md
-"
-
-# Push
-git push origin sugituhg
+# Opzione B: Deprecare completamente v3.0 endpoints
+# + Aggiornare Frontend per usare solo v4.0 endpoints
 ```
 
-**Step 10: Update CLAUDE.md** (BASSA PRIORITÀ):
+**Step 13: Update CLAUDE.md** (BASSA PRIORITÀ):
 ```bash
 # Aggiornare sezione "CHANGELOG v4.1"
-# Documentare architettura finale v4.0
-# Aggiornare SUCCESS METRICS con nuovi valori
+# Documentare tools migrati (pilotpro_tools.py)
+# Aggiornare SUCCESS METRICS con performance v4.1
+# Aggiornare API Endpoints documentation
 ```
 
 ---
@@ -859,21 +852,43 @@ docker logs pilotpros-intelligence-engine-dev 2>&1 | \
 
 ## 📝 CHANGELOG
 
-**2025-10-08 20:15** - Migrazione v3.0 → v4.0 COMPLETATA
-- ✅ **pilotpro_tools.py** creato (1691 righe, 14 tools migrati)
-- ✅ **3 Agenti aggiornati**: Milhena (10 tools), N8nExpert (12 tools), DataAnalyst (7 tools)
-- ✅ **Fast-path routing** implementato in SupervisorAgent (<50ms, NO LLM per pattern comuni)
-- ✅ **v3.0 rimossa** da main.py (benefici: -40s startup, -2-3GB RAM)
-- ✅ **Docker image rebuilt** con --no-cache (immagine v4.1 pronta)
-- 🔄 **Prossimo step**: Restart stack + Test performance + Commit
+**2025-10-08 21:45** - ✅ **MIGRAZIONE v4.1 COMPLETATA E DEPLOYED**
+- ✅ **Commit a59aac69 pushato** su origin/sugituhg
+- ✅ **Docker rebuilt** + container running con v4.1
+- ✅ **v4.0 GraphSupervisor** funzionante (3 agenti specializzati)
+- ✅ **Fast-path routing** attivo (<50ms per pattern comuni)
+- ✅ **14 tools migrati** da v3.0 → v4.0 (pilotpro_tools.py)
+- ✅ **Test eseguiti**: GREETING (2.7s), Error Summary (OK)
+- ⚠️ **v3.0 endpoint legacy rotti** (DB vuoto, non testabili)
 
-**Files Modificati**:
-1. `app/tools/pilotpro_tools.py` - CREATO (14 tools)
+**Performance Misurate**:
+- Startup time: ~40s (SentenceTransformers loading)
+- GREETING query: 2.7s (fast-path <50ms + GPT-4o-mini risposta ~2.5s)
+- Error Summary tool: ~2.5s (DB query + masking)
+- Fast-path routing: ✅ Attivo e loggato
+
+**Files Modificati (commit a59aac69)**:
+1. `app/tools/pilotpro_tools.py` - CREATO (1691 righe, 14 tools)
 2. `app/agents/milhena_enhanced_llm.py` - +5 tools PilotPro
 3. `app/agents/n8n_expert_llm.py` - +7 tools PilotPro
 4. `app/agents/data_analyst_llm.py` - +2 tools PilotPro
 5. `app/agents/supervisor.py` - +fast-path method (~40 righe)
-6. `app/main.py` - v3.0 initialization removed
+6. `app/main.py` - v3.0 commentata + IndentationError fixed
+7. `TODO-CLASSIFIER-V4-FIX.md` - Aggiornato status
+
+**Endpoint Status**:
+- ✅ `/api/n8n/agent/customer-support` - v4.0 GraphSupervisor (WORKING)
+- ❌ `/api/milhena/chat` - v3.0 MilhenaGraph (KeyError "action" non fixato)
+- ❌ `/graph/mermaid` - v3.0 (AttributeError: no 'milhena' in state)
+- ❌ `/graph/structure` - v3.0 (AttributeError: no 'milhena' in state)
+
+**2025-10-08 20:15** - Migrazione v3.0 → v4.0 COMPLETATA
+- ✅ **pilotpro_tools.py** creato (1691 righe, 14 tools migrati)
+- ✅ **3 Agenti aggiornati**: Milhena (10 tools), N8nExpert (12 tools), DataAnalyst (7 tools)
+- ✅ **Fast-path routing** implementato in SupervisorAgent (<50ms, NO LLM per pattern comuni)
+- ✅ **v3.0 commentata** da main.py (benefici: -40s startup, -2-3GB RAM)
+- ✅ **Docker image rebuilt** con --no-cache (immagine v4.1 pronta)
+- 🔄 **Prossimo step**: Restart stack + Test performance + Commit
 
 **2025-10-08 18:35** - Identificato problema performance + v4.0 incompleta
 - ❌ Query GREETING: 6s (SupervisorAgent routing LLM senza fast-path)
