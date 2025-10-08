@@ -972,10 +972,10 @@ Usa terminologia business, evita tecnicismi."""
             logger.error(f"🎯 [DEBUG] INSTANT MATCH: {instant['category']} - needs_db={instant.get('needs_database')}, needs_rag={instant.get('needs_rag')}")
             logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
             decision = SupervisorDecision(**instant)
-            state["supervisor_decision"] = decision
+            state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
             state["waiting_clarification"] = False
-            if decision["direct_response"]:
-                state["response"] = decision["direct_response"]
+            if decision.direct_response:
+                state["response"] = decision.direct_response
             return state
 
         # STEP 1: Check Learning System (pattern già appresi)
@@ -997,7 +997,7 @@ Usa terminologia business, evita tecnicismi."""
                 clarification_options=None,
                 llm_used="learning-system"
             )
-            state["supervisor_decision"] = decision
+            state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
             state["waiting_clarification"] = False
             return state
 

@@ -36,9 +36,9 @@ from .monitoring import setup_monitoring, track_request
 # from .api_models import router as models_router  # Not needed with Milhena
 from .n8n_endpoints import router as n8n_router  # n8n integration
 from .milhena.api import router as milhena_router  # Milhena v3.0 API (legacy routes)
-# REMOVED: from .milhena.graph import MilhenaGraph  # v3.0 DEPRECATED - use v4.0 GraphSupervisor
+from .milhena.graph import MilhenaGraph  # v3.1 4-Agent Architecture (PRIMARY SYSTEM)
 from .api.rag import router as rag_router  # RAG Management System
-from .graph_supervisor import get_graph_supervisor  # v4.0 Multi-agent supervisor
+# DEPRECATED: from .graph_supervisor import get_graph_supervisor  # v4.0 Multi-agent supervisor
 from .observability.observability import (
     initialize_monitoring,
     setup_monitoring_server,
@@ -65,13 +65,14 @@ async def lifespan(app: FastAPI):
     app.state.cache = setup_cache()  # ENABLED: Redis LLM caching for 25x speed improvement
     app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
 
-    # REMOVED: Milhena v3.0 initialization (DEPRECATED - use v4.0 GraphSupervisor)
-    # app.state.milhena = MilhenaGraph()
-    # Benefits: -40s startup, -2-3GB RAM, zero confusion
+    # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
+    # Flow: Classifier → ReAct → Response → Masking
+    app.state.milhena = MilhenaGraph()
+    logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
 
-    # Initialize v4.0 Multi-Agent Supervisor (PRIMARY SYSTEM)
-    app.state.graph_supervisor = get_graph_supervisor(use_real_llms=True)
-    logger.info("✅ v4.0 Graph Supervisor initialized with 3 specialized agents")
+    # DEPRECATED: v4.0 Multi-Agent Supervisor (over-engineering)
+    # app.state.graph_supervisor = get_graph_supervisor(use_real_llms=True)
+    # Reason: v3.1 matches project specs exactly (linear flow vs branching)
 
     # Initialize Prometheus monitoring
     initialize_monitoring()

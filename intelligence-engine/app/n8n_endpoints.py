@@ -31,12 +31,13 @@ class N8nResponse(BaseModel):
 @router.post("/agent/customer-support", response_model=N8nResponse)
 async def n8n_customer_support(request: N8nRequest):
     """
-    n8n Customer Support Agent endpoint using Milhena v3.0
+    n8n Customer Support Agent endpoint using Milhena v3.1
+    4-Agent Architecture: Classifier → ReAct → Response → Masking
     Compatible with n8n HTTP Request node
     """
     try:
         from .main import app
-        graph_supervisor = app.state.graph_supervisor  # v4.0 with fixed BaseModel
+        milhena = app.state.milhena  # v3.1 with 4-agent pipeline
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -48,28 +49,29 @@ async def n8n_customer_support(request: N8nRequest):
         if request.execution_id:
             context["execution_id"] = request.execution_id
 
-        # Process with GraphSupervisor v4.0
-        result = await graph_supervisor.process_query(
-            query=request.message,
-            session_id=session_id,
-            context=context
+        # Process with MilhenaGraph v3.1
+        result = await milhena.compiled_graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=request.message)],
+                "session_id": session_id,
+                "context": context,
+                "query": request.message
+            },
+            config={"configurable": {"thread_id": session_id}}
         )
 
-        # Extract agent info from routing decision
-        routing = result.get("routing")
-        agent_used = "unknown"
-        if routing:
-            agent_used = routing.target_agent.value if hasattr(routing.target_agent, 'value') else str(routing.target_agent)
+        # Extract response from state
+        response_text = result.get("response", "Come posso aiutarti?")
 
         return N8nResponse(
-            response=result.get("response", "Come posso aiutarti?"),
+            response=response_text,
             intent=result.get("intent", "GENERAL"),
             cached=result.get("cached", False),
             status="success",
             metadata={
                 "session_id": session_id,
-                "model": "graph-supervisor-v4.0",
-                "agent_used": agent_used,
+                "model": "milhena-v3.1-4-agents",
+                "masked": result.get("masked", False),
                 "workflow_id": request.workflow_id,
                 "execution_id": request.execution_id
             }

@@ -4,17 +4,18 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-08 - Milhena v3.2 Flattened Architecture (LangGraph Studio Fix)
+**LAST UPDATED**: 2025-10-08 - Milhena v3.1 4-Agent Architecture (PRODUCTION)
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
 **PROJECT STATUS:**
-- ✅ **Milhena ReAct Agent v3.2** - FLATTENED architecture (visualization-friendly, NO nested graphs)
+- ✅ **Milhena v3.1 4-Agent Architecture** - Classifier → ReAct → Response → Masking (LINEAR FLOW)
+- ✅ **18 Smart Tools** - 3 consolidated + 9 specialized + 3 legacy + 3 extra (REAL PostgreSQL data)
 - ✅ **AsyncRedisSaver** - INFINITE persistent memory (Redis Stack, NO degradation!)
 - ✅ **28 Frontend API Integration** - Complete system visibility (node-level + aggregated)
-- ✅ **Rephraser Pre-check** - Ambiguous query reformulation before ReAct Agent
+- ✅ **Classifier Fast-Path** - Rule-based instant matching (<10ms, 95% queries)
 - ✅ **RAG System Backend** - ChromaDB + NOMIC embeddings (on-premise, FREE)
 - ✅ **RAG Manager Frontend** - Complete UI with category system + document management
 - ✅ **Chat Widget Frontend** - Vue 3 dark theme widget with Teleport
@@ -35,17 +36,33 @@ PilotProOS - Containerized Business Process Operating System
 - **Automation** - n8n Workflow Engine (isolated database)
 - **Monitor** - Nginx Reverse Proxy
 
-**INTELLIGENCE ENGINE ARCHITECTURE v3.1:**
+**INTELLIGENCE ENGINE ARCHITECTURE v3.1 (4-AGENT PIPELINE):**
 ```
 User Query
-  → Rephraser Check (rule-based <10ms)
-  → Rephraser LLM (if ambiguous ~200ms)
-  → Milhena ReAct Agent (custom loop, deep-dive detection)
-  → Tool Selection (12 smart tools, LLM decides)
-  → Auto-enriched Response (1 tool = complete data)
-  → Business Masking (zero technical leaks)
-  → AsyncRedisSaver (persistent memory Redis Stack)
-  → End
+  ↓
+[1. CLASSIFIER AGENT] (IntentAnalyzer)
+  - Fast-path rules (<10ms, 95% queries)
+  - LLM classification (if ambiguous)
+  - Learning system integration
+  ↓
+[2. REACT AGENT] (Tool Selection + Execution)
+  - 18 smart tools (PostgreSQL REAL data)
+  - LLM-based tool selection (gpt-4.1-nano)
+  - Multi-tool deep-dive detection
+  ↓
+[3. RESPONSE AGENT] (ResponseGenerator)
+  - Business-friendly synthesis
+  - Multi-layer masking (prompt + parser + regex)
+  - Token optimization (Groq FREE 95%)
+  ↓
+[4. MASKING MODULE] (TechnicalMaskingEngine)
+  - Zero technical leaks
+  - Business terminology enforcement
+  - Error code translation
+  ↓
+AsyncRedisSaver (Redis Stack persistent memory)
+  ↓
+End (Response to User)
 ```
 
 **KEY EVOLUTION**:
