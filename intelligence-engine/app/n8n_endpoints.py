@@ -36,7 +36,7 @@ async def n8n_customer_support(request: N8nRequest):
     """
     try:
         from .main import app
-        milhena = app.state.milhena
+        graph_supervisor = app.state.graph_supervisor  # v4.0 with fixed BaseModel
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -48,17 +48,11 @@ async def n8n_customer_support(request: N8nRequest):
         if request.execution_id:
             context["execution_id"] = request.execution_id
 
-        # Process with Milhena
-        result = await milhena.compiled_graph.ainvoke(
-            {
-                "messages": [HumanMessage(content=request.message)],
-                "query": request.message,
-                "session_id": session_id,
-                "context": context,
-                "disambiguated": False,
-                "cached": False,
-                "masked": False
-            }
+        # Process with GraphSupervisor v4.0
+        result = await graph_supervisor.process_query(
+            query=request.message,
+            session_id=session_id,
+            context=context
         )
 
         return N8nResponse(
