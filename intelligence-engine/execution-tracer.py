@@ -230,42 +230,31 @@ class ExecutionTracer:
         console.print(f"  [green]masked_applied:[/green] {masked}")
 
     async def trace_execution(self, run_id: str) -> None:
-        """Trace complete execution from LangSmith run"""
-        import aiohttp
+        """Trace complete execution from LangSmith run using SDK"""
         import os
-        import ssl
+        from langsmith import Client
 
         api_key = os.getenv("LANGSMITH_API_KEY", "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")
-
-        # Disable SSL verification
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
+        os.environ["LANGSMITH_API_KEY"] = api_key
 
         # Get run details from LangSmith
         try:
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(
-                    f"https://api.smith.langchain.com/runs/{run_id}",
-                    headers={"x-api-key": api_key}
-                ) as response:
-                    if response.status != 200:
-                        console.print(f"[red]❌ LangSmith run '{run_id}' not found[/red]")
-                        return
-
-                    run_data = await response.json()
+            client = Client()
+            run = client.read_run(run_id)
 
         except Exception as e:
             console.print(f"[red]❌ Error fetching run: {e}[/red]")
             return
 
         # Extract data from LangSmith run
-        query = str(run_data.get("inputs", {})).get("query", "N/A")[:100]
-        response_text = str(run_data.get("outputs", {})).get("response", "N/A")[:200]
-        intent = run_data.get("outputs", {}).get("intent", "N/A")
+        inputs = run.inputs if hasattr(run, 'inputs') else {}
+        outputs = run.outputs if hasattr(run, 'outputs') else {}
 
-        # Simplified state extraction (LangSmith doesn't have full channel_values)
+        query = str(inputs.get("query", inputs.get("messages", ["N/A"])))[:100]
+        response_text = str(outputs.get("response", "N/A"))[:200]
+        intent = outputs.get("intent", "N/A")
+
+        # Simplified state extraction
         channel_values = {
             "query": query,
             "intent": intent,
@@ -459,42 +448,32 @@ class ExecutionTracer:
             return None
 
     async def get_latest_langsmith_run(self, query: str) -> Optional[str]:
-        """Get latest LangSmith run ID for query"""
-        import aiohttp
+        """Get latest LangSmith run ID for query using LangSmith SDK"""
         import os
-        import ssl
+        from langsmith import Client
 
         api_key = os.getenv("LANGSMITH_API_KEY", "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")
         project_name = os.getenv("LANGSMITH_PROJECT", "milhena-v3-production")
 
-        # Disable SSL verification
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-
         try:
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(
-                    "https://api.smith.langchain.com/runs",
-                    params={
-                        "project": project_name,
-                        "limit": 5,
-                        "order": "-start_time"
-                    },
-                    headers={"x-api-key": api_key}
-                ) as response:
-                    if response.status == 200:
-                        runs = await response.json()
-                        # Find run matching our query
-                        for run in runs:
-                            run_inputs = run.get("inputs", {})
-                            if query[:50] in str(run_inputs):
-                                return run["id"]
-                        # Return latest if no exact match
-                        if runs:
-                            return runs[0]["id"]
-                    return None
+            # Set environment for SDK
+            os.environ["LANGSMITH_API_KEY"] = api_key
+
+            client = Client()
+            runs = list(client.list_runs(project_name=project_name, limit=10))
+
+            if not runs:
+                return None
+
+            # Find run matching query (check inputs)
+            for run in runs:
+                run_inputs = str(run.inputs) if hasattr(run, 'inputs') else ""
+                if query[:30].lower() in run_inputs.lower():
+                    return str(run.id)
+
+            # Return latest run
+            return str(runs[0].id)
+
         except Exception as e:
             console.print(f"[red]Error fetching LangSmith run: {e}[/red]")
             return None
