@@ -336,7 +336,7 @@ class ExecutionTracer:
                 "name": "[DB] Record Feedback",
                 "duration": 45,
                 "type": "db",
-                "input": {"session_id": session_id},
+                "input": {"run_id": run_id[:8]},
                 "output": {"saved": True}
             }
         ]
