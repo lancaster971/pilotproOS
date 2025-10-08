@@ -169,3 +169,5 @@ venv/
 # LangGraph temporary files
 intelligence-engine/.langgraph_api/
 *.csv
+test-results-*/
+test-v4-tools-output.log
