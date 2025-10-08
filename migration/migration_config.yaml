@@ -1,0 +1,73 @@
+# ====================================================================
+# n8n Migration Configuration - PilotProOS
+# ====================================================================
+
+# DIRECTORIES & FILES
+csv_input_dir: ../BU_Hostinger  # CSV già esportati
+csv_output_dir: ./csv_postgres
+sql_output_file: ./import_n8n_data.sql
+mapping_output_file: ./workflow_id_mapping.json
+
+# DATABASE CONFIGURATION (PilotProOS Development)
+database:
+  host: localhost
+  port: 5432
+  database: pilotpros_db
+  user: pilotpros_user
+  password: pilotpros_secure_pass_2025
+  schema: n8n
+
+# TABLES TO MIGRATE (ordine per foreign keys)
+tables:
+  # Core entities - ESSENZIALI
+  - workflow_entity        # 77 righe
+  - execution_entity       # 6868 righe
+  - credentials_entity     # 32 righe
+
+  # Statistics
+  - workflow_statistics    # 155 righe
+  # - insights_metadata    # 12 righe (SKIP: workflowId VARCHAR(16) troppo corto per UUID)
+  # - insights_raw         # 24 righe (SKIP: stesso problema)
+  # - insights_by_period   # 14382 righe (SKIP: stesso problema)
+
+  # SKIP (tabelle vuote o non essenziali)
+  # - auth_identity (0)
+  # - auth_provider_sync_history (0)
+  # - execution_annotations (0)
+  # - execution_annotation_tags (0)
+  # - workflow_history (0)
+  # - variables (0)
+  # - test_run (0)
+  # - test_case_execution (0)
+
+# TRANSFORMATION OPTIONS
+transformation:
+  generate_random_uuid: true
+  preserve_encrypted: true
+  validate_json: true
+  transform_boolean: true
+  date_format: '%Y-%m-%dT%H:%M:%S.%fZ'
+
+# VALIDATION OPTIONS
+validation:
+  validate_before_import: true
+  checks:
+    - foreign_keys
+    - required_fields
+    - json_format
+    - unique_constraints
+  on_validation_error: warn  # warn invece di abort (credentials potrebbero fallire)
+
+# IMPORT OPTIONS
+import:
+  method: insert  # INSERT statements (più lento ma più sicuro)
+  batch_size: 1000
+  truncate_before_import: false  # NO truncate (mantieni admin user esistente)
+  use_transaction: true
+  rollback_on_error: true
+
+# LOGGING OPTIONS
+logging:
+  level: INFO
+  file: migration.log
+  console: true

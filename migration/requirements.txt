@@ -1,0 +1,24 @@
+# ====================================================================
+# Python Dependencies per n8n Migration Script
+# ====================================================================
+#
+# Installa con: pip install -r requirements.txt
+#
+# Author: PilotProOS Team
+# Date: 2025-10-08
+# Version: 1.0.0
+
+# Core data manipulation
+pandas>=2.0.0
+
+# PostgreSQL database driver
+psycopg2-binary>=2.9.0
+
+# YAML configuration parsing
+pyyaml>=6.0
+
+# Optional: Progress bars per CLI
+tqdm>=4.65.0
+
+# Optional: Better logging
+colorlog>=6.7.0

@@ -168,3 +168,4 @@ venv/
 
 # LangGraph temporary files
 intelligence-engine/.langgraph_api/
+*.csv
