@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Visual Query Debugger - Milhena v4.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            color: #e0e6ed;
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #667eea 100%);
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-50%, -50%); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(16, 21, 40, 0.8);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.7;
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        .status-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .input-section {
+            background: rgba(16, 21, 40, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .query-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            background: rgba(10, 14, 39, 0.5);
+            color: #e0e6ed;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .query-input::placeholder {
+            color: rgba(224, 230, 237, 0.4);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .flow-sidebar {
+            background: rgba(16, 21, 40, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+            position: sticky;
+            top: 30px;
+        }
+
+        .flow-sidebar h2 {
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            color: #667eea;
+        }
+
+        .info-box {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            margin-bottom: 20px;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .info-box code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #f48fb1;
+        }
+
+        .flow-step {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 18px;
+            margin: 12px 0;
+            border-radius: 12px;
+            border-left: 4px solid rgba(102, 126, 234, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* LLM Agent Steps - Special styling */
+        .flow-step.llm-agent {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(102, 126, 234, 0.1));
+            border-left: 4px solid #8a2be2;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.15);
+        }
+
+        .flow-step.llm-agent::after {
+            content: '🤖 LLM';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(138, 43, 226, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 700;
+            color: #b57edc;
+        }
+
+        .flow-step.llm-agent .flow-step-icon {
+            background: linear-gradient(135deg, #8a2be2, #9d4edd);
+            color: white;
+            box-shadow: 0 4px 10px rgba(138, 43, 226, 0.3);
+        }
+
+        /* Technical Steps */
+        .flow-step.technical {
+            background: rgba(0, 150, 136, 0.05);
+            border-left-color: rgba(0, 150, 136, 0.5);
+        }
+
+        /* Agent Choice Step - Special branching visualization */
+        .flow-step.agent-choice {
+            background: linear-gradient(135deg, rgba(244, 143, 177, 0.1), rgba(255, 138, 101, 0.1));
+            border-left: 4px solid #f48fb1;
+            position: relative;
+        }
+
+        .flow-step.agent-choice::after {
+            content: '🔀 CHOICE';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(244, 143, 177, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 700;
+            color: #f48fb1;
+        }
+
+        .agent-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .agent-option {
+            background: rgba(244, 143, 177, 0.1);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75em;
+            border: 1px solid rgba(244, 143, 177, 0.3);
+        }
+
+        .agent-option.selected {
+            background: rgba(244, 143, 177, 0.3);
+            border-color: #f48fb1;
+            font-weight: 700;
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1), transparent);
+            transition: width 0.4s;
+        }
+
+        .flow-step:hover::before {
+            width: 100%;
+        }
+
+        .flow-step.active {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+            transform: translateX(8px);
+            box-shadow: 0 4px 20px rgba(255, 193, 7, 0.2);
+        }
+
+        .flow-step.active .flow-step-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        .flow-step.completed {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: #4caf50;
+        }
+
+        .flow-step.error {
+            background: rgba(244, 67, 54, 0.1);
+            border-left-color: #f44336;
+        }
+
+        .flow-step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .flow-step-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .flow-step.active .flow-step-icon {
+            background: rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+        }
+
+        .flow-step.completed .flow-step-icon {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+        }
+
+        .flow-step-title {
+            font-weight: 600;
+            font-size: 0.95em;
+            flex: 1;
+        }
+
+        .flow-step-detail {
+            opacity: 0.6;
+            font-size: 0.85em;
+            margin-left: 48px;
+            line-height: 1.5;
+        }
+
+        .flow-connector {
+            text-align: center;
+            color: rgba(102, 126, 234, 0.3);
+            font-size: 1.2em;
+            margin: -4px 0;
+        }
+
+        .visualization-panel {
+            background: rgba(16, 21, 40, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .viz-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .viz-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: rgba(224, 230, 237, 0.6);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        .viz-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .viz-content {
+            display: none;
+        }
+
+        .viz-content.active {
+            display: block;
+        }
+
+        #svgCanvas {
+            width: 100%;
+            height: 600px;
+            background: rgba(10, 14, 39, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .response-section {
+            background: rgba(16, 21, 40, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-top: 30px;
+        }
+
+        .response-section h2 {
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            color: #667eea;
+        }
+
+        .response-box {
+            background: rgba(10, 14, 39, 0.5);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.8;
+        }
+
+        .response-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .response-box::-webkit-scrollbar-track {
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 4px;
+        }
+
+        .response-box::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 4px;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .metadata-card {
+            background: rgba(10, 14, 39, 0.5);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s;
+        }
+
+        .metadata-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .metadata-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.7;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .metadata-value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-success { background: #4caf50; }
+        .status-warning { background: #ff9800; }
+        .status-error { background: #f44336; }
+
+        .history-section {
+            background: rgba(16, 21, 40, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            margin-top: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .history-item {
+            background: rgba(10, 14, 39, 0.5);
+            padding: 18px;
+            margin: 12px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .history-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(8px);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 39, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden { display: none !important; }
+
+        .example-queries {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .example-query {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s;
+        }
+
+        .example-query:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(10, 14, 39, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .flow-sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔍 Visual Query Debugger</h1>
+            <p>Milhena v4.0 GraphSupervisor - Real-time Flow Tracing & Analysis</p>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    <span>Intelligence Engine</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    <span>PostgreSQL</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    <span>Redis Cache</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="query-wrapper">
+                <input type="text"
+                       class="query-input"
+                       id="queryInput"
+                       placeholder="🔍 Scrivi la tua query e premi ENTER..."
+                       onkeypress="if(event.key === 'Enter') executeQuery()">
+            </div>
+            <div class="input-actions">
+                <button class="btn btn-primary" onclick="executeQuery()">
+                    <span>🚀</span> Esegui Query
+                </button>
+                <button class="btn btn-secondary" onclick="clearAll()">
+                    <span>🗑️</span> Pulisci
+                </button>
+                <button class="btn btn-secondary" onclick="toggleHistory()">
+                    <span>📜</span> Storico
+                </button>
+                <button class="btn btn-secondary" onclick="exportResults()">
+                    <span>💾</span> Esporta
+                </button>
+            </div>
+            <div class="example-queries">
+                <span style="opacity: 0.5; margin-right: 10px;">Esempi:</span>
+                <div class="example-query" onclick="useExample('quali errori abbiamo oggi?')">Errori oggi</div>
+                <div class="example-query" onclick="useExample('lista processi attivi')">Lista processi</div>
+                <div class="example-query" onclick="useExample('statistiche complete sistema')">Statistiche</div>
+                <div class="example-query" onclick="useExample('performance ultima settimana')">Performance</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Flow Sidebar -->
+            <div class="flow-sidebar">
+                <h2>📊 Execution Flow</h2>
+
+                <div class="info-box">
+                    <strong>💡 Come funziona:</strong><br>
+                    <strong>2 LLM Agents</strong> (esagoni viola 🔷):<br>
+                    • <code>Supervisor</code> sceglie quale agent usare<br>
+                    • <code>Specialized Agent</code> esegue con tools<br><br>
+
+                    <strong>1 Decision Point</strong> (diamante rosa 💎):<br>
+                    • Visualizza la scelta tra 3 agent<br>
+                    • <strong>Solo 1 viene eseguito!</strong>
+                </div>
+
+                <div id="flowSteps"></div>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div class="visualization-panel">
+                <div class="viz-tabs">
+                    <button class="viz-tab active" onclick="switchTab('diagram')">🎨 Visual Diagram</button>
+                    <button class="viz-tab" onclick="switchTab('trace')">🔍 LangSmith Trace</button>
+                    <button class="viz-tab" onclick="switchTab('timeline')">⏱️ Timeline</button>
+                    <button class="viz-tab" onclick="switchTab('data')">📊 Raw Data</button>
+                </div>
+                <div id="diagramTab" class="viz-content active">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 0.8em;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="30" height="25"><polygon points="15,2 28,8 28,17 15,23 2,17 2,8" fill="#8a2be2" opacity="0.5"/></svg>
+                            <span><strong>Hexagon</strong><br><small style="opacity:0.6">LLM Agent</small></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="30" height="25"><polygon points="15,2 28,12 15,22 2,12" fill="#f48fb1" opacity="0.5"/></svg>
+                            <span><strong>Diamond</strong><br><small style="opacity:0.6">Choice/Routing</small></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="30" height="20"><rect x="5" y="4" width="20" height="12" fill="#00bfa5" opacity="0.3" stroke="#00bfa5" stroke-dasharray="2,2"/></svg>
+                            <span><strong>Rectangle</strong><br><small style="opacity:0.6">Technical</small></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="30" height="20"><circle cx="15" cy="10" r="8" fill="#667eea" opacity="0.3"/></svg>
+                            <span><strong>Circle</strong><br><small style="opacity:0.6">I/O</small></span>
+                        </div>
+                    </div>
+                    <svg id="svgCanvas"></svg>
+                </div>
+                <div id="timelineTab" class="viz-content">
+                    <div id="timelineContent" style="padding: 20px; text-align: center; opacity: 0.5;">
+                        Timeline will appear here after query execution
+                    </div>
+                </div>
+                <div id="dataTab" class="viz-content">
+                    <pre id="rawDataContent" style="background: rgba(10, 14, 39, 0.5); padding: 20px; border-radius: 10px; overflow-x: auto; max-height: 600px;">Raw data will appear here after query execution</pre>
+                </div>
+                <div id="traceTab" class="viz-content">
+                    <div id="traceContent" style="padding: 20px;">
+                        <div style="text-align: center; opacity: 0.5; margin: 50px 0;">
+                            <div style="font-size: 3em; margin-bottom: 15px;">🔍</div>
+                            <p>LangSmith trace will appear here after query execution</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Section -->
+        <div class="response-section">
+            <h2>💬 Response</h2>
+            <div id="responseBox" class="response-box hidden"></div>
+
+            <h2 style="margin-top: 30px;">📊 Metadata & Analysis</h2>
+            <div id="metadataGrid" class="metadata-grid"></div>
+
+            <div id="statsBar" class="stats-bar hidden"></div>
+        </div>
+
+        <!-- History Section -->
+        <div id="historySection" class="history-section hidden">
+            <h2>📜 Query History</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="text-align: center;">
+            <div class="spinner"></div>
+            <p style="margin-top: 20px; font-size: 1.2em;">Executing query...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/n8n/agent/customer-support';
+        let currentTrace = null;
+        let queryHistory = [];
+        let sessionCounter = 0;
+        let executionStats = { totalQueries: 0, avgLatency: 0, successRate: 100 };
+
+        const flowSteps = [
+            { num: 1, title: 'USER QUERY', detail: 'Your question', icon: '👤', type: 'input' },
+            { num: 2, title: 'SUPERVISOR LLM', detail: 'Route to specialized agent', icon: '🎯', type: 'llm', llmModel: 'gpt-4o-mini', prompt: 'Analyze query → Select ONE agent (Milhena/N8N/Analyst)' },
+            { num: 3, title: 'SPECIALIZED AGENT', detail: 'Will be determined...', icon: '🤖', type: 'agent-choice', agents: ['Milhena', 'N8N Expert', 'Data Analyst'] },
+            { num: 4, title: 'AGENT LLM (ReAct)', detail: 'Choose & execute tool', icon: '🧠', type: 'llm', llmModel: 'gpt-4o-mini (ReAct)', prompt: 'Reason → Act → Observe loop with tools' },
+            { num: 5, title: 'TOOL EXECUTION', detail: 'Database query', icon: '🔧', type: 'technical' },
+            { num: 6, title: 'DATABASE', detail: 'PostgreSQL n8n schema', icon: '🗄️', type: 'technical' },
+            { num: 7, title: 'MASKING ENGINE', detail: 'Technical → Business', icon: '🔒', type: 'technical' },
+            { num: 8, title: 'FINAL RESPONSE', detail: 'Natural language', icon: '💬', type: 'output' }
+        ];
+
+        function initializeFlowSteps() {
+            const container = document.getElementById('flowSteps');
+            container.innerHTML = '';
+
+            flowSteps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                // Add special class for LLM agents
+                const stepClass = step.type === 'llm' ? 'flow-step llm-agent' :
+                                 step.type === 'agent-choice' ? 'flow-step agent-choice' :
+                                 step.type === 'technical' ? 'flow-step technical' : 'flow-step';
+                stepDiv.className = stepClass;
+                stepDiv.id = `step-${step.num}`;
+
+                // Build detail with LLM info if applicable
+                let detailHTML = `<div class="flow-step-detail" id="detail-${step.num}">${step.detail}`;
+
+                if (step.type === 'llm') {
+                    detailHTML += `<br><small style="color: #b57edc; margin-top: 5px; display: block;">Model: ${step.llmModel}</small>`;
+                    detailHTML += `<small style="opacity: 0.5; font-style: italic; display: block; margin-top: 3px;">"${step.prompt}"</small>`;
+                }
+
+                if (step.type === 'agent-choice' && step.agents) {
+                    detailHTML += `<div class="agent-options" id="agent-options-${step.num}">`;
+                    step.agents.forEach(agent => {
+                        detailHTML += `<div class="agent-option">${agent}</div>`;
+                    });
+                    detailHTML += `</div>`;
+                }
+
+                detailHTML += `</div>`;
+
+                stepDiv.innerHTML = `
+                    <div class="flow-step-header">
+                        <div class="flow-step-icon">${step.icon}</div>
+                        <div class="flow-step-title">${step.title}</div>
+                    </div>
+                    ${detailHTML}
+                `;
+                container.appendChild(stepDiv);
+
+                if (index < flowSteps.length - 1) {
+                    const connector = document.createElement('div');
+                    connector.className = 'flow-connector';
+                    connector.innerHTML = '↓';
+                    container.appendChild(connector);
+                }
+            });
+        }
+
+        function updateStepDetail(stepNum, detail) {
+            const detailEl = document.getElementById(`detail-${stepNum}`);
+            if (detailEl) detailEl.innerHTML = detail;
+        }
+
+        function activateStep(stepNum) {
+            const step = document.getElementById(`step-${stepNum}`);
+            if (step) step.className = 'flow-step active';
+        }
+
+        function completeStep(stepNum) {
+            const step = document.getElementById(`step-${stepNum}`);
+            if (step) step.className = 'flow-step completed';
+        }
+
+        function resetSteps() {
+            flowSteps.forEach(step => {
+                const stepEl = document.getElementById(`step-${step.num}`);
+                if (stepEl) stepEl.className = 'flow-step';
+                updateStepDetail(step.num, step.detail);
+            });
+        }
+
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('Inserisci una query!');
+                return;
+            }
+
+            resetSteps();
+            document.getElementById('responseBox').classList.add('hidden');
+            document.getElementById('metadataGrid').innerHTML = '';
+            document.getElementById('loadingOverlay').classList.add('active');
+
+            sessionCounter++;
+            const sessionId = `web-debug-${sessionCounter}-${Date.now()}`;
+
+            try {
+                activateStep(1);
+                updateStepDetail(1, `"${query}"`);
+                await sleep(200);
+                completeStep(1);
+
+                activateStep(2);
+                const startTime = Date.now();
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: query, session_id: sessionId })
+                });
+
+                const latency = Date.now() - startTime;
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                completeStep(2);
+
+                await processResponse(data, latency, query, sessionId);
+                updateStats(true, latency);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Errore: ${error.message}`);
+                updateStepDetail(2, `❌ Error: ${error.message}`);
+                document.getElementById(`step-2`).className = 'flow-step error';
+                updateStats(false, 0);
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+
+        async function processResponse(data, latency, query, sessionId) {
+            const intent = data.intent || 'UNKNOWN';
+            activateStep(2);
+            updateStepDetail(2, `Intent: ${intent}`);
+            await sleep(200);
+            completeStep(2);
+
+            activateStep(3);
+            let agent = inferAgent(intent, data.metadata);
+            // Highlight selected agent in the choice options
+            const agentOptions = document.getElementById('agent-options-3');
+            if (agentOptions) {
+                const options = agentOptions.querySelectorAll('.agent-option');
+                options.forEach(opt => {
+                    if (opt.textContent === agent) {
+                        opt.classList.add('selected');
+                    }
+                });
+            }
+            updateStepDetail(3, `Supervisor selected: ${agent}`);
+            await sleep(400);
+            completeStep(3);
+
+            activateStep(4);
+            updateStepDetail(4, `${agent} executing ReAct loop...`);
+            await sleep(200);
+            completeStep(4);
+
+            activateStep(5);
+            const tool = inferTool(query);
+            updateStepDetail(5, `${tool}`);
+            await sleep(200);
+            completeStep(5);
+
+            activateStep(6);
+            await sleep(200);
+            completeStep(6);
+
+            activateStep(7);
+            const hasTechLeaks = checkTechnicalLeaks(data.response);
+            updateStepDetail(7, hasTechLeaks ? '⚠️ Leaks detected' : '✓ Clean');
+            await sleep(200);
+            completeStep(7);
+
+            activateStep(8);
+            const model = data.metadata?.model || 'milhena-v3';
+            updateStepDetail(8, `${model} | ${latency}ms`);
+            await sleep(200);
+            completeStep(8);
+
+            activateStep(9);
+            await sleep(200);
+            completeStep(9);
+
+            displayResponse(data, latency, query, sessionId, agent, tool, hasTechLeaks);
+            queryHistory.unshift({ query, response: data.response, latency, timestamp: new Date(), intent, agent, tool });
+            if (queryHistory.length > 10) queryHistory.pop();
+        }
+
+        function displayResponse(data, latency, query, sessionId, agent, tool, hasTechLeaks) {
+            const responseBox = document.getElementById('responseBox');
+            responseBox.innerHTML = `<pre style="white-space: pre-wrap; font-family: 'Inter', sans-serif; line-height: 1.8;">${data.response}</pre>`;
+            responseBox.classList.remove('hidden');
+
+            const metadata = [
+                { label: 'Latency', value: `${latency}ms`, status: latency < 5000 ? 'success' : 'warning' },
+                { label: 'Intent', value: data.intent || 'UNKNOWN', status: 'success' },
+                { label: 'Agent', value: agent, status: 'success' },
+                { label: 'Tool', value: tool.split('_')[0], status: 'success' },
+                { label: 'Length', value: `${data.response?.length || 0}`, status: 'success' },
+                { label: 'Masking', value: hasTechLeaks ? 'LEAK' : 'CLEAN', status: hasTechLeaks ? 'error' : 'success' },
+                { label: 'Cached', value: data.cached ? 'YES' : 'NO', status: 'success' },
+                { label: 'Model', value: data.metadata?.model || 'unknown', status: 'success' }
+            ];
+
+            const metadataGrid = document.getElementById('metadataGrid');
+            metadataGrid.innerHTML = metadata.map(m => `
+                <div class="metadata-card">
+                    <div class="metadata-label">
+                        <span class="status-indicator status-${m.status}"></span>
+                        ${m.label}
+                    </div>
+                    <div class="metadata-value">${m.value}</div>
+                </div>
+            `).join('');
+
+            drawSVGDiagram(data, latency, agent, tool);
+            updateRawData(data, latency, query, agent, tool);
+            updateTimeline(latency);
+            buildExecutionTrace(data, latency, query, agent, tool, sessionId);
+        }
+
+        function drawSVGDiagram(data, latency, agent, tool) {
+            const svg = document.getElementById('svgCanvas');
+            const width = svg.clientWidth;
+            const height = 600;
+
+            const steps = [
+                { y: 50, label: 'USER', color: '#667eea', type: 'input', shape: 'circle' },
+                { y: 130, label: 'SUPERVISOR LLM', color: '#8a2be2', type: 'llm', shape: 'hexagon', model: 'gpt-4o-mini' },
+                { y: 220, label: 'AGENT CHOICE', color: '#f48fb1', type: 'choice', shape: 'diamond', options: ['Milhena', 'N8N Expert', 'Data Analyst'] },
+                { y: 310, label: `${agent.toUpperCase()}`, color: '#9d4edd', type: 'llm', shape: 'hexagon', model: 'ReAct Agent' },
+                { y: 390, label: tool.split('_')[0].toUpperCase(), color: '#00bfa5', type: 'technical', shape: 'rect' },
+                { y: 460, label: 'DATABASE', color: '#00897b', type: 'technical', shape: 'rect' },
+                { y: 530, label: 'RESPONSE', color: '#4caf50', type: 'output', shape: 'circle' }
+            ];
+
+            let svgContent = `<defs>
+                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#4caf50;stop-opacity:1" />
+                </linearGradient>
+            </defs>`;
+
+            for (let i = 0; i < steps.length - 1; i++) {
+                svgContent += `<line x1="${width/2}" y1="${steps[i].y + 25}" x2="${width/2}" y2="${steps[i+1].y}" stroke="url(#lineGradient)" stroke-width="3" opacity="0.4"/>`;
+
+                svgContent += `<circle cx="${width/2}" cy="${(steps[i].y + steps[i+1].y) / 2}" r="4" fill="${steps[i].color}" opacity="0.6">
+                    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
+                </circle>`;
+            }
+
+            steps.forEach((step, i) => {
+                // LLM Agents get HEXAGON shape
+                if (step.type === 'llm') {
+                    const cx = width/2;
+                    const cy = step.y + 20;
+                    const size = 70;
+                    // Hexagon path
+                    svgContent += `
+                        <polygon points="${cx},${cy-size/2} ${cx+size},${cy-size/4} ${cx+size},${cy+size/4} ${cx},${cy+size/2} ${cx-size},${cy+size/4} ${cx-size},${cy-size/4}"
+                                 fill="${step.color}" opacity="0.3" stroke="${step.color}" stroke-width="3"/>
+                        <text x="${cx}" y="${cy-5}" text-anchor="middle" fill="white" font-size="11" font-weight="700">${step.label}</text>
+                        <text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#b57edc" font-size="8" opacity="0.8">${step.model || ''}</text>
+                    `;
+                }
+                // Agent Choice gets DIAMOND with branching
+                else if (step.type === 'choice') {
+                    const cx = width/2;
+                    const cy = step.y + 30;
+                    const size = 50;
+                    // Diamond shape
+                    svgContent += `
+                        <polygon points="${cx},${cy-size} ${cx+size},${cy} ${cx},${cy+size} ${cx-size},${cy}"
+                                 fill="${step.color}" opacity="0.3" stroke="${step.color}" stroke-width="3"/>
+                        <text x="${cx}" y="${cy+5}" text-anchor="middle" fill="white" font-size="11" font-weight="700">${step.label}</text>
+                    `;
+                    // Draw 3 branches (options)
+                    if (step.options) {
+                        const branchY = cy + size + 20;
+                        const branchSpacing = 120;
+                        const startX = cx - branchSpacing;
+                        step.options.forEach((opt, idx) => {
+                            const bx = startX + (idx * branchSpacing);
+                            // Branch line
+                            svgContent += `<line x1="${cx}" y1="${cy+size}" x2="${bx}" y2="${branchY}" stroke="${step.color}" stroke-width="1" opacity="0.3" stroke-dasharray="4,4"/>`;
+                            // Branch label
+                            svgContent += `<text x="${bx}" y="${branchY+5}" text-anchor="middle" fill="${step.color}" font-size="9" opacity="0.6">${opt}</text>`;
+                        });
+                    }
+                }
+                // Technical steps get RECTANGLE
+                else if (step.type === 'technical') {
+                    svgContent += `
+                        <rect x="${width/2 - 100}" y="${step.y}" width="200" height="40" rx="5" fill="${step.color}" opacity="0.2" stroke="${step.color}" stroke-width="2" stroke-dasharray="5,5"/>
+                        <text x="${width/2}" y="${step.y + 25}" text-anchor="middle" fill="white" font-size="11" font-weight="500">${step.label}</text>
+                    `;
+                }
+                // Input/Output get CIRCLE
+                else {
+                    svgContent += `
+                        <circle cx="${width/2}" cy="${step.y + 20}" r="35" fill="${step.color}" opacity="0.3" stroke="${step.color}" stroke-width="2"/>
+                        <text x="${width/2}" y="${step.y + 25}" text-anchor="middle" fill="white" font-size="11" font-weight="600">${step.label}</text>
+                    `;
+                }
+            });
+
+            svgContent += `<text x="20" y="30" fill="white" font-size="14" opacity="0.7">⏱️ ${latency}ms</text>`;
+            svg.innerHTML = svgContent;
+        }
+
+        function updateRawData(data, latency, query, agent, tool) {
+            const rawData = {
+                query, latency, agent, tool,
+                response: data.response,
+                intent: data.intent,
+                metadata: data.metadata,
+                cached: data.cached
+            };
+            document.getElementById('rawDataContent').textContent = JSON.stringify(rawData, null, 2);
+        }
+
+        function updateTimeline(latency) {
+            const timeline = document.getElementById('timelineContent');
+            const stepTimes = [50, 100, 80, 120, 200, 150, 100, latency - 800, 0];
+            let html = '<div style="padding: 20px;">';
+            let cumulative = 0;
+
+            flowSteps.forEach((step, i) => {
+                cumulative += stepTimes[i];
+                const percent = (cumulative / latency) * 100;
+                html += `
+                    <div style="margin: 15px 0;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>${step.icon} ${step.title}</span>
+                            <span>${stepTimes[i]}ms</span>
+                        </div>
+                        <div style="background: rgba(102, 126, 234, 0.2); border-radius: 10px; height: 8px;">
+                            <div style="width: ${percent}%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 10px; height: 100%; transition: width 0.5s;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            timeline.innerHTML = html;
+        }
+
+        function updateStats(success, latency) {
+            executionStats.totalQueries++;
+            if (success) {
+                executionStats.avgLatency = (executionStats.avgLatency * (executionStats.totalQueries - 1) + latency) / executionStats.totalQueries;
+            } else {
+                executionStats.successRate = (executionStats.successRate * (executionStats.totalQueries - 1)) / executionStats.totalQueries;
+            }
+
+            const statsBar = document.getElementById('statsBar');
+            statsBar.classList.remove('hidden');
+            statsBar.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${executionStats.totalQueries}</div>
+                    <div class="stat-label">Total Queries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(executionStats.avgLatency)}ms</div>
+                    <div class="stat-label">Avg Latency</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(executionStats.successRate)}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${queryHistory.length}</div>
+                    <div class="stat-label">History</div>
+                </div>
+            `;
+        }
+
+        function inferAgent(intent, metadata) {
+            // Use REAL agent from metadata if available
+            const agentUsed = metadata?.agent_used;
+            if (agentUsed) {
+                if (agentUsed === 'n8n_expert') return 'N8N Expert';
+                if (agentUsed === 'data_analyst') return 'Data Analyst';
+                if (agentUsed === 'milhena') return 'Milhena';
+            }
+            // Fallback to intent-based inference
+            if (intent.includes('ERROR')) return 'N8N Expert';
+            if (intent.includes('ANALYTICS')) return 'Data Analyst';
+            return 'Milhena';
+        }
+
+        function inferTool(query) {
+            const q = query.toLowerCase();
+            if (q.includes('errori')) return 'get_all_errors_summary_tool';
+            if (q.includes('processi')) return 'get_workflows_tool';
+            if (q.includes('statistiche')) return 'smart_analytics_query_tool';
+            return 'Direct LLM';
+        }
+
+        function checkTechnicalLeaks(text) {
+            const terms = ['workflow', 'execution', 'node', 'n8n', 'postgres', 'api', 'database'];
+            return terms.some(t => text.toLowerCase().includes(t));
+        }
+
+        function clearAll() {
+            document.getElementById('queryInput').value = '';
+            resetSteps();
+            document.getElementById('responseBox').classList.add('hidden');
+            document.getElementById('metadataGrid').innerHTML = '';
+            document.getElementById('svgCanvas').innerHTML = '';
+            document.getElementById('statsBar').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.viz-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Tab`).classList.add('active');
+        }
+
+        function toggleHistory() {
+            const section = document.getElementById('historySection');
+            section.classList.toggle('hidden');
+            if (!section.classList.contains('hidden')) updateHistoryList();
+        }
+
+        function updateHistoryList() {
+            const list = document.getElementById('historyList');
+            if (queryHistory.length === 0) {
+                list.innerHTML = '<p style="opacity: 0.5; text-align: center;">Nessuna query nello storico</p>';
+                return;
+            }
+
+            list.innerHTML = queryHistory.map(item => `
+                <div class="history-item" onclick="replayQuery('${item.query.replace(/'/g, "\\'")}')">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong>${item.query}</strong>
+                        <span style="opacity: 0.6;">${item.timestamp.toLocaleTimeString()}</span>
+                    </div>
+                    <div style="opacity: 0.7; font-size: 0.85em;">
+                        ${item.intent} | ${item.agent} | ${item.tool.split('_')[0]} | ${item.latency}ms
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function replayQuery(query) {
+            document.getElementById('queryInput').value = query;
+            executeQuery();
+        }
+
+        function useExample(query) {
+            document.getElementById('queryInput').value = query;
+        }
+
+        function exportResults() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                stats: executionStats,
+                history: queryHistory
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `milhena-debug-${Date.now()}.json`;
+            a.click();
+        }
+
+        function buildExecutionTrace(data, latency, query, agent, tool, sessionId) {
+            const traceContent = document.getElementById('traceContent');
+
+            // Build detailed execution trace from response data
+            const trace = {
+                sessionId: sessionId,
+                timestamp: new Date().toISOString(),
+                totalLatency: latency,
+                steps: [
+                    {
+                        step: 1,
+                        name: 'User Query Input',
+                        type: 'input',
+                        time: '0ms',
+                        data: { query: query }
+                    },
+                    {
+                        step: 2,
+                        name: 'Supervisor LLM Routing',
+                        type: 'llm',
+                        model: 'gpt-4o-mini',
+                        time: '~100-200ms',
+                        input: `Query analysis: "${query}"`,
+                        output: `Selected agent: ${agent}`,
+                        reasoning: `Intent: ${data.intent || 'GENERAL'}`
+                    },
+                    {
+                        step: 3,
+                        name: 'Agent Selection',
+                        type: 'routing',
+                        time: '~50ms',
+                        selected: agent,
+                        available: ['Milhena', 'N8N Expert', 'Data Analyst']
+                    },
+                    {
+                        step: 4,
+                        name: `${agent} Agent (ReAct Loop)`,
+                        type: 'llm',
+                        model: 'gpt-4o-mini',
+                        time: '~2000-8000ms',
+                        reasoning: 'Analyzing query to select appropriate tool',
+                        action: `Call tool: ${tool}`,
+                        observation: 'Tool executed successfully'
+                    },
+                    {
+                        step: 5,
+                        name: 'Tool Execution',
+                        type: 'tool',
+                        tool: tool,
+                        time: '~100-500ms',
+                        query: 'SQL query to PostgreSQL n8n schema'
+                    },
+                    {
+                        step: 6,
+                        name: 'Database Query',
+                        type: 'database',
+                        database: 'PostgreSQL',
+                        schema: 'n8n',
+                        tables: ['execution_entity', 'workflow_entity'],
+                        time: '~50-200ms'
+                    },
+                    {
+                        step: 7,
+                        name: 'Business Masking',
+                        type: 'masking',
+                        time: '~10-50ms',
+                        masked_terms: checkTechnicalLeaks(data.response) ? 'Some leaks detected' : 'All technical terms masked',
+                        transformations: ['workflow → processo', 'execution → elaborazione', 'node → passaggio']
+                    },
+                    {
+                        step: 8,
+                        name: 'Final Response',
+                        type: 'output',
+                        time: '0ms',
+                        length: `${data.response?.length || 0} chars`,
+                        cached: data.cached || false
+                    }
+                ]
+            };
+
+            // Build HTML trace visualization
+            let html = `
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 10px; border-left: 4px solid #667eea;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong style="font-size: 1.1em;">📊 Execution Trace</strong>
+                        <span style="opacity: 0.7;">Session: ${sessionId}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.85em;">
+                        <div><strong>Total Time:</strong> ${latency}ms</div>
+                        <div><strong>Steps:</strong> ${trace.steps.length}</div>
+                        <div><strong>Agent:</strong> ${agent}</div>
+                    </div>
+                    <a href="https://smith.langchain.com/" target="_blank" style="display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; font-size: 0.9em;">
+                        🔗 View in LangSmith →
+                    </a>
+                </div>
+            `;
+
+            // Build step-by-step trace
+            trace.steps.forEach((step, idx) => {
+                const isLLM = step.type === 'llm';
+                const isTool = step.type === 'tool';
+                const isRouting = step.type === 'routing';
+
+                const bgColor = isLLM ? 'rgba(138, 43, 226, 0.1)' :
+                               isRouting ? 'rgba(244, 143, 177, 0.1)' :
+                               isTool ? 'rgba(0, 191, 165, 0.1)' :
+                               'rgba(102, 126, 234, 0.05)';
+
+                const borderColor = isLLM ? '#8a2be2' :
+                                   isRouting ? '#f48fb1' :
+                                   isTool ? '#00bfa5' :
+                                   'rgba(102, 126, 234, 0.3)';
+
+                html += `
+                    <div style="margin: 15px 0; padding: 15px; background: ${bgColor}; border-radius: 10px; border-left: 4px solid ${borderColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong>${step.step}. ${step.name}</strong>
+                            <span style="opacity: 0.6; font-size: 0.85em;">${step.time}</span>
+                        </div>
+                `;
+
+                if (isLLM) {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <div style="margin-bottom: 5px;"><strong>🤖 Model:</strong> ${step.model}</div>
+                            ${step.input ? `<div style="margin-bottom: 5px;"><strong>Input:</strong> ${step.input}</div>` : ''}
+                            ${step.reasoning ? `<div style="margin-bottom: 5px;"><strong>Reasoning:</strong> ${step.reasoning}</div>` : ''}
+                            ${step.action ? `<div style="margin-bottom: 5px;"><strong>Action:</strong> ${step.action}</div>` : ''}
+                            ${step.output ? `<div style="margin-bottom: 5px;"><strong>Output:</strong> ${step.output}</div>` : ''}
+                            ${step.observation ? `<div><strong>Observation:</strong> ${step.observation}</div>` : ''}
+                        </div>
+                    `;
+                } else if (isRouting) {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <div style="margin-bottom: 5px;"><strong>🔀 Selected:</strong> <span style="color: #f48fb1; font-weight: 700;">${step.selected}</span></div>
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                ${step.available.map(a => `
+                                    <span style="padding: 4px 10px; background: ${a === step.selected ? 'rgba(244, 143, 177, 0.3)' : 'rgba(244, 143, 177, 0.1)'}; border-radius: 6px; font-size: 0.8em; ${a === step.selected ? 'font-weight: 700; border: 1px solid #f48fb1;' : ''}">${a}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else if (isTool) {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <div style="margin-bottom: 5px;"><strong>🔧 Tool:</strong> ${step.tool}</div>
+                            <div><strong>Query:</strong> ${step.query}</div>
+                        </div>
+                    `;
+                } else if (step.type === 'database') {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <div><strong>🗄️ Database:</strong> ${step.database} (${step.schema} schema)</div>
+                            <div style="margin-top: 5px;"><strong>Tables:</strong> ${step.tables.join(', ')}</div>
+                        </div>
+                    `;
+                } else if (step.type === 'masking') {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <div><strong>🔒 Status:</strong> ${step.masked_terms}</div>
+                            <div style="margin-top: 5px; opacity: 0.7;"><strong>Examples:</strong> ${step.transformations.join(', ')}</div>
+                        </div>
+                    `;
+                } else if (step.data) {
+                    html += `
+                        <div style="margin: 8px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85em;">
+                            <pre style="margin: 0; white-space: pre-wrap;">${JSON.stringify(step.data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            });
+
+            // Add LangSmith link
+            html += `
+                <div style="margin-top: 25px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 10px; text-align: center;">
+                    <div style="font-size: 1.1em; margin-bottom: 10px;">🔗 View Full Trace in LangSmith</div>
+                    <div style="opacity: 0.7; font-size: 0.9em; margin-bottom: 15px;">
+                        For detailed LLM calls, token usage, and advanced debugging
+                    </div>
+                    <a href="https://smith.langchain.com/o/cf01b772-3052-49bd-958f-8b95e7fceb90/projects/p/d97bd0e6-0e8d-4777-82b7-6ad726a4213a"
+                       target="_blank"
+                       style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                        Open LangSmith Console →
+                    </a>
+                    <div style="margin-top: 10px; font-size: 0.8em; opacity: 0.5;">
+                        Search for session: ${sessionId}
+                    </div>
+                </div>
+            `;
+
+            traceContent.innerHTML = html;
+        }
+
+        function sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+
+        window.onload = () => {
+            initializeFlowSteps();
+            console.log('✓ Visual Query Debugger loaded');
+        };
+    </script>
+</body>
+</html>

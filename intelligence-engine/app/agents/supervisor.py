@@ -239,8 +239,8 @@ Respond with your routing decision."""
         if "cosa puoi fare" in q or "help" in q or "aiuto" in q or "che puoi" in q:
             return AgentType.MILHENA
 
-        # WORKFLOW queries → N8nExpert (NO LLM)
-        workflow_keywords = ["workflow", "processo", "processi", "esecuzione", "esecuzioni", "messaggio"]
+        # WORKFLOW/ERROR queries → N8nExpert (NO LLM)
+        workflow_keywords = ["workflow", "processo", "processi", "esecuzione", "esecuzioni", "messaggio", "errori", "errore", "problemi", "problema", "fallito", "failed"]
         if any(kw in q for kw in workflow_keywords):
             return AgentType.N8N_EXPERT
 

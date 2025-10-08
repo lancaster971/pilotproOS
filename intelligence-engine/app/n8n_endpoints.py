@@ -55,6 +55,12 @@ async def n8n_customer_support(request: N8nRequest):
             context=context
         )
 
+        # Extract agent info from routing decision
+        routing = result.get("routing")
+        agent_used = "unknown"
+        if routing:
+            agent_used = routing.target_agent.value if hasattr(routing.target_agent, 'value') else str(routing.target_agent)
+
         return N8nResponse(
             response=result.get("response", "Come posso aiutarti?"),
             intent=result.get("intent", "GENERAL"),
@@ -62,7 +68,8 @@ async def n8n_customer_support(request: N8nRequest):
             status="success",
             metadata={
                 "session_id": session_id,
-                "model": "milhena-v3",
+                "model": "graph-supervisor-v4.0",
+                "agent_used": agent_used,
                 "workflow_id": request.workflow_id,
                 "execution_id": request.execution_id
             }
