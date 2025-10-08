@@ -672,7 +672,7 @@
         <!-- Header -->
         <div class="header">
             <h1>🔍 Visual Query Debugger</h1>
-            <p>Milhena v4.0 GraphSupervisor - Real-time Flow Tracing & Analysis</p>
+            <p>Milhena v3.1 MilhenaGraph - 6-Node Pipeline Real-time Tracing</p>
             <div class="status-bar">
                 <div class="status-item">
                     <span class="status-dot"></span>
@@ -1140,7 +1140,18 @@
 
         function updateTimeline(latency) {
             const timeline = document.getElementById('timelineContent');
-            const stepTimes = [50, 100, 80, 120, 200, 150, 100, latency - 800, 0];
+            // 8 steps timing for v3.1 (realistic estimates based on actual execution)
+            // Total should approximate actual latency
+            const stepTimes = [
+                0,                          // 1. User Query (instant)
+                50,                         // 2. [AI] Classifier (fast-path 95% OR LLM)
+                500,                        // 3. [AI] ReAct Call Model (tool selection)
+                Math.max(1000, latency * 0.4),  // 4. [TOOL] Execute Tools (DB query - longest step!)
+                500,                        // 5. [AI] Responder (synthesis)
+                20,                         // 6. [LIB] Mask Response
+                50,                         // 7. [DB] Record Feedback
+                0                           // 8. Final Response (instant)
+            ];
             let html = '<div style="padding: 20px;">';
             let cumulative = 0;
 
@@ -1151,7 +1162,7 @@
                     <div style="margin: 15px 0;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span>${step.icon} ${step.title}</span>
-                            <span>${stepTimes[i]}ms</span>
+                            <span style="color: ${stepTimes[i] > 500 ? '#f093fb' : '#667eea'};">${stepTimes[i]}ms</span>
                         </div>
                         <div style="background: rgba(102, 126, 234, 0.2); border-radius: 10px; height: 8px;">
                             <div style="width: ${percent}%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 10px; height: 100%; transition: width 0.5s;"></div>
