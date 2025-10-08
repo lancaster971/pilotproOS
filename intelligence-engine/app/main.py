@@ -38,7 +38,7 @@ from .n8n_endpoints import router as n8n_router  # n8n integration
 from .milhena.api import router as milhena_router  # Milhena v3.0 API (legacy routes)
 from .milhena.graph import MilhenaGraph  # v3.1 4-Agent Architecture (PRIMARY SYSTEM)
 from .api.rag import router as rag_router  # RAG Management System
-# DEPRECATED: from .graph_supervisor import get_graph_supervisor  # v4.0 Multi-agent supervisor
+# Removed v4.0 GraphSupervisor (deprecated)
 from .observability.observability import (
     initialize_monitoring,
     setup_monitoring_server,
@@ -70,9 +70,7 @@ async def lifespan(app: FastAPI):
     app.state.milhena = MilhenaGraph()
     logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
 
-    # DEPRECATED: v4.0 Multi-Agent Supervisor (over-engineering)
-    # app.state.graph_supervisor = get_graph_supervisor(use_real_llms=True)
-    # Reason: v3.1 matches project specs exactly (linear flow vs branching)
+    # v4.0 GraphSupervisor removed - v3.1 is production
 
     # Initialize Prometheus monitoring
     initialize_monitoring()
@@ -283,35 +281,37 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use Graph Supervisor for frontend queries
-        supervisor = app.state.graph_supervisor
+        # Use v3.1 MilhenaGraph
+        milhena = app.state.milhena
 
         # Generate session ID for web
         import uuid
         session_id = f"web-{uuid.uuid4()}"
 
-        # Process through supervisor
-        result = await supervisor.process_query(
-            query=request.message,
-            session_id=session_id,
-            context=request.context or {},
-            user_level="business"  # Frontend users are business level
+        # Process through milhena
+        result = await milhena.compiled_graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=request.message)],
+                "session_id": session_id,
+                "context": request.context or {},
+                "query": request.message
+            },
+            config={"configurable": {"thread_id": session_id}}
         )
 
-        if result.get("success"):
-            return ChatResponse(
-                response=result.get("response", "Come posso aiutarti?"),
-                status="success",
-                metadata=result.get("metadata", {}),
-                sources=result.get("sources", []),
-                confidence=result.get("confidence", 0.95)
-            )
-        else:
-            return ChatResponse(
-                response="Mi dispiace, si è verificato un errore nel sistema di supporto.",
-                status="error",
-                metadata={"error": result.get("error", "Unknown")}
-            )
+        # Extract response from state
+        response_text = result.get("response", "Come posso aiutarti?")
+
+        return ChatResponse(
+            response=response_text,
+            status="success",
+            metadata={
+                "model": "milhena-v3.1-4-agents",
+                "masked": result.get("masked", False)
+            },
+            sources=[],
+            confidence=0.95
+        )
 
     except Exception as e:
         logger.error(f"Webhook chat error: {str(e)}")
@@ -346,90 +346,7 @@ async def get_stats():
 # NEW MULTI-AGENT API ENDPOINTS
 # ============================================================================
 
-@app.get("/api/agents/status")
-async def get_agents_status():
-    """Get status of all registered agents with REAL data"""
-    try:
-        supervisor = app.state.graph_supervisor
-        status = supervisor.get_system_status()
-
-        return {
-            "success": True,
-            "status": status,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error getting agents status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/agents/capabilities")
-async def get_agents_capabilities():
-    """Get detailed capabilities of all agents"""
-    try:
-        supervisor = app.state.graph_supervisor
-        capabilities = supervisor.get_agent_capabilities()
-
-        return {
-            "success": True,
-            "capabilities": capabilities,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error getting agent capabilities: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-class TokenUsageResponse(BaseModel):
-    total_tokens: int
-    prompt_tokens: int
-    completion_tokens: int
-    cost_estimate: float
-    by_agent: Dict[str, Any]
-    by_session: Dict[str, Any]
-    period: str
-
-@app.get("/api/tokens/usage", response_model=TokenUsageResponse)
-async def get_token_usage(period: str = "24h"):
-    """Get token usage statistics across all agents"""
-    try:
-        # Get supervisor for agent data
-        supervisor = app.state.graph_supervisor
-
-        # Calculate usage (would integrate with actual tracking)
-        usage = {
-            "total_tokens": 45678,  # Example data
-            "prompt_tokens": 23456,
-            "completion_tokens": 22222,
-            "cost_estimate": 0.459,  # in USD
-            "by_agent": {
-                "milhena": {
-                    "tokens": 15000,
-                    "requests": 150,
-                    "cost": 0.15
-                },
-                "n8n_expert": {
-                    "tokens": 20000,
-                    "requests": 100,
-                    "cost": 0.20
-                },
-                "data_analyst": {
-                    "tokens": 10678,
-                    "requests": 50,
-                    "cost": 0.109
-                }
-            },
-            "by_session": {
-                "active": 5,
-                "completed": 45,
-                "average_tokens": 912
-            },
-            "period": period
-        }
-
-        return TokenUsageResponse(**usage)
-
-    except Exception as e:
-        logger.error(f"Error getting token usage: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# v4.0 endpoints removed - not applicable to v3.1 linear pipeline
 
 @app.get("/metrics")
 async def get_prometheus_metrics():
@@ -448,52 +365,9 @@ async def get_prometheus_metrics():
         logger.error(f"Error generating Prometheus metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/agents/route")
-async def test_agent_routing(request: ChatRequest):
-    """Test endpoint to see which agent would handle a query"""
-    try:
-        supervisor = app.state.graph_supervisor
-
-        # Simulate routing decision without execution
-        from app.agents.supervisor import AgentType
-        query_lower = request.message.lower()
-
-        # Check routing rules
-        routing_hints = []
-        for agent_type, rules in supervisor.routing_rules.items():
-            for keyword in rules.get("keywords", []):
-                if keyword in query_lower:
-                    routing_hints.append({
-                        "agent": agent_type.value.lower(),
-                        "reason": f"keyword '{keyword}' detected",
-                        "confidence_boost": rules["confidence_boost"]
-                    })
-                    break
-
-        return {
-            "query": request.message,
-            "routing_hints": routing_hints,
-            "likely_agent": routing_hints[0]["agent"] if routing_hints else "milhena",
-            "fallback_chain": ["milhena", "data_analyst", "n8n_expert"]
-        }
-
-    except Exception as e:
-        logger.error(f"Error testing routing: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ============================================================================
-# GRAPH VISUALIZATION ENDPOINTS
+# GRAPH VISUALIZATION ENDPOINTS (v3.1)
 # ============================================================================
-
-@app.get("/graph/visualize")
-async def visualize_graph():
-    """
-    DEPRECATED: v3.0 graph visualization (use v4.0 GraphSupervisor instead)
-    """
-    raise HTTPException(
-        status_code=410,
-        detail="v3.0 graph visualization is deprecated. Use v4.0 GraphSupervisor endpoints."
-    )
 
 @app.get("/graph/mermaid")
 async def get_graph_mermaid():

@@ -559,7 +559,7 @@ class MilhenaGraph:
         # Create the graph
         graph = StateGraph(MilhenaState)
 
-        # v4.0 MICROSERVICES ARCHITECTURE - 6 Nodes (PDF Best Practices)
+        # v3.1 MICROSERVICES ARCHITECTURE - 6 Nodes (PDF Best Practices)
         # 3 AI Agents: Classifier → ReAct (tools only) → Responder (synthesis)
 
         # Agent 1: Classifier (interprets ALL queries, NO whitelist)
@@ -576,7 +576,7 @@ class MilhenaGraph:
         graph.add_node("[LIB] Mask Response", self.mask_response)
         graph.add_node("[DB] Record Feedback", self.record_feedback)
 
-        # v4.0 MICROSERVICES ROUTING (clean separation of concerns)
+        # v3.1 MICROSERVICES ROUTING (clean separation of concerns)
 
         # ENTRY POINT: Classifier (interprets ALL queries with LLM)
         graph.set_entry_point("[AI] Classifier")
@@ -597,7 +597,7 @@ class MilhenaGraph:
             self.route_react_loop,
             {
                 "execute_tools": "[TOOL] ReAct Execute Tools",
-                "responder": "[AI] Responder"           # v4.0: Go to Responder when done
+                "responder": "[AI] Responder"           # v3.1: Go to Responder when done
             }
         )
         graph.add_edge("[TOOL] ReAct Execute Tools", "[AI] ReAct Call Model")
@@ -1025,16 +1025,16 @@ Usa terminologia business, evita tecnicismi."""
         # Additional context (metadata, etc.)
         context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
 
-        # v4.0: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
+        # v3.1: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
         prompt = CLASSIFIER_PROMPT.format(query=query)
 
         try:
             # Try GROQ first (free + fast)
             if self.supervisor_llm:
-                logger.info("[CLASSIFIER v4.0] Using GROQ")
+                logger.info("[CLASSIFIER v3.1] Using GROQ")
                 response = await self.supervisor_llm.ainvoke(prompt)
 
-                # v4.0: Clean JSON response (remove markdown wrappers)
+                # v3.1: Clean JSON response (remove markdown wrappers)
                 content = response.content.strip()
                 logger.error(f"[DEBUG] GROQ RAW response: {content[:200]}")
 
@@ -1060,13 +1060,13 @@ Usa terminologia business, evita tecnicismi."""
                     logger.warning(f"[FIX] Added missing 'action' field: {classification['action']}")
 
                 classification["llm_used"] = "groq"
-                logger.info(f"[CLASSIFIER v4.0] GROQ: {classification.get('category')} action={classification.get('action')}")
+                logger.info(f"[CLASSIFIER v3.1] GROQ: {classification.get('category')} action={classification.get('action')}")
             else:
                 raise Exception("GROQ not available")
 
         except Exception as e:
             # Fallback to OpenAI
-            logger.warning(f"[CLASSIFIER v4.0] GROQ failed: {e}, using OpenAI")
+            logger.warning(f"[CLASSIFIER v3.1] GROQ failed: {e}, using OpenAI")
 
             if self.supervisor_fallback:
                 response = await self.supervisor_fallback.ainvoke(prompt)
@@ -1090,7 +1090,7 @@ Usa terminologia business, evita tecnicismi."""
                     logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
 
                 classification["llm_used"] = "openai-nano"
-                logger.info(f"[CLASSIFIER v4.0] OpenAI: {classification.get('category')} action={classification.get('action')}")
+                logger.info(f"[CLASSIFIER v3.1] OpenAI: {classification.get('category')} action={classification.get('action')}")
             else:
                 # Ultimate fallback: rule-based
                 classification = self._fallback_classification(query)
@@ -2207,8 +2207,8 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools)")
             return "execute_tools"
         else:
-            # v4.0: ReAct finished calling tools → go to Responder for synthesis
-            logger.info("[REACT v4.0] Tools done, routing to Responder for final synthesis")
+            # v3.1: ReAct finished calling tools → go to Responder for synthesis
+            logger.info("[REACT v3.1] Tools done, routing to Responder for final synthesis")
             return "responder"
 
     @traceable(
@@ -2334,7 +2334,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         return state
 
     # ============================================================================
-    # v4.0 RESPONDER - Synthesizes user-friendly response from tool data
+    # v3.1 RESPONDER - Synthesizes user-friendly response from tool data
     # ============================================================================
 
     @traceable(
@@ -2344,7 +2344,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
     )
     async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
         """
-        v4.0 RESPONDER: Synthesizes final user-friendly response from RAW tool data
+        v3.1 RESPONDER: Synthesizes final user-friendly response from RAW tool data
 
         Separation of concerns:
         - ReAct Agent: ONLY calls tools, returns RAW data
@@ -2573,33 +2573,33 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
 
     def route_supervisor_simplified(self, state: MilhenaState) -> str:
         """
-        v4.0 SIMPLIFIED routing (PDF Best Practice: minimal branching)
+        v3.1 SIMPLIFIED routing (PDF Best Practice: minimal branching)
         Supervisor decides: respond directly (GREETING/HELP) OR use ReAct agent
         """
         decision = state.get("supervisor_decision")
 
         if not decision:
-            logger.warning("[ROUTING v4.0] No supervisor decision - default to ReAct")
+            logger.warning("[ROUTING v3.1] No supervisor decision - default to ReAct")
             return "react"
 
         action = decision.get("action", "tool")
         category = decision.get("category", "GENERAL")
 
-        logger.info(f"[ROUTING v4.0] action={action}, category={category}")
+        logger.info(f"[ROUTING v3.1] action={action}, category={category}")
 
         # SIMPLE LOGIC: respond directly OR use ReAct agent
         if action == "respond":
             # Supervisor generated direct_response (GREETING, HELP, CLARIFICATION)
             state["response"] = decision.get("direct_response", "Come posso aiutarti?")
-            logger.info(f"[ROUTING v4.0] Direct response: {category}")
+            logger.info(f"[ROUTING v3.1] Direct response: {category}")
             return "respond"
         else:
             # Everything else → ReAct agent (tools, database, RAG)
-            logger.info(f"[ROUTING v4.0] Using ReAct agent for: {category}")
+            logger.info(f"[ROUTING v3.1] Using ReAct agent for: {category}")
             return "react"
 
     def route_from_intent(self, state: MilhenaState) -> str:
-        """Route based on intent (DEPRECATED in v4.0 - kept for backward compatibility)"""
+        """Route based on intent (DEPRECATED in v3.1 - kept for backward compatibility)"""
         intent = state.get("intent", "GENERAL")
 
         if intent == "TECHNICAL":

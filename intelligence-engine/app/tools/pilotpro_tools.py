@@ -1,7 +1,7 @@
 """
-PilotPro Tools for v4.0 Agents
+PilotPro Tools for v3.1 Intelligence Engine
 Business-critical tools for n8n workflow data extraction and analytics
-Migrated from business_tools.py (v3.0) to support v4.0 architecture
+Subset of business_tools.py (7 base tools)
 """
 
 import os
