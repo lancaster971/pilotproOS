@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔍 Visual Query Debugger - Milhena v4.0</title>
+    <title>🔍 Visual Query Debugger - Milhena v3.1 (4-Agent Pipeline)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -824,13 +824,13 @@
 
         const flowSteps = [
             { num: 1, title: 'USER QUERY', detail: 'Your question', icon: '👤', type: 'input' },
-            { num: 2, title: 'SUPERVISOR LLM', detail: 'Route to specialized agent', icon: '🎯', type: 'llm', llmModel: 'gpt-4o-mini', prompt: 'Analyze query → Select ONE agent (Milhena/N8N/Analyst)' },
-            { num: 3, title: 'SPECIALIZED AGENT', detail: 'Will be determined...', icon: '🤖', type: 'agent-choice', agents: ['Milhena', 'N8N Expert', 'Data Analyst'] },
-            { num: 4, title: 'AGENT LLM (ReAct)', detail: 'Choose & execute tool', icon: '🧠', type: 'llm', llmModel: 'gpt-4o-mini (ReAct)', prompt: 'Reason → Act → Observe loop with tools' },
-            { num: 5, title: 'TOOL EXECUTION', detail: 'Database query', icon: '🔧', type: 'technical' },
-            { num: 6, title: 'DATABASE', detail: 'PostgreSQL n8n schema', icon: '🗄️', type: 'technical' },
-            { num: 7, title: 'MASKING ENGINE', detail: 'Technical → Business', icon: '🔒', type: 'technical' },
-            { num: 8, title: 'FINAL RESPONSE', detail: 'Natural language', icon: '💬', type: 'output' }
+            { num: 2, title: 'CLASSIFIER AGENT', detail: 'Intent analysis + fast-path', icon: '🎯', type: 'llm', llmModel: 'Fast-path (95%) + llama-3.3-70b', prompt: 'Rule-based instant match OR LLM classification' },
+            { num: 3, title: 'REACT AGENT', detail: 'Tool selection (18 tools)', icon: '🤖', type: 'llm', llmModel: 'gpt-4.1-nano-2025-04-14', prompt: 'Reason → Select Tool → Execute → Observe (multi-tool loop)' },
+            { num: 4, title: 'TOOL EXECUTION', detail: 'Database query', icon: '🔧', type: 'technical' },
+            { num: 5, title: 'DATABASE', detail: 'PostgreSQL n8n schema (REAL data)', icon: '🗄️', type: 'technical' },
+            { num: 6, title: 'RESPONSE AGENT', detail: 'Business synthesis', icon: '💬', type: 'llm', llmModel: 'llama-3.3-70b (Groq FREE)', prompt: 'Synthesize data → Business-friendly response' },
+            { num: 7, title: 'MASKING MODULE', detail: 'Technical → Business terminology', icon: '🔒', type: 'technical' },
+            { num: 8, title: 'FINAL RESPONSE', detail: 'Zero technical leaks', icon: '✅', type: 'output' }
         ];
 
         function initializeFlowSteps() {
@@ -854,13 +854,7 @@
                     detailHTML += `<small style="opacity: 0.5; font-style: italic; display: block; margin-top: 3px;">"${step.prompt}"</small>`;
                 }
 
-                if (step.type === 'agent-choice' && step.agents) {
-                    detailHTML += `<div class="agent-options" id="agent-options-${step.num}">`;
-                    step.agents.forEach(agent => {
-                        detailHTML += `<div class="agent-option">${agent}</div>`;
-                    });
-                    detailHTML += `</div>`;
-                }
+                // No agent-choice in v3.1 (linear pipeline)
 
                 detailHTML += `</div>`;
 
@@ -957,58 +951,54 @@
 
         async function processResponse(data, latency, query, sessionId) {
             const intent = data.intent || 'UNKNOWN';
+
+            // Step 2: Classifier Agent
             activateStep(2);
-            updateStepDetail(2, `Intent: ${intent}`);
+            const classifierPath = data.metadata?.llm_used === 'fast-path' ? 'Fast-path match' : `LLM classification: ${intent}`;
+            updateStepDetail(2, classifierPath);
             await sleep(200);
             completeStep(2);
 
+            // Step 3: ReAct Agent
             activateStep(3);
-            let agent = inferAgent(intent, data.metadata);
-            // Highlight selected agent in the choice options
-            const agentOptions = document.getElementById('agent-options-3');
-            if (agentOptions) {
-                const options = agentOptions.querySelectorAll('.agent-option');
-                options.forEach(opt => {
-                    if (opt.textContent === agent) {
-                        opt.classList.add('selected');
-                    }
-                });
-            }
-            updateStepDetail(3, `Supervisor selected: ${agent}`);
-            await sleep(400);
+            const tool = inferTool(query);
+            updateStepDetail(3, `Tool selected: ${tool}`);
+            await sleep(200);
             completeStep(3);
 
+            // Step 4: Tool Execution
             activateStep(4);
-            updateStepDetail(4, `${agent} executing ReAct loop...`);
+            updateStepDetail(4, `Executing ${tool}...`);
             await sleep(200);
             completeStep(4);
 
+            // Step 5: Database
             activateStep(5);
-            const tool = inferTool(query);
-            updateStepDetail(5, `${tool}`);
+            updateStepDetail(5, 'PostgreSQL n8n schema query');
             await sleep(200);
             completeStep(5);
 
+            // Step 6: Response Agent
             activateStep(6);
+            updateStepDetail(6, 'Synthesizing business response...');
             await sleep(200);
             completeStep(6);
 
+            // Step 7: Masking Module
             activateStep(7);
             const hasTechLeaks = checkTechnicalLeaks(data.response);
             updateStepDetail(7, hasTechLeaks ? '⚠️ Leaks detected' : '✓ Clean');
             await sleep(200);
             completeStep(7);
 
+            // Step 8: Final Response
             activateStep(8);
-            const model = data.metadata?.model || 'milhena-v3';
+            const model = data.metadata?.model || 'milhena-v3.1-4-agents';
             updateStepDetail(8, `${model} | ${latency}ms`);
             await sleep(200);
             completeStep(8);
 
-            activateStep(9);
-            await sleep(200);
-            completeStep(9);
-
+            const agent = 'v3.1 Pipeline'; // No agent selection in v3.1
             displayResponse(data, latency, query, sessionId, agent, tool, hasTechLeaks);
             queryHistory.unshift({ query, response: data.response, latency, timestamp: new Date(), intent, agent, tool });
             if (queryHistory.length > 10) queryHistory.pop();
