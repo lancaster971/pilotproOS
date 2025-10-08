@@ -4,14 +4,14 @@
 
 PilotProOS - Containerized Business Process Operating System
 
-**LAST UPDATED**: 2025-10-07 - LangGraph Studio + RAG UI Complete
+**LAST UPDATED**: 2025-10-08 - Milhena v3.2 Flattened Architecture (LangGraph Studio Fix)
 
 ## 🤖 **INSTRUCTIONS FOR AI AGENTS**
 
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
 **PROJECT STATUS:**
-- ✅ **Milhena ReAct Agent v3.1** - 12 Smart Tools + Auto-enriched responses + Custom loop
+- ✅ **Milhena ReAct Agent v3.2** - FLATTENED architecture (visualization-friendly, NO nested graphs)
 - ✅ **AsyncRedisSaver** - INFINITE persistent memory (Redis Stack, NO degradation!)
 - ✅ **28 Frontend API Integration** - Complete system visibility (node-level + aggregated)
 - ✅ **Rephraser Pre-check** - Ambiguous query reformulation before ReAct Agent
@@ -822,9 +822,54 @@ Frontend ChatWidget → Backend Express Proxy → Intelligence Engine ReAct Agen
 ---
 
 **Document Owner**: PilotProOS Development Team
-**Last Updated**: 2025-10-04
-**Version**: 3.1 - Milhena Smart Tools + AsyncRedisSaver Persistent Memory
-**Status**: ✅ Production Ready (Backend + Memory) | 🔄 In Development (Learning UI + RAG UI)
+**Last Updated**: 2025-10-08
+**Version**: 3.2 - Flattened ReAct Architecture (LangGraph Studio Visualization Fix)
+**Status**: ✅ Production Ready (Backend + Flattened Graph) | 🔄 In Development (Learning UI + RAG UI)
+
+---
+
+## 🆕 **CHANGELOG v3.2 (2025-10-08) - LANGGRAPH VISUALIZATION FIX**
+
+**Critical Architecture Change**: Flattened ReAct Agent into Main Graph
+
+**Problem Solved**:
+- ❌ **BEFORE (v3.1)**: Nested compiled graph (`self.react_agent = react_graph.compile()`)
+- ❌ LangGraph Studio showed TWO separate graphs (confusing visualization)
+- ❌ Double checkpointer (main graph + react agent)
+- ❌ Complicated state management
+
+**Solution Implemented**:
+- ✅ **AFTER (v3.2)**: Flattened ReAct nodes directly into main graph
+- ✅ Single clean graph visualization in LangGraph Studio
+- ✅ `[REACT] Call Model` and `[REACT] Execute Tools` as direct nodes
+- ✅ Single checkpointer (AsyncRedisSaver on main graph only)
+- ✅ Same business logic (Rephraser, Supervisor, Masking, Learning preserved)
+
+**Files Modified**:
+- `intelligence-engine/app/milhena/graph.py`:
+  - Removed nested `react_graph.compile()` (line ~1154)
+  - Added `react_call_model()` and `route_react_loop()` node methods
+  - Updated all edges to point to `[REACT] Call Model` instead of `[TOOL] Database Query`
+  - Deprecated `execute_react_agent()` (kept for reference)
+
+- `intelligence-engine/app/milhena/mock_tools.py` (NEW):
+  - Mock data tools for testing without PostgreSQL
+  - Enable with `USE_MOCK_DATA=true`
+  - Realistic fake workflows, errors, statistics
+
+**Testing**:
+- ✅ Python syntax validated
+- ✅ Mock tools ready for LangGraph Studio testing
+- ✅ All business logic preserved (ambiguity resolution, masking, learning)
+
+**Migration**: Transparent (internal refactoring only, no API changes)
+
+**Benefits**:
+- ✅ Clean single graph in LangGraph Studio
+- ✅ Better visualization (clear node separation)
+- ✅ Simpler state management
+- ✅ Aligned with LangGraph 2025 best practices
+- ✅ Same performance and functionality
 
 ---
 

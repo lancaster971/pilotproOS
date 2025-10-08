@@ -750,12 +750,8 @@ class MilhenaGraph:
         graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
         graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
         graph.add_node("[RAG] Retrieve Context", self.retrieve_rag_context)
-
-        # v3.2 FLATTENED REACT NODES: Direct integration (no nested graph)
-        # NOTE: react_tools will be set before this point in build_graph()
-        graph.add_node("[REACT] Call Model", self.react_call_model)
-        graph.add_node("[REACT] Execute Tools", ToolNode(react_tools))
-
+        # NEW: Replace hardcoded database_query with intelligent ReAct agent
+        graph.add_node("[TOOL] Database Query", self.execute_react_agent)
         graph.add_node("[AGENT] Generate Response", self.generate_response)
         graph.add_node("[LIB] Mask Response", self.mask_response)
         graph.add_node("[CODE] Record Feedback", self.record_feedback)
@@ -771,12 +767,12 @@ class MilhenaGraph:
             self.route_after_ambiguity_check,
             {
                 "rephrase": "[REPHRASER] Rephrase Query",  # Query ambigua → rephrase
-                "proceed": "[REACT] Call Model"  # v3.2: Direct to flattened ReAct
+                "proceed": "[TOOL] Database Query"  # Query chiara → direct to ReAct
             }
         )
 
         # After rephrasing, always proceed to ReAct Agent
-        graph.add_edge("[REPHRASER] Rephrase Query", "[REACT] Call Model")  # v3.2: Flattened ReAct
+        graph.add_edge("[REPHRASER] Rephrase Query", "[TOOL] Database Query")
 
         # NEW: Conditional routing from Supervisor
         graph.add_conditional_edges(
@@ -784,7 +780,7 @@ class MilhenaGraph:
             self.route_from_supervisor,
             {
                 "mask_response": "[LIB] Mask Response",  # Direct responses (GREETING, DANGER, CLARIFICATION)
-                "database_query": "[REACT] Call Model",  # v3.2: Flattened ReAct (simple queries)
+                "database_query": "[TOOL] Database Query",  # Simple queries (skip Disambiguate, RAG)
                 "apply_patterns": "[LEARNING] Apply Patterns"  # Complex queries (full pipeline)
             }
         )
@@ -808,28 +804,15 @@ class MilhenaGraph:
             "[RAG] Retrieve Context",
             self.route_after_rag,
             {
-                "needs_db": "[REACT] Call Model",  # v3.2: Flattened ReAct
+                "needs_db": "[TOOL] Database Query",
                 "has_answer": "[AGENT] Generate Response"
             }
         )
 
-        # v3.2: FLATTENED REACT LOOP
-        # ReAct Call Model → (if tools) Execute Tools → back to Call Model
-        # OR → (if done) Mask Response
-        graph.add_conditional_edges(
-            "[REACT] Call Model",
-            self.route_react_loop,
-            {
-                "execute_tools": "[REACT] Execute Tools",
-                "mask_response": "[LIB] Mask Response"
-            }
-        )
-        graph.add_edge("[REACT] Execute Tools", "[REACT] Call Model")
+        # SIMPLIFIED: ReAct Agent genera risposta autonomamente, va diretto a masking
+        graph.add_edge("[TOOL] Database Query", "[LIB] Mask Response")
 
-        # Generate Response → Mask
         graph.add_edge("[AGENT] Generate Response", "[LIB] Mask Response")
-
-        # Final edges
         graph.add_edge("[LIB] Mask Response", "[CODE] Record Feedback")
         graph.add_edge("[CODE] Record Feedback", END)
         graph.add_edge("[CODE] Handle Error", END)
@@ -1097,13 +1080,80 @@ Rispondere in modo chiaro e utile, sempre basandoti su dati ottenuti via tool.
 Quando user chiede approfondimento, fornisci ANALISI COMPLETA con dati da MULTIPLI tool.
 Usa terminologia business, evita tecnicismi."""
 
-        # FLATTENED REACT LOGIC: Nodes added directly to main graph (v3.2 - Visualization Fix)
-        # Store react model and tools as instance variables for node methods
-        self.react_model_with_tools = react_model.bind_tools(react_tools)
-        self.react_system_prompt = react_system_prompt
-        self.react_tools = react_tools
+        # CUSTOM LOOP: Replace create_react_agent with controlled multi-tool loop
+        # Reason: Force multiple tool calls when user asks to "dig deeper"
 
-        logger.info("✅ ReAct Agent flattened into main graph (12 tools, deep-dive enabled, visualization-friendly)")
+        # Build custom ReAct loop with controlled termination
+        react_graph = StateGraph(MessagesState)
+
+        # Bind tools to model
+        model_with_tools = react_model.bind_tools(react_tools)
+
+        def call_model_node(state: MessagesState):
+            """Call LLM with tools and system prompt"""
+            # Prepend system prompt to messages
+            messages_with_prompt = [SystemMessage(content=react_system_prompt)] + state["messages"]
+            response = model_with_tools.invoke(messages_with_prompt)
+            return {"messages": [response]}
+
+        def should_continue_react(state: MessagesState):
+            """
+            Decide if loop should continue.
+            CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper.
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            # Find last HumanMessage to check for deep-dive keywords
+            last_human_msg = None
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_human_msg = msg
+                    break
+
+            if last_human_msg:
+                user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
+
+                # Count tool messages in current conversation
+                tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
+
+                deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
+                is_deep_dive = any(kw in user_text for kw in deep_keywords)
+
+                logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
+
+                # If user wants deep dive AND called <3 tools → CONTINUE LOOP
+                if is_deep_dive and tool_count < 3:
+                    logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
+                    # Return to model to force another tool call
+                    # (we can't force specific tools, but we prevent termination)
+
+            # Standard termination logic
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                return "execute_tools"
+            else:
+                return END
+
+        # Add nodes
+        react_graph.add_node("call_model", call_model_node)
+        react_graph.add_node("execute_tools", ToolNode(react_tools))
+
+        # Add edges
+        react_graph.set_entry_point("call_model")
+        react_graph.add_conditional_edges(
+            "call_model",
+            should_continue_react,
+            {
+                "execute_tools": "execute_tools",
+                END: END
+            }
+        )
+        react_graph.add_edge("execute_tools", "call_model")
+
+        # Compile custom ReAct agent with checkpointer
+        self.react_agent = react_graph.compile(checkpointer=checkpointer)
+
+        logger.info("✅ Custom ReAct Agent with controlled multi-tool loop (12 tools, deep-dive enabled)")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
@@ -2300,93 +2350,10 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         return state
 
-    # ============================================================================
-    # v3.2 FLATTENED REACT NODES - Direct integration (no nested graph)
-    # ============================================================================
-
     @traceable(
-        name="MilhenaReActCallModel",
+        name="MilhenaReActAgent",
         run_type="chain",
-        metadata={"component": "react_call_model", "version": "3.2"}
-    )
-    async def react_call_model(self, state: MilhenaState) -> MilhenaState:
-        """
-        ReAct Call Model node - Flattened into main graph (v3.2)
-        Calls LLM with tools bound, using custom system prompt with MAPPA TOOL
-        """
-        from langchain_core.messages import SystemMessage
-
-        messages = state["messages"]
-        session_id = state["session_id"]
-
-        logger.info(f"[REACT] Call Model with {len(messages)} messages, session: {session_id}")
-
-        try:
-            # Prepend system prompt to messages
-            messages_with_prompt = [SystemMessage(content=self.react_system_prompt)] + messages
-
-            # Invoke model with tools bound
-            response = await self.react_model_with_tools.ainvoke(messages_with_prompt)
-
-            # Append response to state messages
-            state["messages"].append(response)
-
-            logger.info(f"[REACT] Model response: {str(response.content)[:100]}")
-
-        except Exception as e:
-            logger.error(f"[REACT] Call Model failed: {e}")
-            state["error"] = str(e)
-
-        return state
-
-    def route_react_loop(self, state: MilhenaState) -> str:
-        """
-        Routing function for ReAct loop (v3.2 flattened)
-        Decides whether to execute tools or finish loop
-
-        CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper
-        """
-        from langchain_core.messages import HumanMessage, ToolMessage
-
-        messages = state["messages"]
-        last_message = messages[-1]
-
-        # Find last HumanMessage to check for deep-dive keywords
-        last_human_msg = None
-        for msg in reversed(messages):
-            if isinstance(msg, HumanMessage):
-                last_human_msg = msg
-                break
-
-        if last_human_msg:
-            user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
-
-            # Count tool messages in current conversation
-            tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
-
-            deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
-            is_deep_dive = any(kw in user_text for kw in deep_keywords)
-
-            logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
-
-            # If user wants deep dive AND called <3 tools → CONTINUE LOOP
-            if is_deep_dive and tool_count < 3:
-                logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
-                # Continue to tools if model wants to call them
-                # (we can't force it, but we prevent early termination)
-
-        # Standard termination logic
-        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-            logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools)")
-            return "execute_tools"
-        else:
-            logger.info("[REACT] No tools needed, routing to mask_response")
-            return "mask_response"
-
-    @traceable(
-        name="MilhenaReActAgent_DEPRECATED",
-        run_type="chain",
-        metadata={"component": "react_agent_deprecated", "version": "3.1"}
+        metadata={"component": "react_agent", "version": "3.0"}
     )
     async def execute_react_agent(self, state: MilhenaState) -> MilhenaState:
         """
