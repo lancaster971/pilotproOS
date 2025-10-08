@@ -229,19 +229,44 @@ class ExecutionTracer:
 
         console.print(f"  [green]masked_applied:[/green] {masked}")
 
-    async def trace_execution(self, session_id: str) -> None:
-        """Trace complete execution for a session"""
+    async def trace_execution(self, run_id: str) -> None:
+        """Trace complete execution from LangSmith run"""
+        import aiohttp
+        import os
 
-        # Get checkpoint
-        key = f"{CHECKPOINT_PREFIX}{session_id}"
-        data = await self.redis_client.get(key)
+        api_key = os.getenv("LANGSMITH_API_KEY", "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")
 
-        if not data:
-            console.print(f"[red]❌ Session '{session_id}' not found[/red]")
+        # Get run details from LangSmith
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"https://api.smith.langchain.com/runs/{run_id}",
+                    headers={"x-api-key": api_key}
+                ) as response:
+                    if response.status != 200:
+                        console.print(f"[red]❌ LangSmith run '{run_id}' not found[/red]")
+                        return
+
+                    run_data = await response.json()
+
+        except Exception as e:
+            console.print(f"[red]❌ Error fetching run: {e}[/red]")
             return
 
-        state = json.loads(data)
-        channel_values = state.get("channel_values", {})
+        # Extract data from LangSmith run
+        query = str(run_data.get("inputs", {})).get("query", "N/A")[:100]
+        response_text = str(run_data.get("outputs", {})).get("response", "N/A")[:200]
+        intent = run_data.get("outputs", {}).get("intent", "N/A")
+
+        # Simplified state extraction (LangSmith doesn't have full channel_values)
+        channel_values = {
+            "query": query,
+            "intent": intent,
+            "response": response_text,
+            "supervisor_decision": {},
+            "tools_used": [],
+            "messages": []
+        }
 
         # Header
         query = channel_values.get("query", "N/A")
@@ -383,7 +408,7 @@ class ExecutionTracer:
         return None
 
     async def send_query(self, query: str) -> Optional[str]:
-        """Send query to Intelligence Engine and return session ID"""
+        """Send query to Intelligence Engine and return run ID from LangSmith"""
         import aiohttp
 
         # Generate session ID
@@ -404,26 +429,60 @@ class ExecutionTracer:
 
                     if response.status == 200:
                         console.print(f"[green]✅ Response received[/green]")
-                        # Wait for checkpoint to be saved
-                        console.print(f"[dim]Waiting for checkpoint...[/dim]")
+                        console.print(f"[dim]Fetching trace from LangSmith...[/dim]\n")
 
-                        # Poll for checkpoint (max 10 seconds)
-                        for i in range(20):
-                            await asyncio.sleep(0.5)
-                            # Check if checkpoint exists
-                            checkpoint_exists = await self.redis_client.exists(f"{CHECKPOINT_PREFIX}{session_id}")
-                            if checkpoint_exists:
-                                console.print(f"[green]✅ Checkpoint found![/green]\n")
-                                return session_id
+                        # Wait for LangSmith trace to be uploaded
+                        await asyncio.sleep(2)
 
-                        console.print(f"[yellow]⚠️  Checkpoint not saved (timeout)[/yellow]\n")
-                        return session_id  # Return anyway, trace will show error
+                        # Get latest run from LangSmith
+                        run_id = await self.get_latest_langsmith_run(query)
+
+                        if run_id:
+                            console.print(f"[green]✅ LangSmith trace found: {run_id[:8]}...[/green]\n")
+                            return run_id
+                        else:
+                            console.print(f"[yellow]⚠️  LangSmith trace not found yet[/yellow]\n")
+                            return None
                     else:
                         console.print(f"[red]❌ Error: {result}[/red]")
                         return None
 
         except Exception as e:
             console.print(f"[red]❌ Request failed: {e}[/red]")
+            return None
+
+    async def get_latest_langsmith_run(self, query: str) -> Optional[str]:
+        """Get latest LangSmith run ID for query"""
+        import aiohttp
+        import os
+
+        api_key = os.getenv("LANGSMITH_API_KEY", "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")
+        project_name = os.getenv("LANGSMITH_PROJECT", "milhena-v3-production")
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    "https://api.smith.langchain.com/runs",
+                    params={
+                        "project": project_name,
+                        "limit": 5,
+                        "order": "-start_time"
+                    },
+                    headers={"x-api-key": api_key}
+                ) as response:
+                    if response.status == 200:
+                        runs = await response.json()
+                        # Find run matching our query
+                        for run in runs:
+                            run_inputs = run.get("inputs", {})
+                            if query[:50] in str(run_inputs):
+                                return run["id"]
+                        # Return latest if no exact match
+                        if runs:
+                            return runs[0]["id"]
+                    return None
+        except Exception as e:
+            console.print(f"[red]Error fetching LangSmith run: {e}[/red]")
             return None
 
     async def interactive_mode(self):
@@ -445,11 +504,11 @@ class ExecutionTracer:
                     continue
 
                 # Send query
-                session_id = await self.send_query(query)
+                run_id = await self.send_query(query)
 
-                if session_id:
-                    # Trace execution
-                    await self.trace_execution(session_id)
+                if run_id:
+                    # Trace execution from LangSmith
+                    await self.trace_execution(run_id)
                     console.print("\n" + "═" * 80 + "\n")
 
         except KeyboardInterrupt:
