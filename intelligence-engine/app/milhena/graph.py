@@ -60,7 +60,54 @@ from app.milhena.business_tools import (
 # Import RAG System for knowledge retrieval
 from app.rag import get_rag_system
 
+# v3.2: Mock Tools Integration for testing without database
+from app.milhena.mock_tools import is_mock_enabled, get_mock_info
+import os
+
 logger = logging.getLogger(__name__)
+
+# v3.2: Wrap tools with mock versions if USE_MOCK_DATA=true
+if is_mock_enabled():
+    logger.warning("=" * 80)
+    logger.warning("⚠️  MOCK DATA ENABLED - Using fake data for testing")
+    logger.warning("   Set USE_MOCK_DATA=false to use real PostgreSQL database")
+    logger.warning("=" * 80)
+
+    # Import mock functions
+    from app.milhena.mock_tools import (
+        get_mock_workflows,
+        get_mock_errors,
+        get_mock_workflow_details,
+        get_mock_statistics,
+        get_mock_executions_by_date
+    )
+
+    # Wrap real tools with mock implementations
+    from langchain_core.tools import tool
+
+    @tool
+    def get_workflows_tool() -> str:
+        """Lista tutti i workflow (MOCK DATA)"""
+        return get_mock_workflows()
+
+    @tool
+    def get_all_errors_summary_tool() -> str:
+        """Errori aggregati per workflow (MOCK DATA)"""
+        return get_mock_errors()
+
+    @tool
+    def get_workflow_details_tool(workflow_name: str) -> str:
+        """Dettagli specifici workflow (MOCK DATA)"""
+        return get_mock_workflow_details(workflow_name)
+
+    @tool
+    def get_full_database_dump(days: int = 7) -> str:
+        """Statistiche complete sistema (MOCK DATA)"""
+        return get_mock_statistics()
+
+    logger.info("✅ Mock tools initialized successfully")
+else:
+    logger.info("✅ Using REAL database tools (PostgreSQL)")
 
 # ============================================================================
 # SUPERVISOR ORCHESTRATOR PROMPT
