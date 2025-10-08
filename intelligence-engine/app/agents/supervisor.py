@@ -221,9 +221,39 @@ Respond with your routing decision."""
 
         logger.info("Supervisor graph compiled")
 
+    def _quick_classify(self, query: str) -> Optional[AgentType]:
+        """
+        Quick pattern matching for common queries (bypasses LLM routing)
+
+        Returns:
+            AgentType if pattern matches, None for LLM routing fallback
+        """
+        q = query.lower().strip()
+
+        # GREETING → Milhena (NO LLM)
+        greetings = {"ciao", "buongiorno", "buonasera", "salve", "hello", "hi", "hey"}
+        if q in greetings:
+            return AgentType.MILHENA
+
+        # HELP → Milhena (NO LLM)
+        if "cosa puoi fare" in q or "help" in q or "aiuto" in q or "che puoi" in q:
+            return AgentType.MILHENA
+
+        # WORKFLOW queries → N8nExpert (NO LLM)
+        workflow_keywords = ["workflow", "processo", "processi", "esecuzione", "esecuzioni", "messaggio"]
+        if any(kw in q for kw in workflow_keywords):
+            return AgentType.N8N_EXPERT
+
+        # ANALYTICS queries → DataAnalyst (NO LLM)
+        analytics_keywords = ["performance", "metriche", "statistiche", "analisi", "andamento", "trend"]
+        if any(kw in q for kw in analytics_keywords):
+            return AgentType.DATA_ANALYST
+
+        return None  # Fallback to LLM routing
+
     @traceable(name="SupervisorAnalyzeQuery")
     async def analyze_query(self, state: SupervisorState) -> SupervisorState:
-        """Analyze the incoming query"""
+        """Analyze the incoming query with fast-path optimization"""
         query = state.get("query", "")
 
         # Extract from messages if needed
@@ -240,15 +270,36 @@ Respond with your routing decision."""
         state["agent_results"] = {}
         state["metadata"] = {
             "timestamp": datetime.now().isoformat(),
-            "query_length": len(query)
+            "query_length": len(query),
+            "fast_path": False
         }
 
-        logger.info(f"Analyzing query: {query[:100]}...")
+        # FAST-PATH: Try quick classification first (bypasses LLM)
+        quick_agent = self._quick_classify(query)
+        if quick_agent:
+            # Create routing decision WITHOUT calling LLM
+            state["routing_decision"] = RoutingDecision(
+                target_agent=quick_agent,
+                reasoning="Fast-path pattern match",
+                confidence=0.95,
+                parallel_agents=None
+            )
+            state["current_agent"] = quick_agent.value.lower()
+            state["metadata"]["fast_path"] = True
+            logger.info(f"[FAST-PATH] Routed to {quick_agent.value} (<50ms, no LLM)")
+            return state
+
+        logger.info(f"Analyzing query (LLM routing): {query[:100]}...")
         return state
 
     @traceable(name="SupervisorRouteToAgent")
     async def route_to_agent(self, state: SupervisorState) -> SupervisorState:
         """Route query to appropriate agent(s)"""
+        # CHECK: If fast-path already set routing, skip LLM
+        if state.get("metadata", {}).get("fast_path"):
+            logger.info("[FAST-PATH] Skipping LLM routing (already decided)")
+            return state
+
         query = state["query"]
         context = state.get("context", {})
 

@@ -20,6 +20,15 @@ from app.tools.n8n_message_tools import (
     get_workflow_execution_history,
     extract_batch_messages
 )
+from app.tools.pilotpro_tools import (
+    smart_workflow_query_tool,
+    smart_executions_query_tool,
+    get_error_details_tool,
+    get_node_execution_details_tool,
+    get_raw_modal_data_tool,
+    get_live_events_tool,
+    get_executions_by_date_tool
+)
 from app.security import MultiLevelMaskingEngine, UserLevel
 
 import logging
@@ -54,8 +63,21 @@ class N8nExpertAgent:
             max_retries=1
         )
 
-        # Specialized tools for n8n operations
+        # Specialized tools for n8n operations (PilotPro tools + n8n tools)
         self.tools = [
+            # Smart Consolidated Tools
+            smart_workflow_query_tool,
+            smart_executions_query_tool,
+            # Error Analysis
+            get_error_details_tool,
+            # Node-Level Details
+            get_node_execution_details_tool,
+            get_raw_modal_data_tool,
+            # Real-Time Monitoring
+            get_live_events_tool,
+            # Execution Queries
+            get_executions_by_date_tool,
+            # n8n Message Extraction
             get_last_message_from_workflow,
             extract_webhook_data,
             search_workflow_messages,

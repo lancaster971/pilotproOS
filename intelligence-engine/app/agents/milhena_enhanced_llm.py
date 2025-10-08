@@ -20,6 +20,13 @@ from app.tools.n8n_message_tools import (
     get_workflow_execution_history,
     extract_batch_messages
 )
+from app.tools.pilotpro_tools import (
+    search_knowledge_base_tool,
+    get_workflows_tool,
+    get_workflow_cards_tool,
+    get_all_errors_summary_tool,
+    get_workflow_details_tool
+)
 from app.security import MultiLevelMaskingEngine, UserLevel
 
 import logging
@@ -55,8 +62,17 @@ class EnhancedMilhenaAgent:
             max_retries=1
         )
 
-        # Tools for the agent
+        # Tools for the agent (PilotPro tools + n8n tools)
         self.tools = [
+            # RAG System
+            search_knowledge_base_tool,
+            # Workflow Management
+            get_workflows_tool,
+            get_workflow_cards_tool,
+            get_workflow_details_tool,
+            # Error Handling
+            get_all_errors_summary_tool,
+            # n8n Message Extraction
             get_last_message_from_workflow,
             extract_webhook_data,
             search_workflow_messages,

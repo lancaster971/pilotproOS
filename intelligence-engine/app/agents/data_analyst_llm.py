@@ -19,6 +19,10 @@ from app.tools.n8n_message_tools import (
     get_workflow_execution_history,
     extract_batch_messages
 )
+from app.tools.pilotpro_tools import (
+    smart_analytics_query_tool,
+    get_chatone_email_details_tool
+)
 from app.database import get_db_connection
 from app.security import MultiLevelMaskingEngine, UserLevel
 
@@ -143,13 +147,19 @@ class DataAnalystAgent:
             max_retries=1
         )
 
-        # Analytics tools
+        # Analytics tools (PilotPro tools + internal tools + n8n tools)
         self.tools = [
+            # Smart Analytics (9-in-1 consolidated)
+            smart_analytics_query_tool,
+            # Email Bot Analytics
+            get_chatone_email_details_tool,
+            # Internal Performance Tools
+            analyze_workflow_performance,
+            get_workflow_trends,
+            # n8n Message Tools
             search_workflow_messages,
             get_workflow_execution_history,
-            extract_batch_messages,
-            analyze_workflow_performance,
-            get_workflow_trends
+            extract_batch_messages
         ]
 
         # Memory
