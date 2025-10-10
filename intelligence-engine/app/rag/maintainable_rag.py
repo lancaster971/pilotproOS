@@ -30,10 +30,10 @@ from chromadb.config import Settings
 
 from app.cache.optimized_embeddings_cache import OptimizedEmbeddingsCache
 from app.security.masking_engine import MultiLevelMaskingEngine, UserLevel
-# REMOVED: from app.rag.nomic_embeddings import NomicEmbeddingFunction
-# Now using Embeddings container via HTTP instead of loading NOMIC in RAM
+# v3.2.2 FIX: Use HTTP client for embeddings instead of loading model in RAM
+from app.rag.embeddings_client import get_embeddings_client
 
-import httpx  # For calling Embeddings container
+import httpx  # For calling Embeddings container (deprecated - use embeddings_client)
 
 logger = logging.getLogger(__name__)
 
@@ -128,11 +128,11 @@ class MaintainableRAGSystem:
             )
         )
 
-        # TEMPORANEO: NOMIC disabilitato per debugging
-        # TODO: Implementare chiamata HTTP al container Embeddings
-        # embedding_func = NomicEmbeddingFunction()
-        embedding_func = None  # ChromaDB userà embeddings di default (sentence-transformers)
-        logger.warning(f"⚠️ NOMIC DISABILITATO - Usando embeddings di default per debugging")
+        # v3.2.2 FIX: Use HTTP client to call Embeddings container API
+        # This prevents loading 500MB+ NOMIC model in Intelligence Engine RAM
+        # Model is loaded ONCE in pilotpros-embeddings-dev container (shared resource)
+        embedding_func = get_embeddings_client(model="nomic")
+        logger.info(f"✅ Using HTTP Embeddings client (model: nomic, API: pilotpros-embeddings-dev:8001)")
 
         # Get or create collection with NOMIC embeddings
         # Best practice per ChromaDB docs: use get_or_create_collection for multi-instance scenarios

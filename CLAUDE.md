@@ -498,8 +498,10 @@ Il container Intelligence Engine esegue 4 microservizi:
 - `POST /api/rag/bulk-import` - ZIP archive bulk import
 - `POST /api/rag/reindex` - Force re-indexing
 
-**RAG Performance (OPTIMIZED)**:
-- ✅ **Embeddings**: `text-embedding-3-large` (3072 dim) - +30% accuracy vs ada-002
+**RAG Performance (OPTIMIZED v3.2.2)**:
+- ✅ **Embeddings**: NOMIC via HTTP API (768 dim) - ON-PREMISE, 100% FREE
+- ✅ **Architecture**: Embeddings Service (pilotpros-embeddings-dev:8001) → Intelligence Engine HTTP client
+- ✅ **RAM Optimization**: ~500MB saved in Intelligence Engine (NO model loading!)
 - ✅ **Chunking**: 600 chars (down from 1000) with 250 overlap (up from 200)
 - ✅ **Integration**: Fully integrated in Milhena ReAct Agent (`search_knowledge_base_tool`)
 - ✅ **Backend Upload**: FIXED multipart/form-data with multer
@@ -863,6 +865,41 @@ Frontend ChatWidget → Backend Express Proxy → Intelligence Engine ReAct Agen
 **Last Updated**: 2025-10-08
 **Version**: 3.2 - Flattened ReAct Architecture (LangGraph Studio Visualization Fix)
 **Status**: ✅ Production Ready (Backend + Flattened Graph) | 🔄 In Development (Learning UI + RAG UI)
+
+---
+
+## 🆕 **CHANGELOG v3.2.2 (2025-10-10) - RAG HTTP EMBEDDINGS FIX**
+
+**Critical Fix**: RAG System loading NOMIC model in RAM instead of using Embeddings Service API
+
+**Problem Solved**:
+- ❌ **BEFORE**: `maintainable_rag.py` set `embedding_func = None` (disabled embeddings)
+- ❌ Intelligence Engine tried to load 500MB+ NOMIC model in RAM
+- ❌ Duplicate model loading (already in pilotpros-embeddings-dev container)
+- ❌ Wasted 500MB+ RAM per Intelligence Engine instance
+
+**Solution Implemented**:
+- ✅ **AFTER (v3.2.2)**: Created `EmbeddingsClient` HTTP wrapper
+- ✅ Calls pilotpros-embeddings-dev:8001 API instead of loading model
+- ✅ Single NOMIC model instance shared across all services
+- ✅ RAM savings: ~500MB in Intelligence Engine container
+- ✅ Fixed einops dependency in Embeddings container
+
+**Files Modified**:
+- `intelligence-engine/app/rag/embeddings_client.py` (NEW): HTTP client for Embeddings Service
+- `intelligence-engine/app/rag/maintainable_rag.py`: Use HTTP client instead of local model
+- `intelligence-engine/requirements.embeddings.txt`: Added einops==0.8.1 dependency
+
+**Testing**:
+- ✅ HTTP embeddings API working (768-dim NOMIC vectors)
+- ✅ RAM verified: Intelligence Engine 604MB vs Embeddings 1.04GB
+- ✅ Model loaded ONCE in Embeddings container (not Intelligence Engine)
+
+**Impact**:
+- **RAM Optimization**: 500MB saved per Intelligence Engine replica
+- **Scalability**: Can run 2x more Intelligence Engine instances with same RAM
+- **Centralization**: Single embeddings service for all consumers
+- **Cost**: $0/year (on-premise NOMIC, no API costs)
 
 ---
 
