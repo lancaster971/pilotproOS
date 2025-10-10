@@ -1413,6 +1413,33 @@ Usa terminologia business, evita tecnicismi."""
             if normalized in self.learned_patterns:
                 pattern_info = self.learned_patterns[normalized]
                 logger.info(f"[AUTO-LEARNED-MATCH] '{normalized}' → {pattern_info['category']} (accuracy={pattern_info['accuracy']:.2f})")
+
+                # UPDATE USAGE COUNTER (asyncpg best practice: use pool.execute for fire-and-forget UPDATEs)
+                # Official docs: https://magicstack.github.io/asyncpg/current/usage.html#connection-pools
+                # Pattern: Pool.execute() acquires connection automatically and commits immediately
+                if self.db_pool is not None:
+                    try:
+                        # Schedule UPDATE in background (non-blocking)
+                        # asyncpg Pool.execute() usage: awaitable but fire-and-forget safe for metrics
+                        import asyncio
+                        asyncio.create_task(
+                            self.db_pool.execute(
+                                """
+                                UPDATE pilotpros.auto_learned_patterns
+                                SET times_used = times_used + 1,
+                                    last_used_at = NOW()
+                                WHERE normalized_pattern = $1
+                                """,
+                                normalized
+                            )
+                        )
+                        # Update in-memory cache for immediate reflection
+                        pattern_info['times_used'] += 1
+                        logger.debug(f"[USAGE-COUNTER] Incremented times_used for '{normalized}' (now {pattern_info['times_used']})")
+                    except Exception as e:
+                        # Non-critical error: log but don't block pattern matching
+                        logger.warning(f"[USAGE-COUNTER] Failed to update times_used for '{normalized}': {e}")
+
                 return {
                     "action": "tool",  # Assume learned patterns require database
                     "category": pattern_info['category'],
