@@ -878,8 +878,25 @@ Usa terminologia business, evita tecnicismi."""
         self.react_system_prompt = react_system_prompt
         self.react_tools = react_tools
 
-        # v3.2: Add [TOOL] ReAct Execute Tools node NOW (after react_tools is defined)
-        graph.add_node("[TOOL] ReAct Execute Tools", ToolNode(react_tools))
+        # v3.2: Add [TOOL] ReAct Execute Tools node with logging wrapper
+        async def logged_tool_node(state: MilhenaState) -> MilhenaState:
+            """Wrapper for ToolNode that logs tool calls and results"""
+            from langchain_core.messages import ToolMessage
+
+            # Execute tools
+            tool_node = ToolNode(react_tools)
+            result_state = await tool_node.ainvoke(state)
+
+            # Log tool executions
+            for msg in result_state.get("messages", []):
+                if isinstance(msg, ToolMessage):
+                    tool_name = msg.name if hasattr(msg, 'name') else "unknown"
+                    content_preview = str(msg.content)[:150] if hasattr(msg, 'content') else "N/A"
+                    logger.info(f"[TOOL EXECUTED] {tool_name} → {content_preview}...")
+
+            return result_state
+
+        graph.add_node("[TOOL] ReAct Execute Tools", logged_tool_node)
 
         logger.info("✅ ReAct Agent flattened into main graph (12 tools, deep-dive enabled, visualization-friendly)")
 
@@ -2223,7 +2240,8 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         # Standard termination logic
         if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-            logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools)")
+            tool_names = [tc.get("name", "unknown") if isinstance(tc, dict) else getattr(tc, "name", "unknown") for tc in last_message.tool_calls]
+            logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools): {', '.join(tool_names)}")
             return "execute_tools"
         else:
             # v3.1: ReAct finished calling tools → go to Responder for synthesis

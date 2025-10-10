@@ -230,7 +230,7 @@ class ExecutionTracer:
         console.print(f"  [green]masked_applied:[/green] {masked}")
 
     async def trace_execution(self, run_id: str) -> None:
-        """Trace complete execution from LangSmith run using SDK"""
+        """Trace complete execution from LangSmith run using REAL child runs"""
         import os
         from langsmith import Client
 
@@ -246,29 +246,66 @@ class ExecutionTracer:
             console.print(f"[red]❌ Error fetching run: {e}[/red]")
             return
 
-        # Extract data from LangSmith run
+        # Wait for LangSmith to save all runs
+        import time
+        from datetime import datetime, timedelta
+        time.sleep(2)
+
+        # Get ALL runs in the project from last minute (includes LLM, tools, etc)
+        all_runs = []
+        try:
+            run_start_time = run.start_time if hasattr(run, 'start_time') else datetime.now()
+
+            # List ALL recent runs (not just children)
+            recent_runs = list(client.list_runs(
+                project_name="milhena-v3-production",
+                start_time=run_start_time - timedelta(seconds=5),  # 5s before to catch everything
+                limit=200
+            ))
+
+            # Filter to runs that are likely part of this execution
+            for r in recent_runs:
+                if hasattr(r, 'start_time') and r.start_time and r.start_time >= run_start_time:
+                    all_runs.append(r)
+
+            console.print(f"[yellow]🔍 Found {len(all_runs)} runs in execution timeline[/yellow]")
+
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Error fetching runs: {e}[/yellow]")
+
+        # Use these as "children" for processing
+        children = all_runs
+
+        # Extract query and response from main run
         inputs = run.inputs if hasattr(run, 'inputs') else {}
         outputs = run.outputs if hasattr(run, 'outputs') else {}
 
-        query = str(inputs.get("query", inputs.get("messages", ["N/A"])))[:100]
-        response_text = str(outputs.get("response", "N/A"))[:200]
-        intent = outputs.get("intent", "N/A")
+        # Try to get query from inputs
+        query = "N/A"
+        if isinstance(inputs, dict):
+            # Priority 1: Direct "query" field
+            if "query" in inputs and isinstance(inputs["query"], str):
+                query = inputs["query"][:100]
+            # Priority 2: messages array
+            elif "messages" in inputs and isinstance(inputs["messages"], list) and inputs["messages"]:
+                # Find last HumanMessage
+                for msg in reversed(inputs["messages"]):
+                    content = None
+                    if isinstance(msg, dict):
+                        # LangChain serialized format
+                        if "kwargs" in msg and isinstance(msg["kwargs"], dict):
+                            content = msg["kwargs"].get("content")
+                        elif "content" in msg:
+                            content = msg["content"]
 
-        # Simplified state extraction
-        channel_values = {
-            "query": query,
-            "intent": intent,
-            "response": response_text,
-            "supervisor_decision": {},
-            "tools_used": [],
-            "messages": []
-        }
+                    if content and isinstance(content, str):
+                        query = content[:100]
+                        break
+
+        response_text = str(outputs.get("response", "N/A"))[:200] if isinstance(outputs, dict) else "N/A"
+        intent = outputs.get("intent", "N/A") if isinstance(outputs, dict) else "N/A"
 
         # Header
-        query = channel_values.get("query", "N/A")
-        intent = channel_values.get("intent", "N/A")
-        response = channel_values.get("response", "N/A")
-
         header = Text()
         header.append("╔" + "═" * 78 + "╗\n", style="bright_cyan")
         header.append("║  ", style="bright_cyan")
@@ -287,59 +324,75 @@ class ExecutionTracer:
         console.print(header)
         console.print()
 
-        # Simulate step-by-step trace
-        # In real implementation, we'd track actual execution flow
+        # Build steps from REAL child runs OR fallback to state extraction
+        steps = []
 
-        steps = [
-            {
-                "num": 1,
-                "name": "[AI] Classifier",
-                "duration": 120,
-                "type": "llm",
-                "input": {"query": query},
-                "output": channel_values.get("supervisor_decision", {})
-            },
-            {
-                "num": 2,
-                "name": "[AI] ReAct Call Model",
-                "duration": 450,
-                "type": "llm",
-                "input": {"query": query, "tools_available": 18},
-                "output": {"tool_selected": channel_values.get("tools_used", [])[0] if channel_values.get("tools_used") else "N/A"}
-            },
-            {
-                "num": 3,
-                "name": "[TOOL] ReAct Execute Tools",
-                "duration": 1500,
-                "type": "tool",
-                "input": {"tool": channel_values.get("tools_used", [])[0] if channel_values.get("tools_used") else "N/A"},
-                "output": {"result": "See tool details below"}
-            },
-            {
-                "num": 4,
-                "name": "[AI] Responder",
-                "duration": 350,
-                "type": "llm",
-                "input": {"query": query, "tool_result": "..."},
-                "output": {"response": response[:100] + "..."}
-            },
-            {
-                "num": 5,
-                "name": "[LIB] Mask Response",
-                "duration": 15,
-                "type": "mask",
-                "input": {"raw_response": response[:50] + "..."},
-                "output": {"masked_response": response[:100] + "..."}
-            },
-            {
-                "num": 6,
-                "name": "[DB] Record Feedback",
-                "duration": 45,
-                "type": "db",
-                "input": {"run_id": run_id[:8]},
-                "output": {"saved": True}
-            }
-        ]
+        if not children and hasattr(run, 'inputs') and isinstance(run.inputs, dict) and 'state' in run.inputs:
+            # FALLBACK: Extract from state when no child runs (checkpointer=None)
+            state = run.inputs['state']
+            output_state = run.outputs.get('output', {}) if hasattr(run, 'outputs') and isinstance(run.outputs, dict) else {}
+
+            # Build pseudo-steps from state messages
+            messages = state.get('messages', []) if isinstance(state, dict) else []
+
+            for i, msg in enumerate(messages, start=1):
+                if isinstance(msg, dict):
+                    msg_type = msg.get('type', 'unknown')
+                    content = msg.get('kwargs', {}).get('content', '') if 'kwargs' in msg else msg.get('content', '')
+
+                    steps.append({
+                        "num": i,
+                        "name": f"[{msg_type.upper()}] Message",
+                        "duration": 0,  # No duration from state
+                        "type": msg_type,
+                        "input": {"content": str(content)[:100]},
+                        "output": {}
+                    })
+
+        # Process REAL child runs if available
+        for i, child in enumerate(sorted(children, key=lambda x: x.start_time if hasattr(x, 'start_time') else 0), start=len(steps) + 1):
+            # Calculate duration
+            duration_ms = 0
+            if hasattr(child, 'total_time') and child.total_time:
+                duration_ms = child.total_time * 1000  # Convert to ms
+            elif hasattr(child, 'end_time') and hasattr(child, 'start_time') and child.end_time and child.start_time:
+                duration_ms = (child.end_time - child.start_time).total_seconds() * 1000
+
+            # Extract clean inputs
+            child_inputs = {}
+            if hasattr(child, 'inputs') and isinstance(child.inputs, dict):
+                for key, value in child.inputs.items():
+                    # Handle HumanMessage/AIMessage objects
+                    if isinstance(value, list) and value and isinstance(value[0], dict) and 'content' in value[0]:
+                        child_inputs[key] = value[0]['content'][:100]
+                    elif isinstance(value, dict) and 'content' in value:
+                        child_inputs[key] = value['content'][:100]
+                    elif isinstance(value, (str, int, float, bool)):
+                        child_inputs[key] = value
+                    else:
+                        child_inputs[key] = str(value)[:100]
+
+            # Extract clean outputs
+            child_outputs = {}
+            if hasattr(child, 'outputs') and isinstance(child.outputs, dict):
+                for key, value in child.outputs.items():
+                    if isinstance(value, list) and value and isinstance(value[0], dict) and 'content' in value[0]:
+                        child_outputs[key] = value[0]['content'][:200]
+                    elif isinstance(value, dict) and 'content' in value:
+                        child_outputs[key] = value['content'][:200]
+                    elif isinstance(value, (str, int, float, bool)):
+                        child_outputs[key] = value
+                    else:
+                        child_outputs[key] = str(value)[:200]
+
+            steps.append({
+                "num": i,
+                "name": child.name if hasattr(child, 'name') else f"Step {i}",
+                "duration": int(duration_ms),
+                "type": child.run_type if hasattr(child, 'run_type') else "unknown",
+                "input": child_inputs,
+                "output": child_outputs
+            })
 
         # Render each step
         for step in steps:
@@ -349,31 +402,22 @@ class ExecutionTracer:
             # INPUT
             self.format_input(step["input"])
 
-            # Type-specific details
-            if step["type"] == "llm":
-                self.format_llm_details(step["name"], channel_values)
-            elif step["type"] == "tool":
-                self.format_tool_details(channel_values)
-            elif step["type"] == "mask":
-                self.format_masking_details(channel_values)
-
             # OUTPUT
             self.format_output(step["output"])
 
             console.print("\n" + "─" * 80 + "\n")
 
         # Summary
-        total_duration = sum(s["duration"] for s in steps)
+        total_duration = sum(s["duration"] for s in steps) if steps else 0
 
         summary = Table(title="📊 EXECUTION SUMMARY", show_header=False, box=None)
         summary.add_column(style="bold")
         summary.add_column()
 
-        summary.add_row("Total Duration:", f"{total_duration}ms ({total_duration/1000:.2f}s)")
-        summary.add_row("LLM Calls:", "3 (Classifier, ReAct, Responder)")
-        summary.add_row("Tools Used:", f"{len(channel_values.get('tools_used', []))}")
-        summary.add_row("Messages:", f"{len(channel_values.get('messages', []))}")
-        summary.add_row("Cost Estimate:", "$0.00 (Groq FREE)")
+        summary.add_row("Total Duration:", f"{total_duration}ms ({total_duration/1000:.2f}s)" if total_duration else "N/A")
+        summary.add_row("Total Steps:", f"{len(steps)}")
+        summary.add_row("LLM Calls:", f"{sum(1 for s in steps if s['type'] in ['llm', 'chat'])}")
+        summary.add_row("Tool Calls:", f"{sum(1 for s in steps if s['type'] == 'tool')}")
 
         console.print(summary)
 
@@ -419,7 +463,7 @@ class ExecutionTracer:
                 async with session.post(
                     "http://localhost:8000/api/n8n/agent/customer-support",
                     json={"message": query, "session_id": session_id},
-                    timeout=aiohttp.ClientTimeout(total=30)
+                    timeout=aiohttp.ClientTimeout(total=60)  # Increased to 60s
                 ) as response:
                     result = await response.json()
 
@@ -444,7 +488,9 @@ class ExecutionTracer:
                         return None
 
         except Exception as e:
+            import traceback
             console.print(f"[red]❌ Request failed: {e}[/red]")
+            console.print(f"[red]{traceback.format_exc()}[/red]")
             return None
 
     async def get_latest_langsmith_run(self, query: str) -> Optional[str]:
