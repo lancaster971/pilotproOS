@@ -10,6 +10,20 @@ PilotProOS - Containerized Business Process Operating System
 
 **MANDATORY**: This is the MAIN DOCUMENTATION after cleanup. All docs/ folders were eliminated.
 
+## 🚨 **⚠️ LETTURA OBBLIGATORIA PRIMA DI INIZIARE** ⚠️
+
+**LEGGI SUBITO**: [`TODO-URGENTE.md`](./TODO-URGENTE.md) - Development Roadmap con FIX CRITICI e priorità
+
+Questo documento contiene:
+- 🔴 **FIX CRITICI** (AsyncRedisSaver - checkpointer disabilitato!)
+- 🟠 **Sviluppo prioritario** (Auto-Learning Fast-Path + Hot-Reload)
+- 🟡 **UI Frontend** (Learning Dashboard + Feedback buttons)
+- ⏱️ **Timeline dettagliata** (17-23 ore totali, 3-4 giorni)
+
+**NON INIZIARE SVILUPPO SENZA AVER LETTO TODO-URGENTE.md**
+
+---
+
 **PROJECT STATUS:**
 - ✅ **Milhena v3.1 4-Agent Architecture** - Classifier → ReAct → Response → Masking (LINEAR FLOW)
 - ✅ **18 Smart Tools** - 3 consolidated + 9 specialized + 3 legacy + 3 extra (REAL PostgreSQL data)
@@ -820,10 +834,16 @@ Frontend ChatWidget → Backend Express Proxy → Intelligence Engine ReAct Agen
 
 ## 📚 **KEY DOCUMENTATION FILES**
 
-- **CLAUDE.md** (this file) - Main project guide
+### **⚠️ PRIORITÀ LETTURA**
+1. **TODO-URGENTE.md** 🚨 - **LEGGI PRIMA DI TUTTO** - Development Roadmap + FIX CRITICI
+2. **CLAUDE.md** (this file) - Main project guide
+3. **NICE-TO-HAVE-FEATURES.md** - Feature dettagliate per il futuro
+4. **DEBITO-TECNICO.md** - Template-izzazione post-production
+
+### **Architecture & Implementation**
 - **intelligence-engine/TODO-MILHENA-ARCHITECTURE.md** - ReAct Agent architecture & production deployment
 - **intelligence-engine/TODO-MILHENA-LEARNING-SYSTEM.md** - Continuous learning system implementation
-- **intelligence-engine/app/milhena/graph.py** - Milhena ReAct Agent implementation
+- **intelligence-engine/app/milhena/graph.py** - Milhena ReAct Agent implementation (⚠️ linea 621: checkpointer = None - FIX!)
 - **frontend/src/components/ChatWidget.vue** - Dark theme chat widget
 - **backend/src/routes/milhena.routes.js** - Milhena feedback proxy
 
