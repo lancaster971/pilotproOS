@@ -65,9 +65,49 @@ async def lifespan(app: FastAPI):
     app.state.cache = setup_cache()  # ENABLED: Redis LLM caching for 25x speed improvement
     app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
 
+    # Initialize AsyncRedisSaver for persistent conversation memory (v3.2 FIX)
+    # Pattern from official docs: Use async context manager + asetup()
+    from langgraph.checkpoint.redis import AsyncRedisSaver
+    import os
+
+    redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
+    logger.info(f"🔗 Initializing AsyncRedisSaver: {redis_url}")
+
+    # TTL Configuration (v3.2.1 - Automatic cleanup strategy)
+    # Prevents infinite checkpoint growth in Redis
+    ttl_config = {
+        "default_ttl": 10080,  # 7 days (10080 minutes) - auto-delete old conversations
+        "refresh_on_read": True  # Reset TTL when conversation is accessed (keep active threads)
+    }
+    logger.info(f"⏰ TTL Config: {ttl_config['default_ttl']} minutes (7 days), refresh_on_read={ttl_config['refresh_on_read']}")
+
+    try:
+        # Create async context manager with TTL config
+        redis_checkpointer_cm = AsyncRedisSaver.from_conn_string(
+            redis_url,
+            ttl=ttl_config
+        )
+
+        # Enter context manager to get the actual AsyncRedisSaver instance
+        app.state.redis_checkpointer = await redis_checkpointer_cm.__aenter__()
+
+        # CRITICAL: Initialize Redis indices for checkpointer
+        await app.state.redis_checkpointer.asetup()
+        logger.info("✅ AsyncRedisSaver initialized with Redis indices")
+
+        # Store the context manager for proper cleanup
+        app.state.redis_checkpointer_cm = redis_checkpointer_cm
+    except Exception as e:
+        logger.error(f"❌ AsyncRedisSaver initialization failed: {e}")
+        logger.warning("⚠️  Falling back to MemorySaver (NO persistence)")
+        from langgraph.checkpoint.memory import MemorySaver
+        app.state.redis_checkpointer = MemorySaver()
+        app.state.redis_checkpointer_cm = None
+
     # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
     # Flow: Classifier → ReAct → Response → Masking
-    app.state.milhena = MilhenaGraph()
+    # Pass checkpointer to MilhenaGraph
+    app.state.milhena = MilhenaGraph(checkpointer=app.state.redis_checkpointer)
     logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
 
     # v4.0 GraphSupervisor removed - v3.1 is production
@@ -86,6 +126,15 @@ async def lifespan(app: FastAPI):
 
     # Cleanup
     logger.info("🔄 Shutting down Intelligence Engine...")
+
+    # Close AsyncRedisSaver context manager properly
+    if hasattr(app.state, 'redis_checkpointer_cm') and app.state.redis_checkpointer_cm:
+        try:
+            # Exit async context manager (__aexit__)
+            await app.state.redis_checkpointer_cm.__aexit__(None, None, None)
+            logger.info("✅ AsyncRedisSaver closed gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error closing AsyncRedisSaver: {e}")
 
 def setup_llm():
     """

@@ -1,14 +1,117 @@
 # 🚨 TODO URGENTE - PilotProOS Development Roadmap
 
 > **⚠️ LETTURA OBBLIGATORIA** - Questo documento definisce le priorità di sviluppo e i fix critici per PilotProOS.
-> **Last Updated**: 2025-10-10
-> **Status**: 🔴 FIX CRITICI IN ATTESA
+> **Last Updated**: 2025-10-10 23:15
+> **Status**: ✅ AsyncRedisSaver COMPLETATO | ✅ Bug Classifier RISOLTO | ✅ 10-Turn Test PASSED
 
 ---
 
-## 🚨 **FIX CRITICI** (Blockers Production - 3-4 ore totali)
+## 🚨 **FIX CRITICI** (Blockers Production)
 
-### 1. ⚠️ **AsyncRedisSaver - Memoria Persistente** 🔴 CRITICA
+### 1. ✅ **Classifier Template String Bug** ✅ RISOLTO (2025-10-10)
+
+**Status**: ✅ **RISOLTO** - Template string `.format()` causava KeyError con JSON placeholders
+
+**Problema Originale**:
+```
+Query ambigue causano errore: KeyError: '"action"'
+```
+
+**Sintomi**:
+- ❌ Query corte falliscono: "e quelli inattivi?", "e poi?", "grazie"
+- ❌ Errore: `KeyError: '"action"'` in `CLASSIFIER_PROMPT.format(query=query)`
+- ❌ Error traceback: `File "/app/app/milhena/graph.py", line 1057`
+- ✅ Query esplicite funzionano: "quanti workflow attivi abbiamo?"
+
+**Root Cause Analysis** (VERA CAUSA SCOPERTA):
+1. ❌ **IPOTESI INIZIALE ERRATA**: JSON parsing da LLM Groq (FALSO!)
+2. ✅ **ROOT CAUSE REALE**: Python `.format()` interpreta `{}` nei JSON template come placeholders
+3. CLASSIFIER_PROMPT conteneva: `{{"action": "respond", "category": "DANGER"}}`
+4. Python cerca placeholder chiamato `"action"` → KeyError: '"action"'
+5. ⚠️ Bug appariva PRIMA di chiamare il classifier LLM!
+
+**Soluzione Implementata** (v3.2):
+
+```python
+# intelligence-engine/app/milhena/graph.py:118-178
+
+# FIX: Escape TUTTI i JSON examples con {{ }} per Python .format()
+CLASSIFIER_PROMPT = """Sei un CLASSIFICATORE INTELLIGENTE per Milhena...
+
+Esempio risposta:
+{{"action": "respond", "category": "DANGER", "direct_response": "..."}}  # ← Escaped!
+
+Esempio risposta:
+{{"action": "respond", "category": "HELP", "direct_response": "..."}}    # ← Escaped!
+
+Esempio risposta:
+{{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "..."}}  # ← Escaped!
+
+Query: "{query}"  # ← Questo rimane singolo per .format()
+
+Rispondi SOLO con JSON valido, niente altro.
+"""
+```
+
+**Fix Aggiuntivi Implementati**:
+
+1. **JsonOutputParser** (LangChain ufficiale):
+```python
+# graph.py:565
+self.json_parser = JsonOutputParser()
+
+# graph.py:1065-1068
+chain = self.supervisor_llm | self.json_parser
+classification = await chain.ainvoke(prompt)  # Returns dict, not string!
+```
+
+2. **SupervisorDecision.action** validation fix:
+```python
+# graph.py:204
+action: str = Field(description="respond|react|tool|route")  # Added 'react'
+```
+
+3. **Full traceback logging** (n8n_endpoints.py):
+```python
+except Exception as e:
+    import traceback
+    logger.error(f"Full traceback:\n{traceback.format_exc()}")
+```
+
+**File Modificati**:
+- ✅ `intelligence-engine/app/milhena/graph.py` (lines 118-178, 204, 565, 1059-1085)
+- ✅ `intelligence-engine/app/n8n_endpoints.py` (lines 81-83)
+
+**Testing Results**:
+```bash
+# ✅ Test 1: Ambiguous query
+curl -X POST http://localhost:8000/api/n8n/agent/customer-support \
+  -d '{"message": "e quelli inattivi?", "session_id": "test-fix"}'
+# Result: SUCCESS - "Ecco i processi inattivi: ..."
+
+# ✅ Test 2: 10-turn conversation (test-10-turn-conversation.sh)
+# Result: ALL 10 TURNS PASSED
+# - Turn 3/10: "e quelli inattivi?" → SUCCESS
+# - Turn 6/10: "quando è stato creato?" → SUCCESS
+# - Turn 10/10: "grazie, puoi riassumere tutto?" → SUCCESS
+
+# ✅ Test 3: Redis checkpoint keys
+docker exec pilotpros-redis-dev redis-cli KEYS "*checkpoint*" | wc -l
+# Result: 1214 keys (target was >100)
+```
+
+**Impact**:
+- ✅ **Severity**: RISOLTO - 100% query funzionanti (incluse ambigue)
+- ✅ **User Experience**: OTTIMIZZATO - Conversazioni naturali senza errori
+- ✅ **Persistence**: CONFERMATO - 10+ turn senza degradazione
+- ✅ **Memory**: 1214 checkpoint keys in Redis
+
+**Time Spent**: 4 ore (debugging + 3 fix tentativi + documentazione + testing)
+**Priority**: ✅ COMPLETATO
+
+---
+
+### 2. ✅ **AsyncRedisSaver - Memoria Persistente** ✅ COMPLETATO (2025-10-10)
 
 **Problema Attuale**:
 ```python

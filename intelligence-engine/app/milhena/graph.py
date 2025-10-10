@@ -16,6 +16,7 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.rate_limiters import InMemoryRateLimiter
+from langchain_core.output_parsers import JsonOutputParser
 from langsmith import traceable, Client
 from langsmith.run_trees import RunTree
 import logging
@@ -129,7 +130,7 @@ Query che richiedono info sensibili o tecniche:
 - Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
 
 Esempio risposta:
-{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}
+{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}}
 
 ### 2. HELP/GREETING (💬 risposta diretta)
 Saluti, help, capabilities:
@@ -138,7 +139,7 @@ Saluti, help, capabilities:
 - "grazie", "ok grazie"
 
 Esempio risposta:
-{"action": "respond", "category": "HELP", "direct_response": "Ciao! Sono Milhena, assistente per processi aziendali. Posso aiutarti con stato processi, errori, statistiche e performance. Chiedi pure!"}
+{{"action": "respond", "category": "HELP", "direct_response": "Ciao! Sono Milhena, assistente per processi aziendali. Posso aiutarti con stato processi, errori, statistiche e performance. Chiedi pure!"}}
 
 ### 3. SIMPLE_QUERY (🔧 passa al ReAct - 1 tool)
 Query chiare, un tool basta:
@@ -147,7 +148,7 @@ Query chiare, un tool basta:
 - "quante esecuzioni oggi?"
 
 Esempio risposta:
-{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "get_workflows_tool"}
+{{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "get_workflows_tool"}}
 
 ### 4. COMPLEX_QUERY (🧠 passa al ReAct - multi tool)
 Query che richiedono analisi approfondita:
@@ -156,7 +157,7 @@ Query che richiedono analisi approfondita:
 - "approfondisci processo X"
 
 Esempio risposta:
-{"action": "react", "category": "COMPLEX_QUERY", "hint": "use 3+ tools for complete analysis"}
+{{"action": "react", "category": "COMPLEX_QUERY", "hint": "use 3+ tools for complete analysis"}}
 
 ---
 
@@ -200,7 +201,7 @@ else:
 
 class SupervisorDecision(BaseModel):
     """Supervisor classification decision - FIXED: BaseModel instead of TypedDict (LangGraph compatibility)"""
-    action: str = Field(description="respond|tool|route")
+    action: str = Field(description="respond|react|tool|route")  # v3.2: Added 'react' (used in CLASSIFIER_PROMPT)
     category: str = Field(description="GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS")
     confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
@@ -460,8 +461,17 @@ class MilhenaGraph:
     LangGraph workflow for Milhena Business Assistant
     """
 
-    def __init__(self, config: Optional[MilhenaConfig] = None):
+    def __init__(self, config: Optional[MilhenaConfig] = None, checkpointer=None):
+        """
+        Initialize MilhenaGraph
+
+        Args:
+            config: Optional MilhenaConfig for component initialization
+            checkpointer: Optional checkpointer (AsyncRedisSaver, MemorySaver, etc.)
+                         If None, will create MemorySaver as fallback
+        """
         self.config = config or MilhenaConfig()
+        self.external_checkpointer = checkpointer  # Store externally provided checkpointer
         self._initialize_components()
         self._build_graph()
 
@@ -551,6 +561,9 @@ class MilhenaGraph:
             rate_limiter=openai_rate_limiter
         ) if os.getenv("OPENAI_API_KEY") else None
 
+        # v3.2: JsonOutputParser to handle JSON parsing robustly (FIX: '"action"' error)
+        self.json_parser = JsonOutputParser()
+
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
         logger.info("MilhenaGraph initialized")
 
@@ -609,17 +622,15 @@ class MilhenaGraph:
         graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
         graph.add_edge("[DB] Record Feedback", END)
 
-        # Initialize Redis Checkpointer for PERSISTENT conversation memory
-        # Pattern from official docs: Use Redis client directly (NOT context manager in __init__)
-        # Redis container SEPARATO (redis-dev:6379) - ZERO mixing con n8n database
-
-        redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379")
-
-        # v3.1: Checkpointer DISABLED temporaneamente (AsyncRedisSaver async init issues)
-        # TODO: Fix async initialization for AsyncRedisSaver
-        # For now: Use in-memory checkpointer for execution tracer demo
-        checkpointer = None
-        logger.info("⚠️  NO checkpointer (temporary - using stateless execution for tracer demo)")
+        # v3.2: Use external checkpointer if provided (initialized in main.py lifespan)
+        # This follows the official pattern: async context manager in lifespan + asetup()
+        if self.external_checkpointer:
+            checkpointer = self.external_checkpointer
+            logger.info("✅ Using externally provided checkpointer (from FastAPI lifespan)")
+        else:
+            # Fallback: Create MemorySaver if no external checkpointer provided
+            logger.warning("⚠️  No external checkpointer provided - using MemorySaver (in-memory only)")
+            checkpointer = MemorySaver()
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
@@ -1045,26 +1056,22 @@ Usa terminologia business, evita tecnicismi."""
         # v3.1: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
         prompt = CLASSIFIER_PROMPT.format(query=query)
 
+        logger.error(f"🔍 [DEBUG] About to classify with LLM - query: '{query}'")
+
         try:
-            # Try GROQ first (free + fast)
+            # v3.2: Use JsonOutputParser with LangChain pipe operator (FIX: '"action"' error)
             if self.supervisor_llm:
-                logger.info("[CLASSIFIER v3.1] Using GROQ")
-                response = await self.supervisor_llm.ainvoke(prompt)
+                logger.info("[CLASSIFIER v3.2] Using GROQ + JsonOutputParser")
 
-                # v3.1: Clean JSON response (remove markdown wrappers)
-                content = response.content.strip()
-                logger.error(f"[DEBUG] GROQ RAW response: {content[:200]}")
+                # Create chain: LLM | JsonOutputParser (official LangChain pattern)
+                chain = self.supervisor_llm | self.json_parser
 
-                if content.startswith("```json"):
-                    content = content.replace("```json", "").replace("```", "").strip()
-                elif content.startswith("```"):
-                    content = content.replace("```", "").strip()
+                # Invoke chain (returns parsed dict, NOT string)
+                classification = await chain.ainvoke(prompt)
 
-                logger.error(f"[DEBUG] GROQ CLEANED: {content[:200]}")
+                logger.error(f"[DEBUG] GROQ classification (JsonOutputParser): type={type(classification)}, value={classification}")
 
-                classification = json.loads(content)
-
-                # FIX: Add default 'action' if missing (LLM sometimes omits it)
+                # Validate required field 'action' (FIX: LLM sometimes omits it)
                 if "action" not in classification:
                     # Infer action from category
                     category = classification.get("category", "")
@@ -1077,42 +1084,48 @@ Usa terminologia business, evita tecnicismi."""
                     logger.warning(f"[FIX] Added missing 'action' field: {classification['action']}")
 
                 classification["llm_used"] = "groq"
-                logger.info(f"[CLASSIFIER v3.1] GROQ: {classification.get('category')} action={classification.get('action')}")
+                logger.info(f"[CLASSIFIER v3.2] GROQ: {classification.get('category')} action={classification.get('action')}")
             else:
                 raise Exception("GROQ not available")
 
         except Exception as e:
             # Fallback to OpenAI
-            logger.warning(f"[CLASSIFIER v3.1] GROQ failed: {e}, using OpenAI")
+            logger.warning(f"[CLASSIFIER v3.2] GROQ failed: {e}, using OpenAI")
 
-            if self.supervisor_fallback:
-                response = await self.supervisor_fallback.ainvoke(prompt)
+            try:
+                if self.supervisor_fallback:
+                    logger.info("[CLASSIFIER v3.2] Using OpenAI + JsonOutputParser")
 
-                # Clean JSON
-                content = response.content.strip()
-                if content.startswith("```json"):
-                    content = content.replace("```json", "").replace("```", "").strip()
+                    # Create chain: LLM | JsonOutputParser (same pattern as Groq)
+                    chain = self.supervisor_fallback | self.json_parser
 
-                classification = json.loads(content)
+                    # Invoke chain (returns parsed dict, NOT string)
+                    classification = await chain.ainvoke(prompt)
 
-                # FIX: Add default 'action' if missing (same as GROQ fallback)
-                if "action" not in classification:
-                    category = classification.get("category", "")
-                    if category in ["DANGER", "HELP", "GREETING"]:
-                        classification["action"] = "respond"
-                    elif category in ["COMPLEX_QUERY"]:
-                        classification["action"] = "react"
-                    else:
-                        classification["action"] = "react"  # Default to ReAct for safety
-                    logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
+                    logger.error(f"[DEBUG] OpenAI classification (JsonOutputParser): type={type(classification)}, value={classification}")
 
-                classification["llm_used"] = "openai-nano"
-                logger.info(f"[CLASSIFIER v3.1] OpenAI: {classification.get('category')} action={classification.get('action')}")
-            else:
-                # Ultimate fallback: rule-based
+                    # Validate 'action' field
+                    if "action" not in classification:
+                        category = classification.get("category", "")
+                        if category in ["DANGER", "HELP", "GREETING"]:
+                            classification["action"] = "respond"
+                        elif category in ["COMPLEX_QUERY"]:
+                            classification["action"] = "react"
+                        else:
+                            classification["action"] = "react"
+                        logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
+
+                    classification["llm_used"] = "openai-nano"
+                    logger.info(f"[CLASSIFIER v3.2] OpenAI: {classification.get('category')} action={classification.get('action')}")
+                else:
+                    raise Exception("OpenAI not available")
+
+            except Exception as openai_err:
+                # Ultimate fallback: rule-based (when BOTH Groq AND OpenAI fail)
+                logger.error(f"[CLASSIFIER v3.2] OpenAI ALSO failed: {openai_err}")
                 classification = self._fallback_classification(query)
                 classification["llm_used"] = "rule-based"
-                logger.warning("[SUPERVISOR] Using rule-based fallback")
+                logger.warning("[CLASSIFIER v3.2] Using rule-based fallback (both LLMs failed)")
 
         # STEP 3: Save decision
         try:

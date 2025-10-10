@@ -78,7 +78,9 @@ async def n8n_customer_support(request: N8nRequest):
         )
 
     except Exception as e:
+        import traceback
         logger.error(f"n8n endpoint error: {str(e)}")
+        logger.error(f"Full traceback:\n{traceback.format_exc()}")
         return N8nResponse(
             response="Si è verificato un errore nell'elaborazione della richiesta.",
             status="error",

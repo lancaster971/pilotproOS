@@ -457,11 +457,12 @@ MAPPA TOOL (scegli in base alla domanda):
 + `search_knowledge_base_tool` - RAG
 + `get_full_database_dump` - Dump completo
 
-**Conversation Memory v3.1**:
-- **Checkpointer**: `AsyncRedisSaver()` - PERSISTENT, infinite TTL
+**Conversation Memory v3.2.1**:
+- **Checkpointer**: `AsyncRedisSaver()` - PERSISTENT with 7-day TTL
 - **Storage**: Redis Stack (redis-dev:6379) - ISOLATED, NO mixing n8n DB
 - **Persistence**: Survives restarts, NO degradation 10+ turns
-- **Keys**: 500+ checkpoint keys in Redis
+- **TTL Strategy**: Auto-cleanup after 7 days, `refresh_on_read=True` for active conversations
+- **Keys**: 1214+ checkpoint keys (with automatic expiration management)
 
 ### **Microservices Architecture**
 
