@@ -3238,7 +3238,7 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
       console.log('Could not parse sticky notes:', e);
     }
 
-    // 3. Get latest executions with ALL available business data including data items count
+    // 3. Get latest executions from n8n.execution_entity (NO business_execution_data - not needed)
     const executionsResult = await dbPool.query(
       `SELECT
         ee.id,
@@ -3247,27 +3247,19 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
         ee."stoppedAt",
         ee.mode,
         EXTRACT(EPOCH FROM (ee."stoppedAt" - ee."startedAt")) * 1000 as duration_ms,
-        CASE
-          WHEN bed.raw_output_data IS NOT NULL
-            AND jsonb_typeof(bed.raw_output_data::jsonb) = 'array'
-          THEN jsonb_array_length(bed.raw_output_data::jsonb)
-          ELSE 1
-        END as data_items_count,
-        bed.ai_response,
-        bed.email_subject,
-        bed.email_sender,
-        bed.email_content,
-        bed.ai_classification,
-        bed.order_id,
-        bed.order_customer,
-        bed.business_category,
-        bed.business_summary,
-        bed.raw_output_data,
-        bed.available_fields
+        1 as data_items_count,
+        NULL as ai_response,
+        NULL as email_subject,
+        NULL as email_sender,
+        NULL as email_content,
+        NULL as ai_classification,
+        NULL as order_id,
+        NULL as order_customer,
+        NULL as business_category,
+        NULL as business_summary,
+        NULL as raw_output_data,
+        NULL as available_fields
        FROM n8n.execution_entity ee
-       LEFT JOIN pilotpros.business_execution_data bed
-         ON ee.id::text = bed.execution_id::text
-         AND bed.workflow_id = $1
        WHERE ee."workflowId" = $1
        ORDER BY ee."startedAt" DESC
        LIMIT 500`,
@@ -3320,37 +3312,27 @@ app.get('/api/business/dashboard/:workflowId', async (req, res) => {
     );
 
     // 4. Get aggregated business data
-    const businessDataResult = await dbPool.query(
-      `SELECT
-        COUNT(DISTINCT execution_id) as total_executions,
-        COUNT(DISTINCT order_id) as total_orders,
-        COUNT(DISTINCT email_sender) as unique_senders,
-        COUNT(CASE WHEN ai_response IS NOT NULL THEN 1 END) as ai_responses,
-        COUNT(CASE WHEN email_content IS NOT NULL THEN 1 END) as emails_processed,
-        AVG(data_size) as avg_data_size
-       FROM pilotpros.business_execution_data
-       WHERE workflow_id = $1`,
-      [workflowId]
-    );
+    // Get aggregated business data from executions (NO business_execution_data needed)
+    const businessDataResult = { rows: [{
+      total_executions: executionsResult.rows.length,
+      total_orders: 0,
+      unique_senders: 0,
+      ai_responses: 0,
+      emails_processed: 0,
+      avg_data_size: 0
+    }]};
 
-    // 5. Get recent AI responses and emails for overview
-    const recentActivityResult = await dbPool.query(
-      `SELECT
-        show_tag,
-        business_category,
-        ai_classification,
-        LEFT(ai_response, 500) as ai_response_preview,
-        email_subject,
-        LEFT(email_content, 300) as email_preview,
-        order_id,
-        extracted_at
-       FROM pilotpros.business_execution_data
-       WHERE workflow_id = $1
-         AND (ai_response IS NOT NULL OR email_content IS NOT NULL)
-       ORDER BY extracted_at DESC
-       LIMIT 10`,
-      [workflowId]
-    );
+    // Get recent activity from executions (simplified - no AI/email fields)
+    const recentActivityResult = { rows: executionsResult.rows.slice(0, 10).map(exec => ({
+      show_tag: `exec-${exec.id}`,
+      business_category: exec.status === 'success' ? 'Completed' : 'Failed',
+      ai_classification: null,
+      ai_response_preview: null,
+      email_subject: null,
+      email_preview: null,
+      order_id: null,
+      extracted_at: exec.startedAt
+    })) };
 
     // Universal Business Data Interpreter - works for ANY workflow
     const interpretBusinessData = (row) => {

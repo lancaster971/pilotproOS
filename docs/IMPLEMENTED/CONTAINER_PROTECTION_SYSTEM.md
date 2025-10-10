@@ -7,7 +7,7 @@
 Evitare i lunghi tempi di rebuild (5-15 minuti) e i problemi di dependency hell per i container personalizzati:
 - **Frontend**: Vue 3 + TypeScript + Vite
 - **Backend**: Express + JWT + Auth
-- **Agent Engine**: CrewAI 0.193.2 + Milhena v4.0
+- **Agent Engine**: LangGraph 0.6.7 + Milhena v3.1
 
 ## 🔒 CONTAINER BLINDATI
 

@@ -30,7 +30,10 @@ from chromadb.config import Settings
 
 from app.cache.optimized_embeddings_cache import OptimizedEmbeddingsCache
 from app.security.masking_engine import MultiLevelMaskingEngine, UserLevel
-from app.rag.nomic_embeddings import NomicEmbeddingFunction
+# v3.2.2 FIX: Use HTTP client for embeddings instead of loading model in RAM
+from app.rag.embeddings_client import get_embeddings_client
+
+import httpx  # For calling Embeddings container (deprecated - use embeddings_client)
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +128,11 @@ class MaintainableRAGSystem:
             )
         )
 
-        # Initialize NOMIC embedding function (100% FREE on-premise!)
-        embedding_func = NomicEmbeddingFunction()
-        logger.info(f"✅ NOMIC embedding function configured (FREE on-premise!)")
+        # v3.2.2 FIX: Use HTTP client to call Embeddings container API
+        # This prevents loading 500MB+ NOMIC model in Intelligence Engine RAM
+        # Model is loaded ONCE in pilotpros-embeddings-dev container (shared resource)
+        embedding_func = get_embeddings_client(model="nomic")
+        logger.info(f"✅ Using HTTP Embeddings client (model: nomic, API: pilotpros-embeddings-dev:8001)")
 
         # Get or create collection with NOMIC embeddings
         # Best practice per ChromaDB docs: use get_or_create_collection for multi-instance scenarios
@@ -148,7 +153,7 @@ class MaintainableRAGSystem:
         except Exception as e:
             # ChromaDB may raise exception even with get_or_create in concurrent scenarios
             if "already exists" in str(e).lower():
-                # This is expected in multi-instance setup (API + GraphSupervisor)
+                # This is expected in multi-instance setup (API + MilhenaGraph)
                 logger.info(f"ℹ️  Collection '{collection_name}' already exists, retrieving...")
                 self.collection = self.chroma_client.get_collection(
                     name=collection_name,

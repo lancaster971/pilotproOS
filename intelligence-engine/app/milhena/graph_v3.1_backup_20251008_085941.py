@@ -5,7 +5,6 @@ FULL LANGSMITH TRACING ENABLED
 """
 from typing import List, Dict, Any, Optional, Annotated
 from typing_extensions import TypedDict
-from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.graph.message import add_messages
@@ -16,7 +15,6 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.rate_limiters import InMemoryRateLimiter
-from langchain_core.output_parsers import JsonOutputParser
 from langsmith import traceable, Client
 from langsmith.run_trees import RunTree
 import logging
@@ -62,121 +60,299 @@ from app.milhena.business_tools import (
 # Import RAG System for knowledge retrieval
 from app.rag import get_rag_system
 
-# v3.2: Mock Tools Integration for testing without database
-from app.milhena.mock_tools import is_mock_enabled, get_mock_info
-import os
-
 logger = logging.getLogger(__name__)
-
-# v3.2: Wrap tools with mock versions if USE_MOCK_DATA=true
-if is_mock_enabled():
-    logger.warning("=" * 80)
-    logger.warning("⚠️  MOCK DATA ENABLED - Using fake data for testing")
-    logger.warning("   Set USE_MOCK_DATA=false to use real PostgreSQL database")
-    logger.warning("=" * 80)
-
-    # Import mock functions
-    from app.milhena.mock_tools import (
-        get_mock_workflows,
-        get_mock_errors,
-        get_mock_workflow_details,
-        get_mock_statistics,
-        get_mock_executions_by_date
-    )
-
-    # Wrap real tools with mock implementations
-    from langchain_core.tools import tool
-
-    @tool
-    def get_workflows_tool() -> str:
-        """Lista tutti i workflow (MOCK DATA)"""
-        return get_mock_workflows()
-
-    @tool
-    def get_all_errors_summary_tool() -> str:
-        """Errori aggregati per workflow (MOCK DATA)"""
-        return get_mock_errors()
-
-    @tool
-    def get_workflow_details_tool(workflow_name: str) -> str:
-        """Dettagli specifici workflow (MOCK DATA)"""
-        return get_mock_workflow_details(workflow_name)
-
-    @tool
-    def get_full_database_dump(days: int = 7) -> str:
-        """Statistiche complete sistema (MOCK DATA)"""
-        return get_mock_statistics()
-
-    logger.info("✅ Mock tools initialized successfully")
-else:
-    logger.info("✅ Using REAL database tools (PostgreSQL)")
 
 # ============================================================================
 # SUPERVISOR ORCHESTRATOR PROMPT
 # ============================================================================
 
-CLASSIFIER_PROMPT = """Sei un CLASSIFICATORE INTELLIGENTE per Milhena, Business Process Assistant.
+SUPERVISOR_PROMPT = """# 🧠 SUPERVISOR ORCHESTRATOR PROMPT – MILHENA
 
-COMPITO: Analizzare la query e decidere come gestirla (VELOCE <100ms).
-
----
-
-## 🎯 CLASSIFICAZIONI (priorità in ordine)
-
-### 1. DANGER (⛔ BLOCCA - risposta diretta)
-Query che richiedono info sensibili o tecniche:
-- Password, credenziali, token, API key
-- "dammi password database", "utenti e password"
-- Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
-
-Esempio risposta:
-{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}}
-
-### 2. HELP/GREETING (💬 risposta diretta)
-Saluti, help, capabilities:
-- "ciao", "buongiorno", "hey"
-- "cosa puoi fare per me?", "come funzioni?", "aiutami", "help"
-- "grazie", "ok grazie"
-
-Esempio risposta:
-{{"action": "respond", "category": "HELP", "direct_response": "Ciao! Sono Milhena, assistente per processi aziendali. Posso aiutarti con stato processi, errori, statistiche e performance. Chiedi pure!"}}
-
-### 3. SIMPLE_QUERY (🔧 passa al ReAct - 1 tool)
-Query chiare, un tool basta:
-- "quali processi abbiamo?"
-- "ci sono errori?"
-- "quante esecuzioni oggi?"
-
-Esempio risposta:
-{{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "get_workflows_tool"}}
-
-### 4. COMPLEX_QUERY (🧠 passa al ReAct - multi tool)
-Query che richiedono analisi approfondita:
-- "analizza performance ultimo mese"
-- "report completo errori"
-- "approfondisci processo X"
-
-Esempio risposta:
-{{"action": "react", "category": "COMPLEX_QUERY", "hint": "use 3+ tools for complete analysis"}}
+Sei un **agente di orchestrazione intelligente**, il **CERVELLO** del sistema **Milhena**, Business Process Assistant.
+Il tuo obiettivo è **restituire SEMPRE un JSON valido** che classifichi la query utente e determini l'azione corretta, ottimizzando **velocità**, **chiarezza** e **coerenza**.
 
 ---
 
-## ⚡ REGOLE
+## 🎯 TUA MISSIONE PRINCIPALE: FORNIRE DATI SUI WORKFLOW
 
-1. DANGER ha priorità assoluta
-2. HELP è semplice - saluti e "cosa puoi fare" → respond
-3. Se dubbio tra simple/complex → SIMPLE
-4. **OBBLIGATORIO**: Campo "action" SEMPRE presente (respond o react)
-5. direct_response OBBLIGATORIA se action=respond
-6. suggested_tool utile per guidare ReAct
+**WORKFLOW = ANIMA DI PILOTPRO**
+- I workflow sono il cuore del business dell'utente
+- Il tuo compito è FORNIRE DATI PRECISI su workflow, esecuzioni, errori, statistiche
+- È MEGLIO fornire dati approssimativi che chiedere chiarimenti
+- Anche query vaghe come "come va?" → interroga il database per dare risposte concrete
+
+**TERMINOLOGIA BUSINESS (CRITICA - NON VIOLARE MAI)**:
+- ✅ USA SEMPRE: processo, esecuzione, elaborazione, errore applicativo, sistema
+- ❌ MAI NOMINARE: n8n, postgres, langchain, docker, redis, nginx, kubernetes, container, database
+
+Questi termini tecnici verranno mascherati automaticamente DOPO la tua risposta.
+
+**PRIORITÀ ASSOLUTA**:
+1. Query su workflow/processi/esecuzioni/errori → **SEMPRE** `action: tool` + `needs_database: true`
+2. Anche query generiche ("tutto ok?", "come va?") → interroga database
+3. CLARIFICATION solo se tecnicamente impossibile interpretare (es: "ciao come è andata?" senza context)
 
 ---
 
-Query: "{query}"
+## 🎯 OBIETTIVO
+Analizza ogni query utente (e la cronologia chat) e:
+1. **Classifica** la richiesta in una categoria chiara
+2. **Scegli** una delle tre azioni disponibili (`respond`, `tool`, `route`)
+3. **Fornisci** la risposta o le istruzioni per l'orchestrazione
+4. **Rispondi SOLO con JSON valido**, nessun testo extra
 
-Rispondi SOLO con JSON valido, niente altro.
+---
+
+## 📥 INPUT
+**Query corrente**: "{query}"
+**Conversazione precedente**: {chat_history}
+**Contesto aggiuntivo**: {context}
+
+## 💬 GESTIONE CONTESTO CONVERSAZIONE
+
+**CRITICAL PRIORITY**: Se la query contiene pronomi o riferimenti temporali vaghi, **USA SEMPRE LA CRONOLOGIA**
+
+**Riferimenti anaforici (PRIORITY 1)**:
+- "e ieri?", "e oggi?", "e domani?" → Inferisci topic dall'ultimo messaggio HUMAN
+- "anche quello", "lo stesso", "pure" → Ripeti topic precedente
+- "questo", "quello", "la cosa" → Cerca referente in cronologia
+
+**Come inferire topic**:
+1. Trova ultimo messaggio Human in cronologia
+2. Estrai il **sostantivo chiave** (ordini, errori, fatture, processi, utenti, etc.)
+3. **Combina** sostantivo + nuovo contesto temporale
+
+**Esempi PRATICI (da seguire ESATTAMENTE)**:
+- User: "quanti ordini oggi?" → Milhena: "(risposta)" → User: "e ieri?"
+  → **INFERISCI**: "quanti ordini ieri?" → SIMPLE_METRIC (NON clarification!)
+
+- User: "ci sono errori?" → Milhena: "(risposta)" → User: "anche oggi?"
+  → **INFERISCI**: "ci sono errori anche oggi?" → SIMPLE_STATUS
+
+- User: "ciao" → Milhena: "ciao!" → User: "come è andato?"
+  → **AMBIGUO**: history non ha topic → CLARIFICATION_NEEDED
+
+**REGOLA D'ORO**: Se cronologia contiene topic chiaro (ordini, errori, fatture, processi, PilotPro, sistema, architettura) → NON chiedere clarification, continua topic
+
+**DOMANDE GENERICHE CON CONTESTO**:
+- User: "come è organizzata l'architettura di PilotPro?" → Milhena: "(risposta)" → User: "utilizza intelligenza artificiale?"
+  → **INFERISCI**: "PilotPro utilizza intelligenza artificiale?" (NON parlare di te stessa Milhena!)
+  → Usa RAG per cercare informazioni su PilotPro + AI
+
+**IMPORTANTE**: Se l'ultimo topic era un sistema/prodotto (PilotPro, sistema X, etc.), domande generiche si riferiscono A QUEL SISTEMA, non a Milhena!
+
+---
+
+## 🧭 MATRICE DI DECISIONE RAPIDA
+
+| Tipo di Query                               | Azione   | Categoria            | Output Atteso               |
+|--------------------------------------------|----------|----------------------|-----------------------------|
+| Saluti o convenevoli                       | respond  | GREETING             | Risposta cortese            |
+| Richieste di credenziali o dati sensibili  | respond  | DANGER               | Blocco sicurezza            |
+| Query vaga o incompleta                    | respond  | CLARIFICATION_NEEDED | Domanda con opzioni         |
+| Domanda chiara sullo stato del sistema     | tool     | SIMPLE_STATUS        | Query al DB status          |
+| Domanda chiara su numeri/metriche          | tool     | SIMPLE_METRIC        | Query al DB metrica         |
+| Analisi complessa o richiesta articolata   | route    | COMPLEX_ANALYSIS     | Pipeline completa (RAG etc) |
+
+---
+
+## ⚙️ LE TUE 3 AZIONI DISPONIBILI
+
+### ACTION: `"respond"`
+**Quando**: puoi rispondere direttamente senza tool o pipeline
+**Casi**:
+- **GREETING**: "ciao", "grazie"
+- **DANGER**: "password database"
+- **CLARIFICATION**: query vaga ("come è andata oggi?")
+- **PATTERN APPRESO**: query già vista con risposta nota
+**Risultato**: `direct_response` testuale
+**Latenza target**: <1000ms
+
+---
+
+### ACTION: `"tool"`
+**Quando**: serve un dato specifico da DB/API
+**Casi**:
+- **SIMPLE_STATUS**: "tutto ok?"
+- **SIMPLE_METRIC**: "quante fatture oggi?"
+**Risultato**: Query DB → risposta → fine
+**Latenza target**: <1500ms
+
+---
+
+### ACTION: `"route"`
+**Quando**: query complessa o analisi approfondita
+**Casi**:
+- "analizza trend performance ultimo mese"
+- "perché workflow è lento?"
+- slang complesso non interpretabile subito
+**Risultato**: Disambiguate → RAG → Generate → fine
+**Latenza target**: <3500ms
+
+---
+
+## 📚 CATEGORIE
+
+### GREETING
+- **Azione**: respond
+- **Esempi**: "ciao", "grazie"
+- **Risposta**: `"Ciao! Come posso aiutarti con i processi aziendali?"`
+
+### DANGER
+- **Azione**: respond
+- **Esempi**: "password database", "credenziali"
+- **Risposta**: `"Non posso fornire informazioni sensibili. Contatta il team IT."`
+
+### CLARIFICATION_NEEDED
+- **Azione**: respond
+- **Quando**: query vaga, ambigua, o manca contesto
+- **Trigger Ambiguity Types** (basato su CLAMBER research):
+  - **Semantic**: "info sul sistema", "come va", "dimmi tutto" (manca specificità)
+  - **Who**: "dammi dati utente" (quale utente?)
+  - **When**: "errori recenti" (quanto recenti?)
+  - **What**: "mostrami report" (quale report?)
+  - **Where**: "processi" (quali processi?)
+- **Risposta**: domanda + 3-5 opzioni con emoji
+- **Esempio**:
+```
+Da quale punto di vista vuoi sapere come è andata oggi?
+📊 Status generale sistema
+❌ Errori e problemi
+✅ Successi
+📈 Metriche
+🔄 Esecuzioni
+```
+- **CRITICAL**: Preferisci CLARIFICATION over simple classification - è meglio chiedere che rispondere male
+
+### SIMPLE_STATUS
+- **Azione**: tool
+- **Tool**: `query_system_status_tool`
+- **Esempi**: "sistema ok?", "tutto funziona?"
+
+### SIMPLE_METRIC
+- **Azione**: tool
+- **Tool**: `query_business_data_tool`
+- **Esempi**: "quante fatture oggi?", "quanti utenti?"
+
+### COMPLEX_ANALYSIS
+- **Azione**: route
+- **Esempi**: "analizza trend ultimo mese", "perché workflow è lento?"
+
+---
+
+## 🎓 LEARNING INTEGRATION
+Se nel contesto ci sono `learned_patterns` con:
+- `confidence ≥ 0.7`
+- `count ≥ 2`
+→ Usa direttamente quel pattern → **action = respond**
+
+---
+
+## 💬 DISAMBIGUAZIONE SLANG
+Traduci slang in linguaggio business:
+
+| Slang         | Business Meaning            |
+|---------------|-----------------------------|
+| "a puttane"   | problemi critici            |
+| "casino"      | situazione disorganizzata   |
+| "rotto"       | non funzionante             |
+| "workflow"    | processo aziendale          |
+
+- Se slang semplice con contesto → disambigua subito
+- Se slang complesso → usa `route` con nodo di disambiguazione
+
+---
+
+## 🧩 OUTPUT JSON RICHIESTO
+
+⚠️ Rispondi **SOLO** con JSON valido (nessun markdown, nessun testo extra)
+
+```json
+{{
+  "action": "respond|tool|route",
+  "category": "GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS",
+  "confidence": 0.95,
+  "reasoning": "spiegazione decisione (max 40 parole)",
+  "direct_response": "testo se action=respond, altrimenti null",
+  "needs_rag": true/false,
+  "needs_database": true/false,
+  "clarification_options": ["opz1", "opz2", "opz3"] o null
+}}
+```
+
+---
+
+## 📚 QUANDO USARE RAG vs DATABASE
+
+**needs_rag = true** quando la domanda riguarda:
+- **Cos'è PilotProOS?** → Panoramica sistema
+- **Come funziona...?** → Documentazione/guide
+- **PilotPro utilizza AI?** → Caratteristiche sistema
+- **FAQ generali** → Domande frequenti
+- **Troubleshooting** → "Cosa faccio se...?"
+
+**needs_database = true** quando la domanda riguarda:
+- **Quali processi...?** → Elenco workflow live
+- **Quante esecuzioni...?** → Statistiche real-time
+- **Ci sono errori...?** → Status errori correnti
+- **Quando è stato eseguito...?** → Timestamp specifici
+- **Processo X funziona?** → Status specifico workflow
+
+**Entrambi true** quando serve sia contesto che dati:
+- "Cosa fa il processo X?" → RAG (descrizione) + DB (status)
+
+**REGOLA CRITICA**:
+- Domande su WORKFLOW SPECIFICI → `needs_database: true` (priorità DB!)
+- Domande su SISTEMA/CONCETTI → `needs_rag: true`
+
+## 🔄 TEMPLATE DI FALLBACK
+Usa questo se non sei sicuro:
+```json
+{{
+  "action": "respond",
+  "category": "CLARIFICATION_NEEDED",
+  "confidence": 0.50,
+  "reasoning": "Query non classificabile, meglio chiedere chiarimenti",
+  "direct_response": "Puoi chiarire meglio cosa intendi?",
+  "needs_rag": false,
+  "needs_database": false,
+  "clarification_options": null
+}}
+```
+
+---
+
+## 🧠 PRIORITÀ (ordinata per importanza)
+1. **DANGER** → blocca subito (massima priorità)
+2. **LEARNED PATTERN** → rispondi diretto (se confidence ≥ 0.7)
+3. **GREETING** → rispondi cortese (solo se inequivocabile: "ciao", "grazie")
+4. **SIMPLE_*/DATABASE_QUERY** → usa tool (anche con confidence >= 0.6) ⚠️ PRIORITÀ ALTA
+5. **COMPLEX_ANALYSIS** → pipeline completa se serve analisi approfondita
+6. **CLARIFICATION_NEEDED** → ultima risorsa (solo se impossibile interpretare)
+
+## 🔍 WHEN TO TRIGGER CLARIFICATION_NEEDED
+**⚠️ ATTENZIONE: Usa CLARIFICATION solo come ULTIMA RISORSA**
+
+**CASI AMMESSI (molto rari)**:
+- Queries generiche SENZA topic chiaro: "come è andata?" (senza contesto)
+- Pronomi vaghi SENZA cronologia: "questo", "quello" (primo messaggio)
+- SOLO se tecnicamente impossibile inferire: nessun topic in cronologia + query ambigua
+
+**⚠️ NON USARE CLARIFICATION PER**:
+- "errori" → interroga DB per errori recenti (action: tool)
+- "come va" → interroga DB per status generale (action: tool)
+- "workflow" / "processi" → interroga DB (action: tool)
+- "oggi" / "ieri" → usa timestamp automaticamente (action: tool)
+- Query vaghe MA su topic workflow → SEMPRE tool
+
+**REGOLA D'ORO NUOVA**: Se la query menziona workflow/processi/esecuzioni/errori → SEMPRE `action: tool`
+
+**Regola d'oro**: minimizza latenza → preferisci `respond` quando possibile.
+
+---
+
+Rispondi SOLO con JSON valido. NO markdown blocks. NO testo extra.
 """
-
 
 # ============================================================================
 # LANGSMITH CONFIGURATION FOR MILHENA
@@ -199,16 +375,16 @@ else:
 # STATE DEFINITION - Following LangGraph best practices
 # ============================================================================
 
-class SupervisorDecision(BaseModel):
-    """Supervisor classification decision - FIXED: BaseModel instead of TypedDict (LangGraph compatibility)"""
-    action: str = Field(description="respond|react|tool|route")  # v3.2: Added 'react' (used in CLASSIFIER_PROMPT)
-    category: str = Field(description="GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS")
-    confidence: float = Field(ge=0.0, le=1.0)
+class SupervisorDecision(TypedDict):
+    """Supervisor classification decision"""
+    action: str  # respond|tool|route
+    category: str  # GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS
+    confidence: float
     reasoning: str
-    direct_response: Optional[str] = None
-    needs_rag: bool = False
-    needs_database: bool = False
-    clarification_options: Optional[List[str]] = None
+    direct_response: Optional[str]
+    needs_rag: bool
+    needs_database: bool
+    clarification_options: Optional[List[str]]
     llm_used: str
 
 class MilhenaState(TypedDict):
@@ -461,51 +637,10 @@ class MilhenaGraph:
     LangGraph workflow for Milhena Business Assistant
     """
 
-    def __init__(self, config: Optional[MilhenaConfig] = None, checkpointer=None):
-        """
-        Initialize MilhenaGraph
-
-        Args:
-            config: Optional MilhenaConfig for component initialization
-            checkpointer: Optional checkpointer (AsyncRedisSaver, MemorySaver, etc.)
-                         If None, will create MemorySaver as fallback
-        """
+    def __init__(self, config: Optional[MilhenaConfig] = None):
         self.config = config or MilhenaConfig()
-        self.external_checkpointer = checkpointer  # Store externally provided checkpointer
         self._initialize_components()
         self._build_graph()
-
-    async def async_init(self):
-        """
-        Async initialization for components requiring async setup (DB pool, pattern loading).
-        Must be called after __init__ from FastAPI lifespan.
-
-        Usage in main.py:
-            milhena_graph = MilhenaGraph(checkpointer=checkpointer)
-            await milhena_graph.async_init()
-        """
-        import asyncpg
-        import os
-
-        # Create asyncpg connection pool
-        try:
-            db_url = os.getenv("DATABASE_URL", "postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db")
-            self.db_pool = await asyncpg.create_pool(
-                db_url,
-                min_size=2,
-                max_size=10,
-                max_inactive_connection_lifetime=300.0,
-                command_timeout=60.0
-            )
-            logger.info("[AUTO-LEARN] asyncpg connection pool created (min=2, max=10)")
-
-            # Load learned patterns from database
-            await self._load_learned_patterns()
-
-        except Exception as e:
-            logger.error(f"[AUTO-LEARN] Failed to create DB pool: {e}")
-            self.db_pool = None
-            self.learned_patterns = {}
 
     def _initialize_components(self):
         """Initialize all Milhena components"""
@@ -516,12 +651,6 @@ class MilhenaGraph:
         self.learning_system = LearningSystem()
         self.token_manager = TokenManager()
         self.cache_manager = CacheManager(self.config)
-
-        # Initialize PostgreSQL connection pool for auto-learning
-        # asyncpg best practice: share pool, not connections
-        # Reference: https://magicstack.github.io/asyncpg/current/usage.html
-        self.db_pool = None
-        self.learned_patterns = {}  # In-memory cache of learned patterns
 
         # Initialize RAG System for knowledge retrieval
         try:
@@ -599,9 +728,6 @@ class MilhenaGraph:
             rate_limiter=openai_rate_limiter
         ) if os.getenv("OPENAI_API_KEY") else None
 
-        # v3.2: JsonOutputParser to handle JSON parsing robustly (FIX: '"action"' error)
-        self.json_parser = JsonOutputParser()
-
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
         logger.info("MilhenaGraph initialized")
 
@@ -610,65 +736,98 @@ class MilhenaGraph:
         # Create the graph
         graph = StateGraph(MilhenaState)
 
-        # v3.1 MICROSERVICES ARCHITECTURE - 6 Nodes (PDF Best Practices)
-        # 3 AI Agents: Classifier → ReAct (tools only) → Responder (synthesis)
+        # Add nodes with CLEAR PREFIXES
+        # NEW: Rephraser pre-check nodes (lightweight, rule-based)
+        graph.add_node("[REPHRASER] Check Ambiguity", self.check_ambiguity)
+        graph.add_node("[REPHRASER] Rephrase Query", self.rephrase_query)
 
-        # Agent 1: Classifier (interprets ALL queries, NO whitelist)
-        graph.add_node("[AI] Classifier", self.supervisor_orchestrator)
+        # NEW: Supervisor as entry point
+        graph.add_node("[SUPERVISOR] Route Query", self.supervisor_orchestrator)
 
-        # Agent 2: ReAct (ONLY calls tools, returns RAW data)
-        graph.add_node("[AI] ReAct Call Model", self.react_call_model)
-        # NOTE: [TOOL] Execute Tools added after react_tools definition
-
-        # Agent 3: Responder (ONLY synthesizes user-friendly response from tool data)
-        graph.add_node("[AI] Responder", self.generate_final_response)
-
-        # Libraries: Masking & Persistence
+        # EXISTING nodes (NON TOCCARE)
+        # NOTE: [CODE] Check Cache removed - Supervisor handles routing directly
+        graph.add_node("[LEARNING] Apply Patterns", self.apply_learned_patterns)
+        graph.add_node("[AGENT] Disambiguate", self.disambiguate_query)
+        graph.add_node("[AGENT] Analyze Intent", self.analyze_intent)
+        graph.add_node("[RAG] Retrieve Context", self.retrieve_rag_context)
+        # NEW: Replace hardcoded database_query with intelligent ReAct agent
+        graph.add_node("[TOOL] Database Query", self.execute_react_agent)
+        graph.add_node("[AGENT] Generate Response", self.generate_response)
         graph.add_node("[LIB] Mask Response", self.mask_response)
-        graph.add_node("[DB] Record Feedback", self.record_feedback)
+        graph.add_node("[CODE] Record Feedback", self.record_feedback)
+        graph.add_node("[CODE] Handle Error", self.handle_error)
 
-        # v3.1 MICROSERVICES ROUTING (clean separation of concerns)
+        # NEW ENTRY POINT: Rephraser check BEFORE ReAct Agent
+        # Pattern: Ambiguity Check → (if ambiguous) Rephrase → ReAct Agent
+        graph.set_entry_point("[REPHRASER] Check Ambiguity")
 
-        # ENTRY POINT: Classifier (interprets ALL queries with LLM)
-        graph.set_entry_point("[AI] Classifier")
-
-        # Classifier decides: respond directly OR use ReAct
+        # NEW: Conditional routing from Rephraser Check
         graph.add_conditional_edges(
-            "[AI] Classifier",
-            self.route_supervisor_simplified,
+            "[REPHRASER] Check Ambiguity",
+            self.route_after_ambiguity_check,
             {
-                "react": "[AI] ReAct Call Model",       # Queries needing tools
-                "respond": "[LIB] Mask Response"        # Direct response (HELP/DANGER)
+                "rephrase": "[REPHRASER] Rephrase Query",  # Query ambigua → rephrase
+                "proceed": "[TOOL] Database Query"  # Query chiara → direct to ReAct
             }
         )
 
-        # ReAct loop (Call Model ↔ Execute Tools - returns RAW data)
+        # After rephrasing, always proceed to ReAct Agent
+        graph.add_edge("[REPHRASER] Rephrase Query", "[TOOL] Database Query")
+
+        # NEW: Conditional routing from Supervisor
         graph.add_conditional_edges(
-            "[AI] ReAct Call Model",
-            self.route_react_loop,
+            "[SUPERVISOR] Route Query",
+            self.route_from_supervisor,
             {
-                "execute_tools": "[TOOL] ReAct Execute Tools",
-                "responder": "[AI] Responder"           # v3.1: Go to Responder when done
+                "mask_response": "[LIB] Mask Response",  # Direct responses (GREETING, DANGER, CLARIFICATION)
+                "database_query": "[TOOL] Database Query",  # Simple queries (skip Disambiguate, RAG)
+                "apply_patterns": "[LEARNING] Apply Patterns"  # Complex queries (full pipeline)
             }
         )
-        graph.add_edge("[TOOL] ReAct Execute Tools", "[AI] ReAct Call Model")
 
-        # Responder synthesizes final response
-        graph.add_edge("[AI] Responder", "[LIB] Mask Response")
+        # EXISTING edges (NON TOCCARE - pipeline rimane identica)
+        graph.add_edge("[LEARNING] Apply Patterns", "[AGENT] Disambiguate")
+        graph.add_edge("[AGENT] Disambiguate", "[AGENT] Analyze Intent")
 
-        # Final edges
-        graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
-        graph.add_edge("[DB] Record Feedback", END)
+        graph.add_conditional_edges(
+            "[AGENT] Analyze Intent",
+            self.route_from_intent,
+            {
+                "technical": "[CODE] Handle Error",
+                "needs_data": "[RAG] Retrieve Context",
+                "business": "[AGENT] Generate Response"
+            }
+        )
 
-        # v3.2: Use external checkpointer if provided (initialized in main.py lifespan)
-        # This follows the official pattern: async context manager in lifespan + asetup()
-        if self.external_checkpointer:
-            checkpointer = self.external_checkpointer
-            logger.info("✅ Using externally provided checkpointer (from FastAPI lifespan)")
-        else:
-            # Fallback: Create MemorySaver if no external checkpointer provided
-            logger.warning("⚠️  No external checkpointer provided - using MemorySaver (in-memory only)")
-            checkpointer = MemorySaver()
+        # RAG retrieves context, then goes to DB query or direct response
+        graph.add_conditional_edges(
+            "[RAG] Retrieve Context",
+            self.route_after_rag,
+            {
+                "needs_db": "[TOOL] Database Query",
+                "has_answer": "[AGENT] Generate Response"
+            }
+        )
+
+        # SIMPLIFIED: ReAct Agent genera risposta autonomamente, va diretto a masking
+        graph.add_edge("[TOOL] Database Query", "[LIB] Mask Response")
+
+        graph.add_edge("[AGENT] Generate Response", "[LIB] Mask Response")
+        graph.add_edge("[LIB] Mask Response", "[CODE] Record Feedback")
+        graph.add_edge("[CODE] Record Feedback", END)
+        graph.add_edge("[CODE] Handle Error", END)
+
+        # Initialize Redis Checkpointer for PERSISTENT conversation memory
+        # Pattern from official docs: Use Redis client directly (NOT context manager in __init__)
+        # Redis container SEPARATO (redis-dev:6379) - ZERO mixing con n8n database
+
+        redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379")
+
+        # LangGraph Studio compatibility: NO custom checkpointer
+        # When running via `langgraph dev`, the platform manages persistence automatically
+        # and rejects graphs compiled with custom checkpointers
+        checkpointer = None
+        logger.info("✅ NO checkpointer (LangGraph Studio manages persistence automatically)")
 
         # Initialize ReAct Agent for tool calling with conversation memory
         # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
@@ -921,33 +1080,80 @@ Rispondere in modo chiaro e utile, sempre basandoti su dati ottenuti via tool.
 Quando user chiede approfondimento, fornisci ANALISI COMPLETA con dati da MULTIPLI tool.
 Usa terminologia business, evita tecnicismi."""
 
-        # FLATTENED REACT LOGIC: Nodes added directly to main graph (v3.2 - Visualization Fix)
-        # Store react model and tools as instance variables for node methods
-        self.react_model_with_tools = react_model.bind_tools(react_tools)
-        self.react_system_prompt = react_system_prompt
-        self.react_tools = react_tools
+        # CUSTOM LOOP: Replace create_react_agent with controlled multi-tool loop
+        # Reason: Force multiple tool calls when user asks to "dig deeper"
 
-        # v3.2: Add [TOOL] ReAct Execute Tools node with logging wrapper
-        async def logged_tool_node(state: MilhenaState) -> MilhenaState:
-            """Wrapper for ToolNode that logs tool calls and results"""
-            from langchain_core.messages import ToolMessage
+        # Build custom ReAct loop with controlled termination
+        react_graph = StateGraph(MessagesState)
 
-            # Execute tools
-            tool_node = ToolNode(react_tools)
-            result_state = await tool_node.ainvoke(state)
+        # Bind tools to model
+        model_with_tools = react_model.bind_tools(react_tools)
 
-            # Log tool executions
-            for msg in result_state.get("messages", []):
-                if isinstance(msg, ToolMessage):
-                    tool_name = msg.name if hasattr(msg, 'name') else "unknown"
-                    content_preview = str(msg.content)[:150] if hasattr(msg, 'content') else "N/A"
-                    logger.info(f"[TOOL EXECUTED] {tool_name} → {content_preview}...")
+        def call_model_node(state: MessagesState):
+            """Call LLM with tools and system prompt"""
+            # Prepend system prompt to messages
+            messages_with_prompt = [SystemMessage(content=react_system_prompt)] + state["messages"]
+            response = model_with_tools.invoke(messages_with_prompt)
+            return {"messages": [response]}
 
-            return result_state
+        def should_continue_react(state: MessagesState):
+            """
+            Decide if loop should continue.
+            CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper.
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
 
-        graph.add_node("[TOOL] ReAct Execute Tools", logged_tool_node)
+            # Find last HumanMessage to check for deep-dive keywords
+            last_human_msg = None
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_human_msg = msg
+                    break
 
-        logger.info("✅ ReAct Agent flattened into main graph (12 tools, deep-dive enabled, visualization-friendly)")
+            if last_human_msg:
+                user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
+
+                # Count tool messages in current conversation
+                tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
+
+                deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
+                is_deep_dive = any(kw in user_text for kw in deep_keywords)
+
+                logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
+
+                # If user wants deep dive AND called <3 tools → CONTINUE LOOP
+                if is_deep_dive and tool_count < 3:
+                    logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
+                    # Return to model to force another tool call
+                    # (we can't force specific tools, but we prevent termination)
+
+            # Standard termination logic
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                return "execute_tools"
+            else:
+                return END
+
+        # Add nodes
+        react_graph.add_node("call_model", call_model_node)
+        react_graph.add_node("execute_tools", ToolNode(react_tools))
+
+        # Add edges
+        react_graph.set_entry_point("call_model")
+        react_graph.add_conditional_edges(
+            "call_model",
+            should_continue_react,
+            {
+                "execute_tools": "execute_tools",
+                END: END
+            }
+        )
+        react_graph.add_edge("execute_tools", "call_model")
+
+        # Compile custom ReAct agent with checkpointer
+        self.react_agent = react_graph.compile(checkpointer=checkpointer)
+
+        logger.info("✅ Custom ReAct Agent with controlled multi-tool loop (12 tools, deep-dive enabled)")
 
         # Compile the graph with checkpointer for memory
         self.compiled_graph = graph.compile(
@@ -1038,10 +1244,10 @@ Usa terminologia business, evita tecnicismi."""
             logger.error(f"🎯 [DEBUG] INSTANT MATCH: {instant['category']} - needs_db={instant.get('needs_database')}, needs_rag={instant.get('needs_rag')}")
             logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
             decision = SupervisorDecision(**instant)
-            state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
+            state["supervisor_decision"] = decision
             state["waiting_clarification"] = False
-            if decision.direct_response:
-                state["response"] = decision.direct_response
+            if decision["direct_response"]:
+                state["response"] = decision["direct_response"]
             return state
 
         # STEP 1: Check Learning System (pattern già appresi)
@@ -1063,7 +1269,7 @@ Usa terminologia business, evita tecnicismi."""
                 clarification_options=None,
                 llm_used="learning-system"
             )
-            state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
+            state["supervisor_decision"] = decision
             state["waiting_clarification"] = False
             return state
 
@@ -1091,115 +1297,41 @@ Usa terminologia business, evita tecnicismi."""
         # Additional context (metadata, etc.)
         context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
 
-        # v3.1: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
-        prompt = CLASSIFIER_PROMPT.format(query=query)
-
-        logger.error(f"🔍 [DEBUG] About to classify with LLM - query: '{query}'")
+        prompt = SUPERVISOR_PROMPT.format(
+            query=query,
+            chat_history=chat_history_str,
+            context=context_str
+        )
 
         try:
-            # v3.2: Use JsonOutputParser with LangChain pipe operator (FIX: '"action"' error)
+            # Try GROQ first (free + fast)
             if self.supervisor_llm:
-                logger.info("[CLASSIFIER v3.2] Using GROQ + JsonOutputParser")
-
-                # Create chain: LLM | JsonOutputParser (official LangChain pattern)
-                chain = self.supervisor_llm | self.json_parser
-
-                # Invoke chain (returns parsed dict, NOT string)
-                classification = await chain.ainvoke(prompt)
-
-                logger.error(f"[DEBUG] GROQ classification (JsonOutputParser): type={type(classification)}, value={classification}")
-
-                # Validate required field 'action' (FIX: LLM sometimes omits it)
-                if "action" not in classification:
-                    # Infer action from category
-                    category = classification.get("category", "")
-                    if category in ["DANGER", "HELP", "GREETING"]:
-                        classification["action"] = "respond"
-                    elif category in ["COMPLEX_QUERY"]:
-                        classification["action"] = "react"
-                    else:
-                        classification["action"] = "react"  # Default to ReAct for safety
-                    logger.warning(f"[FIX] Added missing 'action' field: {classification['action']}")
-
+                logger.info("[SUPERVISOR] Using GROQ for classification")
+                response = await self.supervisor_llm.ainvoke(prompt)
+                classification = json.loads(response.content)
                 classification["llm_used"] = "groq"
-                logger.info(f"[CLASSIFIER v3.2] GROQ: {classification.get('category')} action={classification.get('action')}")
+                logger.info(f"[SUPERVISOR] GROQ: {classification['category']} (conf: {classification['confidence']:.2f})")
             else:
                 raise Exception("GROQ not available")
 
         except Exception as e:
             # Fallback to OpenAI
-            logger.warning(f"[CLASSIFIER v3.2] GROQ failed: {e}, using OpenAI")
+            logger.warning(f"[SUPERVISOR] GROQ failed: {e}, using OpenAI fallback")
 
-            try:
-                if self.supervisor_fallback:
-                    logger.info("[CLASSIFIER v3.2] Using OpenAI + JsonOutputParser")
-
-                    # Create chain: LLM | JsonOutputParser (same pattern as Groq)
-                    chain = self.supervisor_fallback | self.json_parser
-
-                    # Invoke chain (returns parsed dict, NOT string)
-                    classification = await chain.ainvoke(prompt)
-
-                    logger.error(f"[DEBUG] OpenAI classification (JsonOutputParser): type={type(classification)}, value={classification}")
-
-                    # Validate 'action' field
-                    if "action" not in classification:
-                        category = classification.get("category", "")
-                        if category in ["DANGER", "HELP", "GREETING"]:
-                            classification["action"] = "respond"
-                        elif category in ["COMPLEX_QUERY"]:
-                            classification["action"] = "react"
-                        else:
-                            classification["action"] = "react"
-                        logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
-
-                    classification["llm_used"] = "openai-nano"
-                    logger.info(f"[CLASSIFIER v3.2] OpenAI: {classification.get('category')} action={classification.get('action')}")
-                else:
-                    raise Exception("OpenAI not available")
-
-            except Exception as openai_err:
-                # Ultimate fallback: rule-based (when BOTH Groq AND OpenAI fail)
-                logger.error(f"[CLASSIFIER v3.2] OpenAI ALSO failed: {openai_err}")
+            if self.supervisor_fallback:
+                response = await self.supervisor_fallback.ainvoke(prompt)
+                classification = json.loads(response.content)
+                classification["llm_used"] = "openai-nano"
+                logger.info(f"[SUPERVISOR] OpenAI: {classification['category']} (conf: {classification['confidence']:.2f})")
+            else:
+                # Ultimate fallback: rule-based
                 classification = self._fallback_classification(query)
                 classification["llm_used"] = "rule-based"
-                logger.warning("[CLASSIFIER v3.2] Using rule-based fallback (both LLMs failed)")
+                logger.warning("[SUPERVISOR] Using rule-based fallback")
 
         # STEP 3: Save decision
-        try:
-            logger.error(f"[DEBUG] Creating SupervisorDecision with classification: {classification}")
-
-            # FIX: Ensure all required fields exist with defaults
-            required_defaults = {
-                "action": "react",
-                "category": "SIMPLE_QUERY",
-                "confidence": 0.7,
-                "reasoning": "Auto-generated",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": classification.get("llm_used", "unknown")
-            }
-
-            # Merge with defaults (classification wins)
-            full_classification = {**required_defaults, **classification}
-
-            logger.error(f"[DEBUG] FULL classification with defaults: {full_classification}")
-
-            decision_obj = SupervisorDecision(**full_classification)
-            # CRITICAL: Convert BaseModel to dict for LangGraph state compatibility
-            decision = decision_obj.model_dump()
-            state["supervisor_decision"] = decision
-        except Exception as dec_error:
-            logger.error(f"[CRITICAL] Failed to create SupervisorDecision: {dec_error}")
-            logger.error(f"[CRITICAL] Classification keys: {list(classification.keys())}")
-            logger.error(f"[CRITICAL] Classification values: {classification}")
-            raise
-
-        # STEP 3.5: Auto-learn pattern if high confidence (TODO-URGENTE.md)
-        # Call after LLM classification to save high-confidence patterns
-        await self._maybe_learn_pattern(query, classification)
+        decision = SupervisorDecision(**classification)
+        state["supervisor_decision"] = decision
 
         # STEP 4: Handle waiting clarification
         if decision["category"] == "CLARIFICATION_NEEDED":
@@ -1403,53 +1535,6 @@ Usa terminologia business, evita tecnicismi."""
                     "needs_database": False,
                     "clarification_options": None,
                     "llm_used": "fast-path"
-                }
-
-        # AUTO-LEARNED PATTERNS (Priority 1 - HIGHEST PRIORITY AFTER SECURITY CHECKS, BEFORE HARDCODED RULES)
-        # Check learned patterns from database (TODO-URGENTE.md lines 317-335)
-        # Auto-learned patterns have priority over hardcoded fast-path to maximize learning usage
-        if hasattr(self, 'learned_patterns') and self.learned_patterns:
-            normalized = self._normalize_query(query)
-            if normalized in self.learned_patterns:
-                pattern_info = self.learned_patterns[normalized]
-                logger.info(f"[AUTO-LEARNED-MATCH] '{normalized}' → {pattern_info['category']} (accuracy={pattern_info['accuracy']:.2f})")
-
-                # UPDATE USAGE COUNTER (asyncpg best practice: use pool.execute for fire-and-forget UPDATEs)
-                # Official docs: https://magicstack.github.io/asyncpg/current/usage.html#connection-pools
-                # Pattern: Pool.execute() acquires connection automatically and commits immediately
-                if self.db_pool is not None:
-                    try:
-                        # Schedule UPDATE in background (non-blocking)
-                        # asyncpg Pool.execute() usage: awaitable but fire-and-forget safe for metrics
-                        import asyncio
-                        asyncio.create_task(
-                            self.db_pool.execute(
-                                """
-                                UPDATE pilotpros.auto_learned_patterns
-                                SET times_used = times_used + 1,
-                                    last_used_at = NOW()
-                                WHERE normalized_pattern = $1
-                                """,
-                                normalized
-                            )
-                        )
-                        # Update in-memory cache for immediate reflection
-                        pattern_info['times_used'] += 1
-                        logger.debug(f"[USAGE-COUNTER] Incremented times_used for '{normalized}' (now {pattern_info['times_used']})")
-                    except Exception as e:
-                        # Non-critical error: log but don't block pattern matching
-                        logger.warning(f"[USAGE-COUNTER] Failed to update times_used for '{normalized}': {e}")
-
-                return {
-                    "action": "tool",  # Assume learned patterns require database
-                    "category": pattern_info['category'],
-                    "confidence": pattern_info['confidence'],
-                    "reasoning": f"Auto-learned pattern match (used {pattern_info['times_used']} times, accuracy {pattern_info['accuracy']:.0%})",
-                    "direct_response": None,
-                    "needs_rag": False,
-                    "needs_database": True,
-                    "clarification_options": None,
-                    "llm_used": "auto-learned-fast-path"
                 }
 
         # WORKFLOW/PROCESS patterns (HIGH PRIORITY - core mission)
@@ -1865,151 +1950,6 @@ Usa terminologia business, evita tecnicismi."""
         return None
 
     # ============================================================================
-    # AUTO-LEARNING FAST-PATH - Pattern Learning System
-    # Reference: TODO-URGENTE.md lines 256-338
-    # ============================================================================
-
-    def _normalize_query(self, query: str) -> str:
-        """
-        Normalize query for pattern matching by removing temporal words and punctuation.
-
-        Examples:
-            "ci sono problemi oggi?" → "ci sono problemi"
-            "ci sono problemi adesso?" → "ci sono problemi"
-            "Workflow attivi OGGI" → "workflow attivi"
-
-        Args:
-            query: Original user query
-
-        Returns:
-            Normalized query string (lowercase, no temporal words, no trailing punctuation)
-        """
-        import string
-
-        query = query.lower().strip()
-
-        # Split and strip punctuation from each word BEFORE temporal word check
-        # This ensures "oggi?" becomes "oggi" and gets removed correctly
-        words = query.split()
-        words = [w.strip(string.punctuation) for w in words]
-
-        # Remove common temporal words (TODO-URGENTE.md line 268)
-        temporal_words = ['oggi', 'adesso', 'ora', 'attualmente', 'ieri', 'domani',
-                         'stamattina', 'stasera', 'questa', 'settimana', 'questo', 'mese']
-        words = [w for w in words if w not in temporal_words and w]  # Also remove empty strings
-
-        # Join and remove any remaining trailing punctuation
-        normalized = ' '.join(words).rstrip('?!.')
-
-        return normalized
-
-    async def _load_learned_patterns(self):
-        """
-        Load auto-learned patterns from PostgreSQL into in-memory cache.
-        Called on __init__ and after new pattern learning.
-
-        Query: SELECT normalized_pattern, category, confidence FROM auto_learned_patterns
-               WHERE enabled = TRUE
-               ORDER BY accuracy DESC
-        """
-        if not hasattr(self, 'db_pool') or self.db_pool is None:
-            logger.warning("[AUTO-LEARN] DB pool not initialized, skipping pattern load")
-            self.learned_patterns = {}
-            return
-
-        try:
-            async with self.db_pool.acquire() as conn:
-                rows = await conn.fetch("""
-                    SELECT normalized_pattern, category, confidence, accuracy, times_used
-                    FROM pilotpros.auto_learned_patterns
-                    WHERE enabled = TRUE
-                    ORDER BY accuracy DESC, times_used DESC
-                """)
-
-                self.learned_patterns = {}
-                for row in rows:
-                    self.learned_patterns[row['normalized_pattern']] = {
-                        'category': row['category'],
-                        'confidence': float(row['confidence']),
-                        'accuracy': float(row['accuracy']),
-                        'times_used': int(row['times_used'])
-                    }
-
-                logger.info(f"[AUTO-LEARN] Loaded {len(self.learned_patterns)} patterns from database")
-
-        except Exception as e:
-            logger.error(f"[AUTO-LEARN] Failed to load patterns: {e}")
-            self.learned_patterns = {}
-
-    async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
-        """
-        Auto-learn new pattern if LLM classification has high confidence (>0.9).
-        Saves to PostgreSQL and updates in-memory cache.
-
-        Args:
-            query: Original user query
-            llm_result: LLM classification result with confidence score
-
-        Logic (TODO-URGENTE.md lines 281-313):
-        1. Check confidence > 0.9
-        2. Normalize query
-        3. Check if pattern already exists
-        4. If new: INSERT into database
-        5. If existing: UPDATE times_used counter
-        """
-        if not hasattr(self, 'db_pool') or self.db_pool is None:
-            return  # Silently skip if DB not available
-
-        # Only learn high-confidence classifications (TODO-URGENTE.md line 284)
-        confidence = llm_result.get('confidence', 0.0)
-        if confidence < 0.9:
-            return
-
-        category = llm_result.get('category', '')
-        if not category:
-            return
-
-        # Normalize query for pattern matching
-        normalized = self._normalize_query(query)
-
-        # Skip very short patterns (< 3 chars)
-        if len(normalized) < 3:
-            return
-
-        try:
-            async with self.db_pool.acquire() as conn:
-                # Check if pattern already exists
-                existing = await conn.fetchrow("""
-                    SELECT id, times_used, times_correct, accuracy
-                    FROM pilotpros.auto_learned_patterns
-                    WHERE normalized_pattern = $1
-                """, normalized)
-
-                if existing:
-                    # Update usage counter (TODO-URGENTE.md lines 297-302)
-                    await conn.execute("""
-                        UPDATE pilotpros.auto_learned_patterns
-                        SET times_used = times_used + 1,
-                            last_used_at = NOW()
-                        WHERE id = $1
-                    """, existing['id'])
-                    logger.info(f"[AUTO-LEARN] Pattern reused: '{normalized}' (times_used={existing['times_used']+1})")
-                else:
-                    # Insert new pattern (TODO-URGENTE.md lines 303-312)
-                    await conn.execute("""
-                        INSERT INTO pilotpros.auto_learned_patterns
-                        (pattern, normalized_pattern, category, confidence, created_by)
-                        VALUES ($1, $2, $3, $4, 'llm')
-                    """, query, normalized, category, confidence)
-                    logger.info(f"[AUTO-LEARN] New pattern saved: '{normalized}' → {category} (confidence={confidence:.2f})")
-
-                    # Reload patterns cache
-                    await self._load_learned_patterns()
-
-        except Exception as e:
-            logger.error(f"[AUTO-LEARN] Failed to save pattern: {e}")
-
-    # ============================================================================
     # REPHRASER NODES - Lightweight pre-check for ambiguous queries
     # ============================================================================
 
@@ -2410,95 +2350,10 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         return state
 
-    # ============================================================================
-    # v3.2 FLATTENED REACT NODES - Direct integration (no nested graph)
-    # ============================================================================
-
     @traceable(
-        name="MilhenaReActCallModel",
+        name="MilhenaReActAgent",
         run_type="chain",
-        metadata={"component": "react_call_model", "version": "3.2"}
-    )
-    async def react_call_model(self, state: MilhenaState) -> MilhenaState:
-        """
-        ReAct Call Model node - Flattened into main graph (v3.2)
-        Calls LLM with tools bound, using custom system prompt with MAPPA TOOL
-        """
-        from langchain_core.messages import SystemMessage
-
-        messages = state["messages"]
-        session_id = state["session_id"]
-
-        logger.info(f"[REACT] Call Model with {len(messages)} messages, session: {session_id}")
-
-        try:
-            # Prepend system prompt to messages
-            messages_with_prompt = [SystemMessage(content=self.react_system_prompt)] + messages
-
-            # Invoke model with tools bound
-            response = await self.react_model_with_tools.ainvoke(messages_with_prompt)
-
-            # Append response to state messages
-            state["messages"].append(response)
-
-            logger.info(f"[REACT] Model response: {str(response.content)[:100]}")
-
-        except Exception as e:
-            logger.error(f"[REACT] Call Model failed: {e}")
-            state["error"] = str(e)
-
-        return state
-
-    def route_react_loop(self, state: MilhenaState) -> str:
-        """
-        Routing function for ReAct loop (v3.2 flattened)
-        Decides whether to execute tools or finish loop
-
-        CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper
-        """
-        from langchain_core.messages import HumanMessage, ToolMessage
-
-        messages = state["messages"]
-        last_message = messages[-1]
-
-        # Find last HumanMessage to check for deep-dive keywords
-        last_human_msg = None
-        for msg in reversed(messages):
-            if isinstance(msg, HumanMessage):
-                last_human_msg = msg
-                break
-
-        if last_human_msg:
-            user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
-
-            # Count tool messages in current conversation
-            tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
-
-            deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
-            is_deep_dive = any(kw in user_text for kw in deep_keywords)
-
-            logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
-
-            # If user wants deep dive AND called <3 tools → CONTINUE LOOP
-            if is_deep_dive and tool_count < 3:
-                logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
-                # Continue to tools if model wants to call them
-                # (we can't force it, but we prevent early termination)
-
-        # Standard termination logic
-        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-            tool_names = [tc.get("name", "unknown") if isinstance(tc, dict) else getattr(tc, "name", "unknown") for tc in last_message.tool_calls]
-            logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools): {', '.join(tool_names)}")
-            return "execute_tools"
-        else:
-            # v3.1: ReAct finished calling tools → go to Responder for synthesis
-            logger.info("[REACT v3.1] Tools done, routing to Responder for final synthesis")
-            return "responder"
-
-    @traceable(
-        name="MilhenaReActAgent_DEPRECATED",
-        run_type="chain",
-        metadata={"component": "react_agent_deprecated", "version": "3.1"}
+        metadata={"component": "react_agent", "version": "3.0"}
     )
     async def execute_react_agent(self, state: MilhenaState) -> MilhenaState:
         """
@@ -2617,85 +2472,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         return state
 
-    # ============================================================================
-    # v3.1 RESPONDER - Synthesizes user-friendly response from tool data
-    # ============================================================================
-
-    @traceable(
-        name="MilhenaResponder",
-        run_type="chain",
-        metadata={"component": "responder", "version": "4.0"}
-    )
-    async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
-        """
-        v3.1 RESPONDER: Synthesizes final user-friendly response from RAW tool data
-
-        Separation of concerns:
-        - ReAct Agent: ONLY calls tools, returns RAW data
-        - Responder: ONLY synthesizes response from tool data
-        """
-        from langchain_core.messages import AIMessage, ToolMessage
-
-        query = state["query"]
-        messages = state["messages"]
-        classification = state.get("supervisor_decision", {}).get("category", "GENERAL")
-
-        logger.info(f"[RESPONDER] Synthesizing response for: {query[:50]}")
-
-        # Extract tool results from messages
-        tool_results = [msg.content for msg in messages if isinstance(msg, ToolMessage)]
-
-        if not tool_results:
-            logger.warning("[RESPONDER] No tool results found - generating fallback")
-            state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."
-            return state
-
-        # Combine all tool data
-        tool_data_combined = "\n\n".join(tool_results)
-
-        # Build Responder prompt
-        responder_prompt = f"""Sei un RESPONSE GENERATOR per Milhena, assistente processi aziendali.
-
-COMPITO: Sintetizza i dati ricevuti dai tools in una risposta user-friendly.
-
-Query utente: "{query}"
-Classification: {classification}
-
-Dati tools (RAW):
-{tool_data_combined}
-
-REGOLE:
-- Italiano chiaro e business-friendly
-- Conciso ma completo
-- Usa bullet points se ci sono 3+ elementi
-- Numeri chiari (es: "145 esecuzioni oggi")
-- Se ci sono trend, mostrali (es: "↑ +12% vs ieri")
-- NON menzionare "workflow", "execution", "node" - usa linguaggio business
-
-Genera risposta utile basata SOLO sui dati ricevuti."""
-
-        try:
-            # Try GROQ first (free + fast) per sintesi
-            if self.groq_llm:
-                response = await self.groq_llm.ainvoke(responder_prompt)
-                final_response = response.content
-                logger.info(f"[RESPONDER] GROQ response: {final_response[:100]}")
-            else:
-                # Fallback OpenAI
-                response = await self.openai_llm.ainvoke(responder_prompt)
-                final_response = response.content
-                logger.info(f"[RESPONDER] OpenAI response: {final_response[:100]}")
-
-            state["response"] = final_response
-
-        except Exception as e:
-            logger.error(f"[RESPONDER] Failed: {e}")
-            # Fallback: use first tool result as-is
-            state["response"] = tool_results[0][:500] if tool_results else "Errore nella generazione della risposta."
-
-        return state
-
-    @traceable(name="MilhenaGenerateResponse_DEPRECATED")
+    @traceable(name="MilhenaGenerateResponse")
     async def generate_response(self, state: MilhenaState) -> MilhenaState:
         """Generate appropriate response"""
         query = state["query"]
@@ -2768,8 +2545,8 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
     async def record_feedback(self, state: MilhenaState) -> MilhenaState:
         """Record interaction for learning"""
         query = state["query"]
-        intent = state.get("intent")  # v3.2 FIX: Optional intent (fast-path bypasses intent analysis)
-        response = state.get("response", "")
+        intent = state["intent"]
+        response = state["response"]
         session_id = state["session_id"]
 
         await self.learning_system.record_feedback(
@@ -2855,35 +2632,8 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
             logger.info("[OPTIMIZATION] Taking FULL PATH - complex query needs full pipeline")
             return "complex"
 
-    def route_supervisor_simplified(self, state: MilhenaState) -> str:
-        """
-        v3.1 SIMPLIFIED routing (PDF Best Practice: minimal branching)
-        Supervisor decides: respond directly (GREETING/HELP) OR use ReAct agent
-        """
-        decision = state.get("supervisor_decision")
-
-        if not decision:
-            logger.warning("[ROUTING v3.1] No supervisor decision - default to ReAct")
-            return "react"
-
-        action = decision.get("action", "tool")
-        category = decision.get("category", "GENERAL")
-
-        logger.info(f"[ROUTING v3.1] action={action}, category={category}")
-
-        # SIMPLE LOGIC: respond directly OR use ReAct agent
-        if action == "respond":
-            # Supervisor generated direct_response (GREETING, HELP, CLARIFICATION)
-            state["response"] = decision.get("direct_response", "Come posso aiutarti?")
-            logger.info(f"[ROUTING v3.1] Direct response: {category}")
-            return "respond"
-        else:
-            # Everything else → ReAct agent (tools, database, RAG)
-            logger.info(f"[ROUTING v3.1] Using ReAct agent for: {category}")
-            return "react"
-
     def route_from_intent(self, state: MilhenaState) -> str:
-        """Route based on intent (DEPRECATED in v3.1 - kept for backward compatibility)"""
+        """Route based on intent"""
         intent = state.get("intent", "GENERAL")
 
         if intent == "TECHNICAL":

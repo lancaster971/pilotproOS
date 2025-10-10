@@ -31,12 +31,13 @@ class N8nResponse(BaseModel):
 @router.post("/agent/customer-support", response_model=N8nResponse)
 async def n8n_customer_support(request: N8nRequest):
     """
-    n8n Customer Support Agent endpoint using Milhena v3.0
+    n8n Customer Support Agent endpoint using Milhena v3.1
+    4-Agent Architecture: Classifier → ReAct → Response → Masking
     Compatible with n8n HTTP Request node
     """
     try:
         from .main import app
-        milhena = app.state.milhena
+        milhena = app.state.milhena  # v3.1 with 4-agent pipeline
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -48,34 +49,38 @@ async def n8n_customer_support(request: N8nRequest):
         if request.execution_id:
             context["execution_id"] = request.execution_id
 
-        # Process with Milhena
+        # Process with MilhenaGraph v3.1
         result = await milhena.compiled_graph.ainvoke(
             {
                 "messages": [HumanMessage(content=request.message)],
-                "query": request.message,
                 "session_id": session_id,
                 "context": context,
-                "disambiguated": False,
-                "cached": False,
-                "masked": False
-            }
+                "query": request.message
+            },
+            config={"configurable": {"thread_id": session_id}}
         )
 
+        # Extract response from state
+        response_text = result.get("response", "Come posso aiutarti?")
+
         return N8nResponse(
-            response=result.get("response", "Come posso aiutarti?"),
+            response=response_text,
             intent=result.get("intent", "GENERAL"),
             cached=result.get("cached", False),
             status="success",
             metadata={
                 "session_id": session_id,
-                "model": "milhena-v3",
+                "model": "milhena-v3.1-4-agents",
+                "masked": result.get("masked", False),
                 "workflow_id": request.workflow_id,
                 "execution_id": request.execution_id
             }
         )
 
     except Exception as e:
+        import traceback
         logger.error(f"n8n endpoint error: {str(e)}")
+        logger.error(f"Full traceback:\n{traceback.format_exc()}")
         return N8nResponse(
             response="Si è verificato un errore nell'elaborazione della richiesta.",
             status="error",

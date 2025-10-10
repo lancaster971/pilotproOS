@@ -35,10 +35,10 @@ from .database import init_database, get_session
 from .monitoring import setup_monitoring, track_request
 # from .api_models import router as models_router  # Not needed with Milhena
 from .n8n_endpoints import router as n8n_router  # n8n integration
-from .milhena.api import router as milhena_router  # Milhena v3.0
-from .milhena.graph import MilhenaGraph  # Milhena Graph
+from .milhena.api import router as milhena_router  # Milhena v3.0 API (legacy routes)
+from .milhena.graph import MilhenaGraph  # v3.1 4-Agent Architecture (PRIMARY SYSTEM)
 from .api.rag import router as rag_router  # RAG Management System
-from .graph_supervisor import get_graph_supervisor  # NEW: Multi-agent supervisor
+# Removed v4.0 GraphSupervisor (deprecated)
 from .observability.observability import (
     initialize_monitoring,
     setup_monitoring_server,
@@ -65,13 +65,56 @@ async def lifespan(app: FastAPI):
     app.state.cache = setup_cache()  # ENABLED: Redis LLM caching for 25x speed improvement
     app.state.vectorstore = None  # setup_vectorstore()  # Disabled - needs pgvector extension
 
-    # Initialize Milhena v3.0 Agent (for backward compatibility)
-    app.state.milhena = MilhenaGraph()
-    logger.info("✅ Milhena v3.0 initialized with 8 nodes")
+    # Initialize AsyncRedisSaver for persistent conversation memory (v3.2 FIX)
+    # Pattern from official docs: Use async context manager + asetup()
+    from langgraph.checkpoint.redis import AsyncRedisSaver
+    import os
 
-    # Initialize NEW Multi-Agent Supervisor
-    app.state.graph_supervisor = get_graph_supervisor(use_real_llms=True)
-    logger.info("✅ Graph Supervisor initialized with REAL agents")
+    redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
+    logger.info(f"🔗 Initializing AsyncRedisSaver: {redis_url}")
+
+    # TTL Configuration (v3.2.1 - Automatic cleanup strategy)
+    # Prevents infinite checkpoint growth in Redis
+    ttl_config = {
+        "default_ttl": 10080,  # 7 days (10080 minutes) - auto-delete old conversations
+        "refresh_on_read": True  # Reset TTL when conversation is accessed (keep active threads)
+    }
+    logger.info(f"⏰ TTL Config: {ttl_config['default_ttl']} minutes (7 days), refresh_on_read={ttl_config['refresh_on_read']}")
+
+    try:
+        # Create async context manager with TTL config
+        redis_checkpointer_cm = AsyncRedisSaver.from_conn_string(
+            redis_url,
+            ttl=ttl_config
+        )
+
+        # Enter context manager to get the actual AsyncRedisSaver instance
+        app.state.redis_checkpointer = await redis_checkpointer_cm.__aenter__()
+
+        # CRITICAL: Initialize Redis indices for checkpointer
+        await app.state.redis_checkpointer.asetup()
+        logger.info("✅ AsyncRedisSaver initialized with Redis indices")
+
+        # Store the context manager for proper cleanup
+        app.state.redis_checkpointer_cm = redis_checkpointer_cm
+    except Exception as e:
+        logger.error(f"❌ AsyncRedisSaver initialization failed: {e}")
+        logger.warning("⚠️  Falling back to MemorySaver (NO persistence)")
+        from langgraph.checkpoint.memory import MemorySaver
+        app.state.redis_checkpointer = MemorySaver()
+        app.state.redis_checkpointer_cm = None
+
+    # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
+    # Flow: Classifier → ReAct → Response → Masking
+    # Pass checkpointer to MilhenaGraph
+    app.state.milhena = MilhenaGraph(checkpointer=app.state.redis_checkpointer)
+    logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
+
+    # Initialize auto-learning system (asyncpg pool + pattern loading)
+    await app.state.milhena.async_init()
+    logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
+
+    # v4.0 GraphSupervisor removed - v3.1 is production
 
     # Initialize Prometheus monitoring
     initialize_monitoring()
@@ -87,6 +130,15 @@ async def lifespan(app: FastAPI):
 
     # Cleanup
     logger.info("🔄 Shutting down Intelligence Engine...")
+
+    # Close AsyncRedisSaver context manager properly
+    if hasattr(app.state, 'redis_checkpointer_cm') and app.state.redis_checkpointer_cm:
+        try:
+            # Exit async context manager (__aexit__)
+            await app.state.redis_checkpointer_cm.__aexit__(None, None, None)
+            logger.info("✅ AsyncRedisSaver closed gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error closing AsyncRedisSaver: {e}")
 
 def setup_llm():
     """
@@ -282,35 +334,37 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use Graph Supervisor for frontend queries
-        supervisor = app.state.graph_supervisor
+        # Use v3.1 MilhenaGraph
+        milhena = app.state.milhena
 
         # Generate session ID for web
         import uuid
         session_id = f"web-{uuid.uuid4()}"
 
-        # Process through supervisor
-        result = await supervisor.process_query(
-            query=request.message,
-            session_id=session_id,
-            context=request.context or {},
-            user_level="business"  # Frontend users are business level
+        # Process through milhena
+        result = await milhena.compiled_graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=request.message)],
+                "session_id": session_id,
+                "context": request.context or {},
+                "query": request.message
+            },
+            config={"configurable": {"thread_id": session_id}}
         )
 
-        if result.get("success"):
-            return ChatResponse(
-                response=result.get("response", "Come posso aiutarti?"),
-                status="success",
-                metadata=result.get("metadata", {}),
-                sources=result.get("sources", []),
-                confidence=result.get("confidence", 0.95)
-            )
-        else:
-            return ChatResponse(
-                response="Mi dispiace, si è verificato un errore nel sistema di supporto.",
-                status="error",
-                metadata={"error": result.get("error", "Unknown")}
-            )
+        # Extract response from state
+        response_text = result.get("response", "Come posso aiutarti?")
+
+        return ChatResponse(
+            response=response_text,
+            status="success",
+            metadata={
+                "model": "milhena-v3.1-4-agents",
+                "masked": result.get("masked", False)
+            },
+            sources=[],
+            confidence=0.95
+        )
 
     except Exception as e:
         logger.error(f"Webhook chat error: {str(e)}")
@@ -345,90 +399,7 @@ async def get_stats():
 # NEW MULTI-AGENT API ENDPOINTS
 # ============================================================================
 
-@app.get("/api/agents/status")
-async def get_agents_status():
-    """Get status of all registered agents with REAL data"""
-    try:
-        supervisor = app.state.graph_supervisor
-        status = supervisor.get_system_status()
-
-        return {
-            "success": True,
-            "status": status,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error getting agents status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/agents/capabilities")
-async def get_agents_capabilities():
-    """Get detailed capabilities of all agents"""
-    try:
-        supervisor = app.state.graph_supervisor
-        capabilities = supervisor.get_agent_capabilities()
-
-        return {
-            "success": True,
-            "capabilities": capabilities,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error getting agent capabilities: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-class TokenUsageResponse(BaseModel):
-    total_tokens: int
-    prompt_tokens: int
-    completion_tokens: int
-    cost_estimate: float
-    by_agent: Dict[str, Any]
-    by_session: Dict[str, Any]
-    period: str
-
-@app.get("/api/tokens/usage", response_model=TokenUsageResponse)
-async def get_token_usage(period: str = "24h"):
-    """Get token usage statistics across all agents"""
-    try:
-        # Get supervisor for agent data
-        supervisor = app.state.graph_supervisor
-
-        # Calculate usage (would integrate with actual tracking)
-        usage = {
-            "total_tokens": 45678,  # Example data
-            "prompt_tokens": 23456,
-            "completion_tokens": 22222,
-            "cost_estimate": 0.459,  # in USD
-            "by_agent": {
-                "milhena": {
-                    "tokens": 15000,
-                    "requests": 150,
-                    "cost": 0.15
-                },
-                "n8n_expert": {
-                    "tokens": 20000,
-                    "requests": 100,
-                    "cost": 0.20
-                },
-                "data_analyst": {
-                    "tokens": 10678,
-                    "requests": 50,
-                    "cost": 0.109
-                }
-            },
-            "by_session": {
-                "active": 5,
-                "completed": 45,
-                "average_tokens": 912
-            },
-            "period": period
-        }
-
-        return TokenUsageResponse(**usage)
-
-    except Exception as e:
-        logger.error(f"Error getting token usage: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# v4.0 endpoints removed - not applicable to v3.1 linear pipeline
 
 @app.get("/metrics")
 async def get_prometheus_metrics():
@@ -447,94 +418,61 @@ async def get_prometheus_metrics():
         logger.error(f"Error generating Prometheus metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/agents/route")
-async def test_agent_routing(request: ChatRequest):
-    """Test endpoint to see which agent would handle a query"""
-    try:
-        supervisor = app.state.graph_supervisor
-
-        # Simulate routing decision without execution
-        from app.agents.supervisor import AgentType
-        query_lower = request.message.lower()
-
-        # Check routing rules
-        routing_hints = []
-        for agent_type, rules in supervisor.routing_rules.items():
-            for keyword in rules.get("keywords", []):
-                if keyword in query_lower:
-                    routing_hints.append({
-                        "agent": agent_type.value.lower(),
-                        "reason": f"keyword '{keyword}' detected",
-                        "confidence_boost": rules["confidence_boost"]
-                    })
-                    break
-
-        return {
-            "query": request.message,
-            "routing_hints": routing_hints,
-            "likely_agent": routing_hints[0]["agent"] if routing_hints else "milhena",
-            "fallback_chain": ["milhena", "data_analyst", "n8n_expert"]
-        }
-
-    except Exception as e:
-        logger.error(f"Error testing routing: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ============================================================================
-# GRAPH VISUALIZATION ENDPOINTS
+# GRAPH VISUALIZATION ENDPOINTS (v3.1)
 # ============================================================================
-
-@app.get("/graph/visualize")
-async def visualize_graph():
-    """
-    Generate REAL Milhena LangGraph visualization using native draw_png()
-    """
-    try:
-        from app.milhena.graph import MilhenaGraph
-        milhena = MilhenaGraph()
-        png_bytes = milhena.compiled_graph.get_graph().draw_png()
-
-        return Response(
-            content=png_bytes,
-            media_type="image/png",
-            headers={
-                "Content-Disposition": "inline; filename=milhena-graph.png",
-                "Cache-Control": "no-cache"
-            }
-        )
-    except ImportError as e:
-        logger.error(f"Dipendenze mancanti per visualizzazione grafo: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Installa le dipendenze necessarie: pip install pygraphviz o langgraph[graph]. Error: {str(e)}"
-        )
-    except Exception as e:
-        logger.error(f"Errore generazione grafo LangGraph: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Impossibile generare il grafo: {str(e)}"
-        )
 
 @app.get("/graph/mermaid")
 async def get_graph_mermaid():
     """
-    Ritorna il grafo in formato Mermaid (testo)
-    Utile per embedding in documentazione o dashboard
+    Ritorna il grafo in formato Mermaid (testo) con colori custom per categoria
+    v3.2: [AI]=Rosso, [LIB]=Verde, [TOOL]=Blu, [DB]=Giallo
     """
     try:
         graph = app.state.milhena.compiled_graph
         mermaid_text = graph.draw_mermaid()
 
+        # v3.2: Inject custom classDef for colored nodes by category
+        custom_styles = """
+%%{init: {'theme':'dark'}}%%
+
+classDef aiNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+classDef libNode fill:#51cf66,stroke:#2f9e44,stroke-width:3px,color:#000
+classDef toolNode fill:#339af0,stroke:#1971c2,stroke-width:3px,color:#fff
+classDef dbNode fill:#ffd43b,stroke:#fab005,stroke-width:3px,color:#000
+"""
+
+        # Insert custom styles after first line
+        lines = mermaid_text.split('\n')
+        styled_mermaid = lines[0] + '\n' + custom_styles + '\n' + '\n'.join(lines[1:])
+
+        # Add class assignments at the end (before closing)
+        # Extract node names and assign classes based on prefix
+        node_assignments = []
+        for line in lines:
+            if '[AI]' in line:
+                # Extract node ID (between quotes or brackets)
+                node_assignments.append(f"class node containing [AI] in name:::aiNode")
+            elif '[LIB]' in line:
+                node_assignments.append(f"class node containing [LIB] in name:::libNode")
+            elif '[TOOL]' in line:
+                node_assignments.append(f"class node containing [TOOL] in name:::toolNode")
+            elif '[DB]' in line:
+                node_assignments.append(f"class node containing [DB] in name:::dbNode")
+
+        # Append class assignments
+        styled_mermaid += '\n\n' + '\n'.join(set(node_assignments))
+
         return {
-            "mermaid": mermaid_text,
-            "description": "ReAct Agent Flow Diagram",
-            "nodes": {
-                "START": "Entry point - receives user message",
-                "agent": "LLM decides next action",
-                "tools": "Execute selected tool",
-                "END": "Return final response"
+            "mermaid": styled_mermaid,
+            "description": "Milhena v3.2 Flow - Color-coded by Type",
+            "legend": {
+                "[AI]": "🔴 LLM Nodes (Probabilistic) - Red",
+                "[LIB]": "🟢 Library Nodes (Deterministic) - Green",
+                "[TOOL]": "🔵 Tool Execution - Blue",
+                "[DB]": "🟡 Database Operations - Yellow"
             },
-            "usage": "Copy mermaid text and paste in any Mermaid viewer"
+            "usage": "Copy mermaid text and paste in Mermaid Live Editor or LangGraph Studio"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cannot generate Mermaid: {str(e)}")
