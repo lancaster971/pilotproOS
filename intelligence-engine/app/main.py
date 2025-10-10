@@ -110,6 +110,10 @@ async def lifespan(app: FastAPI):
     app.state.milhena = MilhenaGraph(checkpointer=app.state.redis_checkpointer)
     logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
 
+    # Initialize auto-learning system (asyncpg pool + pattern loading)
+    await app.state.milhena.async_init()
+    logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
+
     # v4.0 GraphSupervisor removed - v3.1 is production
 
     # Initialize Prometheus monitoring

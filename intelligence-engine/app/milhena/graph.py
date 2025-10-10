@@ -475,6 +475,38 @@ class MilhenaGraph:
         self._initialize_components()
         self._build_graph()
 
+    async def async_init(self):
+        """
+        Async initialization for components requiring async setup (DB pool, pattern loading).
+        Must be called after __init__ from FastAPI lifespan.
+
+        Usage in main.py:
+            milhena_graph = MilhenaGraph(checkpointer=checkpointer)
+            await milhena_graph.async_init()
+        """
+        import asyncpg
+        import os
+
+        # Create asyncpg connection pool
+        try:
+            db_url = os.getenv("DATABASE_URL", "postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db")
+            self.db_pool = await asyncpg.create_pool(
+                db_url,
+                min_size=2,
+                max_size=10,
+                max_inactive_connection_lifetime=300.0,
+                command_timeout=60.0
+            )
+            logger.info("[AUTO-LEARN] asyncpg connection pool created (min=2, max=10)")
+
+            # Load learned patterns from database
+            await self._load_learned_patterns()
+
+        except Exception as e:
+            logger.error(f"[AUTO-LEARN] Failed to create DB pool: {e}")
+            self.db_pool = None
+            self.learned_patterns = {}
+
     def _initialize_components(self):
         """Initialize all Milhena components"""
         self.masking_engine = TechnicalMaskingEngine()
@@ -484,6 +516,12 @@ class MilhenaGraph:
         self.learning_system = LearningSystem()
         self.token_manager = TokenManager()
         self.cache_manager = CacheManager(self.config)
+
+        # Initialize PostgreSQL connection pool for auto-learning
+        # asyncpg best practice: share pool, not connections
+        # Reference: https://magicstack.github.io/asyncpg/current/usage.html
+        self.db_pool = None
+        self.learned_patterns = {}  # In-memory cache of learned patterns
 
         # Initialize RAG System for knowledge retrieval
         try:
@@ -1159,6 +1197,10 @@ Usa terminologia business, evita tecnicismi."""
             logger.error(f"[CRITICAL] Classification values: {classification}")
             raise
 
+        # STEP 3.5: Auto-learn pattern if high confidence (TODO-URGENTE.md)
+        # Call after LLM classification to save high-confidence patterns
+        await self._maybe_learn_pattern(query, classification)
+
         # STEP 4: Handle waiting clarification
         if decision["category"] == "CLARIFICATION_NEEDED":
             state["waiting_clarification"] = True
@@ -1361,6 +1403,26 @@ Usa terminologia business, evita tecnicismi."""
                     "needs_database": False,
                     "clarification_options": None,
                     "llm_used": "fast-path"
+                }
+
+        # AUTO-LEARNED PATTERNS (Priority 1 - HIGHEST PRIORITY AFTER SECURITY CHECKS, BEFORE HARDCODED RULES)
+        # Check learned patterns from database (TODO-URGENTE.md lines 317-335)
+        # Auto-learned patterns have priority over hardcoded fast-path to maximize learning usage
+        if hasattr(self, 'learned_patterns') and self.learned_patterns:
+            normalized = self._normalize_query(query)
+            if normalized in self.learned_patterns:
+                pattern_info = self.learned_patterns[normalized]
+                logger.info(f"[AUTO-LEARNED-MATCH] '{normalized}' → {pattern_info['category']} (accuracy={pattern_info['accuracy']:.2f})")
+                return {
+                    "action": "tool",  # Assume learned patterns require database
+                    "category": pattern_info['category'],
+                    "confidence": pattern_info['confidence'],
+                    "reasoning": f"Auto-learned pattern match (used {pattern_info['times_used']} times, accuracy {pattern_info['accuracy']:.0%})",
+                    "direct_response": None,
+                    "needs_rag": False,
+                    "needs_database": True,
+                    "clarification_options": None,
+                    "llm_used": "auto-learned-fast-path"
                 }
 
         # WORKFLOW/PROCESS patterns (HIGH PRIORITY - core mission)
@@ -1774,6 +1836,151 @@ Usa terminologia business, evita tecnicismi."""
 
         # No fast-path match → use LLM
         return None
+
+    # ============================================================================
+    # AUTO-LEARNING FAST-PATH - Pattern Learning System
+    # Reference: TODO-URGENTE.md lines 256-338
+    # ============================================================================
+
+    def _normalize_query(self, query: str) -> str:
+        """
+        Normalize query for pattern matching by removing temporal words and punctuation.
+
+        Examples:
+            "ci sono problemi oggi?" → "ci sono problemi"
+            "ci sono problemi adesso?" → "ci sono problemi"
+            "Workflow attivi OGGI" → "workflow attivi"
+
+        Args:
+            query: Original user query
+
+        Returns:
+            Normalized query string (lowercase, no temporal words, no trailing punctuation)
+        """
+        import string
+
+        query = query.lower().strip()
+
+        # Split and strip punctuation from each word BEFORE temporal word check
+        # This ensures "oggi?" becomes "oggi" and gets removed correctly
+        words = query.split()
+        words = [w.strip(string.punctuation) for w in words]
+
+        # Remove common temporal words (TODO-URGENTE.md line 268)
+        temporal_words = ['oggi', 'adesso', 'ora', 'attualmente', 'ieri', 'domani',
+                         'stamattina', 'stasera', 'questa', 'settimana', 'questo', 'mese']
+        words = [w for w in words if w not in temporal_words and w]  # Also remove empty strings
+
+        # Join and remove any remaining trailing punctuation
+        normalized = ' '.join(words).rstrip('?!.')
+
+        return normalized
+
+    async def _load_learned_patterns(self):
+        """
+        Load auto-learned patterns from PostgreSQL into in-memory cache.
+        Called on __init__ and after new pattern learning.
+
+        Query: SELECT normalized_pattern, category, confidence FROM auto_learned_patterns
+               WHERE enabled = TRUE
+               ORDER BY accuracy DESC
+        """
+        if not hasattr(self, 'db_pool') or self.db_pool is None:
+            logger.warning("[AUTO-LEARN] DB pool not initialized, skipping pattern load")
+            self.learned_patterns = {}
+            return
+
+        try:
+            async with self.db_pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT normalized_pattern, category, confidence, accuracy, times_used
+                    FROM pilotpros.auto_learned_patterns
+                    WHERE enabled = TRUE
+                    ORDER BY accuracy DESC, times_used DESC
+                """)
+
+                self.learned_patterns = {}
+                for row in rows:
+                    self.learned_patterns[row['normalized_pattern']] = {
+                        'category': row['category'],
+                        'confidence': float(row['confidence']),
+                        'accuracy': float(row['accuracy']),
+                        'times_used': int(row['times_used'])
+                    }
+
+                logger.info(f"[AUTO-LEARN] Loaded {len(self.learned_patterns)} patterns from database")
+
+        except Exception as e:
+            logger.error(f"[AUTO-LEARN] Failed to load patterns: {e}")
+            self.learned_patterns = {}
+
+    async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
+        """
+        Auto-learn new pattern if LLM classification has high confidence (>0.9).
+        Saves to PostgreSQL and updates in-memory cache.
+
+        Args:
+            query: Original user query
+            llm_result: LLM classification result with confidence score
+
+        Logic (TODO-URGENTE.md lines 281-313):
+        1. Check confidence > 0.9
+        2. Normalize query
+        3. Check if pattern already exists
+        4. If new: INSERT into database
+        5. If existing: UPDATE times_used counter
+        """
+        if not hasattr(self, 'db_pool') or self.db_pool is None:
+            return  # Silently skip if DB not available
+
+        # Only learn high-confidence classifications (TODO-URGENTE.md line 284)
+        confidence = llm_result.get('confidence', 0.0)
+        if confidence < 0.9:
+            return
+
+        category = llm_result.get('category', '')
+        if not category:
+            return
+
+        # Normalize query for pattern matching
+        normalized = self._normalize_query(query)
+
+        # Skip very short patterns (< 3 chars)
+        if len(normalized) < 3:
+            return
+
+        try:
+            async with self.db_pool.acquire() as conn:
+                # Check if pattern already exists
+                existing = await conn.fetchrow("""
+                    SELECT id, times_used, times_correct, accuracy
+                    FROM pilotpros.auto_learned_patterns
+                    WHERE normalized_pattern = $1
+                """, normalized)
+
+                if existing:
+                    # Update usage counter (TODO-URGENTE.md lines 297-302)
+                    await conn.execute("""
+                        UPDATE pilotpros.auto_learned_patterns
+                        SET times_used = times_used + 1,
+                            last_used_at = NOW()
+                        WHERE id = $1
+                    """, existing['id'])
+                    logger.info(f"[AUTO-LEARN] Pattern reused: '{normalized}' (times_used={existing['times_used']+1})")
+                else:
+                    # Insert new pattern (TODO-URGENTE.md lines 303-312)
+                    await conn.execute("""
+                        INSERT INTO pilotpros.auto_learned_patterns
+                        (pattern, normalized_pattern, category, confidence, created_by)
+                        VALUES ($1, $2, $3, $4, 'llm')
+                    """, query, normalized, category, confidence)
+                    logger.info(f"[AUTO-LEARN] New pattern saved: '{normalized}' → {category} (confidence={confidence:.2f})")
+
+                    # Reload patterns cache
+                    await self._load_learned_patterns()
+
+        except Exception as e:
+            logger.error(f"[AUTO-LEARN] Failed to save pattern: {e}")
 
     # ============================================================================
     # REPHRASER NODES - Lightweight pre-check for ambiguous queries
