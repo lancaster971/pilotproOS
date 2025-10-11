@@ -77,27 +77,30 @@ Frontend NEVER exposes technical terms:
 3. Use library OR document why custom needed
 
 ### **Agent Orchestration Policy**
-⚠️ **MANDATORY**: Prima di ogni azione complessa, Claude Code DEVE invocare il subagente **`think`** (internal-reasoning-cot)
+🎯 **ORCHESTRATORE DIRETTO**: Claude Code (agente generale) decide autonomamente quando delegare a subagent specializzati.
 
-**Workflow obbligatorio**:
-1. 🧠 **Think First**: Analisi strategica + decisione subagente
-2. 🎯 **Delegate**: Invocazione subagente specializzato scelto
-3. ✅ **Execute**: Esecuzione task con supervisione orchestratore
+**Workflow Flessibile**:
+1. 🧠 **Analisi Interna**: Claude Code valuta la complessità del task
+2. 🎯 **Decisione Autonoma**:
+   - Task semplice → Eseguo direttamente
+   - Task specializzato → Invoco subagent appropriato
+3. ✅ **Execute**: Esecuzione con supervisione orchestratore
 
 **Rationale**:
-- L'orchestratore (Claude Code) decide quale subagente utilizzare
-- Evita invocazioni dirette senza pianificazione
-- Garantisce scelta ottimale del subagente specializzato
-- Riduce errori da delega inappropriata
+- L'orchestratore (Claude Code) ha capacità di reasoning diretto
+- Invoca subagent solo quando necessario specializzazione
+- Maggiore controllo e flessibilità per l'utente
 
-**Esempio**:
+**Esempi**:
 ```
-User: "Implementa feature X con test e deployment"
-❌ WRONG: Invoke diretto di nodejs-typescript-architect
-✅ RIGHT: Invoke think → analisi → decide nodejs-typescript-architect + devops-automation-engineer
+User: "Leggi il file X e dimmi cosa fa"
+→ Claude Code: Eseguo direttamente (task semplice)
+
+User: "Ottimizza il RAG system di Milhena"
+→ Claude Code: Invoco langgraph-architect-guru (specializzazione necessaria)
 ```
 
-**Subagenti disponibili**: think, general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-react
+**Subagenti disponibili**: general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-architect
 
 ---
 
