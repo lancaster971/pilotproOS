@@ -1941,6 +1941,31 @@ Usa terminologia business, evita tecnicismi."""
             logger.error(f"[AUTO-LEARN] Failed to load patterns: {e}")
             self.learned_patterns = {}
 
+    async def reload_patterns(self):
+        """
+        Reload patterns from database (triggered by hot-reload PubSub).
+        Thread-safe update of in-memory learned_patterns dict.
+
+        This method is called by PatternReloader when Redis PubSub receives reload message.
+        Expected latency: <100ms
+
+        Usage:
+            # Called by PatternReloader background task
+            await milhena_graph.reload_patterns()
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            # Call existing load method (already thread-safe with asyncpg pool)
+            await self._load_learned_patterns()
+
+            reload_duration = (time.time() - start_time) * 1000  # Convert to ms
+            logger.info(f"[HOT-RELOAD] Patterns reloaded in {reload_duration:.2f}ms ({len(self.learned_patterns)} patterns)")
+
+        except Exception as e:
+            logger.error(f"[HOT-RELOAD] Failed to reload patterns: {e}")
+
     async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
         """
         Auto-learn new pattern if LLM classification has high confidence (>0.9).
@@ -1996,15 +2021,22 @@ Usa terminologia business, evita tecnicismi."""
                     logger.info(f"[AUTO-LEARN] Pattern reused: '{normalized}' (times_used={existing['times_used']+1})")
                 else:
                     # Insert new pattern (TODO-URGENTE.md lines 303-312)
-                    await conn.execute("""
+                    result = await conn.fetchrow("""
                         INSERT INTO pilotpros.auto_learned_patterns
                         (pattern, normalized_pattern, category, confidence, created_by)
                         VALUES ($1, $2, $3, $4, 'llm')
+                        RETURNING id
                     """, query, normalized, category, confidence)
-                    logger.info(f"[AUTO-LEARN] New pattern saved: '{normalized}' → {category} (confidence={confidence:.2f})")
+                    pattern_id = result['id']
+                    logger.info(f"[AUTO-LEARN] New pattern saved: '{normalized}' → {category} (confidence={confidence:.2f}, id={pattern_id})")
 
                     # Reload patterns cache
                     await self._load_learned_patterns()
+
+                    # Trigger hot-reload via Redis PubSub (notify all replicas)
+                    from app.milhena.hot_reload import publish_reload_message
+                    redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
+                    await publish_reload_message(redis_url, pattern_id=pattern_id)
 
         except Exception as e:
             logger.error(f"[AUTO-LEARN] Failed to save pattern: {e}")

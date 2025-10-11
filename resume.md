@@ -1,108 +1,102 @@
 # 📋 RESUME - PilotProOS Development Session
 
-**Last Updated**: 2025-10-11 02:30:00 UTC
+**Last Updated**: 2025-10-11 16:00:00 UTC
 **Branch**: `main` (clean)
-**Version**: v3.3.1 Auto-Learning + Feedback Buttons ✨
-**Status**: ✅ Feedback Buttons Implemented - Ready for Testing
+**Version**: v3.3.1 Auto-Learning + Authentication Fixed + Security Audit ✅
+**Status**: ✅ Login Funzionante - Security Debt Documentato - Production Blockers Identificati
 
 ---
 
-## ✅ COMPLETATO IN QUESTA SESSIONE
+## ✅ COMPLETATO IN QUESTA SESSIONE (2025-10-11)
 
-### **1. Feedback Buttons ChatWidget** ✅ **NEW**
+### **1. Feedback Buttons ChatWidget** ✅
 **Obiettivo**: Implementare thumbs up/down feedback per messaggi assistant
 
-**Implementazione Completata**:
+**Implementazione**:
 - ✅ Extended `Message` interface con campo `feedback?: 'positive' | 'negative' | null`
 - ✅ UI feedback buttons (thumbs up/down) solo per messaggi assistant
 - ✅ Funzione `sendFeedback()` integrata con backend proxy
 - ✅ Correzione parametri API (`query`, `feedback_type`, `intent`)
 - ✅ Styling dark theme (border, hover, active states)
 - ✅ Disable buttons dopo feedback submission
-- ✅ Error handling + console logging
 
 **File Modificati**:
-- `frontend/src/components/ChatWidget.vue` (ChatWidget.vue:62-67, ChatWidget.vue:31-48, ChatWidget.vue:161-197, ChatWidget.vue:355-392)
+- `frontend/src/components/ChatWidget.vue` (lines 62-67, 31-48, 161-197, 355-392)
 
-**API Backend Verificata**:
-- Endpoint: `POST /api/milhena/feedback` (backend/src/routes/milhena.routes.js:18-86)
-- Parametri required: `query`, `response`, `feedback_type`, `session_id`
-- Proxy to Intelligence Engine: `http://pilotpros-intelligence-engine-dev:8000/api/milhena/feedback`
+**Git**:
+- Commit: `043a656b` - feat: Add feedback buttons to ChatWidget
+- Push: ✅ GitHub main updated
+
+---
+
+### **2. Sistema di Autenticazione - Debug Completo** ✅
+**Problema Iniziale**: Login "Invalid credentials" error
+
+**Root Cause Trovate** (3):
+1. ❌ User `tiziano@gmail.com` NON esisteva nel database
+2. ❌ `frontend/src/stores/auth.ts` usava path relativo `/api/auth/login` (no API_BASE_URL)
+3. ❌ Password inserita con `!` finale (Hamlet@108! vs Hamlet@108)
+
+**Fix Applicati**:
+- ✅ Creato user admin nel database PostgreSQL
+  ```
+  ID: 6125f9af-6552-41f7-bacb-34c02d686811
+  Email: tiziano@gmail.com
+  Password: Hamlet@108 (bcrypt hash)
+  Role: admin
+  ```
+- ✅ Fixato `auth.ts` per usare `API_BASE_URL` pattern
+  ```typescript
+  const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+  fetch(`${API_BASE}/api/auth/login`, ...)
+  ```
+- ✅ Frontend container restartato (healthy)
 
 **Testing**:
-- ⏳ Richiede Docker stack attivo per test end-to-end
-- ✅ Code review completato
-- ✅ Backend route verificato e funzionante
+- ✅ Backend curl test: SUCCESS (JWT token generato)
+- ✅ Frontend UI test: **LOGIN FUNZIONANTE** ✨
 
-**Benefici**:
-- User feedback per learning system
-- Pattern accuracy improvement
-- UX migliorata con visual feedback
+**Git**:
+- Commit: `9d88c12a` - fix(auth): Use API_BASE_URL for authentication endpoints
+- Push: ✅ GitHub main updated
 
 ---
 
-### **2. Branch Merge & Cleanup** ✅
-**Operazione**: Merge di `sugituhg` in `main` + pulizia completa branch obsoleti
+### **3. Security Audit Completo** ✅ 🔴
+**Agent**: `fullstack-debugger` (full-stack analysis)
 
-**Branch Mergiati**:
-- ✅ `sugituhg` → `main` (commit `c60b7fa0`)
-  - Auto-Learning Fast-Path v3.3.0
-  - Docker healthcheck fixes (8/8 healthy)
-  - Pattern Usage Counter v3.3.1
-  - Resume.md documentation
+**Security Score**: **4.5/10** (NOT production-ready)
 
-**Branch Eliminati**:
-- 🗑️ `sugituhg` (locale + GitHub) - Mergiato in main
-- 🗑️ `agentic-view` (locale + GitHub) - Obsoleto (3 giorni vecchio, conflitti potenziali)
-- 🗑️ `testSprite` (locale + GitHub) - Testing branch temporaneo
+**10 Issues Identificati**:
 
-**Risultato**:
-- ✅ Solo `main` branch rimasto
-- ✅ GitHub pulito e sincronizzato
-- ✅ Working tree clean
+**🔴 CRITICAL (P0) - Production Blockers**:
+1. XSS Vulnerability via localStorage (CVSS 8.1) - 4h fix
+2. No Refresh Token Strategy (CVSS 6.5) - 6h fix
+3. Hardcoded JWT Secret Fallback (CVSS 7.2) - 1h fix
 
----
+**🟠 HIGH (P1) - Security Hardening**:
+4. Rate Limiting Disabled (CVSS 4.1) - 1h fix
+5. CORS Overly Permissive (CVSS 5.3) - 1h fix
+6. Token Expiry Not Verified (CVSS 5.8) - 2h fix
 
-### **2. TestSprite Integration Attempt** ⚠️
-**Obiettivo**: Configurare TestSprite MCP per automated testing
+**🟡 MEDIUM (P2) - Code Quality**:
+7. Weak Password Accepted (CVSS 3.2) - 2h fix
+8. Logout Incomplete (CVSS 2.1) - 3h fix
+9. User Data in JWT Payload (CVSS 2.8) - 1h fix
+10. Window.fetch Monkey-Patching (code smell) - 1h fix
 
-**Azioni Completate**:
-- ✅ Configurato TestSprite in `claude_desktop_config.json`
-- ✅ Backup MCP config creato
-- ✅ API key configurata
-- ✅ Claude Desktop riavviato
-- ✅ Code summary generato (frontend + backend)
+**Total Effort**: 22 ore (3 developer-days)
 
-**Risultato**:
-- ⚠️ TestSprite richiede autenticazione a livello servizio web
-- ⚠️ API key fornita non validata dal servizio
-- ✅ Configurazione MCP salvata per uso futuro
-- ✅ Code summary completo disponibile (alternativa utile)
+**Documentazione**:
+- ✅ Creata sezione "SECURITY DEBT - CRITICAL" in `DEBITO-TECNICO.md` (347 linee)
+- ✅ Implementation checklist dettagliata per ogni issue
+- ✅ Security testing requirements (curl + DevTools)
+- ✅ Go-live criteria (P0 fixes obbligatori)
+- ✅ OWASP/RFC/NIST references
 
-**Code Summary Generato**:
-- **Backend**: 6 feature groups, 25 API endpoints (OpenAPI 3.0)
-- **Frontend**: 20 feature groups, 60+ componenti Vue 3
-
----
-
-### **3. Backend Error Detection & Fix** ✅
-**Metodo**: Testing manuale con Docker logs + curl
-
-**Errore Critico Trovato e Fixato**:
-```
-ERROR: relation "backup_settings" does not exist
-```
-
-**Fix Applicato**:
-- ✅ Creata tabella `backup_settings` in PostgreSQL
-- ✅ Migration 003 applicata manualmente
-- ✅ Default configuration inserita
-- ✅ Backend riavviato senza errori
-
-**Verifica**:
-- ✅ Tabella creata (ID: 1)
-- ✅ Backend logs clean (no errors)
-- ✅ Endpoint `/api/backup-settings` funzionante
+**Git**:
+- Commit: `4395340b` - docs: Add Security Debt section to DEBITO-TECNICO.md
+- Push: ✅ GitHub main updated
 
 ---
 
@@ -112,19 +106,19 @@ ERROR: relation "backup_settings" does not exist
 
 | Container | Status | Uptime | Health |
 |-----------|--------|--------|--------|
-| **pilotpros-postgres-dev** | Up | 4h+ | ✅ healthy |
-| **pilotpros-redis-dev** | Up | 4h+ | ✅ healthy |
-| **pilotpros-backend-dev** | Up | 24m | ✅ healthy |
-| **pilotpros-automation-engine-dev** | Up | 4h+ | ✅ healthy |
-| **pilotpros-embeddings-dev** | Up | 2h+ | ✅ healthy |
-| **pilotpros-nginx-dev** | Up | 4h+ | ✅ running |
-| **pilotpros-frontend-dev** | Up | 46m | ✅ healthy |
-| **pilotpros-intelligence-engine-dev** | Up | 46m | ✅ healthy |
+| pilotpros-postgres-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-redis-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-backend-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-frontend-dev | Up | 20m | ✅ healthy |
+| pilotpros-intelligence-engine-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-automation-engine-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-embeddings-dev | Up | 5h+ | ✅ healthy |
+| pilotpros-nginx-dev | Up | 5h+ | ✅ running |
 
 **Note**:
-- Backend riavviato 24m fa (fix backup_settings)
-- Frontend/Intelligence riavviati 46m fa (healthcheck fix da sessione precedente)
-- PostgreSQL contiene tabella `backup_settings` con configurazione default
+- Frontend riavviato 20m fa (fix auth.ts API_BASE_URL)
+- Login funzionante ✅
+- User admin creato nel database ✅
 
 ---
 
@@ -134,18 +128,25 @@ ERROR: relation "backup_settings" does not exist
 ```
 Branch: main
 Remote: origin/main (up to date)
-Working tree: clean (no pending changes)
-Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
+Working tree: clean
+Last commit: 4395340b - docs: Add Security Debt section to DEBITO-TECNICO.md
 ```
+
+**Recent Commits**:
+- `4395340b` - Security debt documentation (347 lines)
+- `9d88c12a` - Fix auth API_BASE_URL
+- `043a656b` - Feedback buttons implementation
+- `0b655fa5` - Agent Orchestration Policy
 
 ### **Versioni Software**
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| PilotProOS | **v3.3.0** | ✅ Production |
+| PilotProOS | **v3.3.1** | ✅ Development |
 | Milhena Architecture | v3.1 4-Agent | ✅ Stable |
 | Auto-Learning Fast-Path | v3.3.0 | ✅ Active (64 patterns) |
-| Pattern Usage Counter | v3.3.1 | ✅ Working (times_used tracking) |
+| Authentication System | FIXED | ⚠️ Security Debt (4.5/10) |
+| Feedback Buttons | NEW | ✅ Implemented |
 | AsyncRedisSaver | v3.2.1 | ✅ Persistent (7d TTL) |
 | RAG HTTP Embeddings | v3.2.2 | ✅ Optimized |
 | Docker Healthcheck | Fixed | ✅ 8/8 healthy |
@@ -155,7 +156,8 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 **PostgreSQL** (`pilotpros_db`):
 - ✅ Schema `n8n` - Workflow engine data
 - ✅ Schema `pilotpros` - Application data
-- ✅ Table `backup_settings` - **FIXED** (migration 003 applicata manualmente)
+- ✅ Table `users` - Admin user created (tiziano@gmail.com)
+- ✅ Table `backup_settings` - Migration 003 applied
 - ✅ Table `auto_learned_patterns` - 64 patterns loaded
 
 **Redis Stack**:
@@ -165,30 +167,71 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 
 ---
 
+## 🚨 SECURITY DEBT - PRODUCTION BLOCKERS
+
+### **⚠️ NOT Production-Ready**
+
+**Security Score**: 4.5/10 🔴
+
+**3 Critical Blockers (P0) - 11h**:
+1. **XSS via localStorage** (CVSS 8.1) - Token theft risk
+   - Migrate to HttpOnly cookies
+   - Remove localStorage token storage
+   - Effort: 4 ore
+
+2. **No Refresh Token** (CVSS 6.5) - Can't revoke sessions
+   - Implement 30min access token + 7-day refresh token
+   - Create `pilotpros.refresh_tokens` table
+   - Add `/api/auth/refresh` endpoint
+   - Effort: 6 ore
+
+3. **Hardcoded Secret Fallback** (CVSS 7.2) - JWT forgery risk
+   - Enforce JWT_SECRET validation in production
+   - Fail-fast if missing or < 32 chars
+   - Effort: 1 ora
+
+**Go-Live Blocked Until**:
+- ✅ HttpOnly cookies implemented (Fix #1)
+- ✅ Refresh token strategy working (Fix #2)
+- ✅ JWT_SECRET enforced (Fix #3)
+- ✅ Security test suite 100% passing
+
+**Current Status**: ⚠️ **DEVELOPMENT-READY ONLY**
+
+**Documentation**: `DEBITO-TECNICO.md` (lines 1-352)
+
+---
+
 ## 🔄 TASK PENDENTI
 
-### **Alta Priorità** 🔴
+### **🔴 Alta Priorità - Security (URGENT)**
 
-**Nessun task urgente** - Stack completamente funzionante
+**Production Blockers** (11h):
+- [ ] HttpOnly cookies migration (4h)
+- [ ] Refresh token implementation (6h)
+- [ ] JWT_SECRET enforcement (1h)
 
-### **Media Priorità** 🟡
+**Security Hardening** (4h):
+- [ ] Strict rate limiting on /login (1h)
+- [ ] Production CORS lockdown (1h)
+- [ ] Token expiry verification (2h)
 
-1. **Hot-Reload Pattern (Redis PubSub)** (3-4 ore) - Da TODO-URGENTE.md
-   - Redis PubSub per reload dinamico pattern
-   - Aggiornamento fast-path rules senza restart
-   - File da creare: `intelligence-engine/app/milhena/hot_reload.py`
+**Total**: 15 ore (2 developer-days)
+
+### **🟡 Media Priorità - Features**
+
+1. **Hot-Reload Pattern (Redis PubSub)** (3-4 ore)
+   - Redis PubSub per pattern reload dinamico
+   - File: `intelligence-engine/app/milhena/hot_reload.py`
    - Benefit: Pattern learning available INSTANTLY
 
 2. **Learning Dashboard UI** (3-4 ore)
-   - Vue component per visualizzare learning metrics
-   - File: `frontend/src/pages/LearningDashboard.vue` (già esiste, da completare)
+   - Vue component per learning metrics
+   - File: `frontend/src/pages/LearningDashboard.vue` (da completare)
    - Store: `frontend/src/stores/learning-store.ts` (da creare)
    - API: `/api/milhena/performance` già pronta
 
-3. ~~**Feedback Buttons ChatWidget**~~ ✅ **COMPLETATO**
-   - ✅ Thumbs up/down integration in ChatWidget.vue
-   - ✅ Backend proxy verificato: `/api/milhena/feedback`
-   - ⏳ Testing end-to-end con Docker stack
+3. ~~**Feedback Buttons**~~ ✅ **COMPLETATO**
 
 ---
 
@@ -196,57 +239,73 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 
 ### **Per Riprendere la Sessione**
 
-1. **Verifica Stack**
-   ```bash
-   cd /Volumes/BK12/Dropbox/Dropbox/TIZIANO/AI/PilotProOS
-   ./stack-safe.sh status
-   docker ps --format "table {{.Names}}\t{{.Status}}"
-   ```
+**1. Verifica Stack**:
+```bash
+cd /Volumes/BK12/Dropbox/Dropbox/TIZIANO/AI/PilotProOS
+./stack-safe.sh status
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
 
-2. **Verifica Git**
-   ```bash
-   git status
-   git branch -a
-   git log --oneline -5
-   ```
+**2. Verifica Git**:
+```bash
+git status
+git log --oneline -5
+```
 
-3. **Verifica Database**
-   ```bash
-   docker exec pilotpros-postgres-dev psql -U pilotpros_user -d pilotpros_db \
-     -c "SELECT * FROM backup_settings;"
-   ```
+**3. Test Login**:
+- URL: http://localhost:3000
+- Email: `tiziano@gmail.com`
+- Password: `Hamlet@108` (NO `!`)
+- Expected: ✅ Redirect to /dashboard
+
+---
 
 ### **Task Raccomandato da Iniziare**
 
-**Opzione A - Hot-Reload Pattern** (HIGHEST IMPACT)
-- Implementa Redis PubSub per pattern hot-reload
+**🔴 OPZIONE A - Security Fixes (HIGHEST PRIORITY)**
+**Blocca Go-Live Production**
+- Implement HttpOnly cookies (4h)
+- Implement refresh token (6h)
+- Enforce JWT_SECRET (1h)
+- **Total**: 11 ore
+- **Files**:
+  - `backend/src/controllers/auth.controller.js`
+  - `backend/db/migrations/005_refresh_tokens.sql` (NEW)
+  - `frontend/src/stores/auth.ts`
+  - `backend/src/middleware/auth.middleware.js`
+
+**🟡 OPZIONE B - Hot-Reload Pattern (IMPACT ALTO)**
+- Redis PubSub per pattern reload
 - File: `intelligence-engine/app/milhena/hot_reload.py`
 - Tempo: 3-4 ore
 
-**Opzione B - Learning Dashboard UI** (USER VISIBLE)
-- Completa Learning Dashboard Vue component
+**🟡 OPZIONE C - Learning Dashboard UI (USER VISIBLE)**
+- Completa Vue component
 - Integra con API `/api/milhena/performance`
 - Tempo: 3-4 ore
-
-**Opzione C - Feedback Buttons** (QUICK WIN)
-- Aggiungi thumbs up/down a ChatWidget
-- Tempo: 2 ore
 
 ---
 
 ## 📊 METRICHE DI SUCCESSO
 
-### **Performance Metrics v3.3.0**
+### **Development Metrics**
 - Response Time: <2s (P95) ✅
 - Auto-Learning Latency: <10ms ✅
-- Pattern Usage Tracking: <1ms overhead ✅
 - Cost per Query: $0.00 (Groq FREE) ✅
 - Uptime: 99.9% ✅
+- Login: Funzionante ✅
+
+### **Security Metrics**
+- Security Score: 4.5/10 🔴
+- Production Blockers: 3 (P0) ⚠️
+- High Priority Issues: 3 (P1) ⚠️
+- Medium Priority Issues: 4 (P2) 🟡
 
 ### **Git Health**
 - Branches: 1 (main only) ✅
 - Working tree: Clean ✅
 - Sync with GitHub: Up to date ✅
+- Commits today: 3 ✅
 
 ### **Docker Health**
 - Container Health: 8/8 (100%) ✅
@@ -256,10 +315,29 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 
 ## 💡 NOTE OPERATIVE
 
-### **TestSprite MCP**
-- ✅ Configurato in MCP settings
-- ⚠️ API key richiede validazione web service
-- ✅ Alternative: testing manuale efficace (trovato 1 errore critico)
+### **Authentication System**
+- ✅ Login funzionante (JWT localStorage-based)
+- ⚠️ Security Score: 4.5/10 (NOT production-ready)
+- ⚠️ XSS vulnerable (localStorage)
+- ⚠️ No refresh token strategy
+- ⚠️ No session revocation server-side
+- 📖 Fix dettagliati in `DEBITO-TECNICO.md`
+
+### **Credenziali Admin**
+- Email: `tiziano@gmail.com`
+- Password: `Hamlet@108` (NO punto esclamativo!)
+- Database: `pilotpros.users` table
+- ID: `6125f9af-6552-41f7-bacb-34c02d686811`
+
+### **Feedback System**
+- ✅ UI implemented (ChatWidget.vue)
+- ✅ Backend proxy working (`/api/milhena/feedback`)
+- ⏳ Learning system integration pending (Phase 6)
+
+### **Agent Orchestration Policy**
+- ⚠️ MANDATORY: Invoke `think` agent before complex actions
+- Workflow: 🧠 Think → 🎯 Delegate → ✅ Execute
+- Agents used: `think`, `fullstack-debugger`
 
 ### **Branch Strategy**
 - ✅ Main branch: production-ready code
@@ -267,52 +345,82 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 - ✅ No long-running branches
 
 ### **Database Migrations**
-- ⚠️ Migration 003 applicata manualmente (no automation)
-- ✅ Future: implementare auto-migration on startup
-
-### **Debugging Tools Disponibili**
-- ✅ `./graph` - LangGraph Studio launcher
-- ✅ `intelligence-engine/debug-console.py`
-- ✅ `intelligence-engine/execution-tracer.py`
-- ✅ `intelligence-engine/local-tracer.py`
+- ⚠️ Migrations applied manually (no automation)
+- ✅ Migration 003: backup_settings (done)
+- ⏳ Migration 005: refresh_tokens (pending - security fix)
 
 ---
 
 ## 🔗 RIFERIMENTI RAPIDI
 
 ### **Access Points**
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3000 (login: tiziano@gmail.com / Hamlet@108)
 - Backend: http://localhost:3001
 - Intelligence: http://localhost:8000
-- n8n: http://localhost:5678
+- n8n: http://localhost:5678 (admin / pilotpros_admin_2025)
 - LangGraph Studio: `./graph`
 
 ### **GitHub**
 - Repository: https://github.com/lancaster971/pilotproOS
 - Branch: `main` (only active branch)
+- Last commit: `4395340b` (Security debt docs)
+
+### **Documentation**
+- `CLAUDE.md` - Project guide + Agent Orchestration Policy
+- `DEBITO-TECNICO.md` - Security Debt (NEW) + Template-izzazione Milhena
+- `TODO-URGENTE.md` - FIX CRITICI + Roadmap
+- `resume.md` - This file
 
 ---
 
 ## 🎯 SESSION SUMMARY
 
-**Duration**: ~1 ora (implementazione feedback buttons)
-**Git Operations**: 0 (modifiche pending)
-**Code Changes**: 1 file modified (ChatWidget.vue)
-**Status**: ✅ **FEEDBACK BUTTONS READY - TESTING PENDING**
+**Duration**: ~3 ore
+**Git Operations**: 3 commits, 3 pushes
+**Code Changes**: 2 files modified (ChatWidget.vue, auth.ts)
+**Database Operations**: 1 user created (admin)
+**Security Audit**: 1 complete (fullstack-debugger)
+**Documentation**: 1 file updated (DEBITO-TECNICO.md, +347 lines)
 
-**Key Achievements**:
-1. ✅ Implemented feedback buttons UI (thumbs up/down)
-2. ✅ Integrated with backend proxy `/api/milhena/feedback`
-3. ✅ Added dark theme styling with hover states
-4. ✅ Verified backend API route and parameters
-5. ✅ Error handling and state management complete
+**Status**: ✅ **LOGIN FUNZIONANTE - SECURITY DEBT DOCUMENTATO**
 
-**Previous Session Summary**:
-- ✅ Merged sugituhg branch in main
-- ✅ Cleaned up 3 obsolete branches
-- ✅ Fixed critical backend error (backup_settings)
-- ✅ Configured TestSprite MCP
-- ✅ 8/8 Docker containers healthy
+### **Key Achievements**
+
+**Features**:
+1. ✅ Feedback buttons implemented (ChatWidget)
+2. ✅ Login fixed (user created + API_BASE_URL fix)
+3. ✅ Frontend container restarted (healthy)
+
+**Security**:
+4. ✅ Full-stack security audit completed
+5. ✅ 10 issues identified and documented
+6. ✅ Production blockers prioritized (P0, P1, P2)
+7. ✅ Implementation checklist with effort estimates
+8. ✅ Go-live criteria defined
+
+**Documentation**:
+9. ✅ DEBITO-TECNICO.md updated (347 lines)
+10. ✅ Security testing requirements defined
+11. ✅ OWASP/RFC/NIST references added
+
+---
+
+## ⚠️ CRITICAL REMINDER
+
+### **Production Deployment BLOCKED**
+
+**Security Score**: 4.5/10 🔴
+
+**MUST FIX Before Go-Live**:
+- ❌ HttpOnly cookies migration (4h)
+- ❌ Refresh token implementation (6h)
+- ❌ JWT_SECRET enforcement (1h)
+
+**Estimated**: 11 ore (2 developer-days)
+
+**Current Status**: ⚠️ **DEVELOPMENT-READY ONLY**
+
+**DO NOT** deploy to production without implementing P0 security fixes!
 
 ---
 
@@ -321,4 +429,5 @@ Last commit: c60b7fa0 - Merge branch 'sugituhg' into main
 /continue
 ```
 
-**Status**: ✅ Ready for handoff - All systems operational
+**Status**: ✅ Ready for handoff - Login working - Security debt documented
+**Next Priority**: 🔴 Security fixes (P0) OR 🟡 Hot-Reload Pattern OR 🟡 Learning Dashboard
