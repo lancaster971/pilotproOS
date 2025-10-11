@@ -27,6 +27,25 @@
             <div class="msg-meta">
               <span class="time">{{ formatTime(msg.timestamp) }}</span>
             </div>
+            <!-- Feedback buttons (only for assistant messages) -->
+            <div v-if="msg.role === 'assistant'" class="feedback-buttons">
+              <button
+                @click="sendFeedback(i, 'positive')"
+                :class="['feedback-btn', { active: msg.feedback === 'positive' }]"
+                :disabled="msg.feedback !== null && msg.feedback !== undefined"
+                title="Risposta utile"
+              >
+                <Icon icon="mdi:thumb-up-outline" />
+              </button>
+              <button
+                @click="sendFeedback(i, 'negative')"
+                :class="['feedback-btn', { active: msg.feedback === 'negative' }]"
+                :disabled="msg.feedback !== null && msg.feedback !== undefined"
+                title="Risposta non utile"
+              >
+                <Icon icon="mdi:thumb-down-outline" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -63,6 +82,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  feedback?: 'positive' | 'negative' | null
 }
 
 const isOpen = ref(false)
@@ -136,6 +156,44 @@ const formatMessage = (text: string) => {
 
 const formatTime = (date: Date) => {
   return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+}
+
+const sendFeedback = async (messageIndex: number, feedback: 'positive' | 'negative') => {
+  const message = messages.value[messageIndex]
+  if (!message || message.feedback !== null && message.feedback !== undefined) return
+
+  // Find the corresponding user message (the one before the assistant message)
+  const userMessage = messageIndex > 0 ? messages.value[messageIndex - 1] : null
+  if (!userMessage || userMessage.role !== 'user') {
+    console.error('Cannot find corresponding user message for feedback')
+    return
+  }
+
+  try {
+    const response = await fetch('http://localhost:3001/api/milhena/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: sessionId.value,
+        query: userMessage.content,
+        response: message.content,
+        feedback_type: feedback,
+        intent: 'GENERAL'
+      })
+    })
+
+    if (response.ok) {
+      // Update message feedback state
+      message.feedback = feedback
+      console.log(`Feedback ${feedback} sent successfully`)
+    } else {
+      console.error('Failed to send feedback:', await response.text())
+    }
+  } catch (error) {
+    console.error('Error sending feedback:', error)
+  }
 }
 </script>
 
@@ -292,6 +350,45 @@ const formatTime = (date: Date) => {
 
 .msg.user .msg-meta {
   text-align: right;
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.feedback-btn {
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #888;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.feedback-btn:hover:not(:disabled) {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.feedback-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.feedback-btn.active {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.15);
 }
 
 .loading {
