@@ -76,6 +76,29 @@ Frontend NEVER exposes technical terms:
 2. Evaluate: stars, maintenance, TypeScript
 3. Use library OR document why custom needed
 
+### **Agent Orchestration Policy**
+⚠️ **MANDATORY**: Prima di ogni azione complessa, Claude Code DEVE invocare il subagente **`think`** (internal-reasoning-cot)
+
+**Workflow obbligatorio**:
+1. 🧠 **Think First**: Analisi strategica + decisione subagente
+2. 🎯 **Delegate**: Invocazione subagente specializzato scelto
+3. ✅ **Execute**: Esecuzione task con supervisione orchestratore
+
+**Rationale**:
+- L'orchestratore (Claude Code) decide quale subagente utilizzare
+- Evita invocazioni dirette senza pianificazione
+- Garantisce scelta ottimale del subagente specializzato
+- Riduce errori da delega inappropriata
+
+**Esempio**:
+```
+User: "Implementa feature X con test e deployment"
+❌ WRONG: Invoke diretto di nodejs-typescript-architect
+✅ RIGHT: Invoke think → analisi → decide nodejs-typescript-architect + devops-automation-engineer
+```
+
+**Subagenti disponibili**: think, general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-react
+
 ---
 
 ## 🎯 **KEY FEATURES**
