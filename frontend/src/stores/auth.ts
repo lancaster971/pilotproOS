@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '../types'
+import { API_BASE_URL } from '../utils/api-config'
 
 export const useAuthStore = defineStore('auth', () => {
   // Initialize from localStorage on startup
@@ -26,7 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('🌐 Logging in with new JWT system...')
 
-      const response = await fetch('/api/auth/login', {
+      const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +79,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Optional: Call logout endpoint (not really needed)
     try {
-      await fetch('/api/auth/logout', {
+      const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+      await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.value}`
