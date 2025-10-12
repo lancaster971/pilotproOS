@@ -202,6 +202,24 @@
   5. IMPLEMENTO: Solo dopo "APPROVA" esplicito
 - **Rule**: MAI implementare piano senza approvazione esplicita utente
 
+### Decision #4: Keep All 3 Memory Commands
+- **Date**: 2025-10-12 18:03
+- **Context**: Evaluating potential redundancy between /checkpoint, /rotate-session, /finalize-smart
+- **Options Considered**:
+  - A) Keep all 3 commands (maximum flexibility) - **CHOSEN**
+  - B) Eliminate /checkpoint (simpler, but more commits)
+  - C) Merge commands with flags (complex UX)
+- **Rationale**:
+  - Each command serves distinct use case
+  - Git commit YES/NO is critical difference
+  - Different frequencies: 5-10x (/checkpoint), 2-3x (/rotate-session), 1x (/finalize-smart) per day
+  - Clean git history maintained (semantic commits only in /finalize-smart)
+- **Commands**:
+  1. `/checkpoint` (30s) - Frequent savepoints, NO git commit
+  2. `/rotate-session` (50s) - Context overflow, minimal commit
+  3. `/finalize-smart` (2min) - End of day, semantic commit + full recap
+- **Benefit**: Maximum flexibility with clean git history
+
 ---
 
 ## 📚 Knowledge Base Updates
