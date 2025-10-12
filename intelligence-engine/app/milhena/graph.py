@@ -1037,6 +1037,11 @@ Usa terminologia business, evita tecnicismi."""
         if instant:
             logger.error(f"🎯 [DEBUG] INSTANT MATCH: {instant['category']} - needs_db={instant.get('needs_database')}, needs_rag={instant.get('needs_rag')}")
             logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
+
+            # Learn instant matches too (treat as high-confidence patterns)
+            instant_with_confidence = {**instant, "confidence": 1.0}  # Instant = 100% confidence
+            await self._maybe_learn_pattern(query, instant_with_confidence)
+
             decision = SupervisorDecision(**instant)
             state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
             state["waiting_clarification"] = False
@@ -1988,7 +1993,10 @@ Usa terminologia business, evita tecnicismi."""
         # Only learn high-confidence classifications (TODO-URGENTE.md line 284)
         confidence = llm_result.get('confidence', 0.0)
         if confidence < 0.9:
+            logger.info(f"[AUTO-LEARN] Skipped learning (confidence={confidence:.2f} < 0.9): '{query[:50]}'")
             return
+
+        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={llm_result.get('category')}")
 
         category = llm_result.get('category', '')
         if not category:

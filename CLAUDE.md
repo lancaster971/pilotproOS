@@ -77,30 +77,18 @@ Frontend NEVER exposes technical terms:
 3. Use library OR document why custom needed
 
 ### **Agent Orchestration Policy**
-🎯 **ORCHESTRATORE DIRETTO**: Claude Code (agente generale) decide autonomamente quando delegare a subagent specializzati.
 
-**Workflow Flessibile**:
-1. 🧠 **Analisi Interna**: Claude Code valuta la complessità del task
-2. 🎯 **Decisione Autonoma**:
-   - Task semplice → Eseguo direttamente
-   - Task specializzato → Invoco subagent appropriato
-3. ✅ **Execute**: Esecuzione con supervisione orchestratore
+**WORKFLOW OBBLIGATORIO quando delego a subagent:**
 
-**Rationale**:
-- L'orchestratore (Claude Code) ha capacità di reasoning diretto
-- Invoca subagent solo quando necessario specializzazione
-- Maggiore controllo e flessibilità per l'utente
+1. **ANNUNCIO**: "🤖 Delego a [AGENT] per [MOTIVO]"
+2. **INVOCO**: Task tool con prompt dettagliato
+3. **PRESENTO PIANO**: Formatto output con emoji e struttura chiara
+4. **⏸️ ASPETTO APPROVAZIONE**: "❓ APPROVI? (APPROVA/MODIFICA/ANNULLA)"
+5. **IMPLEMENTO**: Solo dopo "APPROVA" esplicito dell'utente
 
-**Esempi**:
-```
-User: "Leggi il file X e dimmi cosa fa"
-→ Claude Code: Eseguo direttamente (task semplice)
+**REGOLA CRITICA**: MAI implementare piano senza approvazione utente.
 
-User: "Ottimizza il RAG system di Milhena"
-→ Claude Code: Invoco langgraph-architect-guru (specializzazione necessaria)
-```
-
-**Subagenti disponibili**: general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-architect
+**Subagenti disponibili**: database-architect, fastapi-backend-architect, langgraph-architect-guru, vue-ui-architect, devops-automation-engineer, qa-test-engineer, fullstack-debugger, nodejs-typescript-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, functional-system-analyst, general-purpose
 
 ### **MCP Servers (Model Context Protocol)**
 
@@ -127,6 +115,100 @@ PilotProOS utilizza una configurazione **ibrida** di MCP servers per capacità s
 **Configurazione**: `~/.claude/mcp_settings.json` (7 base) + `~/Dropbox/config/claude_desktop_config.json` (8th testsprite)
 
 **Documentazione MCP**: https://modelcontextprotocol.io/introduction
+
+#### **9. OpenMemory** - Persistent Cross-Session Memory
+**Server**: `@peakmojo/mcp-openmemory@latest`
+**Database**: `.openmemory/pilotpros-memory.sqlite` (24KB+, versionato Git)
+
+**Tool Disponibili**:
+- `mcp__openmemory__save_memory(speaker, message, context)` - Save checkpoint
+- `mcp__openmemory__recall_memory_abstract()` - Get session summary
+- `mcp__openmemory__get_recent_memories(max_days)` - Get raw messages
+- `mcp__openmemory__update_memory_abstract(abstract)` - Update summary
+
+### **OpenMemory Persistence Strategy (PilotProOS-Specific)**
+
+**Strategia Multi-Layer**: OpenMemory MCP (primario) + Git + PROGRESS.md (failback)
+
+#### Quando Salvare per PilotProOS:
+
+**1. Milestone Completati** ✅
+```javascript
+// Esempio: Phase X Auto-Learning completata
+mcp__openmemory__save_memory({
+  speaker: "system",
+  message: "PilotProOS Auto-Learning Phase 3 COMPLETATA. Files: graph.py (+7 functions), hot_reload.py (NEW). Test: asyncpg pool verified. Next: Frontend UI tasks 5-7",
+  context: "PilotProOS"
+})
+```
+
+**2. Approvazioni Utente** 👍
+```javascript
+// Esempio: Piano subagent approvato
+mcp__openmemory__save_memory({
+  speaker: "user",
+  message: "USER APPROVAL: fastapi-backend-architect plan APPROVED for Auto-Learning implementation. 7 modifications in graph.py authorized. Proceed with 5-step workflow",
+  context: "PilotProOS"
+})
+```
+
+**3. Decisioni Architetturali** 🏗️
+```javascript
+// Esempio: Scelta strategia memoria
+mcp__openmemory__save_memory({
+  speaker: "agent",
+  message: "ARCHITECTURE DECISION: Dual memory system chosen (OpenMemory + Git + PROGRESS.md). Rationale: failsafe fallback + zero context loss guarantee. Implementation: 5 docs + 3 commands",
+  context: "PilotProOS"
+})
+```
+
+**4. Problemi + Soluzioni** 🐛
+```javascript
+// Esempio: Bug risolto
+mcp__openmemory__save_memory({
+  speaker: "agent",
+  message: "BUG RESOLVED: Classifier template string KeyError. Root Cause: Python .format() interprets {} in JSON as placeholders. Solution: Escape with {{}}. Lesson: Always escape JSON examples in Python template strings",
+  context: "PilotProOS"
+})
+```
+
+**5. Docker Stack Status** 🐳
+```javascript
+// Esempio: Stack avviato/fermato
+mcp__openmemory__save_memory({
+  speaker: "system",
+  message: "Docker Stack STARTED: 7/7 containers healthy. Services: postgres (5432), redis (6379), backend (3001), frontend (3000), intelligence (8000), embeddings (8001), n8n (5678). Ready for testing",
+  context: "PilotProOS"
+})
+```
+
+#### Workflow Integrato:
+
+**Inizio Sessione** (`/resume-session`):
+1. Try `recall_memory_abstract()` from OpenMemory
+2. Read `PROGRESS.md` (always - Git failback)
+3. Cross-check coerenza tra OpenMemory + PROGRESS.md
+4. Save checkpoint iniziale: "Session #X started on branch Y, commit Z"
+
+**Durante Sviluppo**:
+1. OpenMemory: `save_memory` ogni milestone (Phase complete, approval received)
+2. PROGRESS.md: Update manuale sezione "Completed Today" ogni 2-3h
+
+**Fine Sessione** (`/finalize-smart`):
+1. OpenMemory: `update_memory_abstract` con summary completo
+2. PROGRESS.md: Update + add checkpoint timestamp
+3. Git: `git add PROGRESS.md && git commit -m "docs: Update PROGRESS.md session #X"`
+
+#### Failback Strategy:
+
+**Scenario 1**: OpenMemory MCP down
+→ Read PROGRESS.md + last commit message
+
+**Scenario 2**: PROGRESS.md obsoleto
+→ Use OpenMemory abstract + reconstruct from git log
+
+**Scenario 3**: Entrambi discordanti
+→ OpenMemory wins (più aggiornato), sync PROGRESS.md
 
 ---
 
