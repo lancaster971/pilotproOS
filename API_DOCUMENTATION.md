@@ -202,7 +202,241 @@ ws.send(JSON.stringify({
 
 ---
 
-### 7. System Statistics
+### 7. Learning System Feedback
+
+**POST** `/api/milhena/feedback`
+
+Submit user feedback (thumbs up/down) for learning system.
+
+**Request Body:**
+```json
+{
+  "session_id": "test-session-123",
+  "message_id": "msg-456",
+  "feedback_type": "positive",
+  "correction_data": null
+}
+```
+
+**Response:**
+```json
+{
+  "status": "recorded",
+  "message": "Feedback recorded successfully"
+}
+```
+
+---
+
+### 8. Learning Performance Metrics
+
+**GET** `/api/milhena/performance`
+
+Get learning system metrics and accuracy trends.
+
+**Response:**
+```json
+{
+  "total_queries": 15432,
+  "accuracy_rate": 0.75,
+  "improvement_trend": [0.65, 0.68, 0.72, 0.75],
+  "top_patterns": [
+    {
+      "pattern": "quanti workflow",
+      "category": "SIMPLE_METRIC",
+      "accuracy": 0.95,
+      "usage": 234
+    }
+  ],
+  "failed_patterns": [],
+  "auto_learned_count": 64,
+  "cache_hit_rate": 0.35
+}
+```
+
+---
+
+### 9. Hot-Reload Pattern System
+
+**POST** `/api/milhena/patterns/reload`
+
+Manually trigger pattern reload (admin endpoint, development only).
+
+**Request Body:**
+```json
+{}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Pattern reload triggered successfully",
+  "subscribers": 1,
+  "timestamp": "2025-10-11T20:00:00.000Z"
+}
+```
+
+**Note**: This endpoint triggers Redis PubSub message to reload patterns in Intelligence Engine without container restart.
+
+---
+
+### 10. RAG Document Upload
+
+**POST** `/api/rag/documents`
+
+Upload documents to RAG system for semantic search.
+
+**Request (multipart/form-data):**
+- `file`: Document file (PDF, DOCX, TXT, MD, HTML)
+- `category`: Document category (optional, 1-8)
+
+**Response:**
+```json
+{
+  "success": true,
+  "document_id": "doc-789",
+  "filename": "user-guide.pdf",
+  "category": "documentation",
+  "chunks": 45,
+  "timestamp": "2025-10-11T20:00:00.000Z"
+}
+```
+
+---
+
+### 11. RAG Semantic Search
+
+**POST** `/api/rag/search`
+
+Search documents using semantic similarity.
+
+**Request Body:**
+```json
+{
+  "query": "how to configure workflows",
+  "top_k": 5,
+  "category": "documentation"
+}
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "document_id": "doc-789",
+      "chunk_text": "To configure workflows, navigate to...",
+      "similarity": 0.92,
+      "metadata": {
+        "filename": "user-guide.pdf",
+        "category": "documentation"
+      }
+    }
+  ],
+  "query_time_ms": 45
+}
+```
+
+---
+
+### 12. RAG Statistics
+
+**GET** `/api/rag/stats`
+
+Get RAG system statistics.
+
+**Response:**
+```json
+{
+  "total_documents": 127,
+  "total_chunks": 3456,
+  "categories": {
+    "documentation": 45,
+    "guides": 32,
+    "api_reference": 28,
+    "tutorials": 22
+  },
+  "embeddings_model": "nomic-embed-text-v1.5",
+  "dimension": 768
+}
+```
+
+---
+
+### 13. RAG Delete Document
+
+**DELETE** `/api/rag/documents/{id}`
+
+Delete document from RAG system.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Document deleted successfully",
+  "document_id": "doc-789"
+}
+```
+
+---
+
+### 14. Graph Visualization
+
+**GET** `/graph/visualize`
+
+Generate PNG visualization of LangGraph architecture.
+
+**Response:**
+- Content-Type: `image/png`
+- Size: 4700x2745px
+- High-resolution graph diagram
+
+---
+
+### 15. Graph Mermaid Diagram
+
+**GET** `/graph/mermaid`
+
+Get Mermaid diagram code for LangGraph.
+
+**Response:**
+```json
+{
+  "mermaid": "graph TD\n  A[Start] --> B[Classifier]\n  B --> C[ReAct Agent]\n  ...",
+  "format": "mermaid"
+}
+```
+
+---
+
+### 16. Prometheus Metrics
+
+**GET** `/metrics`
+
+Get Prometheus metrics for monitoring.
+
+**Response (text/plain):**
+```
+# HELP milhena_queries_total Total number of queries processed
+# TYPE milhena_queries_total counter
+milhena_queries_total{status="success"} 15234.0
+
+# HELP milhena_response_time_seconds Response time distribution
+# TYPE milhena_response_time_seconds histogram
+milhena_response_time_seconds_bucket{le="1.0"} 12000.0
+milhena_response_time_seconds_bucket{le="2.0"} 14500.0
+milhena_response_time_seconds_bucket{le="+Inf"} 15234.0
+
+# HELP milhena_fast_path_hits_total Fast-path pattern matches
+# TYPE milhena_fast_path_hits_total counter
+milhena_fast_path_hits_total{type="hardcoded"} 4570.0
+milhena_fast_path_hits_total{type="auto_learned"} 762.0
+```
+
+---
+
+### 17. System Statistics
 
 **GET** `/api/stats`
 
@@ -213,12 +447,15 @@ Get system usage statistics.
 {
   "system": "intelligence-engine",
   "framework": "langchain",
+  "version": "3.3.1",
   "active_sessions": 5,
   "cache_hits": 150,
-  "vector_documents": 0,
-  "models_available": ["gpt-4o", "gpt-4o-mini", "claude-3"],
-  "tools_available": ["business_data", "workflows", "metrics", "rag"],
-  "uptime": "2025-09-26T20:00:00.000Z"
+  "vector_documents": 127,
+  "models_available": ["llama-3.3-70b-versatile", "gpt-4.1-nano-2025-04-14"],
+  "tools_available": 18,
+  "uptime_seconds": 345600,
+  "redis_checkpoints": 1214,
+  "auto_learned_patterns": 64
 }
 ```
 
@@ -226,40 +463,113 @@ Get system usage statistics.
 
 ## 🛠️ Available Tools
 
-The ReAct agent has access to these database tools:
+The ReAct agent has access to **18 smart tools** organized in 3 categories:
 
-### 1. **get_database_schema_tool**
-Returns PostgreSQL database schema information.
+### 3 Consolidated Multi-Tools
 
-### 2. **query_users_tool**
-Query user data with filters:
-- Active users count
-- User search by email
-- Recent registrations
-
-### 3. **query_sessions_tool**
-Get active session information:
-- Active sessions count
-- Session details by user
-- Session analytics
-
-### 4. **query_business_data_tool**
-Access business metrics and analytics:
-- Performance metrics
+#### 1. **smart_analytics_query_tool**
+9 analytics queries in 1:
+- User count (active/total)
+- Session statistics
+- Workflow metrics
+- Execution analytics
+- Error rate analysis
+- Performance trends
 - Business KPIs
-- Workflow statistics
+- System health
+- Resource utilization
 
-### 5. **query_system_status_tool**
-Check system health:
-- Service status
-- Database health
-- Performance metrics
+#### 2. **smart_workflow_query_tool**
+3 workflow details in 1:
+- Workflow list (all/active/inactive)
+- Workflow details by ID
+- Workflow status and metadata
 
-### 6. **execute_sql_query_tool**
-Execute custom SQL queries (SELECT only):
-- Safe query execution
-- Result formatting
-- Query validation
+#### 3. **smart_executions_query_tool**
+4 execution tools in 1:
+- Recent executions (last N runs)
+- Executions by workflow ID
+- Executions by status (success/failed/running)
+- Execution details by ID
+
+### 9 Specialized Tools
+
+#### 4. **get_error_details_tool**
+Workflow error analysis (auto-enriched with context):
+- Error message and stack trace
+- Workflow context (name, node)
+- Timestamp and execution ID
+- Related workflow status
+
+#### 5. **get_all_errors_summary_tool**
+Aggregated error statistics:
+- Total error count
+- Errors by workflow
+- Errors by node
+- Recent error trends
+
+#### 6. **get_node_execution_details_tool**
+Node-level granular execution data:
+- Node execution status
+- Input/output data
+- Execution time
+- Node-specific errors
+
+#### 7. **get_chatone_email_details_tool**
+Email bot conversation history:
+- Email threads
+- Conversation context
+- Bot responses
+- Customer interactions
+
+#### 8. **get_raw_modal_data_tool**
+Node-by-node execution timeline:
+- Sequential execution flow
+- Node input/output
+- Timing information
+- State transitions
+
+#### 9. **get_live_events_tool**
+Real-time event stream monitoring:
+- Active workflow events
+- System notifications
+- Real-time status updates
+
+#### 10. **get_workflows_tool**
+Workflow list with metadata:
+- Workflow names and IDs
+- Active/inactive status
+- Creation dates
+- Trigger types
+
+#### 11. **get_workflow_cards_tool**
+Card-style workflow overview:
+- Visual workflow summary
+- Execution statistics
+- Success/failure rates
+- Last run information
+
+#### 12. **execute_workflow_tool** / **toggle_workflow_tool**
+Workflow actions:
+- Execute workflow by ID
+- Enable/disable workflow
+- Start/stop workflow runs
+
+### Extra Tools
+
+#### 13. **search_knowledge_base_tool**
+RAG semantic search:
+- ChromaDB vector search
+- NOMIC embeddings (768-dim)
+- Top-k similar documents
+- Category filtering
+
+#### 14. **get_full_database_dump**
+Complete system state export:
+- Full database snapshot
+- All tables and schemas
+- System configuration
+- Metadata export
 
 ---
 

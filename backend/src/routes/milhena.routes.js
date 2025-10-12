@@ -164,6 +164,68 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
+ * @route   POST /api/milhena/patterns/reload
+ * @desc    Trigger hot-reload of auto-learned patterns (admin only)
+ * @access  Admin (requires JWT authentication in production)
+ */
+router.post('/patterns/reload', async (req, res) => {
+  try {
+    const { pattern_id } = req.body;
+
+    businessLogger.log('Milhena pattern hot-reload triggered', {
+      pattern_id,
+      source: 'admin-endpoint'
+    });
+
+    // TODO: Add JWT admin authentication check here
+    // if (!req.user || !req.user.isAdmin) {
+    //   return res.status(403).json({ success: false, error: 'Admin access required' });
+    // }
+
+    // Publish reload message to Redis PubSub
+    const { createClient } = await import('redis');
+    const redisUrl = process.env.REDIS_URL || 'redis://pilotpros-redis-dev:6379/0';
+    const redisClient = createClient({ url: redisUrl });
+
+    await redisClient.connect();
+
+    const message = JSON.stringify({
+      action: 'reload',
+      pattern_id: pattern_id || null
+    });
+
+    const channel = 'pilotpros:patterns:reload';
+    const subscribers = await redisClient.publish(channel, message);
+
+    await redisClient.disconnect();
+
+    businessLogger.success('Milhena pattern reload message published', {
+      subscribers,
+      pattern_id
+    });
+
+    res.json({
+      success: true,
+      message: 'Pattern reload triggered successfully',
+      subscribers,
+      pattern_id
+    });
+
+  } catch (error) {
+    businessLogger.error('Milhena pattern reload error:', {
+      message: error.message,
+      stack: error.stack
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to trigger pattern reload',
+      message: error.message
+    });
+  }
+});
+
+/**
  * @route   POST /api/milhena/chat
  * @desc    Chat with Milhena assistant
  * @access  Public (will be protected in production)

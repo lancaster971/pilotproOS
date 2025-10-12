@@ -114,6 +114,17 @@ async def lifespan(app: FastAPI):
     await app.state.milhena.async_init()
     logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
 
+    # Initialize hot-reload pattern system (Redis PubSub subscriber)
+    from app.milhena.hot_reload import PatternReloader
+    redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
+    app.state.pattern_reloader = PatternReloader(
+        redis_url=redis_url,
+        reload_callback=app.state.milhena.reload_patterns,
+        channel="pilotpros:patterns:reload"
+    )
+    await app.state.pattern_reloader.start()
+    logger.info("✅ Hot-reload pattern system started (Redis PubSub subscriber)")
+
     # v4.0 GraphSupervisor removed - v3.1 is production
 
     # Initialize Prometheus monitoring
@@ -130,6 +141,14 @@ async def lifespan(app: FastAPI):
 
     # Cleanup
     logger.info("🔄 Shutting down Intelligence Engine...")
+
+    # Stop hot-reload pattern system (Redis PubSub subscriber)
+    if hasattr(app.state, 'pattern_reloader') and app.state.pattern_reloader:
+        try:
+            await app.state.pattern_reloader.stop()
+            logger.info("✅ Hot-reload pattern system stopped gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error stopping pattern reloader: {e}")
 
     # Close AsyncRedisSaver context manager properly
     if hasattr(app.state, 'redis_checkpointer_cm') and app.state.redis_checkpointer_cm:
