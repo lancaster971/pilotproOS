@@ -77,30 +77,18 @@ Frontend NEVER exposes technical terms:
 3. Use library OR document why custom needed
 
 ### **Agent Orchestration Policy**
-🎯 **ORCHESTRATORE DIRETTO**: Claude Code (agente generale) decide autonomamente quando delegare a subagent specializzati.
 
-**Workflow Flessibile**:
-1. 🧠 **Analisi Interna**: Claude Code valuta la complessità del task
-2. 🎯 **Decisione Autonoma**:
-   - Task semplice → Eseguo direttamente
-   - Task specializzato → Invoco subagent appropriato
-3. ✅ **Execute**: Esecuzione con supervisione orchestratore
+**WORKFLOW OBBLIGATORIO quando delego a subagent:**
 
-**Rationale**:
-- L'orchestratore (Claude Code) ha capacità di reasoning diretto
-- Invoca subagent solo quando necessario specializzazione
-- Maggiore controllo e flessibilità per l'utente
+1. **ANNUNCIO**: "🤖 Delego a [AGENT] per [MOTIVO]"
+2. **INVOCO**: Task tool con prompt dettagliato
+3. **PRESENTO PIANO**: Formatto output con emoji e struttura chiara
+4. **⏸️ ASPETTO APPROVAZIONE**: "❓ APPROVI? (APPROVA/MODIFICA/ANNULLA)"
+5. **IMPLEMENTO**: Solo dopo "APPROVA" esplicito dell'utente
 
-**Esempi**:
-```
-User: "Leggi il file X e dimmi cosa fa"
-→ Claude Code: Eseguo direttamente (task semplice)
+**REGOLA CRITICA**: MAI implementare piano senza approvazione utente.
 
-User: "Ottimizza il RAG system di Milhena"
-→ Claude Code: Invoco langgraph-architect-guru (specializzazione necessaria)
-```
-
-**Subagenti disponibili**: general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-architect
+**Subagenti disponibili**: database-architect, fastapi-backend-architect, langgraph-architect-guru, vue-ui-architect, devops-automation-engineer, qa-test-engineer, fullstack-debugger, nodejs-typescript-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, functional-system-analyst, general-purpose
 
 ### **MCP Servers (Model Context Protocol)**
 
