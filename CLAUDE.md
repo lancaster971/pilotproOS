@@ -102,6 +102,32 @@ User: "Ottimizza il RAG system di Milhena"
 
 **Subagenti disponibili**: general-purpose, nodejs-typescript-architect, devops-automation-engineer, functional-system-analyst, uix-react, langgraph-architect-guru, qa-test-engineer, fullstack-debugger, fastapi-backend-architect, database-architect, mobile-native-engineer, owasp-security-analyst, technical-documentation-specialist, vue-ui-architect
 
+### **MCP Servers (Model Context Protocol)**
+
+PilotProOS utilizza una configurazione **ibrida** di MCP servers per capacità specializzate:
+
+#### **7 Server MCP Base** (dall'installazione globale):
+1. **filesystem** - File system operations
+2. **context7-docs** - GitHub documentation fetcher (upstash/context7)
+3. **brave-search** - Web search capabilities
+4. **github** - GitHub API integration
+5. **memory** - Persistent knowledge graph storage
+6. **fetch** - HTTP request capabilities
+7. **postgres** - PostgreSQL database access
+
+#### **1 Server MCP Custom** (specifico PilotProOS):
+8. **testsprite** - Automated testing orchestration (frontend/backend)
+   - `testsprite_bootstrap_tests` - Initialize test suite
+   - `testsprite_generate_code_summary` - Codebase analysis
+   - `testsprite_generate_standardized_prd` - PRD generation
+   - `testsprite_generate_frontend_test_plan` - Frontend test planning
+   - `testsprite_generate_backend_test_plan` - Backend test planning
+   - `testsprite_generate_code_and_execute` - Test generation + execution
+
+**Configurazione**: `~/.claude/mcp_settings.json` (7 base) + `~/Dropbox/config/claude_desktop_config.json` (8th testsprite)
+
+**Documentazione MCP**: https://modelcontextprotocol.io/introduction
+
 ---
 
 ## 🎯 **KEY FEATURES**
@@ -378,11 +404,17 @@ npm run type-check
 
 ## 📚 **KEY DOCUMENTATION**
 
+### **Quick Reference**
+1. **[README.md](./README.md)** - Quick Start + Architecture Overview
+2. **[docs/INDEX.md](./docs/INDEX.md)** - Documentation Catalog (20+ files)
+3. **[CHANGELOG.md](./CHANGELOG.md)** - Version History (all releases)
+4. **[docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md)** - Development Guidelines
+
 ### **Priority**
-1. **TODO-URGENTE.md** 🚨 - FIX CRITICI + Roadmap
-2. **CLAUDE.md** (this file) - Main guide
-3. **NICE-TO-HAVE-FEATURES.md** - Future features
-4. **DEBITO-TECNICO.md** - Post-production cleanup
+1. **[TODO-URGENTE.md](./TODO-URGENTE.md)** 🚨 - FIX CRITICI + Roadmap
+2. **[CLAUDE.md](./CLAUDE.md)** (this file) - Main guide
+3. **[NICE-TO-HAVE-FEATURES.md](./NICE-TO-HAVE-FEATURES.md)** - Future features
+4. **[DEBITO-TECNICO.md](./DEBITO-TECNICO.md)** - Post-production cleanup
 
 ### **Implementation**
 - `intelligence-engine/TODO-MILHENA-ARCHITECTURE.md` - ReAct Agent
