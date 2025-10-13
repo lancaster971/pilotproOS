@@ -580,11 +580,16 @@ async def _increment_pattern_correct(query: str, milhena: MilhenaGraph):
                 """, pattern['id'])
 
                 new_correct = pattern['times_correct'] + 1
-                new_accuracy = (new_correct / pattern['times_used'] * 100) if pattern['times_used'] > 0 else 0
+                new_accuracy = (new_correct / pattern['times_used']) if pattern['times_used'] > 0 else 0
+
+                # Update in-memory cache to keep consistency with database
+                if normalized in milhena.learned_patterns:
+                    milhena.learned_patterns[normalized]['times_correct'] = new_correct
+                    milhena.learned_patterns[normalized]['accuracy'] = new_accuracy
 
                 logger.info(
                     f"[Feedback] ✅ Pattern accuracy updated: '{pattern['pattern'][:30]}...' "
-                    f"correct={new_correct}/{pattern['times_used']} ({new_accuracy:.1f}%)"
+                    f"correct={new_correct}/{pattern['times_used']} ({new_accuracy * 100:.1f}%)"
                 )
             else:
                 logger.debug(f"[Feedback] No pattern found for query: '{query[:50]}'")
