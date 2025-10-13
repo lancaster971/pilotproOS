@@ -235,8 +235,8 @@ async def get_performance_report(request: Request) -> Dict[str, Any]:
         # Get recent feedback from PostgreSQL
         recent_feedback_db = await feedback_store.get_recent_feedback(limit=50)
 
-        # Get patterns from milhena graph (auto_learned_patterns table)
-        patterns_data = milhena_graph.get_patterns()
+        # Get ALL patterns from database (pending, approved, disabled) for admin UI
+        patterns_data = await milhena_graph.get_all_patterns_from_db()
 
         # Calculate metrics
         total_feedback = len(recent_feedback_db)
@@ -263,13 +263,16 @@ async def get_performance_report(request: Request) -> Dict[str, Any]:
         monthly_savings = fast_path_queries * 0.0003 * 30  # Rough estimate
         total_savings = fast_path_queries * 0.0003
 
-        # Format patterns for frontend
+        # Format patterns for frontend (includes ALL statuses: pending, approved, disabled)
+        # IMPORTANT: id MUST be number for PrimeVue DataTable dataKey compatibility
         top_patterns = [
             {
-                "id": str(p.get('id', '')),
+                "id": p.get('id', 0),  # Keep as number (not string!) for DataTable dataKey
+                "pattern": p.get('pattern', ''),
                 "query": p.get('pattern', ''),
                 "normalized_query": p.get('normalized_pattern', ''),
                 "classification": p.get('category', 'GENERAL'),
+                "category": p.get('category', 'GENERAL'),
                 "confidence": p.get('confidence', 0.0),
                 "times_used": p.get('times_used', 0),
                 "times_correct": p.get('times_correct', 0),
@@ -277,9 +280,10 @@ async def get_performance_report(request: Request) -> Dict[str, Any]:
                 "created_at": p.get('created_at', ''),
                 "last_used_at": p.get('last_used_at', ''),
                 "is_active": p.get('enabled', True),
+                "status": p.get('status', 'approved'),
                 "source": 'auto_learned' if p.get('source') == 'auto_learned' else 'hardcoded'
             }
-            for p in patterns_data[:50]  # Top 50
+            for p in patterns_data  # All patterns (no limit for admin UI)
         ]
 
         # Generate accuracy trend from feedback timestamps
@@ -597,6 +601,143 @@ async def _increment_pattern_correct(query: str, milhena: MilhenaGraph):
     except Exception as e:
         logger.error(f"[Feedback] Error incrementing pattern correct: {e}")
         raise  # Re-raise to be caught by caller's exception handler
+
+# ============================================================================
+# PATTERN ADMIN ENDPOINTS (v3.4.0 SUPERVISION)
+# ============================================================================
+
+@router.post("/patterns/{pattern_id}/approve")
+async def approve_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
+    """
+    Approve a pending pattern (admin action)
+    Updates status to 'approved' and triggers hot-reload
+    """
+    try:
+        milhena = request.app.state.milhena
+
+        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+            raise HTTPException(status_code=500, detail="Database pool not initialized")
+
+        async with milhena.db_pool.acquire() as conn:
+            result = await conn.fetchrow("""
+                UPDATE pilotpros.auto_learned_patterns
+                SET status = 'approved', enabled = true
+                WHERE id = $1
+                RETURNING id, pattern, category, status
+            """, pattern_id)
+
+            if not result:
+                raise HTTPException(status_code=404, detail="Pattern not found")
+
+        # Trigger hot-reload
+        await milhena.reload_patterns()
+
+        logger.info(f"[ADMIN] Pattern {pattern_id} approved: {result['pattern']}")
+
+        return {
+            "success": True,
+            "message": "Pattern approved successfully",
+            "pattern": {
+                "id": result['id'],
+                "pattern": result['pattern'],
+                "category": result['category'],
+                "status": result['status']
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Approve pattern error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/patterns/{pattern_id}/disable")
+async def disable_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
+    """
+    Disable an approved pattern (admin action)
+    Updates status to 'disabled' and enabled = false, triggers hot-reload
+    """
+    try:
+        milhena = request.app.state.milhena
+
+        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+            raise HTTPException(status_code=500, detail="Database pool not initialized")
+
+        async with milhena.db_pool.acquire() as conn:
+            result = await conn.fetchrow("""
+                UPDATE pilotpros.auto_learned_patterns
+                SET status = 'disabled', enabled = false
+                WHERE id = $1
+                RETURNING id, pattern, category, status
+            """, pattern_id)
+
+            if not result:
+                raise HTTPException(status_code=404, detail="Pattern not found")
+
+        # Trigger hot-reload
+        await milhena.reload_patterns()
+
+        logger.info(f"[ADMIN] Pattern {pattern_id} disabled: {result['pattern']}")
+
+        return {
+            "success": True,
+            "message": "Pattern disabled successfully",
+            "pattern": {
+                "id": result['id'],
+                "pattern": result['pattern'],
+                "category": result['category'],
+                "status": result['status']
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Disable pattern error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/patterns/{pattern_id}")
+async def delete_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
+    """
+    Delete a pattern permanently (admin action)
+    Removes from database and triggers hot-reload
+    """
+    try:
+        milhena = request.app.state.milhena
+
+        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+            raise HTTPException(status_code=500, detail="Database pool not initialized")
+
+        async with milhena.db_pool.acquire() as conn:
+            result = await conn.fetchrow("""
+                DELETE FROM pilotpros.auto_learned_patterns
+                WHERE id = $1
+                RETURNING id, pattern, category
+            """, pattern_id)
+
+            if not result:
+                raise HTTPException(status_code=404, detail="Pattern not found")
+
+        # Trigger hot-reload
+        await milhena.reload_patterns()
+
+        logger.info(f"[ADMIN] Pattern {pattern_id} deleted: {result['pattern']}")
+
+        return {
+            "success": True,
+            "message": "Pattern deleted successfully",
+            "pattern": {
+                "id": result['id'],
+                "pattern": result['pattern'],
+                "category": result['category']
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Delete pattern error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Import os for environment check
 import os

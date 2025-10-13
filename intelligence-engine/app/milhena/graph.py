@@ -1936,9 +1936,10 @@ Usa terminologia business, evita tecnicismi."""
                         times_correct,
                         created_at,
                         last_used_at,
-                        enabled
+                        enabled,
+                        status
                     FROM pilotpros.auto_learned_patterns
-                    WHERE enabled = TRUE
+                    WHERE enabled = TRUE AND status = 'approved'
                     ORDER BY accuracy DESC, times_used DESC
                 """)
 
@@ -1956,6 +1957,7 @@ Usa terminologia business, evita tecnicismi."""
                         'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                         'last_used_at': row['last_used_at'].isoformat() if row['last_used_at'] else None,
                         'enabled': row['enabled'],
+                        'status': row['status'],
                         'source': 'auto_learned'
                     }
 
@@ -1995,6 +1997,9 @@ Usa terminologia business, evita tecnicismi."""
         Get all loaded patterns with complete statistics.
         Returns list of pattern dictionaries for API consumption.
 
+        NOTE: This returns only APPROVED patterns (from self.learned_patterns cache).
+        For ALL patterns (pending, approved, disabled), use get_all_patterns_from_db().
+
         Returns:
             List of dicts with all pattern fields from database
         """
@@ -2012,9 +2017,68 @@ Usa terminologia business, evita tecnicismi."""
                 'created_at': data.get('created_at'),
                 'last_used_at': data.get('last_used_at'),
                 'enabled': data.get('enabled', True),
+                'status': data.get('status', 'approved'),  # Default 'approved' for loaded patterns
                 'source': data.get('source', 'auto_learned')
             })
         return patterns
+
+    async def get_all_patterns_from_db(self) -> List[Dict[str, Any]]:
+        """
+        Get ALL patterns from database (pending, approved, disabled).
+        Used by admin UI to manage pattern approvals.
+
+        Query: SELECT * FROM auto_learned_patterns (NO status filter)
+        Returns: List of all patterns with all fields including status
+        """
+        if not hasattr(self, 'db_pool') or self.db_pool is None:
+            logger.warning("[ADMIN] DB pool not initialized, returning empty list")
+            return []
+
+        try:
+            async with self.db_pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT
+                        id,
+                        pattern,
+                        normalized_pattern,
+                        category,
+                        confidence,
+                        accuracy,
+                        times_used,
+                        times_correct,
+                        created_at,
+                        last_used_at,
+                        enabled,
+                        status,
+                        created_by
+                    FROM pilotpros.auto_learned_patterns
+                    ORDER BY created_at DESC
+                """)
+
+                patterns = []
+                for row in rows:
+                    patterns.append({
+                        'id': int(row['id']),
+                        'pattern': row['pattern'],
+                        'normalized_pattern': row['normalized_pattern'],
+                        'category': row['category'],
+                        'confidence': float(row['confidence']),
+                        'accuracy': float(row['accuracy']),
+                        'times_used': int(row['times_used']),
+                        'times_correct': int(row['times_correct']) if row['times_correct'] else 0,
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'last_used_at': row['last_used_at'].isoformat() if row['last_used_at'] else None,
+                        'enabled': row['enabled'],
+                        'status': row['status'],
+                        'source': 'auto_learned'
+                    })
+
+                logger.info(f"[ADMIN] Retrieved {len(patterns)} patterns from database (all statuses)")
+                return patterns
+
+        except Exception as e:
+            logger.error(f"[ADMIN] Failed to get all patterns: {e}")
+            return []
 
     async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
         """

@@ -25,7 +25,7 @@
       v-model:expandedRows="expandedRows"
       dataKey="id"
     >
-      <!-- Expand column -->
+      <!-- Expand column (PrimeVue native with forced icon visibility) -->
       <Column :expander="true" headerStyle="width: 3rem" />
 
       <!-- Query column -->
@@ -112,6 +112,32 @@
             <span class="detail-label">Created:</span>
             <span class="detail-value">{{ formatDate(slotProps.data.created_at) }}</span>
           </div>
+
+          <!-- Admin actions -->
+          <div class="detail-actions">
+            <button
+              v-if="slotProps.data.status === 'pending' || slotProps.data.status === 'disabled'"
+              class="action-btn btn-approve"
+              @click="handleApprove(slotProps.data.id)"
+            >
+              ✓ Approve
+            </button>
+
+            <button
+              v-if="slotProps.data.status === 'approved'"
+              class="action-btn btn-disable"
+              @click="handleDisable(slotProps.data.id)"
+            >
+              ⊗ Disable
+            </button>
+
+            <button
+              class="action-btn btn-delete"
+              @click="handleDelete(slotProps.data.id)"
+            >
+              🗑 Delete
+            </button>
+          </div>
         </div>
       </template>
     </DataTable>
@@ -122,6 +148,8 @@
 import { ref, computed } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import { useLearningStore } from '../../stores/learning-store'
+import { useToast } from 'vue-toastification'
 import type { PatternData } from '../../types/learning'
 
 // FilterMatchMode implementation (PrimeVue constant)
@@ -149,6 +177,13 @@ const props = defineProps<{
   error?: string | null
 }>()
 
+const emit = defineEmits<{
+  (e: 'refresh'): void
+}>()
+
+const learningStore = useLearningStore()
+const toast = useToast()
+
 // Table state
 const filters = ref({
   query: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -157,7 +192,7 @@ const filters = ref({
 
 const sortField = ref('times_used')
 const sortOrder = ref(-1) // Descending by default
-const expandedRows = ref<PatternData[]>([])
+const expandedRows = ref<any>({})
 
 // Calculate accuracy
 const getAccuracy = (pattern: PatternData): number => {
@@ -197,6 +232,41 @@ const formatDate = (timestamp: string): string => {
 const onSort = (event: any) => {
   sortField.value = event.sortField
   sortOrder.value = event.sortOrder
+}
+
+// Admin action handlers
+const handleApprove = async (patternId: number) => {
+  try {
+    await learningStore.approvePattern(patternId)
+    toast.success('Pattern approved successfully')
+    emit('refresh')
+  } catch (error: any) {
+    toast.error(`Failed to approve: ${error.message}`)
+  }
+}
+
+const handleDisable = async (patternId: number) => {
+  try {
+    await learningStore.disablePattern(patternId)
+    toast.success('Pattern disabled successfully')
+    emit('refresh')
+  } catch (error: any) {
+    toast.error(`Failed to disable: ${error.message}`)
+  }
+}
+
+const handleDelete = async (patternId: number) => {
+  if (!confirm('Delete this pattern permanently? This cannot be undone.')) {
+    return
+  }
+
+  try {
+    await learningStore.deletePattern(patternId)
+    toast.success('Pattern deleted successfully')
+    emit('refresh')
+  } catch (error: any) {
+    toast.error(`Failed to delete: ${error.message}`)
+  }
 }
 </script>
 
@@ -260,6 +330,39 @@ const onSort = (event: any) => {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* PrimeVue row expander - FORCE VISIBILITY */
+.custom-table :deep(.p-row-toggler) {
+  width: 32px !important;
+  height: 32px !important;
+  background: rgba(37, 99, 235, 0.3) !important;
+  border: 2px solid #2563eb !important;
+  border-radius: 6px !important;
+  color: #2563eb !important;
+}
+
+.custom-table :deep(.p-row-toggler:hover) {
+  background: rgba(37, 99, 235, 0.5) !important;
+  border-color: #3b82f6 !important;
+}
+
+.custom-table :deep(.p-row-toggler .p-row-toggler-icon) {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+.custom-table :deep(.p-row-toggler svg) {
+  fill: #ffffff !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.custom-table :deep(.p-icon) {
+  color: #ffffff !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 .custom-table :deep(.p-datatable-header) {
@@ -454,6 +557,54 @@ const onSort = (event: any) => {
 .detail-value {
   color: #e5e5e5;
   font-size: 13px;
+}
+
+/* Admin action buttons in expansion */
+.detail-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.btn-approve {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-approve:hover {
+  background: #059669;
+}
+
+.btn-disable {
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-disable:hover {
+  background: #d97706;
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
 }
 
 /* Mobile responsive */

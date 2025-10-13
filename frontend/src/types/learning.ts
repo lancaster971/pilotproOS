@@ -5,17 +5,20 @@
  * Pattern data from PostgreSQL auto_learned_patterns table
  */
 export interface PatternData {
-  id?: string
+  id: number // MUST be number for PrimeVue DataTable dataKey compatibility
+  pattern?: string // Pattern text (alias for query)
   query: string
   normalized_query: string
+  category?: string // Category alias (same as classification)
   classification: string
   confidence: number
   times_used: number
   times_correct: number
   accuracy?: number // Computed: times_correct / times_used
   created_at?: string
-  last_used_at?: string
+  last_used_at?: string | null
   is_active?: boolean
+  status?: 'pending' | 'approved' | 'disabled' // Pattern approval status (v3.4.0 supervision)
   source?: 'hardcoded' | 'auto_learned'
 }
 
