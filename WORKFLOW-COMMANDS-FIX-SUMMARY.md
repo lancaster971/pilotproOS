@@ -9,15 +9,16 @@
 
 ## 📊 Changes Overview
 
-⚠️ **UPDATE**: `/rotate-session` removed after analysis (redundant with `/finalize-smart`)
+⚠️ **UPDATE 1**: `/rotate-session` removed after analysis (redundant with `/finalize-smart`)
+⚡ **UPDATE 2**: `/finalize-smart` performance optimization (+12 lines, target: 2-3 min vs 10 min)
 
 | Command | Lines Before | Lines After | Δ | Key Fix |
 |---------|--------------|-------------|---|---------|
-| `/finalize-smart` | 244 | 268 | +24 | Step 2.5: Read PROGRESS.md COMPLETELY + FILES CHANGED section |
+| `/finalize-smart` | 244 | 280 | +36 | Step 2.5 + **Performance optimization** (SINGLE Edit + Concise) |
 | `/checkpoint` | 202 | 204 | +2 | Line counts mandatory format |
 | ~~`/rotate-session`~~ | ~~182~~ | ~~210~~ | ~~+28~~ | **REMOVED** (redundant with finalize-smart) |
 | `/resume-session` | 193 | 291 | +98 | Step 5.5: MANDATORY VERIFICATION (5 sub-checks) |
-| **TOTAL (3 commands)** | 639 | 763 | +124 | **Dual-phase protection** |
+| **TOTAL (3 commands)** | 639 | 775 | +136 | **Dual-phase + Performance** |
 
 ### Why `/rotate-session` Was Removed:
 - 100% overlap with `/finalize-smart` (same operations, less detail)
@@ -314,12 +315,93 @@ Add workflow commands section:
 
 ---
 
+## ⚡ Performance Optimization (Post-Session #54)
+
+**Problem**: `/finalize-smart` taking 10 minutes (target: 2-3 minutes)
+
+**Root Causes**:
+1. **3 separate Edit operations** on PROGRESS.md (Header, Session entry, Checkpoint) - ~3-4 min wasted
+2. **Verbose templates** with 10+ bullets per task - ~2 min generating content
+3. **Sequential thinking** between tool calls - ~1 min cumulative
+
+**Optimizations Applied**:
+
+### 1. SINGLE Edit Operation (saves 3-4 min)
+```markdown
+# BEFORE (3 edits):
+Edit #1: Header (timestamp, session, commit)
+Edit #2: Session #X entry (99 lines)
+Edit #3: Checkpoint #X entry
+
+# AFTER (1 edit):
+Edit UNICO: Header + Session + Checkpoint + History in single operation
+```
+
+### 2. Concise Templates (saves 2 min)
+```markdown
+# BEFORE (verbose):
+#### 1. Root Problem Investigation - Duplicate Work Proposal
+- **Duration**: 30min
+- **Result**: ✅ DUAL-PHASE PROBLEM DISCOVERED
+- **Details**:
+  - **Problem**: Session #54 /resume-session proposed...
+  [... 20 lines of details ...]
+
+# AFTER (conciso):
+#### 1. Root Problem Investigation (30min) ✅
+- Duplicate work proposal (Learning Dashboard #51 già fatto)
+- Root cause: PROGRESS.md read 100 lines (details at 90-163)
+- **Files**: file.md (NEW 245 lines - description)
+- **Impact**: 100% duplicate work prevention
+```
+
+### 3. Critical Performance Notes
+Added to top of `/finalize-smart.md`:
+```
+⚡ CRITICAL PERFORMANCE NOTES
+
+**TARGET**: 2-3 minuti totali (NON 10+ minuti!)
+
+**KEY OPTIMIZATIONS**:
+1. ✅ SINGLE Edit per PROGRESS.md (not 3 separate edits)
+2. ✅ Concise templates (bullets, no verbose Details sections)
+3. ✅ Parallel tool calls where possible
+4. ✅ Omit empty sections (Decisions/Issues if none)
+5. ✅ Merge sub-tasks (if session has >5 tasks, group related work)
+```
+
+**Expected Performance**:
+| Step | Before | After | Savings |
+|------|--------|-------|---------|
+| Generate summary | ~120s | ~30s | 90s |
+| **PROGRESS.md Edit** | **~240s** | **~60s** | **180s** |
+| Other (OpenMemory, Git) | ~50s | ~50s | 0s |
+| **TOTAL** | **~410s (7min)** | **~140s (2.3min)** | **270s (4.5min)** |
+
+**Files Modified**:
+- `/finalize-smart.md`: +36 lines (280 total, was 268)
+  * Added CRITICAL PERFORMANCE NOTES section (lines 10-20)
+  * Optimized Step 2 OpenMemory template (concise, no verbose)
+  * Optimized Step 3 PROGRESS.md template (SINGLE Edit, concise bullets)
+  * Optimized Step 6 User recap (10 lines max, was 25+)
+
+**Updated Stats**:
+```
+280 finalize-smart.md    (+36 lines total from 244 baseline)
+204 checkpoint.md         (+2 lines)
+291 resume-session.md    (+98 lines)
+775 total                (+136 lines)
+```
+
+---
+
 ## 🐛 Known Limitations
 
 1. **Step 5.5 Manual Execution**: AI must manually execute 5 sub-checks (A-E), not automated script
 2. **False Positives**: TODO task names may not exactly match PROGRESS.md session titles (requires fuzzy matching logic)
 3. **Performance**: Step 5.5 adds ~30-60s to `/resume-session` (trade-off for zero duplicate work)
 4. **OpenMemory Dependency**: If OpenMemory MCP unavailable, verification relies solely on PROGRESS.md + ls checks
+5. **Performance Optimization**: Requires AI to follow concise templates strictly (no verbose Details sections)
 
 ---
 
