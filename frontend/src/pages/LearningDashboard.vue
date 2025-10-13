@@ -36,7 +36,7 @@
             </div>
           </div>
 
-          <div class="kpi-card highlight">
+          <div class="kpi-card">
             <Icon icon="mdi:target" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value">{{ formatPercentage(store.metrics?.accuracy_rate || 0) }}</div>
@@ -47,7 +47,7 @@
             </div>
           </div>
 
-          <div class="kpi-card feedback">
+          <div class="kpi-card">
             <Icon icon="mdi:thumb-up-outline" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value">{{ positiveFeedbackCount }}</div>
@@ -341,37 +341,11 @@ onMounted(async () => {
   max-height: 100px;
 }
 
-.kpi-card.highlight {
-  background: rgba(16, 185, 129, 0.05);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.kpi-card.highlight .kpi-card-value {
-  color: #10b981;
-}
-
-.kpi-card.feedback {
-  background: rgba(59, 130, 246, 0.05);
-  border-color: rgba(59, 130, 246, 0.2);
-}
-
-.kpi-card.feedback .kpi-card-value {
-  color: #3b82f6;
-}
-
 .kpi-card-icon {
   font-size: 24px;
   color: #64748b;
   opacity: 0.8;
   flex-shrink: 0;
-}
-
-.kpi-card.highlight .kpi-card-icon {
-  color: #10b981;
-}
-
-.kpi-card.feedback .kpi-card-icon {
-  color: #3b82f6;
 }
 
 .kpi-card-content {
