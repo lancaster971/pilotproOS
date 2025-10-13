@@ -35,6 +35,8 @@ def get_workflows_tool(query_type: str = "active") -> str:
     """
     Get BASIC workflow list (names only, NO statistics/metrics).
 
+    🔑 KEYWORDS: processi, workflow, flussi, business process, lista
+
     USE THIS ONLY for simple lists like:
     - "quali workflow esistono?"
     - "mostra i workflow attivi"
@@ -490,29 +492,28 @@ def get_full_database_dump(days: int = 7) -> str:
     """
     **USE THIS FOR STATISTICS, METRICS, TRENDS, COMPLETE DATA**
 
-    MASSIVA QUERY CHE ESTRAE TUTTI I DATI DISPONIBILI DAL DATABASE POSTGRESQL.
+    🔑 KEYWORDS: tutto, completo, full report, overview completa, dump totale
 
-    USE THIS when user asks for:
-    - "statistiche complete"
-    - "metriche approfondite"
-    - "dati completi"
-    - "analisi dettagliata"
-    - "trend settimanale/mensile"
-    - "performance workflow"
-    - ANY request needing execution stats, success rates, error counts
+    USE THIS WHEN:
+    - User chiede statistiche complete ("statistiche complete", "full report")
+    - User chiede metriche approfondite ("metriche dettagliate", "analytics completo")
+    - User chiede dati completi sistema ("tutto", "overview completa", "dump totale")
+    - User chiede analisi dettagliata ("analisi approfondita", "report esteso")
+    - User chiede trend temporali ("trend settimanale", "trend mensile")
+    - User chiede performance globale ("performance tutti workflow")
+    - ANY request needing execution stats, success rates, error counts COMPLETI
+    - MASSIVA QUERY - Estrae TUTTI i dati PostgreSQL
 
-    Dati estratti:
-    - Tutte le esecuzioni con dettagli completi (workflow, timing, stato, errori)
-    - Statistiche aggregate per workflow (totali, success rate, durata media)
-    - Trend giornalieri (esecuzioni per giorno con tassi successo)
-    - Metriche di performance
-    - Top errori
+    DO NOT USE WHEN:
+    - User chiede statistiche singolo workflow (usa smart_workflow_query_tool)
+    - User chiede metriche limitate (usa smart_analytics_query_tool)
+    - User chiede lista semplice (usa get_workflows_tool)
 
     Args:
         days: Numero di giorni da analizzare (default: 7, usa 30 per "mese")
 
     Returns:
-        Dump completo con 4 sezioni + riepilogo globale
+        Dump completo con 4 sezioni: esecuzioni, statistiche workflow, trend giornalieri, riepilogo globale
     """
     try:
         conn = get_db_connection()
@@ -1066,10 +1067,17 @@ def get_all_errors_summary_tool(hours: int = 24) -> str:
     """
     Get summary of ALL workflows that had errors (no details, just list).
 
-    Use this when user asks general questions:
-    - "che errori abbiamo oggi?"
-    - "quali processi hanno avuto problemi?"
-    - "ci sono errori?"
+    🔑 KEYWORDS: errori, ci sono problemi, summary errori, quali errori, riepilogo
+
+    USE THIS WHEN:
+    - User chiede panoramica errori generali ("che errori ci sono?", "ci sono problemi?")
+    - User chiede quali workflow hanno errori ("quali processi falliscono?")
+    - User chiede riepilogo errori ("riassunto errori", "summary problemi")
+
+    DO NOT USE WHEN:
+    - User chiede errore di workflow SPECIFICO (usa get_error_details_tool con nome workflow)
+    - User chiede dettagli errore (usa get_error_details_tool)
+    - User chiede statistiche sistema (usa smart_analytics_query_tool)
 
     Returns: List of workflow names with error counts
     """
@@ -1223,14 +1231,19 @@ def get_error_details_tool(workflow_name: str, hours: int = 24) -> str:
     """
     Get DETAILED error explanation with cause, failed step, and solution for a SPECIFIC workflow.
 
-    IMPORTANT: workflow_name is REQUIRED! If user mentions a workflow name in previous messages,
-    extract it from conversation history.
+    🔑 KEYWORDS: errore, failure, problema, issue, fallimento
 
-    Use this when user asks:
-    - "che errore ha il processo X?" → workflow_name="X"
-    - "spiegami l'errore di X" → workflow_name="X"
-    - "perché è fallito X?" → workflow_name="X"
-    - "che tipo di errore è?" (follow-up to previous error message) → extract name from history
+    USE THIS WHEN:
+    - User chiede errore di workflow SPECIFICO ("che errore ha ChatOne?", "perché fallisce X?")
+    - User chiede spiegazione errore ("spiegami errore", "cosa è andato storto")
+    - User chiede dettagli failure ("dettagli problema processo X")
+    - User chiede soluzione errore ("come risolvo errore X?")
+    - IMPORTANT: workflow_name REQUIRED (estrai da query o history)
+
+    DO NOT USE WHEN:
+    - User chiede lista errori generali (usa get_all_errors_summary_tool)
+    - User chiede statistiche sistema (usa smart_analytics_query_tool)
+    - User chiede esecuzioni (usa smart_executions_query_tool)
 
     Args:
         workflow_name: REQUIRED - Name of workflow to analyze (extract from user query or history)
@@ -1647,19 +1660,19 @@ async def search_knowledge_base_tool(query: str, top_k: int = 3) -> str:
     """
     Search knowledge base for DOCUMENTATION, HOW-TO, PROCEDURES (NOT for workflow stats!).
 
-    **DO NOT USE** for workflow/process statistics or details!
-    Use get_workflow_details_tool or get_full_database_dump instead!
+    🔑 KEYWORDS: documenti, RAG, knowledge base, archivio, ricerca semantica
 
-    Use this ONLY for:
-    - "come funziona X?" (how does X work - conceptual)
-    - "how do I...?"
-    - Documentation/procedures
-    - When database tools return no data
+    USE THIS WHEN:
+    - User chiede documentazione concettuale ("come funziona X?", "cosa fa Y?")
+    - User chiede procedure ("how do I...", "come posso...")
+    - User chiede info knowledge base ("cerca documenti", "ricerca semantica")
+    - Database tools return no data (fallback search)
 
-    **NEVER use for:**
-    - "info su workflow X" → use get_workflow_details_tool
-    - "statistiche X" → use get_full_database_dump
-    - "dettagli processo Y" → use get_workflow_details_tool
+    DO NOT USE WHEN:
+    - User chiede info workflow (usa smart_workflow_query_tool)
+    - User chiede statistiche (usa smart_analytics_query_tool)
+    - User chiede dettagli processo (usa smart_workflow_query_tool)
+    - User chiede esecuzioni (usa smart_executions_query_tool)
 
     Args:
         query: Search query (conceptual questions, procedures, documentation)
@@ -1763,11 +1776,18 @@ def get_node_execution_details_tool(
     """
     Estrae dati di esecuzione di un NODO SPECIFICO di un workflow.
 
-    Use cases:
-    - "output del nodo Rispondi a mittente"
-    - "cosa ha fatto il nodo X?"
-    - "input ricevuto dal trigger"
-    - "che dati ha prodotto il nodo Y?"
+    🔑 KEYWORDS: nodo, step, task, fase, passaggio
+
+    USE THIS WHEN:
+    - User chiede output nodo specifico ("output del nodo X", "cosa ha prodotto step Y")
+    - User chiede input nodo ("input ricevuto da Z", "che dati ha ricevuto")
+    - User chiede dettagli passaggio workflow ("dettagli task X", "info fase Y")
+    - User chiede cosa ha fatto un nodo ("cosa ha fatto nodo X?")
+
+    DO NOT USE WHEN:
+    - User chiede timeline completa workflow (usa get_raw_modal_data_tool)
+    - User chiede dettagli workflow generale (usa smart_workflow_query_tool)
+    - User chiede esecuzioni workflow (usa smart_executions_query_tool)
 
     Args:
         workflow_name: Nome del workflow (es: "ChatOne", "CHATBOT COMMERCIALE")
@@ -1868,11 +1888,18 @@ def get_chatone_email_details_tool(date: str = "oggi", limit: int = 5) -> str:
     """
     Mostra email ricevute e risposte inviate dal workflow ChatOne (email automation bot).
 
-    Use cases:
-    - "che risposta ha dato il chatbot alla mail?"
-    - "email ricevute oggi"
-    - "ultima conversazione email"
-    - "cosa ha risposto il bot?"
+    🔑 KEYWORDS: email, conversazioni, ChatOne, messaggi, bot chat
+
+    USE THIS WHEN:
+    - User chiede email ricevute da ChatOne ("email oggi", "messaggi ricevuti")
+    - User chiede risposte inviate da bot ("cosa ha risposto ChatOne?", "reply del bot")
+    - User chiede conversazioni email ("ultima conversazione", "chat email")
+    - User chiede dettagli ChatOne specifici ("attività ChatOne", "email automatiche")
+
+    DO NOT USE WHEN:
+    - User chiede dettagli altri workflow (usa smart_workflow_query_tool)
+    - User chiede nodi generici (usa get_node_execution_details_tool)
+    - User chiede errori ChatOne (usa get_error_details_tool con workflow="ChatOne")
 
     Args:
         date: Data esecuzione (DD/MM/YYYY, YYYY-MM-DD, "oggi", "ieri")
@@ -2472,10 +2499,17 @@ async def get_workflow_cards_tool() -> str:
     """
     Card overview di TUTTI i workflow con metriche essenziali.
 
-    Use cases:
-    - "overview tutti i workflow"
-    - "card riepilogo processi"
-    - "vista generale workflow"
+    🔑 KEYWORDS: card, scheda, overview processi, riepilogo, vista generale
+
+    USE THIS WHEN:
+    - User chiede overview generale workflow ("overview tutti i workflow", "panoramica processi")
+    - User chiede card riepilogo ("card processi", "schede workflow")
+    - User chiede vista generale sistema ("vista generale", "riepilogo sistema")
+
+    DO NOT USE WHEN:
+    - User chiede dettagli workflow specifico (usa smart_workflow_query_tool)
+    - User chiede statistiche dettagliate (usa smart_analytics_query_tool)
+    - User chiede lista semplice nomi (usa get_workflows_tool)
 
     Returns:
         Lista card con: nome, status, esecuzioni, success rate per ogni workflow
@@ -2662,11 +2696,18 @@ async def get_live_events_tool() -> str:
     """
     Eventi in tempo reale (esecuzioni attive, errori, completamenti).
 
-    Use cases:
-    - "cosa sta succedendo ora"
-    - "eventi live"
-    - "attività in tempo reale"
-    - "cosa sta girando"
+    🔑 KEYWORDS: eventi, real-time, stream, live, in corso
+
+    USE THIS WHEN:
+    - User chiede cosa sta succedendo ora ("cosa sta succedendo?", "attività corrente")
+    - User chiede eventi live ("eventi real-time", "stream live")
+    - User chiede cosa sta girando ("cosa è in esecuzione?", "processi attivi ora")
+    - User chiede monitoring tempo reale ("monitoring live", "status adesso")
+
+    DO NOT USE WHEN:
+    - User chiede storico esecuzioni (usa smart_executions_query_tool)
+    - User chiede statistiche (usa smart_analytics_query_tool)
+    - User chiede errori passati (usa get_error_details_tool)
 
     Returns:
         Live events stream con timestamp
@@ -2707,13 +2748,19 @@ async def get_raw_modal_data_tool(workflow_id: str, execution_id: int = None) ->
     """
     Raw data per modal Timeline: NODE-LEVEL data completi con business intelligence.
 
-    QUESTO È IL TOOL PIÙ POTENTE per dettagli node-by-node!
+    🔑 KEYWORDS: timeline, sequenza, traccia esecuzione, log dettagliato, percorso
 
-    Use cases:
-    - "dettagli completi esecuzione [WORKFLOW]"
-    - "node-by-node breakdown [WORKFLOW]"
-    - "cosa ha fatto ogni nodo"
-    - "timeline dettagliata [WORKFLOW]"
+    USE THIS WHEN:
+    - User chiede timeline completa workflow ("timeline dettagliata X", "sequenza esecuzione")
+    - User chiede dettagli node-by-node ("cosa ha fatto ogni nodo", "percorso completo")
+    - User chiede traccia esecuzione ("log esecuzione completo", "breakdown workflow")
+    - User chiede dettagli business nodes ("business data", "dati completi esecuzione")
+    - QUESTO È IL TOOL PIÙ POTENTE per dettagli node-by-node!
+
+    DO NOT USE WHEN:
+    - User chiede singolo nodo (usa get_node_execution_details_tool)
+    - User chiede statistiche workflow (usa smart_workflow_query_tool)
+    - User chiede lista esecuzioni (usa smart_executions_query_tool)
 
     Args:
         workflow_id: ID workflow
@@ -2787,12 +2834,18 @@ async def execute_workflow_tool(workflow_id: str) -> str:
     """
     ESEGUE un workflow manualmente (trigger manual execution).
 
-    ⚠️ AZIONE CRITICA - Esegue effettivamente il workflow!
+    🔑 KEYWORDS: esegui, avvia, lancia, run workflow, start processo
 
-    Use cases:
-    - "esegui [WORKFLOW]"
-    - "avvia manualmente [WORKFLOW]"
-    - "triggera [WORKFLOW]"
+    USE THIS WHEN:
+    - User chiede esecuzione manuale workflow ("esegui X", "avvia workflow Y")
+    - User chiede di lanciare processo ("lancia processo X", "start workflow Y")
+    - User chiede trigger manuale ("triggera X", "run manualmente Y")
+    - ⚠️ AZIONE CRITICA - Esegue effettivamente il workflow!
+
+    DO NOT USE WHEN:
+    - User chiede info workflow (usa smart_workflow_query_tool)
+    - User chiede status esecuzione (usa smart_executions_query_tool)
+    - User chiede attivare/disattivare (usa toggle_workflow_tool)
 
     Args:
         workflow_id: ID del workflow da eseguire
@@ -2833,12 +2886,18 @@ async def toggle_workflow_tool(workflow_id: str, active: bool) -> str:
     """
     ATTIVA o DISATTIVA un workflow.
 
-    ⚠️ AZIONE CRITICA - Modifica stato workflow!
+    🔑 KEYWORDS: attiva, disattiva, enable, disable, on/off
 
-    Use cases:
-    - "attiva [WORKFLOW]"
-    - "disattiva [WORKFLOW]"
-    - "spegni [WORKFLOW]"
+    USE THIS WHEN:
+    - User chiede attivazione workflow ("attiva X", "enable processo Y")
+    - User chiede disattivazione workflow ("disattiva X", "disable processo Y", "spegni X")
+    - User chiede cambio stato workflow ("accendi X", "on/off Y")
+    - ⚠️ AZIONE CRITICA - Modifica stato workflow!
+
+    DO NOT USE WHEN:
+    - User chiede esecuzione manuale (usa execute_workflow_tool)
+    - User chiede info workflow (usa smart_workflow_query_tool)
+    - User chiede status esecuzione (usa smart_executions_query_tool)
 
     Args:
         workflow_id: ID workflow
@@ -2888,14 +2947,22 @@ async def smart_analytics_query_tool(
     """
     Smart Analytics Query - Consolida 9 tool analytics in UNO.
 
-    Use cases:
-    - "statistiche sistema" → metric_type="statistics"
-    - "top performers" → metric_type="top_performers"
-    - "trend giornaliero" → metric_type="daily_trend"
-    - "orari picco" → metric_type="hourly"
-    - "analytics completo" → metric_type="overview"
-    - "salute integrazioni" → metric_type="integration_health"
-    - "insights automazioni" → metric_type="automation"
+    🔑 KEYWORDS: statistiche, metriche, KPI, analytics, performance
+
+    USE THIS WHEN:
+    - User chiede statistiche sistema ("statistiche", "KPI", "metriche")
+    - User chiede performance overview ("analytics", "overview completo")
+    - User chiede top performers ("migliori workflow", "top processi")
+    - User chiede distribuzione oraria ("orari picco", "quando più attivo")
+    - User chiede trend temporali ("trend ultimi giorni", "andamento")
+    - User chiede health integrazioni ("salute", "status integrazioni")
+    - User chiede automation insights ("automazioni", "crescita", "rate")
+
+    DO NOT USE WHEN:
+    - User chiede dettagli workflow specifico (usa smart_workflow_query_tool)
+    - User chiede esecuzioni specifiche (usa smart_executions_query_tool)
+    - User chiede errori (usa get_error_details_tool o get_all_errors_summary_tool)
+    - User chiede lista processi senza metriche (usa get_workflows_tool)
 
     Args:
         metric_type: Tipo metrica richiesta
@@ -3005,10 +3072,19 @@ async def smart_workflow_query_tool(
     """
     Smart Workflow Query - Consolida 3 tool workflow details in UNO.
 
-    Use cases:
-    - "info su ChatOne" → detail_level="basic"
-    - "dashboard ChatOne" → detail_level="dashboard" (include recentActivity!)
-    - "statistiche complete ChatOne" → detail_level="full_stats"
+    🔑 KEYWORDS: dettagli workflow, dashboard, info processo, card, scheda
+
+    USE THIS WHEN:
+    - User chiede info su workflow SPECIFICO ("dettagli ChatOne", "info processo X")
+    - User chiede dashboard processo ("dashboard X", "mostra card X")
+    - User chiede statistiche workflow specifico ("statistiche ChatOne", "KPI processo X")
+    - User chiede attività recenti processo ("cosa ha fatto X", "ultimi eventi X")
+
+    DO NOT USE WHEN:
+    - User chiede lista workflow (usa get_workflows_tool)
+    - User chiede statistiche GENERALI sistema (usa smart_analytics_query_tool)
+    - User chiede esecuzioni specifiche (usa smart_executions_query_tool)
+    - User chiede errori (usa get_error_details_tool)
 
     Args:
         workflow_id: ID workflow (es: "iZnBHM7mDFS2wW0u") o nome (es: "ChatOne")
@@ -3079,11 +3155,19 @@ async def smart_executions_query_tool(
     """
     Smart Executions Query - Consolida 4 tool executions in UNO.
 
-    Use cases:
-    - "ultime esecuzioni" → scope="recent_all"
-    - "esecuzioni di oggi" → scope="by_date", target="2025-10-03"
-    - "esecuzioni ChatOne" → scope="by_workflow", target="iZnBHM7mDFS2wW0u"
-    - "status esecuzione 123" → scope="specific", target="123"
+    🔑 KEYWORDS: esecuzioni, run, risultati, execution history, cronologia
+
+    USE THIS WHEN:
+    - User chiede ultime esecuzioni generali ("ultime esecuzioni", "cosa è stato eseguito")
+    - User chiede esecuzioni per data ("esecuzioni di oggi", "run di ieri")
+    - User chiede esecuzioni workflow specifico ("esecuzioni ChatOne", "run processo X")
+    - User chiede status esecuzione specifica ("status esecuzione 123", "dettagli run ID")
+
+    DO NOT USE WHEN:
+    - User chiede statistiche sistema (usa smart_analytics_query_tool)
+    - User chiede dettagli workflow (usa smart_workflow_query_tool)
+    - User chiede errori specifici (usa get_error_details_tool)
+    - User chiede lista processi (usa get_workflows_tool)
 
     Args:
         scope: Tipo query esecuzioni
