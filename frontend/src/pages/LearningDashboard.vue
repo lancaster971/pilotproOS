@@ -60,7 +60,7 @@
             </div>
           </div>
 
-          <div class="kpi-card fastpath">
+          <div class="kpi-card">
             <Icon icon="mdi:lightning-bolt" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value">{{ fastPathCoverage.toFixed(1) }}%</div>
@@ -74,7 +74,7 @@
 
         <!-- Second Row: 3 KPIs -->
         <div class="kpi-row">
-          <div class="kpi-card performance">
+          <div class="kpi-card">
             <Icon icon="mdi:speedometer" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value">{{ avgResponseTime }}ms</div>
@@ -85,7 +85,7 @@
             </div>
           </div>
 
-          <div class="kpi-card activity">
+          <div class="kpi-card">
             <Icon icon="mdi:chart-line" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value">{{ recentActivity }}</div>
@@ -96,7 +96,7 @@
             </div>
           </div>
 
-          <div class="kpi-card category">
+          <div class="kpi-card">
             <Icon icon="mdi:star" class="kpi-card-icon" />
             <div class="kpi-card-content">
               <div class="kpi-card-value category-name">{{ topCategory }}</div>
@@ -359,42 +359,6 @@ onMounted(async () => {
   color: #3b82f6;
 }
 
-.kpi-card.fastpath {
-  background: rgba(245, 158, 11, 0.05);
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.kpi-card.fastpath .kpi-card-value {
-  color: #f59e0b;
-}
-
-.kpi-card.performance {
-  background: rgba(139, 92, 246, 0.05);
-  border-color: rgba(139, 92, 246, 0.2);
-}
-
-.kpi-card.performance .kpi-card-value {
-  color: #8b5cf6;
-}
-
-.kpi-card.activity {
-  background: rgba(236, 72, 153, 0.05);
-  border-color: rgba(236, 72, 153, 0.2);
-}
-
-.kpi-card.activity .kpi-card-value {
-  color: #ec4899;
-}
-
-.kpi-card.category {
-  background: rgba(34, 197, 94, 0.05);
-  border-color: rgba(34, 197, 94, 0.2);
-}
-
-.kpi-card.category .kpi-card-value {
-  color: #22c55e;
-}
-
 .kpi-card-icon {
   font-size: 24px;
   color: #64748b;
@@ -408,22 +372,6 @@ onMounted(async () => {
 
 .kpi-card.feedback .kpi-card-icon {
   color: #3b82f6;
-}
-
-.kpi-card.fastpath .kpi-card-icon {
-  color: #f59e0b;
-}
-
-.kpi-card.performance .kpi-card-icon {
-  color: #8b5cf6;
-}
-
-.kpi-card.activity .kpi-card-icon {
-  color: #ec4899;
-}
-
-.kpi-card.category .kpi-card-icon {
-  color: #22c55e;
 }
 
 .kpi-card-content {
