@@ -13,8 +13,8 @@ import type {
   HeatmapDataPoint
 } from '../types/learning'
 
-// Intelligence Engine base URL (port 8000)
-const INTELLIGENCE_API = import.meta.env.VITE_INTELLIGENCE_URL || 'http://localhost:8000'
+// Backend API base URL (port 3001) - Milhena endpoints proxied through backend
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export const useLearningStore = defineStore('learning', () => {
   // ========== STATE ==========
@@ -133,7 +133,7 @@ export const useLearningStore = defineStore('learning', () => {
     try {
       console.log('📊 Fetching learning metrics from Intelligence Engine...')
 
-      const response = await fetch(`${INTELLIGENCE_API}/api/milhena/performance`, {
+      const response = await fetch(`${API_BASE}/api/milhena/performance`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -186,7 +186,7 @@ export const useLearningStore = defineStore('learning', () => {
     try {
       console.log('👍👎 Sending feedback:', request)
 
-      const response = await fetch(`${INTELLIGENCE_API}/api/milhena/feedback`, {
+      const response = await fetch(`${API_BASE}/api/milhena/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -236,7 +236,7 @@ export const useLearningStore = defineStore('learning', () => {
     try {
       console.log('🔄 Triggering pattern reload...')
 
-      const response = await fetch(`${INTELLIGENCE_API}/api/milhena/patterns/reload`, {
+      const response = await fetch(`${API_BASE}/api/milhena/patterns/reload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
