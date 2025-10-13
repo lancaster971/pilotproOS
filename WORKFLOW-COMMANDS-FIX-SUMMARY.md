@@ -337,7 +337,7 @@ Edit #3: Checkpoint #X entry
 Edit UNICO: Header + Session + Checkpoint + History in single operation
 ```
 
-### 2. Concise Templates (saves 2 min)
+### 2. Semi-Concise Templates (saves 1-2 min, 100% accuracy)
 ```markdown
 # BEFORE (verbose):
 #### 1. Root Problem Investigation - Duplicate Work Proposal
@@ -345,38 +345,54 @@ Edit UNICO: Header + Session + Checkpoint + History in single operation
 - **Result**: ✅ DUAL-PHASE PROBLEM DISCOVERED
 - **Details**:
   - **Problem**: Session #54 /resume-session proposed...
+  - **User Frustration**: "quindi la memoria..."
+  - **Root Causes Identified**:
+    * Opening phase: /resume-session read only ~100 lines...
+    * Closing phase: /finalize-smart had vague templates...
   [... 20 lines of details ...]
+- **Lesson Learned**: Memory failure can occur in BOTH phases
 
-# AFTER (conciso):
+# AFTER (semi-conciso, 100% accuratezza):
 #### 1. Root Problem Investigation (30min) ✅
-- Duplicate work proposal (Learning Dashboard #51 già fatto)
-- Root cause: PROGRESS.md read 100 lines (details at 90-163)
-- **Files**: file.md (NEW 245 lines - description)
-- **Impact**: 100% duplicate work prevention
+- **Problem**: Duplicate work proposal (Learning Dashboard #51 già fatto)
+- **Root Cause**: Dual-phase failure:
+  * Opening: PROGRESS.md read 100 lines (Session #51 at 90-163), no ls/cross-check
+  * Closing: Vague templates, no "NEW" keywords/line counts
+- **User Impact**: "la memoria non è servita ad un beneamato cazzo!"
+- **Solution**: Fix all 4 commands analyzed
+- **Files**: WORKFLOW-COMMANDS-FIX-SUMMARY.md (NEW 380 lines)
+- **Impact**: 100% duplicate work prevention via Step 5.5 VERIFICATION
+- **Lesson**: Memory failure occurs in BOTH closing (incomplete) AND opening (insufficient)
 ```
 
-### 3. Critical Performance Notes
+**CRITICAL**: Template mantiene **100% dati cruciali** (Root cause, User quotes, Lessons) eliminando SOLO wrapper verbose
+
+### 3. Critical Performance Notes + Accuracy First
 Added to top of `/finalize-smart.md`:
 ```
 ⚡ CRITICAL PERFORMANCE NOTES
 
-**TARGET**: 2-3 minuti totali (NON 10+ minuti!)
+**TARGET**: 2.5-3 minuti totali con **100% accuratezza** (NON 10+ minuti!)
 
 **KEY OPTIMIZATIONS**:
-1. ✅ SINGLE Edit per PROGRESS.md (not 3 separate edits)
-2. ✅ Concise templates (bullets, no verbose Details sections)
+1. ✅ SINGLE Edit per PROGRESS.md (not 3 separate edits) - saves 3-4 min
+2. ✅ Semi-concise templates (Problem→Root Cause→Solution→Files→Impact→Lesson) - saves 1-2 min
 3. ✅ Parallel tool calls where possible
 4. ✅ Omit empty sections (Decisions/Issues if none)
-5. ✅ Merge sub-tasks (if session has >5 tasks, group related work)
+5. ✅ KEEP critical data: Root causes, User quotes, Lessons learned (accuracy > brevity)
+
+**ACCURACY FIRST**: Se scegli tra velocità e accuratezza → **SEMPRE accuratezza**
 ```
 
-**Expected Performance**:
+**Expected Performance** (Semi-Conciso con 100% accuratezza):
 | Step | Before | After | Savings |
 |------|--------|-------|---------|
-| Generate summary | ~120s | ~30s | 90s |
-| **PROGRESS.md Edit** | **~240s** | **~60s** | **180s** |
+| Generate summary | ~120s | ~45s | 75s |
+| **PROGRESS.md Edit** | **~240s** | **~90s** | **150s** |
 | Other (OpenMemory, Git) | ~50s | ~50s | 0s |
-| **TOTAL** | **~410s (7min)** | **~140s (2.3min)** | **270s (4.5min)** |
+| **TOTAL** | **~410s (7min)** | **~185s (3min)** | **225s (4min)** |
+
+**Note**: Target 2.5-3 min mantenendo **100% accuratezza** (Root cause, User quotes, Lessons learned)
 
 **Files Modified**:
 - `/finalize-smart.md`: +36 lines (280 total, was 268)
