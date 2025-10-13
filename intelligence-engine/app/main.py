@@ -288,15 +288,6 @@ class AnalysisRequest(BaseModel):
     data_source: str = Field(default="workflows", description="Data source to analyze")
     time_range: Optional[str] = Field(default="7d", description="Time range for analysis")
 
-class FeedbackRequest(BaseModel):
-    """Feedback request model"""
-    query: str = Field(..., description="Original user query")
-    response: str = Field(..., description="System response")
-    feedback_type: str = Field(..., description="positive, negative, or correction")
-    intent: Optional[str] = Field(default=None, description="Detected intent/category")
-    session_id: str = Field(..., description="Session identifier")
-    trace_id: Optional[str] = Field(default=None, description="LangSmith trace ID")
-
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -447,114 +438,12 @@ async def get_stats():
         "uptime": datetime.utcnow().isoformat()
     }
 
-# Feedback endpoint - Update pattern accuracy based on user feedback
-@app.post("/api/milhena/feedback")
-async def record_feedback(request: FeedbackRequest):
-    """
-    Record user feedback and update pattern accuracy
-
-    When feedback is positive:
-    1. Find the auto-learned pattern that matched this query
-    2. Increment times_correct counter
-    3. Update accuracy = times_correct / times_used
-    """
-    try:
-        # Validate feedback_type
-        if request.feedback_type not in ["positive", "negative", "correction"]:
-            raise HTTPException(
-                status_code=400,
-                detail="feedback_type must be: positive, negative, or correction"
-            )
-
-        logger.info(f"[FEEDBACK] Received {request.feedback_type} feedback for query: '{request.query[:50]}'")
-
-        # If positive feedback, increment times_correct for matched pattern
-        if request.feedback_type == "positive":
-            await _increment_pattern_correct(request.query)
-
-        # Save feedback to FeedbackStore (PostgreSQL)
-        if hasattr(app.state, 'feedback_store') and app.state.feedback_store:
-            await app.state.feedback_store.save_feedback(
-                session_id=request.session_id,
-                query=request.query,
-                response=request.response,
-                feedback_type=request.feedback_type,
-                classification=request.intent,
-                reformulation_shown=False,
-                reformulation_accepted=False,
-                trace_id=request.trace_id
-            )
-            logger.info(f"[FEEDBACK] Saved to PostgreSQL: session={request.session_id}")
-
-        return {
-            "success": True,
-            "message": "Feedback recorded successfully",
-            "feedback_type": request.feedback_type,
-            "session_id": request.session_id
-        }
-
-    except Exception as e:
-        logger.error(f"[FEEDBACK] Error recording feedback: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to record feedback: {str(e)}")
-
-
-async def _increment_pattern_correct(query: str):
-    """
-    Find the pattern that matched this query and increment times_correct
-
-    Args:
-        query: Original user query
-    """
-    try:
-        milhena = app.state.milhena
-
-        # Check if DB pool available
-        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
-            logger.warning("[FEEDBACK] DB pool not available, skipping pattern update")
-            return
-
-        # Normalize query to find matching pattern
-        normalized = milhena._normalize_query(query)
-
-        async with milhena.db_pool.acquire() as conn:
-            # Find pattern with exact normalized match
-            pattern = await conn.fetchrow("""
-                SELECT id, pattern, times_used, times_correct
-                FROM pilotpros.auto_learned_patterns
-                WHERE normalized_pattern = $1 AND enabled = true
-            """, normalized)
-
-            if pattern:
-                # Increment times_correct and recalculate accuracy
-                await conn.execute("""
-                    UPDATE pilotpros.auto_learned_patterns
-                    SET times_correct = times_correct + 1,
-                        accuracy = CASE
-                            WHEN times_used > 0
-                            THEN (times_correct + 1.0) / times_used
-                            ELSE 0
-                        END
-                    WHERE id = $1
-                """, pattern['id'])
-
-                new_correct = pattern['times_correct'] + 1
-                new_accuracy = (new_correct / pattern['times_used'] * 100) if pattern['times_used'] > 0 else 0
-
-                logger.info(
-                    f"[FEEDBACK] ✅ Pattern accuracy updated: '{pattern['pattern'][:30]}...' "
-                    f"correct={new_correct}/{pattern['times_used']} ({new_accuracy:.1f}%)"
-                )
-            else:
-                logger.warning(f"[FEEDBACK] No pattern found for query: '{query[:50]}'")
-
-    except Exception as e:
-        logger.error(f"[FEEDBACK] Error incrementing pattern correct: {e}")
-
 # ============================================================================
 # NEW MULTI-AGENT API ENDPOINTS
 # ============================================================================
 
 # v4.0 endpoints removed - not applicable to v3.1 linear pipeline
+# Feedback endpoint moved to milhena/api.py (line 130-204)
 
 @app.get("/metrics")
 async def get_prometheus_metrics():

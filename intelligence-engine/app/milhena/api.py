@@ -167,6 +167,14 @@ async def submit_feedback(feedback_request: FeedbackRequest, request: Request) -
         else:
             logger.warning("[Feedback] FeedbackStore not initialized, skipping PostgreSQL persistence")
 
+        # Update pattern accuracy for positive feedback (v3.3.0 Auto-Learning)
+        if feedback_request.feedback_type == "positive":
+            try:
+                await _increment_pattern_correct(feedback_request.query, request.app.state.milhena)
+            except Exception as pattern_error:
+                # Don't fail the request if pattern update fails
+                logger.error(f"[Feedback] Pattern accuracy update failed: {pattern_error}")
+
         # Record feedback in LangSmith if trace_id provided (following official pattern)
         if feedback_request.trace_id:
             try:
@@ -528,6 +536,62 @@ async def create_langsmith_dataset() -> Dict[str, str]:
             "status": "error",
             "message": str(e)
         }
+
+# ============================================================================
+# PATTERN ACCURACY TRACKING (v3.3.0 AUTO-LEARNING)
+# ============================================================================
+
+async def _increment_pattern_correct(query: str, milhena: MilhenaGraph):
+    """
+    Find the pattern that matched this query and increment times_correct
+
+    Args:
+        query: Original user query
+        milhena: MilhenaGraph instance with db_pool
+    """
+    try:
+        # Check if DB pool available
+        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+            logger.warning("[Feedback] DB pool not available, skipping pattern update")
+            return
+
+        # Normalize query to find matching pattern
+        normalized = milhena._normalize_query(query)
+
+        async with milhena.db_pool.acquire() as conn:
+            # Find pattern with exact normalized match
+            pattern = await conn.fetchrow("""
+                SELECT id, pattern, times_used, times_correct
+                FROM pilotpros.auto_learned_patterns
+                WHERE normalized_pattern = $1 AND enabled = true
+            """, normalized)
+
+            if pattern:
+                # Increment times_correct and recalculate accuracy
+                await conn.execute("""
+                    UPDATE pilotpros.auto_learned_patterns
+                    SET times_correct = times_correct + 1,
+                        accuracy = CASE
+                            WHEN times_used > 0
+                            THEN (times_correct + 1.0) / times_used
+                            ELSE 0
+                        END
+                    WHERE id = $1
+                """, pattern['id'])
+
+                new_correct = pattern['times_correct'] + 1
+                new_accuracy = (new_correct / pattern['times_used'] * 100) if pattern['times_used'] > 0 else 0
+
+                logger.info(
+                    f"[Feedback] ✅ Pattern accuracy updated: '{pattern['pattern'][:30]}...' "
+                    f"correct={new_correct}/{pattern['times_used']} ({new_accuracy:.1f}%)"
+                )
+            else:
+                logger.debug(f"[Feedback] No pattern found for query: '{query[:50]}'")
+
+    except Exception as e:
+        logger.error(f"[Feedback] Error incrementing pattern correct: {e}")
+        raise  # Re-raise to be caught by caller's exception handler
 
 # Import os for environment check
 import os
