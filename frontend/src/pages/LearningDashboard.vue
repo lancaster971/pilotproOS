@@ -45,24 +45,15 @@
           </div>
         </div>
 
-        <div class="kpi-card">
-          <Icon icon="mdi:lightning-bolt" class="kpi-card-icon" />
+        <div class="kpi-card feedback">
+          <Icon icon="mdi:thumb-up-outline" class="kpi-card-icon" />
           <div class="kpi-card-content">
-            <div class="kpi-card-value">{{ formatPercentage(store.costTrend?.fastPathCoverage / 100 || 0) }}</div>
-            <div class="kpi-card-label">Fast-Path Coverage</div>
+            <div class="kpi-card-value">{{ positiveFeedbackCount }}</div>
+            <div class="kpi-card-label">User Feedback</div>
             <div class="kpi-card-detail">
-              <span class="fast-path">{{ formatPercentage(store.costTrend?.llmCoverage / 100 || 0) }} LLM</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card success">
-          <Icon icon="mdi:cash-multiple" class="kpi-card-icon" />
-          <div class="kpi-card-content">
-            <div class="kpi-card-value">${{ formatCurrency(store.costTrend?.monthly || 0) }}</div>
-            <div class="kpi-card-label">Monthly Savings</div>
-            <div class="kpi-card-detail">
-              <span class="total">${{ formatCurrency(store.costTrend?.total || 0) }} total</span>
+              <span class="positive">{{ positiveFeedbackCount }} positive</span>
+              <span class="separator">•</span>
+              <span class="negative">{{ negativeFeedbackCount }} negative</span>
             </div>
           </div>
         </div>
@@ -101,7 +92,7 @@
 
 <script setup lang="ts">
 import MainLayout from '../components/layout/MainLayout.vue'
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useLearningStore } from '../stores/learning-store'
 import { useToast } from 'vue-toastification'
@@ -116,14 +107,18 @@ import PatternVisualization from '../components/learning/PatternVisualization.vu
 const store = useLearningStore()
 const toast = useToast()
 
+// Compute feedback counts
+const positiveFeedbackCount = computed(() => {
+  return store.recentFeedback.filter(f => f.feedback === 'positive').length
+})
+
+const negativeFeedbackCount = computed(() => {
+  return store.recentFeedback.filter(f => f.feedback === 'negative').length
+})
+
 // Format percentage
 const formatPercentage = (value: number): string => {
   return `${(value * 100).toFixed(1)}%`
-}
-
-// Format currency
-const formatCurrency = (value: number): string => {
-  return value.toFixed(2)
 }
 
 // Handle retry
@@ -255,13 +250,13 @@ onMounted(async () => {
   color: #10b981;
 }
 
-.kpi-card.success {
-  background: rgba(34, 197, 94, 0.05);
-  border-color: rgba(34, 197, 94, 0.2);
+.kpi-card.feedback {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
-.kpi-card.success .kpi-card-value {
-  color: #22c55e;
+.kpi-card.feedback .kpi-card-value {
+  color: #3b82f6;
 }
 
 .kpi-card-icon {
@@ -275,8 +270,8 @@ onMounted(async () => {
   color: #10b981;
 }
 
-.kpi-card.success .kpi-card-icon {
-  color: #22c55e;
+.kpi-card.feedback .kpi-card-icon {
+  color: #3b82f6;
 }
 
 .kpi-card-content {
@@ -315,12 +310,12 @@ onMounted(async () => {
   color: #9ca3af;
 }
 
-.kpi-card-detail .fast-path {
-  color: #f59e0b;
+.kpi-card-detail .positive {
+  color: #10b981;
 }
 
-.kpi-card-detail .total {
-  color: #22c55e;
+.kpi-card-detail .negative {
+  color: #ef4444;
 }
 
 .kpi-card-detail .separator {
@@ -336,6 +331,12 @@ onMounted(async () => {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 992px) {
   .professional-kpi-bar {
     flex-wrap: wrap;
     gap: 12px;
@@ -346,19 +347,13 @@ onMounted(async () => {
     margin-right: 0;
   }
 
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 992px) {
-  .professional-kpi-bar {
-    flex-direction: column;
+  .kpi-card:nth-child(2) {
+    margin-right: 0;
   }
 
-  .kpi-card {
-    min-width: 100%;
+  .kpi-card:last-child {
     width: 100%;
+    min-width: 100%;
   }
 }
 
