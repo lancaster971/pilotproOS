@@ -5,23 +5,8 @@
       <div class="timeline-subtitle">Last 20 user interactions</div>
     </div>
 
-    <div v-if="isLoading" class="timeline-loading">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <p>Loading feedback...</p>
-    </div>
-
-    <div v-else-if="error" class="timeline-error">
-      <i class="pi pi-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-    </div>
-
-    <div v-else-if="events.length === 0" class="timeline-empty">
-      <i class="pi pi-inbox" style="font-size: 2rem"></i>
-      <p>No feedback events yet</p>
-      <span class="empty-hint">User feedback will appear here</span>
-    </div>
-
-    <Timeline v-else :value="events" align="left" class="custom-timeline">
+    <!-- ALWAYS RENDER - Debug mode -->
+    <Timeline :value="events" align="left" class="custom-timeline">
       <template #marker="slotProps">
         <div :class="['timeline-marker', slotProps.item.feedback]">
           <Icon
@@ -120,25 +105,27 @@ const truncate = (text: string, length: number): string => {
 .feedback-timeline {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #2a2a2a;
-  max-height: 600px;
+  max-height: 350px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .timeline-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .timeline-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .timeline-subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: #888888;
 }
 
@@ -176,7 +163,8 @@ const truncate = (text: string, length: number): string => {
 
 /* Custom PrimeVue Timeline styling */
 .custom-timeline :deep(.p-timeline-event-content) {
-  padding: 0 0 20px 20px;
+  padding: 0 0 12px 16px;
+  font-size: 11px !important;
 }
 
 .custom-timeline :deep(.p-timeline-event-opposite) {
@@ -187,15 +175,20 @@ const truncate = (text: string, length: number): string => {
   background: #2a2a2a;
 }
 
+/* FORCE small fonts in all timeline content */
+.custom-timeline :deep(*) {
+  font-size: 11px !important;
+}
+
 /* Timeline marker */
 .timeline-marker {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   border: 2px solid;
 }
 
@@ -214,8 +207,8 @@ const truncate = (text: string, length: number): string => {
 /* Timeline content */
 .timeline-content {
   background: #0a0a0a;
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 6px;
+  padding: 8px 12px;
   border: 1px solid #2a2a2a;
 }
 
@@ -223,18 +216,18 @@ const truncate = (text: string, length: number): string => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .feedback-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px !important;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .feedback-badge.positive {
@@ -250,50 +243,53 @@ const truncate = (text: string, length: number): string => {
 }
 
 .timestamp {
-  font-size: 11px;
+  font-size: 9px !important;
   color: #666666;
 }
 
 .content-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .content-row {
   display: flex;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 10px !important;
 }
 
 .label {
   font-weight: 600;
   color: #888888;
-  min-width: 80px;
+  min-width: 65px;
+  font-size: 10px !important;
 }
 
 .value {
   color: #e5e5e5;
   flex: 1;
   word-break: break-word;
+  font-size: 10px !important;
+  line-height: 1.3 !important;
 }
 
 .category-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 2px 6px;
   background: #2a2a2a;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 10px !important;
   color: #2563eb;
 }
 
 .reformulation-status {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px !important;
   font-weight: 600;
 }
 
@@ -330,31 +326,36 @@ const truncate = (text: string, length: number): string => {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .feedback-timeline {
-    padding: 16px;
-    max-height: 500px;
+    padding: 12px;
+    max-height: 400px;
   }
 
   .timeline-header h3 {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .timeline-marker {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
   }
 
   .timeline-content {
-    padding: 10px 12px;
+    padding: 8px 10px;
   }
 
   .content-row {
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
   }
 
   .label {
     min-width: auto;
+    font-size: 9px !important;
+  }
+
+  .value {
+    font-size: 9px !important;
   }
 }
 </style>
