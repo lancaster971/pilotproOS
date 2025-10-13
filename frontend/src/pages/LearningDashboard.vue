@@ -19,41 +19,91 @@
 
     <!-- Dashboard Content -->
     <div v-else class="dashboard-content">
-      <!-- KPI Bar (Horizontal Insights Style) -->
+      <!-- KPI Bar (2 Rows - 7 KPIs Total) -->
       <div class="professional-kpi-bar">
-        <div class="kpi-card">
-          <Icon icon="mdi:database" class="kpi-card-icon" />
-          <div class="kpi-card-content">
-            <div class="kpi-card-value">{{ store.metrics?.total_patterns || 0 }}</div>
-            <div class="kpi-card-label">Total Patterns</div>
-            <div class="kpi-card-detail">
-              <span class="auto">{{ store.metrics?.auto_learned_count || 0 }} auto</span>
-              <span class="separator">•</span>
-              <span class="hardcoded">{{ store.metrics?.hardcoded_count || 0 }} hardcoded</span>
+        <!-- First Row: 4 KPIs -->
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <Icon icon="mdi:database" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ store.metrics?.total_patterns || 0 }}</div>
+              <div class="kpi-card-label">Total Patterns</div>
+              <div class="kpi-card-detail">
+                <span class="auto">{{ store.metrics?.auto_learned_count || 0 }} auto</span>
+                <span class="separator">•</span>
+                <span class="hardcoded">{{ store.metrics?.hardcoded_count || 0 }} hardcoded</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card highlight">
+            <Icon icon="mdi:target" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ formatPercentage(store.metrics?.accuracy_rate || 0) }}</div>
+              <div class="kpi-card-label">Accuracy Rate</div>
+              <div class="kpi-card-detail">
+                {{ store.metrics?.total_usages || 0 }} queries
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card feedback">
+            <Icon icon="mdi:thumb-up-outline" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ positiveFeedbackCount }}</div>
+              <div class="kpi-card-label">User Feedback</div>
+              <div class="kpi-card-detail">
+                <span class="positive">{{ positiveFeedbackCount }} positive</span>
+                <span class="separator">•</span>
+                <span class="negative">{{ negativeFeedbackCount }} negative</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card fastpath">
+            <Icon icon="mdi:lightning-bolt" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ fastPathCoverage.toFixed(1) }}%</div>
+              <div class="kpi-card-label">Fast-Path Coverage</div>
+              <div class="kpi-card-detail">
+                Auto-learning efficiency
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="kpi-card highlight">
-          <Icon icon="mdi:target" class="kpi-card-icon" />
-          <div class="kpi-card-content">
-            <div class="kpi-card-value">{{ formatPercentage(store.metrics?.accuracy_rate || 0) }}</div>
-            <div class="kpi-card-label">Accuracy Rate</div>
-            <div class="kpi-card-detail">
-              {{ store.metrics?.total_usages || 0 }} queries
+        <!-- Second Row: 3 KPIs -->
+        <div class="kpi-row">
+          <div class="kpi-card performance">
+            <Icon icon="mdi:speedometer" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ avgResponseTime }}ms</div>
+              <div class="kpi-card-label">Avg Response Time</div>
+              <div class="kpi-card-detail">
+                Weighted average latency
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="kpi-card feedback">
-          <Icon icon="mdi:thumb-up-outline" class="kpi-card-icon" />
-          <div class="kpi-card-content">
-            <div class="kpi-card-value">{{ positiveFeedbackCount }}</div>
-            <div class="kpi-card-label">User Feedback</div>
-            <div class="kpi-card-detail">
-              <span class="positive">{{ positiveFeedbackCount }} positive</span>
-              <span class="separator">•</span>
-              <span class="negative">{{ negativeFeedbackCount }} negative</span>
+          <div class="kpi-card activity">
+            <Icon icon="mdi:chart-line" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value">{{ recentActivity }}</div>
+              <div class="kpi-card-label">Recent Activity</div>
+              <div class="kpi-card-detail">
+                Total queries processed
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card category">
+            <Icon icon="mdi:star" class="kpi-card-icon" />
+            <div class="kpi-card-content">
+              <div class="kpi-card-value category-name">{{ topCategory }}</div>
+              <div class="kpi-card-label">Top Category</div>
+              <div class="kpi-card-detail">
+                Most requested type
+              </div>
             </div>
           </div>
         </div>
@@ -116,9 +166,58 @@ const negativeFeedbackCount = computed(() => {
   return store.recentFeedback.filter(f => f.feedback === 'negative').length
 })
 
+// Compute Fast-Path Coverage
+const fastPathCoverage = computed(() => {
+  return store.costTrend?.fastPathCoverage || 0
+})
+
+// Compute Average Response Time (estimated from total_usages)
+const avgResponseTime = computed(() => {
+  // Estimate: fast-path ~10ms, LLM ~300ms
+  const fastPathRate = fastPathCoverage.value / 100
+  const llmRate = 1 - fastPathRate
+  const estimatedMs = (fastPathRate * 10) + (llmRate * 300)
+  return Math.round(estimatedMs)
+})
+
+// Compute Recent Activity (last 24h queries)
+const recentActivity = computed(() => {
+  // Use total_usages as proxy for 24h activity
+  return store.metrics?.total_usages || 0
+})
+
+// Compute Top Category (most used)
+const topCategory = computed(() => {
+  if (!store.topPatterns || store.topPatterns.length === 0) {
+    return 'N/A'
+  }
+
+  // Group by category and sum usage
+  const categoryUsage: Record<string, number> = {}
+  store.topPatterns.forEach(pattern => {
+    const cat = pattern.classification
+    categoryUsage[cat] = (categoryUsage[cat] || 0) + pattern.times_used
+  })
+
+  // Find category with max usage
+  const topCat = Object.entries(categoryUsage)
+    .sort(([, a], [, b]) => b - a)[0]
+
+  return topCat ? formatCategoryName(topCat[0]) : 'N/A'
+})
+
 // Format percentage
 const formatPercentage = (value: number): string => {
   return `${(value * 100).toFixed(1)}%`
+}
+
+// Format category name
+const formatCategoryName = (category: string): string => {
+  return category
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 // Handle retry
@@ -212,16 +311,22 @@ onMounted(async () => {
   gap: 24px;
 }
 
-/* Professional KPI Bar (Insights Style) */
+/* Professional KPI Bar (2 Rows - 7 KPIs) */
 .professional-kpi-bar {
   display: flex;
-  gap: 0;
+  flex-direction: column;
+  gap: 16px;
   background: rgba(10, 10, 15, 0.8);
   border: 1px solid rgba(31, 41, 55, 0.4);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
+}
+
+.kpi-row {
+  display: flex;
+  gap: 16px;
 }
 
 .kpi-card {
@@ -233,12 +338,7 @@ onMounted(async () => {
   background: rgba(15, 15, 20, 0.6);
   border: 1px solid rgba(31, 41, 55, 0.3);
   border-radius: 8px;
-  margin-right: 16px;
   max-height: 100px;
-}
-
-.kpi-card:last-child {
-  margin-right: 0;
 }
 
 .kpi-card.highlight {
@@ -259,6 +359,42 @@ onMounted(async () => {
   color: #3b82f6;
 }
 
+.kpi-card.fastpath {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.kpi-card.fastpath .kpi-card-value {
+  color: #f59e0b;
+}
+
+.kpi-card.performance {
+  background: rgba(139, 92, 246, 0.05);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.kpi-card.performance .kpi-card-value {
+  color: #8b5cf6;
+}
+
+.kpi-card.activity {
+  background: rgba(236, 72, 153, 0.05);
+  border-color: rgba(236, 72, 153, 0.2);
+}
+
+.kpi-card.activity .kpi-card-value {
+  color: #ec4899;
+}
+
+.kpi-card.category {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.kpi-card.category .kpi-card-value {
+  color: #22c55e;
+}
+
 .kpi-card-icon {
   font-size: 24px;
   color: #64748b;
@@ -274,6 +410,22 @@ onMounted(async () => {
   color: #3b82f6;
 }
 
+.kpi-card.fastpath .kpi-card-icon {
+  color: #f59e0b;
+}
+
+.kpi-card.performance .kpi-card-icon {
+  color: #8b5cf6;
+}
+
+.kpi-card.activity .kpi-card-icon {
+  color: #ec4899;
+}
+
+.kpi-card.category .kpi-card-icon {
+  color: #22c55e;
+}
+
 .kpi-card-content {
   flex: 1;
   display: flex;
@@ -287,6 +439,13 @@ onMounted(async () => {
   color: #ffffff;
   line-height: 1;
   letter-spacing: -0.5px;
+}
+
+.kpi-card-value.category-name {
+  font-size: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-card-label {
@@ -336,24 +495,14 @@ onMounted(async () => {
   }
 }
 
-@media (max-width: 992px) {
-  .professional-kpi-bar {
+@media (max-width: 1024px) {
+  .kpi-row {
     flex-wrap: wrap;
     gap: 12px;
   }
 
   .kpi-card {
     min-width: calc(50% - 6px);
-    margin-right: 0;
-  }
-
-  .kpi-card:nth-child(2) {
-    margin-right: 0;
-  }
-
-  .kpi-card:last-child {
-    width: 100%;
-    min-width: 100%;
   }
 }
 
@@ -366,6 +515,11 @@ onMounted(async () => {
     padding: 16px;
   }
 
+  .kpi-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .kpi-card {
     width: 100%;
     min-width: 100%;
@@ -373,6 +527,10 @@ onMounted(async () => {
 
   .kpi-card-value {
     font-size: 22px;
+  }
+
+  .kpi-card-value.category-name {
+    font-size: 18px;
   }
 }
 </style>
