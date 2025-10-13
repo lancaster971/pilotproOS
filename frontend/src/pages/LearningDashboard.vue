@@ -124,8 +124,7 @@ onMounted(async () => {
 <style scoped>
 .learning-dashboard {
   padding: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
   background: #0a0a0a;
   min-height: 100vh;
 }
