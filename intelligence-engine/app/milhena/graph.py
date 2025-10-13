@@ -89,22 +89,88 @@ if is_mock_enabled():
 
     @tool
     def get_workflows_tool() -> str:
-        """Lista tutti i workflow (MOCK DATA)"""
+        """
+        Get complete list of business processes with their status (active/inactive).
+
+        USE THIS WHEN:
+        - User asks: "quanti processi abbiamo?", "quali workflow?", "elenco processi"
+        - User wants to know total count of business processes
+        - User asks about process names or status overview
+
+        DO NOT USE WHEN:
+        - User asks about "tabelle", "dati", "informazioni" (ambiguous terms - ask clarification first)
+        - User asks about execution statistics (use smart_analytics_query_tool)
+        - User asks about errors (use get_all_errors_summary_tool)
+        - User asks about specific process details (use get_workflow_details_tool)
+
+        Returns: Total count, active/inactive count, list of process names (MOCK DATA)
+        """
         return get_mock_workflows()
 
     @tool
     def get_all_errors_summary_tool() -> str:
-        """Errori aggregati per workflow (MOCK DATA)"""
+        """
+        Get aggregated error summary by business process (last 7 days).
+
+        USE THIS WHEN:
+        - User asks: "ci sono errori?", "quali processi hanno errori?", "summary errori"
+        - User wants error overview across multiple processes
+        - User needs to identify problematic processes
+
+        DO NOT USE WHEN:
+        - User asks for detailed error info for ONE specific process (use get_error_details_tool)
+        - User asks about execution statistics (use smart_analytics_query_tool)
+        - User asks about process list (use get_workflows_tool)
+
+        Returns: Error count per process, most recent errors, affected processes (MOCK DATA)
+        """
         return get_mock_errors()
 
     @tool
     def get_workflow_details_tool(workflow_name: str) -> str:
-        """Dettagli specifici workflow (MOCK DATA)"""
+        """
+        Get detailed information about ONE specific business process.
+
+        USE THIS WHEN:
+        - User asks: "dettagli processo X", "come funziona workflow Y", "info su processo Z"
+        - User wants to know configuration, nodes, status of specific process
+        - User mentions a specific process name
+
+        DO NOT USE WHEN:
+        - User asks for list of ALL processes (use get_workflows_tool)
+        - User asks about execution history (use smart_executions_query_tool)
+        - User asks about errors only (use get_error_details_tool)
+
+        Args:
+            workflow_name: Exact name of the business process (case-sensitive)
+
+        Returns: Process configuration, number of nodes, active status, last update (MOCK DATA)
+        """
         return get_mock_workflow_details(workflow_name)
 
     @tool
     def get_full_database_dump(days: int = 7) -> str:
-        """Statistiche complete sistema (MOCK DATA)"""
+        """
+        Get COMPREHENSIVE system statistics for last N days (HEAVY tool).
+
+        USE THIS WHEN:
+        - User EXPLICITLY asks for "complete overview", "full report", "everything", "all statistics"
+        - User wants aggregated view across ALL metrics (executions + errors + performance)
+        - User says "dammi tutto" or "report completo"
+
+        DO NOT USE WHEN:
+        - User asks about "tabelle", "dati", "informazioni" (AMBIGUOUS - ask clarification first!)
+        - User asks about processes only (use get_workflows_tool - much faster)
+        - User asks about errors only (use get_all_errors_summary_tool - much faster)
+        - User asks about specific metric (use smart_analytics_query_tool - much faster)
+
+        ⚠️ WARNING: Returns 2000+ lines of data. Use ONLY when user explicitly requests complete dump.
+
+        Args:
+            days: Number of days to look back (default: 7)
+
+        Returns: Total executions, success/error rates, daily trends, all metrics aggregated (MOCK DATA)
+        """
         return get_mock_statistics()
 
     logger.info("✅ Mock tools initialized successfully")
@@ -711,6 +777,40 @@ class MilhenaGraph:
 DEVI SEMPRE chiamare un tool PRIMA di rispondere.
 Non puoi rispondere direttamente, nemmeno in modo generico.
 Usa SEMPRE i dati real-time provenienti dal database o dai tool forniti.
+
+---
+
+📚 VOCABOLARIO DOMINIO (termini che riconosci):
+
+CONCETTI CORE che puoi gestire:
+- Processi / Workflow / Business Process
+- Esecuzioni / Run / Execution
+- Errori / Failure / Error / Issue
+- Nodi / Step / Node / Task
+- Statistiche / Metriche / KPI / Metrics / Analytics
+- Performance / Durata / Speed / Latency
+- Email / Conversazioni / ChatOne
+- Attivazione / Disattivazione / Active / Inactive
+
+⚠️ REGOLA CRITICA - TERMINI AMBIGUI:
+
+SE user usa termini NON nel vocabolario sopra, DEVI CHIEDERE CLARIFICATION:
+→ Termini ambigui: "tabelle", "dati", "informazioni", "cose", "roba", "tutto", "overview"
+→ NON interpretare arbitrariamente questi termini
+→ NON scegliere tool a caso (es: get_full_database_dump per "tabelle")
+→ CHIEDI SEMPRE: "Cosa intendi per '[termine]'? Stai chiedendo di: [opzione1], [opzione2], [opzione3]?"
+
+ESEMPIO CLARIFICATION CORRETTA:
+User: "quante tabelle abbiamo?"
+Pensiero: "tabelle" NON è nel vocabolario (non è: processi, esecuzioni, errori, nodi)
+Risposta: "Cosa intendi per 'tabelle'? Stai chiedendo di:
+  1. Processi aziendali (workflow)?
+  2. Esecuzioni recenti?
+  3. Statistiche errori?
+  4. Qualcos'altro?
+Specifica per favore, così posso aiutarti meglio!"
+
+⚠️ NON chiamare tool se term ambiguo - chiedi PRIMA!
 
 ---
 
@@ -2179,6 +2279,17 @@ Usa terminologia business, evita tecnicismi."""
             logger.warning(f"[AUTO-LEARN] BLOCKED learning tech query: '{query[:50]}' (contains: {[kw for kw in danger_tech_keywords if kw in query_lower]})")
             return
 
+        # FIX 2025-10-13: BLOCK ambiguous queries (need clarification, not learning)
+        ambiguous_terms = [
+            "tabelle", "dati", "informazioni", "cose", "roba",
+            "tutto", "dimmi tutto", "overview", "generale",
+            "info", "dettagli generici"
+        ]
+        if any(term in query_lower for term in ambiguous_terms):
+            matched_terms = [term for term in ambiguous_terms if term in query_lower]
+            logger.warning(f"[AUTO-LEARN] BLOCKED ambiguous query: '{query[:50]}' (contains: {matched_terms}) - needs clarification")
+            return
+
         logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={category}")
 
         # Normalize query for pattern matching
@@ -2865,6 +2976,16 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         tool_results = [msg.content for msg in messages if isinstance(msg, ToolMessage)]
 
         if not tool_results:
+            # FIX 2025-10-13: Check if ReAct asked for clarification (no tools called)
+            ai_messages = [msg.content for msg in messages if isinstance(msg, AIMessage)]
+            if ai_messages:
+                last_ai_response = ai_messages[-1]
+                # If ReAct asked clarification question, pass it through
+                if "cosa intendi" in last_ai_response.lower() or "specifica" in last_ai_response.lower():
+                    logger.info("[RESPONDER] ReAct asked for clarification - passing through")
+                    state["response"] = last_ai_response
+                    return state
+
             logger.warning("[RESPONDER] No tool results found - generating fallback")
             state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."
             return state
