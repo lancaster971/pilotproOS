@@ -1,31 +1,6 @@
 <template>
   <MainLayout>
     <div class="learning-dashboard">
-    <!-- Header Section -->
-    <div class="dashboard-header">
-      <div class="header-left">
-        <h1>Learning System Dashboard</h1>
-        <p class="header-subtitle">Auto-Learning Performance & Analytics</p>
-      </div>
-
-      <div class="header-right">
-        <button
-          @click="handleReloadPatterns"
-          :disabled="store.isLoading"
-          class="reload-btn"
-          title="Reload patterns from database"
-        >
-          <Icon :icon="store.isLoading ? 'mdi:loading' : 'mdi:refresh'" :class="{ spin: store.isLoading }" />
-          <span>Reload Patterns</span>
-        </button>
-
-        <div v-if="store.lastUpdated" class="last-updated">
-          <Icon icon="mdi:clock-outline" />
-          <span>{{ formatLastUpdated(store.lastUpdated) }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Error Alert -->
     <div v-if="store.error" class="error-alert">
       <Icon icon="mdi:alert-circle" />
@@ -44,16 +19,14 @@
 
     <!-- Dashboard Content -->
     <div v-else class="dashboard-content">
-      <!-- Section 1: Metrics Cards -->
-      <div class="metrics-cards">
-        <div class="metric-card">
-          <div class="metric-icon total">
-            <Icon icon="mdi:database" />
-          </div>
-          <div class="metric-info">
-            <div class="metric-label">Total Patterns</div>
-            <div class="metric-value">{{ store.metrics?.total_patterns || 0 }}</div>
-            <div class="metric-detail">
+      <!-- KPI Bar (Horizontal Insights Style) -->
+      <div class="professional-kpi-bar">
+        <div class="kpi-card">
+          <Icon icon="mdi:database" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ store.metrics?.total_patterns || 0 }}</div>
+            <div class="kpi-card-label">Total Patterns</div>
+            <div class="kpi-card-detail">
               <span class="auto">{{ store.metrics?.auto_learned_count || 0 }} auto</span>
               <span class="separator">•</span>
               <span class="hardcoded">{{ store.metrics?.hardcoded_count || 0 }} hardcoded</span>
@@ -61,57 +34,38 @@
           </div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-icon accuracy">
-            <Icon icon="mdi:target" />
-          </div>
-          <div class="metric-info">
-            <div class="metric-label">Accuracy Rate</div>
-            <div class="metric-value">{{ formatPercentage(store.metrics?.accuracy_rate || 0) }}</div>
-            <div class="metric-detail">
-              {{ store.metrics?.total_usages || 0 }} total queries
+        <div class="kpi-card highlight">
+          <Icon icon="mdi:target" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ formatPercentage(store.metrics?.accuracy_rate || 0) }}</div>
+            <div class="kpi-card-label">Accuracy Rate</div>
+            <div class="kpi-card-detail">
+              {{ store.metrics?.total_usages || 0 }} queries
             </div>
           </div>
         </div>
-
-        <CostMetricsCard
-          :costData="store.costTrend"
-          :isLoading="store.isLoading"
-          :error="store.error"
-          class="cost-card"
-        />
       </div>
 
-      <!-- Section 2: Accuracy Trend Chart -->
-      <div class="chart-section">
+      <!-- Grid 2x2: Componenti principali -->
+      <div class="dashboard-grid">
+        <PatternPerformanceTable
+          :patterns="store.topPatterns"
+          :isLoading="store.isLoading"
+          :error="store.error"
+        />
+
         <AccuracyTrendChart
           :data="store.accuracyTrend"
           :isLoading="store.isLoading"
           :error="store.error"
         />
-      </div>
 
-      <!-- Section 3: Split Section (Table + Timeline) -->
-      <div class="split-section">
-        <div class="split-left">
-          <PatternPerformanceTable
-            :patterns="store.topPatterns"
-            :isLoading="store.isLoading"
-            :error="store.error"
-          />
-        </div>
+        <FeedbackTimeline
+          :events="store.recentFeedback"
+          :isLoading="store.isLoading"
+          :error="store.error"
+        />
 
-        <div class="split-right">
-          <FeedbackTimeline
-            :events="store.recentFeedback"
-            :isLoading="store.isLoading"
-            :error="store.error"
-          />
-        </div>
-      </div>
-
-      <!-- Section 4: Pattern Visualization Heatmap -->
-      <div class="heatmap-section">
         <PatternVisualization
           :data="store.heatmapData"
           :isLoading="store.isLoading"
@@ -135,7 +89,6 @@ import AccuracyTrendChart from '../components/learning/AccuracyTrendChart.vue'
 import PatternPerformanceTable from '../components/learning/PatternPerformanceTable.vue'
 import FeedbackTimeline from '../components/learning/FeedbackTimeline.vue'
 import PatternVisualization from '../components/learning/PatternVisualization.vue'
-import CostMetricsCard from '../components/learning/CostMetricsCard.vue'
 
 // Store & Toast
 const store = useLearningStore()
@@ -144,38 +97,6 @@ const toast = useToast()
 // Format percentage
 const formatPercentage = (value: number): string => {
   return `${(value * 100).toFixed(1)}%`
-}
-
-// Format last updated time
-const formatLastUpdated = (timestamp: string): string => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMinutes = Math.floor(diffMs / 60000)
-
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes === 1) return '1 minute ago'
-  if (diffMinutes < 60) return `${diffMinutes} minutes ago`
-
-  return date.toLocaleTimeString('it-IT', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-// Handle pattern reload
-const handleReloadPatterns = async () => {
-  try {
-    const result = await store.reloadPatterns()
-
-    toast.success(`Patterns reloaded successfully! (${result.patterns_loaded} patterns in ${result.reload_time_ms}ms)`, {
-      timeout: 3000
-    })
-  } catch (err: any) {
-    toast.error(`Failed to reload patterns: ${err.message || 'Unknown error'}`, {
-      timeout: 5000
-    })
-  }
 }
 
 // Handle retry
@@ -207,82 +128,6 @@ onMounted(async () => {
   margin: 0 auto;
   background: #0a0a0a;
   min-height: 100vh;
-}
-
-/* Dashboard Header */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.header-left h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 6px 0;
-}
-
-.header-subtitle {
-  font-size: 14px;
-  color: #888888;
-  margin: 0;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.reload-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.reload-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.reload-btn:disabled {
-  background: #4b5563;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.reload-btn .spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.last-updated {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #666666;
-  padding: 8px 12px;
-  background: #1a1a1a;
-  border-radius: 6px;
-  border: 1px solid #2a2a2a;
 }
 
 /* Error Alert */
@@ -346,119 +191,115 @@ onMounted(async () => {
   gap: 24px;
 }
 
-/* Metrics Cards */
-.metrics-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.metric-card {
+/* Professional KPI Bar (Insights Style) */
+.professional-kpi-bar {
   display: flex;
-  gap: 12px;
-  padding: 16px;
-  background: #1a1a1a;
+  gap: 0;
+  background: rgba(10, 10, 15, 0.8);
+  border: 1px solid rgba(31, 41, 55, 0.4);
   border-radius: 12px;
-  border: 1px solid #2a2a2a;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
 }
 
-.metric-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+.kpi-card {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(15, 15, 20, 0.6);
+  border: 1px solid rgba(31, 41, 55, 0.3);
+  border-radius: 8px;
+  margin-right: 16px;
+  max-height: 100px;
 }
 
-.metric-icon.total {
-  background: rgba(37, 99, 235, 0.15);
-  color: #2563eb;
+.kpi-card:last-child {
+  margin-right: 0;
 }
 
-.metric-icon.accuracy {
-  background: rgba(16, 185, 129, 0.15);
+.kpi-card.highlight {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.kpi-card.highlight .kpi-card-value {
   color: #10b981;
 }
 
-.metric-info {
+.kpi-card-icon {
+  font-size: 24px;
+  color: #64748b;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.kpi-card.highlight .kpi-card-icon {
+  color: #10b981;
+}
+
+.kpi-card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.metric-label {
-  font-size: 12px;
-  color: #888888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.metric-value {
+.kpi-card-value {
   font-size: 28px;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
+  letter-spacing: -0.5px;
 }
 
-.metric-detail {
-  font-size: 12px;
+.kpi-card-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.kpi-card-detail {
+  font-size: 11px;
   color: #666666;
 }
 
-.metric-detail .auto {
+.kpi-card-detail .auto {
   color: #10b981;
 }
 
-.metric-detail .hardcoded {
+.kpi-card-detail .hardcoded {
   color: #9ca3af;
 }
 
-.metric-detail .separator {
-  margin: 0 6px;
+.kpi-card-detail .separator {
+  margin: 0 4px;
 }
 
-.cost-card {
-  grid-column: span 1;
-}
-
-/* Chart Section */
-.chart-section {
-  width: 100%;
-}
-
-/* Split Section */
-.split-section {
+/* Dashboard Grid 2x2 */
+.dashboard-grid {
   display: grid;
-  grid-template-columns: 60% 40%;
-  gap: 20px;
-}
-
-.split-left,
-.split-right {
-  min-height: 200px;
-}
-
-/* Heatmap Section */
-.heatmap-section {
-  width: 100%;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .metrics-cards {
-    grid-template-columns: repeat(2, 1fr);
+  .professional-kpi-bar {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
-  .cost-card {
-    grid-column: span 2;
+  .kpi-card {
+    min-width: calc(50% - 6px);
+    margin-right: 0;
   }
 
-  .split-section {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -468,50 +309,17 @@ onMounted(async () => {
     padding: 16px;
   }
 
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-left h1 {
-    font-size: 24px;
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .metrics-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .cost-card {
-    grid-column: span 1;
-  }
-
-  .metric-card {
+  .professional-kpi-bar {
     padding: 16px;
   }
 
-  .metric-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
+  .kpi-card {
+    width: 100%;
+    min-width: 100%;
   }
 
-  .metric-value {
-    font-size: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .reload-btn span {
-    display: none;
-  }
-
-  .last-updated span {
-    display: none;
+  .kpi-card-value {
+    font-size: 22px;
   }
 }
 </style>
