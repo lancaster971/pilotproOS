@@ -351,6 +351,277 @@ document.cookie               // ❌ access_token NOT visible (httpOnly)
 
 ---
 
+## 🧠 LEARNING SYSTEM - ARCHITECTURE FLAW
+
+**Priorità**: 🔴 **CRITICA**
+**Effort**: 2-3 giorni (16-24h)
+**Owner**: AI/ML Lead + Backend Team
+**Status**: ❌ **MAL PROGETTATO - Refactoring necessario**
+**Version**: v3.4.0 (Pattern Supervision System)
+
+### **❌ Problema Attuale**
+
+Sistema **CUSTOM** (zero standard RLHF) che salva **DOMANDE** basandosi su LLM confidence >0.9.
+
+**Critical Flaw**:
+```python
+# intelligence-engine/app/milhena/graph.py:1969-2020
+async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
+    """Apprende pattern se confidence >0.9"""
+    if llm_result['confidence'] < 0.9:
+        return
+
+    # ❌ Salva SOLO query + category, NIENTE risposta/feedback
+    await db.execute(
+        "INSERT INTO auto_learned_patterns (pattern, category, confidence) ..."
+    )
+```
+
+**Cosa vede Admin nella UI**:
+- ✅ Query: "ci sono errori oggi?"
+- ✅ Category: "ERRORS"
+- ✅ Confidence: 0.95
+- ❌ **Risposta Milhena**: INVISIBILE
+- ❌ **Tool usato**: INVISIBILE
+- ❌ **Feedback utente (👍👎)**: IGNORATO
+
+**Conseguenza**: Admin approva pattern "al buio" senza sapere se risposta era corretta.
+
+---
+
+### **✅ Architettura Corretta (RLHF Standard)**
+
+**Flusso feedback-based**:
+```
+1. User: "ci sono errori oggi?"
+   ↓
+2. Milhena: "Sì, 3 errori: workflow X, Y, Z"
+   Tool: get_error_details_tool
+   ↓
+3. User clicca: 👍 (risposta corretta) o 👎 (sbagliata)
+   ↓
+4. Sistema salva:
+   - Query: "ci sono errori oggi?"
+   - Response: "Sì, 3 errori..."
+   - Tool: get_error_details_tool
+   - Feedback: thumbs_up
+   ↓
+5. Admin UI mostra:
+   - Query + Risposta + Tool
+   - Feedback: 👍 (3 volte) 👎 (0 volte)
+   - Accuracy: 100%
+   ↓
+6. Admin approva → Fast-path usa QUEL tool per query simili
+```
+
+**Accuratezza reale**: `accuracy = thumbs_up / (thumbs_up + thumbs_down)`
+
+---
+
+### **🔧 Refactoring Necessario**
+
+#### **1. Database Schema Update**
+
+```sql
+-- File: backend/db/migrations/006_feedback_learning.sql
+
+-- Add response + tool to patterns table
+ALTER TABLE pilotpros.auto_learned_patterns
+ADD COLUMN response TEXT,
+ADD COLUMN tool_used VARCHAR(100),
+ADD COLUMN thumbs_up INT DEFAULT 0,
+ADD COLUMN thumbs_down INT DEFAULT 0;
+
+-- Link feedback to patterns (FK)
+ALTER TABLE pilotpros.user_feedback
+ADD COLUMN pattern_id INT REFERENCES pilotpros.auto_learned_patterns(id) ON DELETE SET NULL;
+
+-- Index for feedback aggregation
+CREATE INDEX idx_pattern_feedback ON pilotpros.user_feedback(pattern_id);
+```
+
+#### **2. Learning Trigger Update**
+
+```python
+# intelligence-engine/app/milhena/api.py
+
+async def feedback_endpoint(request):
+    """Feedback 👍👎 triggers pattern learning"""
+
+    # 1. Save feedback to DB (existing)
+    await save_feedback(message_id, feedback_type)
+
+    # 2. If thumbs_up → Check if pattern learnable
+    if feedback_type == "positive":
+        message = await get_message_details(message_id)
+
+        # Get aggregated feedback for this query
+        feedback_stats = await db.fetchrow("""
+            SELECT
+                COUNT(*) FILTER (WHERE feedback_type = 'positive') as thumbs_up,
+                COUNT(*) FILTER (WHERE feedback_type = 'negative') as thumbs_down
+            FROM user_feedback
+            WHERE query_normalized = $1
+        """, normalize_query(message.query))
+
+        # Learn pattern if 3+ positive, accuracy >70%
+        if feedback_stats['thumbs_up'] >= 3:
+            accuracy = feedback_stats['thumbs_up'] / (feedback_stats['thumbs_up'] + feedback_stats['thumbs_down'])
+
+            if accuracy >= 0.7:
+                await learn_pattern(
+                    query=message.query,
+                    response=message.response,
+                    tool_used=message.tool_used,
+                    thumbs_up=feedback_stats['thumbs_up'],
+                    thumbs_down=feedback_stats['thumbs_down'],
+                    accuracy=accuracy
+                )
+```
+
+#### **3. Admin UI Update**
+
+```vue
+<!-- frontend/src/components/learning/PatternManagement.vue -->
+
+<DataTable :value="patterns" :expandable="true">
+  <Column field="pattern" header="Query" />
+  <Column field="category" header="Category" />
+
+  <!-- NEW: Feedback count -->
+  <Column header="Feedback">
+    <template #body="{ data }">
+      👍 {{ data.thumbs_up }} | 👎 {{ data.thumbs_down }}
+    </template>
+  </Column>
+
+  <Column field="accuracy" header="Accuracy">
+    <template #body="{ data }">
+      {{ (data.accuracy * 100).toFixed(1) }}%
+    </template>
+  </Column>
+
+  <!-- Row expansion: mostra risposta + tool -->
+  <template #expansion="{ data }">
+    <div class="pattern-details">
+      <p><strong>Query:</strong> {{ data.pattern }}</p>
+      <p><strong>Response:</strong> {{ data.response }}</p>
+      <p><strong>Tool Used:</strong> {{ data.tool_used }}</p>
+      <p><strong>Feedback:</strong>
+        👍 {{ data.thumbs_up }} | 👎 {{ data.thumbs_down }}
+        ({{ (data.accuracy * 100).toFixed(1) }}%)
+      </p>
+    </div>
+  </template>
+</DataTable>
+```
+
+---
+
+### **📚 Librerie Standard (DA VALUTARE)**
+
+**Option A: LangSmith Feedback** (Ufficiale LangChain)
+- ✅ Pro: Integrato con LangGraph
+- ✅ Pro: Dashboard built-in
+- ❌ Con: Servizio cloud (costi)
+
+**Option B: LangFuse** (Open Source)
+- ✅ Pro: Self-hosted
+- ✅ Pro: Observability completa
+- ❌ Con: Setup più complesso
+
+**Option C: Argilla** (Annotation Tool)
+- ✅ Pro: UI annotation professionale
+- ✅ Pro: RLHF workflows
+- ❌ Con: Overkill per caso d'uso
+
+**Option D: Custom Refactoring** (Raccomandato)
+- ✅ Pro: Feedback buttons già esistono
+- ✅ Pro: Zero dipendenze esterne
+- ✅ Pro: Full controllo
+- ⚠️ Con: Manutenzione custom
+
+---
+
+### **📊 Impact Business**
+
+| Aspetto | Attuale (v3.4.0) | Corretto (v3.5.0+) |
+|---------|------------------|---------------------|
+| **Visibilità Admin** | Solo query | Query + Risposta + Tool |
+| **Fonte Learning** | LLM confidence | User feedback (👍👎) |
+| **Accuratezza** | Fittizia (confidence) | Reale (thumbs_up ratio) |
+| **Rischio Errori** | ALTO (blind approval) | BASSO (informed decision) |
+| **Standard** | Custom (zero RLHF) | RLHF-compliant |
+
+**ROI**: Sistema impara DAVVERO da feedback utente invece di "fidarsi" dell'LLM.
+
+---
+
+### **🔄 Migration Path**
+
+**Phase 1: Database Update (2h)**
+- [ ] Migration 006: Add response, tool, feedback columns
+- [ ] Backfill existing patterns (NULL response = skip approval)
+
+**Phase 2: Backend Logic (8h)**
+- [ ] Update feedback endpoint → trigger learning
+- [ ] Implement feedback aggregation query
+- [ ] Add pattern learning threshold (3+ thumbs_up, 70% accuracy)
+- [ ] Update admin endpoints (include response + tool)
+
+**Phase 3: Frontend UI (6h)**
+- [ ] Update PatternManagement.vue (show response + tool)
+- [ ] Add feedback count badges
+- [ ] Row expansion with full details
+- [ ] Filter by accuracy threshold
+
+**Phase 4: Testing (8h)**
+- [ ] End-to-end feedback → learning → approval flow
+- [ ] Verify accuracy calculation
+- [ ] Load testing (1000+ feedback entries)
+- [ ] Documentation update
+
+**Total**: 24 ore (3 developer-days)
+
+---
+
+### **📚 References**
+
+**RLHF Theory**:
+- [Reinforcement Learning from Human Feedback (RLHF)](https://huggingface.co/blog/rlhf)
+- [InstructGPT Paper (OpenAI)](https://arxiv.org/abs/2203.02155)
+- [Fine-Tuning Language Models from Human Preferences](https://arxiv.org/abs/1909.08593)
+
+**LangChain Ecosystem**:
+- [LangSmith Feedback](https://docs.smith.langchain.com/evaluation/capturing-feedback)
+- [LangFuse Documentation](https://langfuse.com/docs)
+- [LangGraph Human-in-the-Loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)
+
+**Annotation Tools**:
+- [Argilla for RLHF](https://docs.argilla.io/)
+- [Label Studio](https://labelstud.io/)
+- [Prodigy Annotation](https://prodi.gy/)
+
+---
+
+### **✅ Success Criteria**
+
+- [ ] Admin vede query + risposta + tool COMPLETI prima di approvare
+- [ ] Pattern appresi SOLO con feedback positivo (3+ thumbs_up, 70%+ accuracy)
+- [ ] Accuracy reale = thumbs_up / (thumbs_up + thumbs_down)
+- [ ] Fast-path usa tool specifico (non solo categoria)
+- [ ] UI mostra feedback count + accuracy % per ogni pattern
+- [ ] End-to-end test: User 👍 → Pattern learned → Admin approved → Fast-path active
+
+---
+
+**Created**: 2025-10-13
+**Priority**: 🔴 **CRITICA**
+**Status**: ⏳ Da implementare (v3.5.0)
+**Owner**: AI/ML Lead + Backend Team
+
+---
+
 ## 📋 TEMPLATE-IZZAZIONE MILHENA
 
 **Priorità**: 🔴 ALTA (Post-Development)
