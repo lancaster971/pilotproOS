@@ -355,21 +355,21 @@ onMounted(async () => {
 
 .metric-card {
   display: flex;
-  gap: 16px;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px;
   background: #1a1a1a;
   border-radius: 12px;
   border: 1px solid #2a2a2a;
 }
 
 .metric-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -399,7 +399,7 @@ onMounted(async () => {
 }
 
 .metric-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
@@ -440,7 +440,7 @@ onMounted(async () => {
 
 .split-left,
 .split-right {
-  min-height: 400px;
+  min-height: 200px;
 }
 
 /* Heatmap Section */

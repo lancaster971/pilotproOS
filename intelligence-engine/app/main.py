@@ -114,6 +114,22 @@ async def lifespan(app: FastAPI):
     await app.state.milhena.async_init()
     logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
 
+    # Initialize FeedbackStore for PostgreSQL feedback persistence
+    from app.milhena.feedback_store import FeedbackStore
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        logger.error("❌ DATABASE_URL not set, cannot initialize FeedbackStore")
+        raise ValueError("DATABASE_URL environment variable is required")
+
+    try:
+        app.state.feedback_store = FeedbackStore(db_url)
+        await app.state.feedback_store.initialize()
+        logger.info("✅ FeedbackStore initialized (PostgreSQL persistence + 3 tables)")
+    except Exception as e:
+        logger.error(f"❌ FeedbackStore initialization failed: {e}")
+        logger.warning("⚠️  Continuing without feedback persistence (graceful degradation)")
+        app.state.feedback_store = None
+
     # Initialize hot-reload pattern system (Redis PubSub subscriber)
     from app.milhena.hot_reload import PatternReloader
     redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
@@ -141,6 +157,14 @@ async def lifespan(app: FastAPI):
 
     # Cleanup
     logger.info("🔄 Shutting down Intelligence Engine...")
+
+    # Close FeedbackStore connection pool
+    if hasattr(app.state, 'feedback_store') and app.state.feedback_store:
+        try:
+            await app.state.feedback_store.close()
+            logger.info("✅ FeedbackStore closed gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error closing FeedbackStore: {e}")
 
     # Stop hot-reload pattern system (Redis PubSub subscriber)
     if hasattr(app.state, 'pattern_reloader') and app.state.pattern_reloader:

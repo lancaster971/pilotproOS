@@ -1,5 +1,13 @@
 <template>
   <Teleport to="body">
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div v-if="toast.show" :class="['toast', toast.type]">
+        <Icon :icon="toast.type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'" />
+        <span>{{ toast.message }}</span>
+      </div>
+    </Transition>
+
     <!-- Chat Button -->
     <button v-if="!isOpen" @click="isOpen = true" class="chat-btn">
       <Icon icon="mdi:message-text" />
@@ -31,19 +39,23 @@
             <div v-if="msg.role === 'assistant'" class="feedback-buttons">
               <button
                 @click="sendFeedback(i, 'positive')"
-                :class="['feedback-btn', { active: msg.feedback === 'positive' }]"
+                :class="['feedback-btn', { active: msg.feedback === 'positive', loading: msg.feedbackLoading }]"
                 :disabled="msg.feedback !== null && msg.feedback !== undefined"
                 title="Risposta utile"
               >
-                <Icon icon="mdi:thumb-up-outline" />
+                <Icon v-if="!msg.feedbackLoading" icon="mdi:thumb-up-outline" />
+                <Icon v-else icon="mdi:loading" class="spin" />
+                <Icon v-if="msg.feedback === 'positive'" icon="mdi:check" class="checkmark" />
               </button>
               <button
                 @click="sendFeedback(i, 'negative')"
-                :class="['feedback-btn', { active: msg.feedback === 'negative' }]"
+                :class="['feedback-btn', { active: msg.feedback === 'negative', loading: msg.feedbackLoading }]"
                 :disabled="msg.feedback !== null && msg.feedback !== undefined"
                 title="Risposta non utile"
               >
-                <Icon icon="mdi:thumb-down-outline" />
+                <Icon v-if="!msg.feedbackLoading" icon="mdi:thumb-down-outline" />
+                <Icon v-else icon="mdi:loading" class="spin" />
+                <Icon v-if="msg.feedback === 'negative'" icon="mdi:check" class="checkmark" />
               </button>
             </div>
           </div>
@@ -83,6 +95,13 @@ interface Message {
   content: string
   timestamp: Date
   feedback?: 'positive' | 'negative' | null
+  feedbackLoading?: boolean
+}
+
+interface Toast {
+  show: boolean
+  message: string
+  type: 'success' | 'error'
 }
 
 const isOpen = ref(false)
@@ -91,6 +110,7 @@ const input = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substring(7)}`)
+const toast = ref<Toast>({ show: false, message: '', type: 'success' })
 
 const send = async () => {
   if (!input.value.trim() || isLoading.value) return
@@ -158,6 +178,13 @@ const formatTime = (date: Date) => {
   return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, type === 'error' ? 3000 : 2000)
+}
+
 const sendFeedback = async (messageIndex: number, feedback: 'positive' | 'negative') => {
   const message = messages.value[messageIndex]
   if (!message || message.feedback !== null && message.feedback !== undefined) return
@@ -166,8 +193,12 @@ const sendFeedback = async (messageIndex: number, feedback: 'positive' | 'negati
   const userMessage = messageIndex > 0 ? messages.value[messageIndex - 1] : null
   if (!userMessage || userMessage.role !== 'user') {
     console.error('Cannot find corresponding user message for feedback')
+    showToast('Errore: messaggio non trovato', 'error')
     return
   }
+
+  // Show loading state
+  message.feedbackLoading = true
 
   try {
     const response = await fetch('http://localhost:3001/api/milhena/feedback', {
@@ -187,11 +218,17 @@ const sendFeedback = async (messageIndex: number, feedback: 'positive' | 'negati
     if (response.ok) {
       // Update message feedback state
       message.feedback = feedback
+      message.feedbackLoading = false
+      showToast('Feedback inviato!', 'success')
       console.log(`Feedback ${feedback} sent successfully`)
     } else {
+      message.feedbackLoading = false
+      showToast('Errore invio feedback', 'error')
       console.error('Failed to send feedback:', await response.text())
     }
   } catch (error) {
+    message.feedbackLoading = false
+    showToast('Errore di connessione', 'error')
     console.error('Error sending feedback:', error)
   }
 }
@@ -501,5 +538,68 @@ const sendFeedback = async (messageIndex: number, feedback: 'positive' | 'negati
     right: 12px;
     bottom: 12px;
   }
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 999999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.toast.success {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.toast.error {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Spin Animation */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Checkmark Icon */
+.checkmark {
+  color: #10b981;
+  font-size: 16px;
+  margin-left: 2px;
+}
+
+.feedback-btn.loading {
+  opacity: 0.7;
+  cursor: wait;
 }
 </style>

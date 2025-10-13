@@ -32,6 +32,7 @@ class FeedbackStore:
     async def _create_tables(self):
         """Create necessary tables for feedback storage"""
         async with self.pool.acquire() as conn:
+            # Table 1: milhena_feedback
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS milhena_feedback (
                     id SERIAL PRIMARY KEY,
@@ -62,16 +63,17 @@ class FeedbackStore:
                     correct_intent VARCHAR(50),
 
                     -- Metadata
-                    metadata JSONB,
-
-                    -- Indexes
-                    INDEX idx_session_id (session_id),
-                    INDEX idx_timestamp (timestamp),
-                    INDEX idx_feedback_type (feedback_type),
-                    INDEX idx_detected_intent (detected_intent)
+                    metadata JSONB
                 )
             """)
 
+            # Create indexes for milhena_feedback
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_session_id ON milhena_feedback(session_id)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON milhena_feedback(timestamp)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_type ON milhena_feedback(feedback_type)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_detected_intent ON milhena_feedback(detected_intent)")
+
+            # Table 2: milhena_learned_patterns
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS milhena_learned_patterns (
                     id SERIAL PRIMARY KEY,
@@ -98,14 +100,15 @@ class FeedbackStore:
                     success_count INTEGER DEFAULT 0,
 
                     -- Metadata
-                    metadata JSONB,
-
-                    -- Indexes
-                    INDEX idx_pattern_type (pattern_type),
-                    INDEX idx_correct_intent (correct_intent)
+                    metadata JSONB
                 )
             """)
 
+            # Create indexes for milhena_learned_patterns
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_pattern_type ON milhena_learned_patterns(pattern_type)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_correct_intent ON milhena_learned_patterns(correct_intent)")
+
+            # Table 3: milhena_daily_metrics
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS milhena_daily_metrics (
                     id SERIAL PRIMARY KEY,
@@ -142,13 +145,14 @@ class FeedbackStore:
                     accuracy FLOAT,
                     reformulation_rate FLOAT,
                     satisfaction_rate FLOAT,
-                    cache_hit_rate FLOAT,
-
-                    INDEX idx_metric_date (metric_date)
+                    cache_hit_rate FLOAT
                 )
             """)
 
-            logger.info("Feedback tables created/verified")
+            # Create index for milhena_daily_metrics
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_metric_date ON milhena_daily_metrics(metric_date)")
+
+            logger.info("Feedback tables created/verified (3 tables + 7 indexes)")
 
     async def save_feedback(
         self,

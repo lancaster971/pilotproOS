@@ -7,6 +7,8 @@
     </router-view>
     <!-- Custom notification system -->
     <NotificationContainer />
+    <!-- Global Chat Widget -->
+    <ChatWidget />
   </div>
 </template>
 
@@ -14,6 +16,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import webSocketService from './services/websocket'
 import NotificationContainer from './components/NotificationContainer.vue'
+import ChatWidget from './components/ChatWidget.vue'
 
 // Initialize Design System theme globally
 import { initializeDesignSystem } from './design-system'

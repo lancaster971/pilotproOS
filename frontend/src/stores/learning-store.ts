@@ -153,10 +153,21 @@ export const useLearningStore = defineStore('learning', () => {
       lastUpdated.value = new Date().toISOString()
       lastFetchTime = now
 
-      // Generate heatmap data if not provided
-      if (!heatmapData.value || heatmapData.value.length === 0) {
-        heatmapData.value = generateHeatmapData(patterns.value)
+      // Map recent_feedback from API to feedbackEvents
+      if (data.recent_feedback && Array.isArray(data.recent_feedback)) {
+        feedbackEvents.value = data.recent_feedback.map((fb: any) => ({
+          session_id: fb.session_id || '',
+          query: fb.query || '',
+          classification: fb.classification || 'GENERAL',
+          feedback: fb.feedback_type === 'positive' ? 'positive' : 'negative',
+          timestamp: fb.timestamp || new Date().toISOString()
+        }))
+        console.log(`📊 Mapped ${feedbackEvents.value.length} feedback events`)
       }
+
+      // Generate heatmap data from patterns
+      heatmapData.value = generateHeatmapData(patterns.value)
+      console.log(`📊 Generated ${heatmapData.value.length} heatmap data points`)
 
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch learning metrics'

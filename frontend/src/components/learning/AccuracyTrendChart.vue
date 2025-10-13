@@ -15,6 +15,11 @@
       <p>{{ error }}</p>
     </div>
 
+    <div v-else-if="!data || data.length === 0" class="chart-empty">
+      <i class="pi pi-chart-line" style="font-size: 2rem"></i>
+      <p>No accuracy data available yet</p>
+    </div>
+
     <div v-else class="chart-container">
       <canvas ref="chartCanvas"></canvas>
     </div>
@@ -214,7 +219,8 @@ onBeforeUnmount(() => {
 }
 
 .chart-loading,
-.chart-error {
+.chart-error,
+.chart-empty {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -222,7 +228,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   color: #888888;
-  min-height: 300px;
+  min-height: 200px;
 }
 
 .chart-error {
@@ -234,7 +240,8 @@ onBeforeUnmount(() => {
 }
 
 .chart-loading p,
-.chart-error p {
+.chart-error p,
+.chart-empty p {
   margin: 0;
   font-size: 14px;
 }

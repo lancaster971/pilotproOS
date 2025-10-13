@@ -133,60 +133,74 @@ async def chat_with_milhena(request: MilhenaRequest) -> MilhenaResponse:
     run_type="chain",
     metadata={"endpoint": "feedback", "version": "3.0"}
 )
-async def submit_feedback(request: FeedbackRequest) -> Dict[str, str]:
+async def submit_feedback(feedback_request: FeedbackRequest, request: Request) -> Dict[str, str]:
     """
     Submit feedback for continuous learning
-    Tracked in LangSmith for improvement analysis
+    Persisted to PostgreSQL + tracked in LangSmith
     """
     try:
-        logger.info(f"[LangSmith] Feedback received - Type: {request.feedback_type}, Session: {request.session_id}, Trace: {request.trace_id or 'none'}")
+        logger.info(f"[Feedback] Received - Type: {feedback_request.feedback_type}, Session: {feedback_request.session_id}, Trace: {feedback_request.trace_id or 'none'}")
 
-        # Get learning system singleton
-        learning = get_learning_system()
+        # Save to PostgreSQL via FeedbackStore
+        feedback_store = request.app.state.feedback_store
 
-        # Record feedback in Learning System
-        await learning.record_feedback(
-            query=request.query,
-            intent=request.intent or "GENERAL",
-            response=request.response,
-            feedback_type=request.feedback_type,
-            session_id=request.session_id
-        )
+        if feedback_store:
+            try:
+                feedback_id = await feedback_store.save_feedback(
+                    session_id=feedback_request.session_id,
+                    query=feedback_request.query,
+                    response=feedback_request.response,
+                    feedback_type=feedback_request.feedback_type,
+                    detected_intent=feedback_request.intent or "GENERAL",
+                    run_id=feedback_request.trace_id,
+                    metadata={
+                        "source": "chat_widget",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "user_agent": request.headers.get("User-Agent", "unknown")
+                    }
+                )
+                logger.info(f"[Feedback] Saved to PostgreSQL - ID: {feedback_id}")
+            except Exception as db_error:
+                # Don't fail the request if database is unavailable
+                logger.error(f"[Feedback] PostgreSQL save failed: {db_error}")
+                # Continue to LangSmith anyway
+        else:
+            logger.warning("[Feedback] FeedbackStore not initialized, skipping PostgreSQL persistence")
 
         # Record feedback in LangSmith if trace_id provided (following official pattern)
-        if request.trace_id:
+        if feedback_request.trace_id:
             try:
                 from langsmith import Client
                 client = Client()
 
                 # Convert feedback_type to LangSmith score (0-1)
-                score = 1.0 if request.feedback_type == "positive" else 0.0
+                score = 1.0 if feedback_request.feedback_type == "positive" else 0.0
 
                 # Create feedback linked to trace (non-blocking in Python)
                 client.create_feedback(
-                    run_id=request.trace_id,
+                    run_id=feedback_request.trace_id,
                     key="user_feedback",
                     score=score,
-                    comment=f"Intent: {request.intent or 'GENERAL'} | Query: {request.query[:100]}"
+                    comment=f"Intent: {feedback_request.intent or 'GENERAL'} | Query: {feedback_request.query[:100]}"
                 )
-                logger.info(f"[LangSmith] Feedback linked to trace: {request.trace_id}")
+                logger.info(f"[LangSmith] Feedback linked to trace: {feedback_request.trace_id}")
             except Exception as langsmith_error:
                 # Don't fail the request if LangSmith is unavailable
                 logger.warning(f"[LangSmith] Failed to record feedback: {langsmith_error}")
 
         response_data = {
             "status": "success",
-            "message": f"Feedback recorded: {request.feedback_type}"
+            "message": f"Feedback recorded: {feedback_request.feedback_type}"
         }
 
         # Add langsmith_linked only if trace_id was provided
-        if request.trace_id:
-            response_data["langsmith_trace_id"] = request.trace_id
+        if feedback_request.trace_id:
+            response_data["langsmith_trace_id"] = feedback_request.trace_id
 
         return response_data
 
     except Exception as e:
-        logger.error(f"[LangSmith] Feedback error: {e}")
+        logger.error(f"[Feedback] Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/performance")
@@ -195,60 +209,153 @@ async def submit_feedback(request: FeedbackRequest) -> Dict[str, str]:
     run_type="chain",
     metadata={"endpoint": "performance", "version": "3.0"}
 )
-async def get_performance_report() -> Dict[str, Any]:
+async def get_performance_report(request: Request) -> Dict[str, Any]:
     """
-    Get complete learning performance report
-    Following LangSmith pattern for continuous improvement
+    Get complete learning performance report from PostgreSQL
+    Returns data in format expected by frontend Learning Dashboard
     """
     try:
-        logger.info("[LangSmith] Performance report requested")
+        logger.info("[Performance] Report requested - reading from PostgreSQL")
 
-        # Get learning system singleton
-        learning = get_learning_system()
-        report = learning.get_performance_report()
+        feedback_store = request.app.state.feedback_store
+        milhena_graph = request.app.state.milhena
 
-        # Add recent feedback (last 50 entries)
-        recent_feedback = [
+        if not feedback_store:
+            logger.warning("[Performance] FeedbackStore not available, returning empty metrics")
+            return _empty_performance_report()
+
+        # Get recent feedback from PostgreSQL
+        recent_feedback_db = await feedback_store.get_recent_feedback(limit=50)
+
+        # Get patterns from milhena graph (auto_learned_patterns table)
+        patterns_data = milhena_graph.get_patterns()
+
+        # Calculate metrics
+        total_feedback = len(recent_feedback_db)
+        positive_count = sum(1 for f in recent_feedback_db if f['feedback_type'] == 'positive')
+
+        accuracy_rate = (positive_count / total_feedback) if total_feedback > 0 else 0.0
+
+        # Count pattern types
+        auto_learned_count = sum(1 for p in patterns_data if p.get('source') == 'auto_learned')
+        hardcoded_count = len(patterns_data) - auto_learned_count
+
+        # Calculate average confidence
+        avg_confidence = sum(p.get('confidence', 0) for p in patterns_data) / len(patterns_data) if patterns_data else 0.0
+
+        # Total usages from patterns
+        total_usages = sum(p.get('times_used', 0) for p in patterns_data)
+
+        # Cost savings calculation (simplified)
+        fast_path_queries = sum(p.get('times_used', 0) for p in patterns_data if p.get('source') == 'auto_learned')
+        fast_path_coverage = (fast_path_queries / total_usages * 100) if total_usages > 0 else 0.0
+        llm_coverage = 100 - fast_path_coverage
+
+        # Assume $0.0003 per LLM call, $0 for fast-path
+        monthly_savings = fast_path_queries * 0.0003 * 30  # Rough estimate
+        total_savings = fast_path_queries * 0.0003
+
+        # Format patterns for frontend
+        top_patterns = [
             {
-                "timestamp": entry.timestamp.isoformat(),
-                "query": entry.query,
-                "intent": entry.intent,
-                "response": entry.response,
-                "feedback_type": entry.feedback_type,
-                "session_id": entry.session_id
+                "id": str(p.get('id', '')),
+                "query": p.get('pattern', ''),
+                "normalized_query": p.get('normalized_pattern', ''),
+                "classification": p.get('category', 'GENERAL'),
+                "confidence": p.get('confidence', 0.0),
+                "times_used": p.get('times_used', 0),
+                "times_correct": p.get('times_correct', 0),
+                "accuracy": (p.get('times_correct', 0) / p.get('times_used', 1)) if p.get('times_used', 0) > 0 else 0.0,
+                "created_at": p.get('created_at', ''),
+                "last_used_at": p.get('last_used_at', ''),
+                "is_active": p.get('enabled', True),
+                "source": 'auto_learned' if p.get('source') == 'auto_learned' else 'hardcoded'
             }
-            for entry in learning.feedback_entries[-50:]
+            for p in patterns_data[:50]  # Top 50
         ]
 
-        # Add learned patterns (high confidence only)
-        learned_patterns = [
-            {
-                "pattern": p.pattern,
-                "correct_intent": p.correct_intent,
-                "confidence": p.confidence,
-                "occurrences": p.occurrences,
-                "success_rate": p.success_rate,
-                "last_seen": p.last_seen.isoformat()
-            }
-            for p in learning.learned_patterns.values()
-            if p.confidence > 0.5
-        ]
+        # Generate accuracy trend from feedback timestamps
+        accuracy_trend = []
+        if recent_feedback_db:
+            # Group by day and calculate daily accuracy
+            from collections import defaultdict
+            daily_stats = defaultdict(lambda: {"positive": 0, "total": 0})
 
+            for fb in recent_feedback_db:
+                date_key = fb['timestamp'].date().isoformat()
+                daily_stats[date_key]["total"] += 1
+                if fb['feedback_type'] == 'positive':
+                    daily_stats[date_key]["positive"] += 1
+
+            # Generate trend points
+            for date_key in sorted(daily_stats.keys())[-7:]:  # Last 7 days
+                stats = daily_stats[date_key]
+                accuracy_trend.append({
+                    "timestamp": f"{date_key}T12:00:00Z",
+                    "accuracy": stats["positive"] / stats["total"] if stats["total"] > 0 else 0.0,
+                    "total_queries": stats["total"],
+                    "correct_queries": stats["positive"]
+                })
+
+        # Return in format expected by frontend (types/learning.ts)
         return {
+            # Main metrics (root level - not nested!)
+            "total_patterns": len(patterns_data),
+            "auto_learned_count": auto_learned_count,
+            "hardcoded_count": hardcoded_count,
+            "average_confidence": avg_confidence,
+            "total_usages": total_usages,
+            "accuracy_rate": accuracy_rate,
+
+            # Cost savings
+            "cost_savings": {
+                "monthly": monthly_savings,
+                "total": total_savings,
+                "fast_path_coverage": fast_path_coverage,
+                "llm_coverage": llm_coverage
+            },
+
+            # Patterns and trends
+            "top_patterns": top_patterns,
+            "accuracy_trend": accuracy_trend,
+
+            # Legacy fields for backward compatibility
             "success": True,
-            "metrics": report["metrics"],
-            "recent_feedback": recent_feedback,
-            "learned_patterns": learned_patterns,
-            "pattern_count": report["pattern_count"],
-            "high_confidence_patterns": report["high_confidence_patterns"],
-            "recent_accuracy": report["recent_accuracy"],
-            "top_corrections": report["top_corrections"],
-            "improvement_trend": report["improvement_trend"]
+            "recent_feedback": [
+                {
+                    "timestamp": f['timestamp'].isoformat(),
+                    "query": f['query'],
+                    "feedback_type": f['feedback_type'],
+                    "session_id": f['session_id']
+                }
+                for f in recent_feedback_db[:20]
+            ]
         }
 
     except Exception as e:
-        logger.error(f"[LangSmith] Performance report error: {e}")
+        logger.error(f"[Performance] Report error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+def _empty_performance_report() -> Dict[str, Any]:
+    """Return empty report when FeedbackStore not available"""
+    return {
+        "total_patterns": 0,
+        "auto_learned_count": 0,
+        "hardcoded_count": 0,
+        "average_confidence": 0.0,
+        "total_usages": 0,
+        "accuracy_rate": 0.0,
+        "cost_savings": {
+            "monthly": 0.0,
+            "total": 0.0,
+            "fast_path_coverage": 0.0,
+            "llm_coverage": 100.0
+        },
+        "top_patterns": [],
+        "accuracy_trend": [],
+        "success": True,
+        "recent_feedback": []
+    }
 
 @router.get("/stats", response_model=StatsResponse)
 @traceable(

@@ -180,15 +180,14 @@ onBeforeUnmount(() => {
 .cost-metrics-card {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #2a2a2a;
   display: flex;
   flex-direction: column;
-  min-height: 400px;
 }
 
 .card-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .card-header h3 {
@@ -231,10 +230,9 @@ onBeforeUnmount(() => {
 }
 
 .card-content {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 /* Metrics grid */
@@ -247,7 +245,7 @@ onBeforeUnmount(() => {
 .metric-item {
   background: #0a0a0a;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid #2a2a2a;
   text-align: center;
 }
@@ -274,25 +272,24 @@ onBeforeUnmount(() => {
 
 /* Chart container */
 .chart-container {
-  flex: 1;
   position: relative;
-  min-height: 180px;
+  height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .chart-container canvas {
-  max-width: 220px;
-  max-height: 220px;
+  max-width: 160px;
+  max-height: 160px;
 }
 
 /* Coverage stats */
 .coverage-stats {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   background: #0a0a0a;
   border-radius: 8px;
   border: 1px solid #2a2a2a;
@@ -337,12 +334,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
+  padding: 10px 12px;
   background: rgba(37, 99, 235, 0.1);
   border-radius: 8px;
   border: 1px solid rgba(37, 99, 235, 0.3);
   color: #2563eb;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 

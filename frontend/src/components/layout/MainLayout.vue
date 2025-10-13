@@ -150,11 +150,8 @@
       @click="uiStore.toggleSidebar()"
       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
     ></div>
-    
-    <!-- Toast Container -->
 
-    <!-- AI Chat Widget -->
-    <ChatWidget />
+    <!-- Toast Container -->
 
   </div>
 </template>
@@ -168,7 +165,6 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUIStore } from '../../stores/ui'
-import ChatWidget from '../ChatWidget.vue'
 
 // Stores
 const authStore = useAuthStore()

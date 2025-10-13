@@ -330,8 +330,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   color: #888888;
-  padding: 80px 20px;
-  min-height: 400px;
+  padding: 60px 20px;
+  min-height: 200px;
 }
 
 .viz-error {

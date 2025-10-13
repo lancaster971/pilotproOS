@@ -1925,7 +1925,18 @@ Usa terminologia business, evita tecnicismi."""
         try:
             async with self.db_pool.acquire() as conn:
                 rows = await conn.fetch("""
-                    SELECT normalized_pattern, category, confidence, accuracy, times_used
+                    SELECT
+                        id,
+                        pattern,
+                        normalized_pattern,
+                        category,
+                        confidence,
+                        accuracy,
+                        times_used,
+                        times_correct,
+                        created_at,
+                        last_used_at,
+                        enabled
                     FROM pilotpros.auto_learned_patterns
                     WHERE enabled = TRUE
                     ORDER BY accuracy DESC, times_used DESC
@@ -1934,10 +1945,18 @@ Usa terminologia business, evita tecnicismi."""
                 self.learned_patterns = {}
                 for row in rows:
                     self.learned_patterns[row['normalized_pattern']] = {
+                        'id': int(row['id']),
+                        'pattern': row['pattern'],
+                        'normalized_pattern': row['normalized_pattern'],
                         'category': row['category'],
                         'confidence': float(row['confidence']),
                         'accuracy': float(row['accuracy']),
-                        'times_used': int(row['times_used'])
+                        'times_used': int(row['times_used']),
+                        'times_correct': int(row['times_correct']) if row['times_correct'] else 0,
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'last_used_at': row['last_used_at'].isoformat() if row['last_used_at'] else None,
+                        'enabled': row['enabled'],
+                        'source': 'auto_learned'
                     }
 
                 logger.info(f"[AUTO-LEARN] Loaded {len(self.learned_patterns)} patterns from database")
@@ -1970,6 +1989,32 @@ Usa terminologia business, evita tecnicismi."""
 
         except Exception as e:
             logger.error(f"[HOT-RELOAD] Failed to reload patterns: {e}")
+
+    def get_patterns(self) -> List[Dict[str, Any]]:
+        """
+        Get all loaded patterns with complete statistics.
+        Returns list of pattern dictionaries for API consumption.
+
+        Returns:
+            List of dicts with all pattern fields from database
+        """
+        patterns = []
+        for normalized_pattern, data in self.learned_patterns.items():
+            patterns.append({
+                'id': data.get('id'),
+                'pattern': data.get('pattern', normalized_pattern),
+                'normalized_pattern': normalized_pattern,
+                'category': data.get('category'),
+                'confidence': data.get('confidence', 0.0),
+                'accuracy': data.get('accuracy', 0.0),
+                'times_used': data.get('times_used', 0),
+                'times_correct': data.get('times_correct', 0),
+                'created_at': data.get('created_at'),
+                'last_used_at': data.get('last_used_at'),
+                'enabled': data.get('enabled', True),
+                'source': data.get('source', 'auto_learned')
+            })
+        return patterns
 
     async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
         """
