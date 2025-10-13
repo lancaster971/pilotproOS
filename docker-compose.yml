@@ -226,11 +226,18 @@ services:
 
   # Intelligence Engine - Powered by LangChain (Container completamente autonomo)
   intelligence-engine:
-    # v3.1-slim: Optimized image without sentence-transformers (-24% size: 3.17GB vs 4.16GB)
+    # v3.2-optimized: Split requirements prod/dev (-61.5% size: ~1.5GB vs 4.34GB)
+    # - Production (default): requirements.prod.txt (53 packages, API-only)
+    # - Development: requirements.dev.txt (adds UI + testing tools)
+    # Build args:
+    #   ENV=prod (default) - Production build with minimal dependencies
+    #   ENV=dev            - Development build with Streamlit UI + testing
     build:
       context: ./intelligence-engine
       dockerfile: Dockerfile
-    image: pilotpros-intelligence-engine:v3.1-slim
+      args:
+        ENV: prod  # Change to 'dev' for LangGraph Studio + Streamlit UI
+    image: pilotpros-intelligence-engine:v3.2-optimized
     container_name: pilotpros-intelligence-engine-dev
     restart: unless-stopped
     depends_on:

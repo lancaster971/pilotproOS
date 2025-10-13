@@ -1,6 +1,9 @@
 # Multi-stage build for optimized container
 FROM python:3.11-slim as builder
 
+# Build argument for environment (prod/dev)
+ARG ENV=prod
+
 # Build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -13,15 +16,18 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt /tmp/requirements.txt
+# Copy appropriate requirements file based on ENV
+COPY requirements.${ENV}.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip wheel --no-cache-dir --wheel-dir=/tmp/wheels -r /tmp/requirements.txt
 
 # Final stage
 FROM python:3.11-slim
 
-# Runtime dependencies
+# Build argument for environment (must be redeclared in final stage)
+ARG ENV=prod
+
+# Runtime dependencies (minimal - no build tools)
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     netcat-openbsd \
@@ -34,7 +40,7 @@ RUN useradd -m -u 1000 appuser
 
 # Copy wheels and install
 COPY --from=builder /tmp/wheels /tmp/wheels
-COPY requirements.txt /tmp/requirements.txt
+COPY requirements.${ENV}.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --find-links=/tmp/wheels -r /tmp/requirements.txt && \
     rm -rf /tmp/wheels /tmp/requirements.txt
