@@ -107,14 +107,15 @@ const truncate = (text: string, length: number): string => {
   border-radius: 12px;
   padding: 16px;
   border: 1px solid #2a2a2a;
-  max-height: 350px;
-  overflow-y: auto;
+  height: 350px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .timeline-header {
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .timeline-header h3 {
@@ -162,6 +163,12 @@ const truncate = (text: string, length: number): string => {
 }
 
 /* Custom PrimeVue Timeline styling */
+.custom-timeline {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .custom-timeline :deep(.p-timeline-event-content) {
   padding: 0 0 12px 16px;
   font-size: 11px !important;

@@ -5,22 +5,8 @@
       <div class="viz-subtitle">Usage distribution by category and hour (24h)</div>
     </div>
 
-    <div v-if="isLoading" class="viz-loading">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <p>Loading heatmap...</p>
-    </div>
-
-    <div v-else-if="error" class="viz-error">
-      <i class="pi pi-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-    </div>
-
-    <div v-else-if="!data || data.length === 0" class="viz-empty">
-      <i class="pi pi-chart-bar" style="font-size: 2rem"></i>
-      <p>No pattern data available</p>
-    </div>
-
-    <div v-else class="viz-container">
+    <!-- ALWAYS RENDER - Debug mode -->
+    <div class="viz-container">
       <svg ref="svgElement" :viewBox="`0 0 ${width} ${height}`" preserveAspectRatio="xMidYMid meet"></svg>
 
       <!-- Tooltip -->
@@ -83,7 +69,21 @@ const getHours = (): number[] => {
 
 // Render D3.js heatmap
 const renderHeatmap = () => {
-  if (!svgElement.value || !props.data || props.data.length === 0) return
+  console.log('🗺️ PatternVisualization renderHeatmap called', {
+    hasSvg: !!svgElement.value,
+    dataLength: props.data?.length || 0,
+    categories: getCategories().length
+  })
+
+  if (!svgElement.value) {
+    console.warn('⚠️ SVG ref not available')
+    return
+  }
+
+  if (!props.data || props.data.length === 0) {
+    console.warn('⚠️ No data available for heatmap')
+    return
+  }
 
   // Clear existing SVG content
   d3.select(svgElement.value).selectAll('*').remove()
@@ -259,6 +259,8 @@ const renderHeatmap = () => {
     .style('font-size', '12px')
     .style('font-weight', '600')
     .text('Usage Count')
+
+  console.log('✅ Heatmap rendered successfully', { cellsCount: props.data.length })
 }
 
 // Format category name
@@ -288,31 +290,38 @@ onBeforeUnmount(() => {
 .pattern-visualization {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #2a2a2a;
   position: relative;
+  height: 350px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .viz-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .viz-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .viz-subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: #888888;
 }
 
 .viz-container {
   position: relative;
   width: 100%;
-  overflow: visible;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .viz-container svg {

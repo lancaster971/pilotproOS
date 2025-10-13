@@ -5,18 +5,8 @@
       <div class="table-subtitle">Top patterns by usage</div>
     </div>
 
-    <div v-if="isLoading" class="table-loading">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <p>Loading patterns...</p>
-    </div>
-
-    <div v-else-if="error" class="table-error">
-      <i class="pi pi-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-    </div>
-
+    <!-- ALWAYS RENDER - Debug mode -->
     <DataTable
-      v-else
       :value="patterns"
       :rows="10"
       :paginator="patterns.length > 10"
@@ -214,23 +204,28 @@ const onSort = (event: any) => {
 .pattern-performance-table {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #2a2a2a;
+  height: 350px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .table-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .table-subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: #888888;
 }
 
@@ -262,6 +257,9 @@ const onSort = (event: any) => {
 /* Custom PrimeVue DataTable styling */
 .custom-table {
   font-size: 13px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .custom-table :deep(.p-datatable-header) {
