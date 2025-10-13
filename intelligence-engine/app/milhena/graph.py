@@ -128,9 +128,14 @@ Query che richiedono info sensibili o tecniche:
 - Password, credenziali, token, API key
 - "dammi password database", "utenti e password"
 - Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
+- Tech stack: "utilizzate Flowwise?", "che database usate?", "usate LangChain?"
+- Infrastruttura: "architettura sistema", "stack tecnologico", "tecnologie usate"
+- Framework/tools: "n8n", "Docker", "Redis", "Kubernetes", "LangGraph"
+
+REGOLA CRITICA: Qualsiasi domanda su QUALE tecnologia/database/framework usiamo = DANGER
 
 Esempio risposta:
-{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}}
+{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili. Contatta l'amministratore."}}
 
 ### 2. HELP/GREETING (💬 risposta diretta)
 Saluti, help, capabilities:
@@ -1047,6 +1052,20 @@ Usa terminologia business, evita tecnicismi."""
             state["waiting_clarification"] = False
             if decision.direct_response:
                 state["response"] = decision.direct_response
+
+            # FIX v3.4.1: Map category to intent (fast-path early return)
+            category_to_intent_map = {
+                "DANGER": "SECURITY",
+                "HELP": "HELP",
+                "GREETING": "GENERAL",
+                "SIMPLE_QUERY": "STATUS",
+                "SIMPLE_METRIC": "METRIC",
+                "COMPLEX_QUERY": "ANALYSIS",
+                "CLARIFICATION_NEEDED": "CLARIFICATION"
+            }
+            state["intent"] = category_to_intent_map.get(decision.category, "GENERAL")
+            logger.info(f"[FAST-PATH] Mapped category '{decision.category}' → intent '{state['intent']}'")
+
             return state
 
         # STEP 1: Check Learning System (pattern già appresi)
@@ -1242,6 +1261,21 @@ Usa terminologia business, evita tecnicismi."""
 
         logger.info(f"[SUPERVISOR] Decision: {decision['category']} → needs_rag={decision['needs_rag']}, needs_db={decision['needs_database']}")
 
+        # FIX v3.4.1: Map supervisor category to user intent (LangGraph State best practice)
+        # Source: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
+        # Rationale: intent field was None for fast-path queries (bypassed IntentAnalyzer)
+        category_to_intent_map = {
+            "DANGER": "SECURITY",          # Security-sensitive queries
+            "HELP": "HELP",                # Help/capability questions
+            "GREETING": "GENERAL",         # Greetings
+            "SIMPLE_QUERY": "STATUS",      # "quanti workflow?"
+            "SIMPLE_METRIC": "METRIC",     # "quante esecuzioni?"
+            "COMPLEX_QUERY": "ANALYSIS",   # Multi-step analysis
+            "CLARIFICATION_NEEDED": "CLARIFICATION"
+        }
+        state["intent"] = category_to_intent_map.get(decision['category'], "GENERAL")
+        logger.info(f"[SUPERVISOR] Mapped category '{decision['category']}' → intent '{state['intent']}'")
+
         return state
 
     def _fallback_classification(self, query: str) -> Dict[str, Any]:
@@ -1362,20 +1396,39 @@ Usa terminologia business, evita tecnicismi."""
             }
 
         # DANGER keywords (expanded based on security best practices)
+        # FIX 2025-10-13: Added tech stack/architecture keywords to prevent leaks
         danger_keywords = [
+            # Credentials & Secrets (original)
             "password", "credenziali", "credential", "api key", "token",
             "secret", "chiave", "accesso admin", "root password",
             "connection string", "dsn", "db url", "database url",
             "api_key", "access_token", "bearer", "auth token",
-            "passwd", "pwd", "private key", "refresh token"
+            "passwd", "pwd", "private key", "refresh token",
+
+            # Tech Stack & Architecture (NEW - prevent technical leaks)
+            "flowwise", "langflow", "langgraph", "langchain",
+            "flowise", "n8n", "postgresql", "postgres", "mysql",
+            "redis", "chromadb", "docker", "kubernetes", "k8s",
+            "architettura", "struttura sistema", "stack tecnologico",
+            "tech stack", "tecnologie", "framework", "librerie",
+            "che database", "quale database", "usate database",
+            "che sistema", "quale sistema", "sistema usa",
+            "come funziona sistema", "come è fatto", "strutturato il sistema",
+
+            # Infrastructure terms
+            "nginx", "apache", "server", "hosting", "cloud provider",
+            "aws", "azure", "gcp", "digitalocean", "heroku",
+
+            # Development tools
+            "git", "github", "gitlab", "jenkins", "ci/cd", "pipeline"
         ]
         if any(kw in query_lower for kw in danger_keywords):
             return {
                 "action": "respond",
                 "category": "DANGER",
                 "confidence": 1.0,
-                "reasoning": "Blocco sicurezza immediato - fast-path",
-                "direct_response": "Non posso fornire informazioni su dati sensibili del sistema.",
+                "reasoning": "Blocco sicurezza immediato - richiesta info architettura/credenziali (fast-path)",
+                "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili del sistema. Per assistenza contatta l'amministratore.",
                 "needs_rag": False,
                 "needs_database": False,
                 "clarification_options": None,
@@ -2095,6 +2148,8 @@ Usa terminologia business, evita tecnicismi."""
         3. Check if pattern already exists
         4. If new: INSERT into database
         5. If existing: UPDATE times_used counter
+
+        FIX 2025-10-13: Added DANGER validation to prevent security leaks from being learned
         """
         if not hasattr(self, 'db_pool') or self.db_pool is None:
             return  # Silently skip if DB not available
@@ -2105,11 +2160,26 @@ Usa terminologia business, evita tecnicismi."""
             logger.info(f"[AUTO-LEARN] Skipped learning (confidence={confidence:.2f} < 0.9): '{query[:50]}'")
             return
 
-        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={llm_result.get('category')}")
-
         category = llm_result.get('category', '')
         if not category:
             return
+
+        # FIX 2025-10-13: NEVER learn DANGER patterns (security risk)
+        if category == "DANGER":
+            logger.warning(f"[AUTO-LEARN] BLOCKED learning DANGER pattern: '{query[:50]}' (security policy)")
+            return
+
+        # FIX 2025-10-13: Validate query doesn't contain tech keywords (double-check)
+        query_lower = query.lower()
+        danger_tech_keywords = [
+            "flowwise", "langchain", "langgraph", "database", "postgres",
+            "stack", "architettura", "tecnologie", "framework"
+        ]
+        if any(kw in query_lower for kw in danger_tech_keywords):
+            logger.warning(f"[AUTO-LEARN] BLOCKED learning tech query: '{query[:50]}' (contains: {[kw for kw in danger_tech_keywords if kw in query_lower]})")
+            return
+
+        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={category}")
 
         # Normalize query for pattern matching
         normalized = self._normalize_query(query)

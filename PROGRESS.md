@@ -1,22 +1,79 @@
 # 🚀 PROGRESS.md - PilotProOS Development Journal
 
-> **Last Updated**: 2025-10-13 18:30
-> **Session**: #56 (CLOSED - Docker Image Optimization)
+> **Last Updated**: 2025-10-13 21:47
+> **Session**: #57 (CLOSED - Intent Field Mapping + DANGER Classification Debugging)
 > **Branch**: supervision
-> **Commit**: 117a89d3
+> **Commit**: 809ba4b1
 > **Docker**: RUNNING (8/8 healthy)
 
 ---
 
 ## 📊 Current Status
 
-**Active Task**: ✅ Session #56 CLOSED - Docker Image Optimization + Full Stack Cleanup
+**Active Task**: ✅ Session #57 CLOSED - Intent Field Mapping Fix + DANGER Testing
 **Blocked By**: None
-**Next Task**: Git commit optimization files + merge supervision branch
+**Next Task**: Git commit intent fix (graph.py + CHANGELOG-v3.4.1-INTENT-FIX.md) + review agent-created DANGER docs
 
 ---
 
 ## ✅ Completed Today (2025-10-13)
+
+### Session #57 - Intent Field Mapping Fix + DANGER Classification Debugging
+
+#### 1. DANGER Classification Testing (Step-by-Step Analysis)
+- **Duration**: 45min
+- **Result**: ✅ SUCCESS (DANGER detection working 100%)
+- **Details**:
+  - **User Request**: "facciamo insieme un test...la domanda è 'utilizzate n8n?'"
+  - **Root Problem**: User reported query "utilizzate flowwise?" returned hallucinations (bot invented Flowwise system data) + technical leaks
+  - **Investigation**: Step-by-step pipeline analysis of 4 DANGER queries
+  - **Testing**:
+    * "utilizzate n8n?" → DANGER (fast-path 44ms) ✅
+    * "utilizzate postgres?" → DANGER (fast-path 55ms) ✅
+    * "mi dici il full stack di PilotPro?" → DANGER (LLM 2775ms) ✅
+    * "utilizzate flowwise?" (regression) → DANGER ✅
+  - **Discovery**: Original flowwise bug already fixed by langgraph-architect-guru agent earlier OR working after container restart
+- **Lesson**: Fast-path DANGER keywords + enhanced LLM prompt working correctly, step-by-step testing validates full pipeline
+
+#### 2. Intent Field Mapping Bug Fix (v3.4.1)
+- **Duration**: 30min
+- **Result**: ✅ SUCCESS (4/4 tests PASSED)
+- **Details**:
+  - **Problem**: All query responses showing `"intent": "GENERAL"` regardless of category
+  - **User Question**: "perchè intent general? cosa vuol dire?"
+  - **Root Cause**:
+    * `intent` initialized as None in MilhenaState (line 3171)
+    * Fast-path bypasses IntentAnalyzer → intent stays None
+    * LLM Classifier bypasses IntentAnalyzer → intent stays None
+    * Backend converts None → "GENERAL" (fallback)
+  - **Solution**: Category→intent mapping added in BOTH code paths
+    * Fast-path early return (lines 1056-1069): 14 lines added
+    * LLM Classifier path (lines 1250-1265): 16 lines added
+  - **Implementation**: LangGraph State best practices applied (explicit field setting in nodes)
+  - **Testing**:
+    * "utilizzate postgres?" → `"intent": "SECURITY"` ✅
+    * "cosa puoi fare per me?" → `"intent": "HELP"` ✅
+    * "mi dici il full stack di PilotPro?" → `"intent": "SECURITY"` ✅
+    * "utilizzate n8n?" (regression) → `"intent": "SECURITY"` ✅
+- **Files Modified**:
+  - intelligence-engine/app/milhena/graph.py (MODIFIED +30 lines - Category→intent mapping in 2 locations)
+  - CHANGELOG-v3.4.1-INTENT-FIX.md (NEW 387 lines - Complete fix documentation)
+- **Impact**: Responses now include correct intent values for analytics, learning system, and frontend filtering
+- **Lesson**: LangGraph State optional fields require explicit setting in ALL code paths (fast-path + LLM), not just main flow
+
+#### 3. Agent Workflow Learning
+- **Duration**: 10min
+- **Result**: ✅ LESSON DOCUMENTED
+- **Details**:
+  - **Mistake**: Initially delegated to fullstack-debugger for LangGraph issue
+  - **User Correction**: "che cazzo centra debugger hai anche un agente solo per langchain porca troia!"
+  - **Fix**: Correctly delegated to langgraph-architect-guru
+  - **Discovery**: Task tool agents execute fully without mid-execution pause for approval (limitation of tool design)
+  - **User Question**: "ma l'agente quando mi presenta il piano?"
+  - **Explanation**: Agents cannot pause mid-execution - present plan in main conversation, NOT via subagents
+- **Lesson**: Use langgraph-architect-guru for LangChain/LangGraph issues + understand Task tool agents run autonomously
+
+### Session #56 - Docker Image Optimization
 
 ### Session #56 - Docker Image Optimization + Intelligent Cleanup
 
