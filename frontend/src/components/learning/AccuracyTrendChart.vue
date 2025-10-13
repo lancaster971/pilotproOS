@@ -5,22 +5,8 @@
       <div class="chart-subtitle">Last 7 days performance</div>
     </div>
 
-    <div v-if="isLoading" class="chart-loading">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <p>Loading chart data...</p>
-    </div>
-
-    <div v-else-if="error" class="chart-error">
-      <i class="pi pi-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-    </div>
-
-    <div v-else-if="!data || data.length === 0" class="chart-empty">
-      <i class="pi pi-chart-line" style="font-size: 2rem"></i>
-      <p>No accuracy data available yet</p>
-    </div>
-
-    <div v-else class="chart-container">
+    <!-- ALWAYS RENDER - Debug mode -->
+    <div class="chart-container">
       <canvas ref="chartCanvas"></canvas>
     </div>
   </div>
@@ -64,7 +50,16 @@ const formatDate = (timestamp: string): string => {
 
 // Create or update chart
 const renderChart = () => {
-  if (!chartCanvas.value) return
+  console.log('🎨 AccuracyTrendChart renderChart called', {
+    hasCanvas: !!chartCanvas.value,
+    dataLength: props.data?.length || 0,
+    data: props.data
+  })
+
+  if (!chartCanvas.value) {
+    console.warn('⚠️ Canvas ref not available')
+    return
+  }
 
   // Destroy existing chart
   if (chartInstance) {
@@ -73,6 +68,7 @@ const renderChart = () => {
   }
 
   if (!props.data || props.data.length === 0) {
+    console.warn('⚠️ No data available for chart')
     return
   }
 
@@ -166,10 +162,12 @@ const renderChart = () => {
   }
 
   chartInstance = new ChartJS(chartCanvas.value, config)
+  console.log('✅ Chart instance created successfully', { chartInstance })
 }
 
 // Watch data changes and re-render
 watch(() => props.data, () => {
+  console.log('👀 Data changed, re-rendering chart')
   renderChart()
 }, { deep: true })
 
@@ -189,33 +187,36 @@ onBeforeUnmount(() => {
 .accuracy-trend-chart {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #2a2a2a;
-  min-height: 350px;
+  height: 350px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .chart-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .chart-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .chart-subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: #888888;
 }
 
 .chart-container {
   flex: 1;
-  min-height: 300px;
   position: relative;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .chart-loading,
@@ -249,20 +250,16 @@ onBeforeUnmount(() => {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .accuracy-trend-chart {
-    padding: 16px;
-    min-height: 280px;
+    padding: 12px;
+    height: 300px;
   }
 
   .chart-header h3 {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .chart-subtitle {
-    font-size: 12px;
-  }
-
-  .chart-container {
-    min-height: 220px;
+    font-size: 10px;
   }
 }
 </style>
