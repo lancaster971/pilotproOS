@@ -44,6 +44,28 @@
             </div>
           </div>
         </div>
+
+        <div class="kpi-card">
+          <Icon icon="mdi:lightning-bolt" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">{{ formatPercentage(store.costTrend?.fastPathCoverage / 100 || 0) }}</div>
+            <div class="kpi-card-label">Fast-Path Coverage</div>
+            <div class="kpi-card-detail">
+              <span class="fast-path">{{ formatPercentage(store.costTrend?.llmCoverage / 100 || 0) }} LLM</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card success">
+          <Icon icon="mdi:cash-multiple" class="kpi-card-icon" />
+          <div class="kpi-card-content">
+            <div class="kpi-card-value">${{ formatCurrency(store.costTrend?.monthly || 0) }}</div>
+            <div class="kpi-card-label">Monthly Savings</div>
+            <div class="kpi-card-detail">
+              <span class="total">${{ formatCurrency(store.costTrend?.total || 0) }} total</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Grid 2x2: Componenti principali -->
@@ -97,6 +119,11 @@ const toast = useToast()
 // Format percentage
 const formatPercentage = (value: number): string => {
   return `${(value * 100).toFixed(1)}%`
+}
+
+// Format currency
+const formatCurrency = (value: number): string => {
+  return value.toFixed(2)
 }
 
 // Handle retry
@@ -228,6 +255,15 @@ onMounted(async () => {
   color: #10b981;
 }
 
+.kpi-card.success {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.kpi-card.success .kpi-card-value {
+  color: #22c55e;
+}
+
 .kpi-card-icon {
   font-size: 24px;
   color: #64748b;
@@ -237,6 +273,10 @@ onMounted(async () => {
 
 .kpi-card.highlight .kpi-card-icon {
   color: #10b981;
+}
+
+.kpi-card.success .kpi-card-icon {
+  color: #22c55e;
 }
 
 .kpi-card-content {
@@ -275,6 +315,14 @@ onMounted(async () => {
   color: #9ca3af;
 }
 
+.kpi-card-detail .fast-path {
+  color: #f59e0b;
+}
+
+.kpi-card-detail .total {
+  color: #22c55e;
+}
+
 .kpi-card-detail .separator {
   margin: 0 4px;
 }
@@ -300,6 +348,17 @@ onMounted(async () => {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  .professional-kpi-bar {
+    flex-direction: column;
+  }
+
+  .kpi-card {
+    min-width: 100%;
+    width: 100%;
   }
 }
 
