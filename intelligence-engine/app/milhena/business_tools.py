@@ -3268,3 +3268,258 @@ def get_analytics_tool(query_type: str = "overview") -> str:
     """LEGACY wrapper → usa smart_analytics_query_tool"""
     import asyncio
     return asyncio.run(smart_analytics_query_tool(metric_type="overview"))
+
+
+# ============================================================================
+# DYNAMIC CONTEXT SYSTEM v3.5.0 - PilotProOS Metadata + Business Dictionary
+# ============================================================================
+
+@tool
+@traceable(name="MilhenaSystemContext", run_type="tool")
+def get_system_context_tool() -> str:
+    """
+    Fornisce contesto completo PilotProOS: workflow reali + dizionario business dinamico.
+
+    🎯 QUANDO USARE:
+    - Query ambigue: "quante tabelle?", "cosa puoi fare?", "dammi informazioni"
+    - Termini business generici: "clienti", "problemi", "attività"
+    - Richieste meta: "cosa gestisci?", "che dati hai?"
+    - Disambiguazione: Need to clarify what user means
+
+    ⚡ FAST-PATH TRIGGER:
+    Classifier auto-chiama questo tool se category=AMBIGUOUS
+
+    Returns:
+        JSON con:
+        - workflows_attivi: {count, nomi, dettagli}
+        - dizionario_business: {termine: {sinonimi, categoria, tool, dato_reale}}
+        - statistiche: {esecuzioni, errori, success_rate, etc.}
+        - esempi_uso: [{query, interpretazione, tool, response_template}]
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Query single-shot dalla view dinamica
+        cur.execute("SELECT * FROM pilotpros.v_system_context")
+        row = cur.fetchone()
+
+        if not row:
+            logger.warning("v_system_context returned no data")
+            return json.dumps({
+                "error": "Sistema non disponibile, riprova tra poco",
+                "workflows_attivi": {"count": 0, "list": []},
+                "dizionario_business": {},
+                "statistiche": {}
+            }, ensure_ascii=False)
+
+        # Estrai colonne (based on view definition)
+        col_names = [desc[0] for desc in cur.description]
+        context = dict(zip(col_names, row))
+
+        cur.close()
+        conn.close()
+
+        # Build response structure
+        response = {
+            "generated_at": context.get("generated_at").isoformat() if context.get("generated_at") else None,
+
+            "workflows_attivi": {
+                "count": context.get("workflows_attivi_count", 0),
+                "totali": context.get("workflows_totali_count", 0),
+                "nomi": _extract_workflow_names(context.get("workflows_attivi_list", [])),
+                "dettagli": context.get("workflows_attivi_list", [])
+            },
+
+            "dizionario_business": _build_business_dictionary(context),
+
+            "statistiche": {
+                "esecuzioni": {
+                    "totali": context.get("esecuzioni_totali", 0),
+                    "completate": context.get("esecuzioni_completate", 0),
+                    "in_corso": context.get("esecuzioni_in_corso", 0),
+                    "ultimi_7giorni": context.get("esecuzioni_7giorni", 0),
+                    "success_rate": f"{context.get('success_rate_7giorni', 0)}%",
+                    "durata_media_secondi": context.get("durata_media_secondi_7giorni", 0)
+                },
+                "errori": {
+                    "totali": context.get("errori_totali", 0),
+                    "ultimi_7giorni": context.get("errori_7giorni", 0),
+                    "oggi": context.get("errori_oggi", 0),
+                    "workflows_coinvolti": context.get("workflows_con_errori", 0),
+                    "top_5_workflows": context.get("top_5_workflows_errori", [])
+                },
+                "database": {
+                    "tabelle_pilotpros": context.get("tabelle_pilotpros_count", 0)
+                }
+            },
+
+            "esempi_uso": _build_usage_examples(context)
+        }
+
+        return json.dumps(response, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        logger.error(f"Error in get_system_context_tool: {e}", exc_info=True)
+        return json.dumps({
+            "error": f"Impossibile recuperare contesto sistema: {str(e)}",
+            "workflows_attivi": {"count": 0, "list": []},
+            "dizionario_business": {},
+            "statistiche": {}
+        }, ensure_ascii=False)
+
+
+def _extract_workflow_names(workflows_json) -> List[str]:
+    """Extract just the names from workflow JSON list"""
+    try:
+        if isinstance(workflows_json, str):
+            workflows = json.loads(workflows_json)
+        else:
+            workflows = workflows_json
+
+        if not workflows:
+            return []
+
+        return [w.get("name", "Unknown") for w in workflows if isinstance(w, dict)]
+    except Exception as e:
+        logger.error(f"Error extracting workflow names: {e}")
+        return []
+
+
+def _build_business_dictionary(context: Dict) -> Dict[str, Any]:
+    """
+    Build rich business dictionary with REAL data mappings.
+    Maps user terminology to system categories with concrete examples.
+    """
+    dictionary = {
+        "clienti": {
+            "sinonimi": ["utenti", "persone", "contatti", "mittenti"],
+            "significa": "Email gestite dal sistema ChatOne (inbox aziendale)",
+            "categoria": "EMAIL_ACTIVITY",
+            "tool_da_usare": "get_chatone_email_details_tool",
+            "dato_reale": f"{context.get('email_7giorni', 0)} email ultimi 7 giorni, {context.get('mittenti_unici_7giorni', 0)} mittenti unici",
+            "esempi_query": [
+                "quanti clienti abbiamo?",
+                "email ricevute oggi?",
+                "problemi con i clienti?"
+            ]
+        },
+
+        "problemi": {
+            "sinonimi": ["errori", "issues", "failures", "guasti", "fallimenti"],
+            "significa": "Errori nelle esecuzioni dei processi business",
+            "categoria": "ERRORS",
+            "tool_da_usare": "get_error_details_tool o get_all_errors_summary_tool",
+            "dato_reale": f"{context.get('errori_oggi', 0)} errori oggi, {context.get('errori_7giorni', 0)} ultimi 7 giorni, {context.get('workflows_con_errori', 0)} processi coinvolti",
+            "esempi_query": [
+                "problemi oggi?",
+                "quali workflow hanno errori?",
+                "mostrami i fallimenti"
+            ]
+        },
+
+        "attività": {
+            "sinonimi": ["processi", "esecuzioni", "task", "lavori", "operazioni"],
+            "significa": "Esecuzioni dei processi business (workflow runs)",
+            "categoria": "EXECUTIONS",
+            "tool_da_usare": "smart_executions_query_tool",
+            "dato_reale": f"{context.get('esecuzioni_7giorni', 0)} esecuzioni ultimi 7 giorni, {context.get('esecuzioni_in_corso', 0)} in corso, success rate {context.get('success_rate_7giorni', 0)}%",
+            "esempi_query": [
+                "attività in corso?",
+                "esecuzioni oggi?",
+                "cosa sta girando?"
+            ]
+        },
+
+        "passi": {
+            "sinonimi": ["step", "nodi", "azioni", "operazioni interne"],
+            "significa": "Step interni ai processi (node executions)",
+            "categoria": "NODE_EXECUTIONS",
+            "tool_da_usare": "get_node_execution_details_tool",
+            "dato_reale": f"{context.get('node_executions_7giorni', 0)} step eseguiti ultimi 7 giorni, {context.get('node_types_unici', 0)} tipi diversi, durata media {context.get('durata_media_node_secondi_7giorni', 0)}s",
+            "esempi_query": [
+                "quali passi ha fatto?",
+                "dettagli step processo",
+                "breakdown esecuzione"
+            ]
+        },
+
+        "tabelle": {
+            "sinonimi": ["dati", "database", "informazioni strutturate"],
+            "significa": "Tabelle del database pilotpros",
+            "categoria": "METADATA",
+            "tool_da_usare": "get_system_context_tool (questo stesso tool)",
+            "dato_reale": f"{context.get('tabelle_pilotpros_count', 0)} tabelle nel database pilotpros",
+            "esempi_query": [
+                "quante tabelle abbiamo?",
+                "che dati hai?",
+                "cosa gestisci?"
+            ]
+        },
+
+        "workflow": {
+            "sinonimi": ["processi", "flussi", "automazioni", "business process"],
+            "significa": "Processi business automatizzati",
+            "categoria": "WORKFLOWS",
+            "tool_da_usare": "get_workflows_tool o smart_workflow_query_tool",
+            "dato_reale": f"{context.get('workflows_attivi_count', 0)} processi attivi su {context.get('workflows_totali_count', 0)} totali",
+            "esempi_query": [
+                "quali workflow esistono?",
+                "processi attivi?",
+                "mostra i flussi"
+            ]
+        }
+    }
+
+    return dictionary
+
+
+def _build_usage_examples(context: Dict) -> List[Dict]:
+    """
+    Build concrete usage examples with REAL data for disambiguation.
+    Agent can copy these patterns for user queries.
+    """
+    workflows_count = context.get("workflows_attivi_count", 0)
+    executions_count = context.get("esecuzioni_7giorni", 0)
+    errors_count = context.get("errori_oggi", 0)
+    email_count = context.get("email_7giorni", 0)
+
+    examples = [
+        {
+            "query_ambigua": "quante tabelle abbiamo?",
+            "interpretazione": "User vuole sapere numero tabelle database pilotpros",
+            "chiarimento_necessario": "Offri opzioni: tabelle DB ({} tabelle) O workflow attivi ({} processi) O execuzioni ({} esecuzioni)?".format(
+                context.get("tabelle_pilotpros_count", 0),
+                workflows_count,
+                executions_count
+            ),
+            "tool_da_chiamare": "get_system_context_tool (già chiamato)",
+            "response_template": f"📊 Ho {context.get('tabelle_pilotpros_count', 0)} tabelle nel database pilotpros. Intendevi questo o vuoi info su workflow ({workflows_count} attivi) o esecuzioni ({executions_count} ultimi 7gg)?"
+        },
+
+        {
+            "query_ambigua": "problemi con i clienti oggi?",
+            "interpretazione": "User chiede errori nelle email ChatOne (clienti = email)",
+            "traduzione_business": "clienti → email ChatOne, problemi → errori",
+            "tool_da_chiamare": "get_error_details_tool(workflow_filter='ChatOne')",
+            "response_template": f"⚠️ Oggi ci sono {errors_count} errori totali. Sto verificando quali riguardano ChatOne (email clienti)..."
+        },
+
+        {
+            "query_ambigua": "cosa puoi fare?",
+            "interpretazione": "Meta-query: user vuole sapere capacità sistema",
+            "chiarimento_necessario": "Elenca categorie con dati reali",
+            "tool_da_chiamare": "get_system_context_tool (già chiamato)",
+            "response_template": f"""📊 Posso aiutarti con:
+
+• **Processi Business**: {workflows_count} processi attivi
+• **Esecuzioni**: {executions_count} esecuzioni ultimi 7gg
+• **Email/Clienti**: {email_count} email gestite
+• **Errori**: {errors_count} errori oggi
+• **Performance**: Success rate {context.get('success_rate_7giorni', 0)}%
+
+Cosa ti serve?"""
+        }
+    ]
+
+    return examples
