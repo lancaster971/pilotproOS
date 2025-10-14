@@ -1,22 +1,115 @@
 # 🚀 PROGRESS.md - PilotProOS Development Journal
 
-> **Last Updated**: 2025-10-13 22:20
-> **Session**: #58 (CLOSED - Tool Schema Standardization + React Prompt Enhancement)
+> **Last Updated**: 2025-10-14 16:45
+> **Session**: #59 (CLOSED - Dynamic Context System v3.5.0 Partial Implementation)
 > **Branch**: ripara-agent
-> **Commit**: 0d41b837
-> **Docker**: RUNNING (8/8 healthy)
+> **Commit**: bec2586b
+> **Docker**: STOPPED
 
 ---
 
 ## 📊 Current Status
 
-**Active Task**: ✅ Session #58 CLOSED - Tool Disambiguation System v3.4.2
+**Active Task**: ✅ Session #59 CLOSED - Dynamic Context System v3.5.0 (Partial)
 **Blocked By**: None
-**Next Task**: Review supervision branch (Intent fix + DANGER docs) for merge to main
+**Next Task**: Complete fast-path AMBIGUOUS detection + context pre-loader (estimated 1.5h)
 
 ---
 
-## ✅ Completed Today (2025-10-13)
+## ✅ Completed Today (2025-10-14)
+
+### Session #59 - Dynamic Context System v3.5.0 (Partial Implementation)
+
+#### 1. Root Problem Discovery - Agent Lacks PilotProOS Knowledge (45min) ✅
+- **Problem**: Milhena agent has interpretation problems with user queries
+- **User Complaint**: "il problema è questo: L'agente che deve interpretare le richieste non può farlo perchè non conosce PilotPro!!!!"
+- **Root Cause**:
+  * Agent has NO knowledge of what PilotProOS is
+  * No database schema understanding
+  * No workflow names knowledge
+  * No business terminology dictionary
+  * Previous "procedi" commit drastically reduced ReAct prompt from ~266 lines to ~68 lines (75% reduction)
+  * Lost critical context: clarification handling, vocabulary domain, examples
+- **User Insight**: "L'agente che deve interpretare le richieste non può farlo perchè non conosce PilotPro!!!!"
+- **Solution Decision**: Tool-driven approach with dynamic context + business dictionary
+- **User Direction**: "tool deve aiutare agent a capire il contesto e deve comprendere anche un ricco dizionario dinamico di termini di dominio"
+- **Impact**: Context in tool (dynamic, DB-driven) NOT hardcoded in prompt (static, stale)
+
+#### 2. Architecture Design - Dynamic Context System (1h) ✅
+- **Solution**: 6-component system
+  * DB View: `v_system_context` for real-time metadata aggregation
+  * Rich Tool: `get_system_context_tool()` with 6-term business dictionary
+  * Minimal Prompt: Fixed PilotProOS context + instructions (zero hardcoded data)
+  * Fast-path AMBIGUOUS detection (pending implementation)
+  * Context Pre-Loader node (pending implementation)
+  * Conditional routing (pending implementation)
+- **Critical Decisions**:
+  * Tool-driven context vs prompt hardcoding (user: "i nomi dei WF dovrebbero essere nel tool...cosi come il dizionario di business molto ricco e completo non credi?")
+  * Business language masking throughout (no technical term exposure)
+  * Separated concerns: Fixed context in prompt + Dynamic context in tool
+- **User Feedback Loop**:
+  * Initially created TOO minimal prompt (missing "COS'È PILOTPROS")
+  * User: "ma nel prompt non c'è scritto cosa è pilotppro? perchè cazzo?"
+  * Fixed: Added fixed system description section
+- **Files Created**:
+  - CONTEXT-SYSTEM.md (NEW 1403 lines - Complete design specification)
+  - REACT-PROMPT.md (NEW 417 lines - Prompt reference document)
+
+#### 3. DB View Implementation (20min) ✅
+- **Implementation**: PostgreSQL view with single-query aggregation
+- **Files**:
+  - backend/db/migrations/005_system_context_view.sql (NEW 196 lines - Workflow stats + metadata CTEs)
+- **Features**:
+  * Workflow summary (active count, names, details JSON)
+  * Execution statistics (all time + 7-day window)
+  * Email/ChatOne activity (for "clienti" dictionary mapping)
+  * Error breakdown (for "problemi" dictionary mapping)
+  * Node execution stats (for "passi" dictionary mapping)
+  * Table count (for "quante tabelle?" disambiguation)
+- **Impact**: Single query aggregates ALL system metadata for context tool
+
+#### 4. Context Tool Implementation (30min) ✅
+- **Implementation**: Rich business dictionary with 6 terms + real-time data
+- **Files**:
+  - intelligence-engine/app/milhena/business_tools.py (MODIFIED +256 lines - Context tool + helpers)
+- **Business Dictionary Mappings**:
+  * "clienti" → Email ChatOne activity (sinonimi: utenti, persone, contatti)
+  * "problemi" → Errors in processes (sinonimi: errori, issues, failures, guasti)
+  * "attività" → Process executions (sinonimi: processi, esecuzioni, task, lavori)
+  * "passi" → Process steps/nodes (sinonimi: step, nodi, azioni)
+  * "tabelle" → Database tables metadata (sinonimi: dati, database)
+  * "workflow" → Business processes (sinonimi: processi, flussi, automazioni)
+- **Features**:
+  * Real-time workflow names from DB
+  * Statistics with 7-day metrics
+  * Concrete usage examples with actual data
+  * Tool suggestions per term
+- **Impact**: Agent can translate user business terms to system categories
+
+#### 5. ReAct Prompt v3.5.0 (45min) ✅
+- **Implementation**: Complete prompt overhaul with fixed + dynamic context
+- **Files**:
+  - intelligence-engine/app/milhena/graph.py (MODIFIED +188 -68 lines - Prompt v3.5.0 + tool registration + date formatting)
+- **Key Sections**:
+  * "COS'È PILOTPROS" (fixed context): System description, architecture, use cases
+  * Dynamic Context System: Instructions for using pre-loaded context
+  * 5-Step Workflow: ANALIZZA → CLARIFY → CLASSIFICA → TOOL → RESPONSE
+  * 9 Category Mappings: PROCESS_LIST, ERROR_ANALYSIS, EMAIL_ACTIVITY, etc.
+  * Masking Rules: Zero technical term exposure (business language only)
+  * Date injection: `{current_date}` placeholder formatted at runtime
+- **Critical Fixes**:
+  * User: "nel prompt non c'è scritto cosa è pilotppro? perchè cazzo?" - Added "COS'È PILOTPROS" section
+  * User: "viola la regola di masking della tecnologia" - Removed all technical terms (n8n, PostgreSQL, execution_entity)
+  * Implemented .format(current_date=...) for date injection (user: "rettifica il documento")
+- **Impact**: Prompt now knows WHAT PilotProOS is + HOW to use dynamic context
+
+#### 6. Git Commit + Documentation (15min) ✅
+- **Commit**: bec2586b feat(intelligence): Dynamic Context System v3.5.0 - Partial implementation
+- **Files Committed**: 5 files (+2472 -70 lines total)
+- **Status**: ✅ Partial implementation (Prompt + Tool + View) | ⏳ Fast-path detection pending
+- **Impact**: Agent has domain knowledge foundation, ready for fast-path integration
+
+## ✅ Completed Yesterday (2025-10-13)
 
 ### Session #58 - Tool Schema Standardization + React Prompt Enhancement (v3.4.2)
 
@@ -667,6 +760,20 @@
 
 ## 💾 Session Checkpoints
 
+### Checkpoint #14 (16:45) - Session #59 CLOSED
+- **Event**: Dynamic Context System v3.5.0 PARTIAL implementation COMPLETE
+- **Context**: 6/6 design tasks completed, 3/6 implementation tasks completed
+- **Files Modified**: 5 files (+2472 -70 lines)
+- **Critical Achievements**:
+  * DB View v_system_context (single-query metadata aggregation)
+  * get_system_context_tool() with 6-term business dictionary
+  * ReAct prompt v3.5.0 with "COS'È PILOTPROS" section
+  * Documentation: CONTEXT-SYSTEM.md (53KB) + REACT-PROMPT.md (16KB)
+- **Root Cause**: Agent lacked PilotProOS domain knowledge (no workflow names, no business dict, no system description)
+- **User Complaints**: "L'agente non può interpretare perchè non conosce PilotPro!!!!", "nel prompt non c'è scritto cosa è pilotppro? perchè cazzo?"
+- **Status**: ✅ FOUNDATION DEPLOYED - Agent knows PilotProOS + has context tool
+- **Next**: Fast-path AMBIGUOUS detection + context pre-loader node + conditional routing (1.5h)
+
 ### Checkpoint #13 (22:20) - Session #58 CLOSED
 - **Event**: Tool Schema Standardization + React Prompt Enhancement COMPLETE
 - **Context**: 1/1 task completed (standardization of 16 tools to Pattern A)
@@ -1079,6 +1186,22 @@
 ---
 
 ## 🔄 Session History
+
+### Session #59 (2025-10-14)
+- **Focus**: Dynamic Context System v3.5.0 (Partial Implementation)
+- **Achievements**:
+  - Root problem discovery: Agent lacks PilotProOS domain knowledge
+  - Architecture design: 6-component system (DB View, Tool, Prompt, Fast-path, Pre-loader, Routing)
+  - DB View implementation: v_system_context with metadata aggregation
+  - Context tool: get_system_context_tool() with 6-term business dictionary
+  - Prompt v3.5.0: "COS'È PILOTPROS" section + dynamic context instructions + date formatting
+  - Documentation: CONTEXT-SYSTEM.md (53KB) + REACT-PROMPT.md (16KB)
+- **Root Cause**: Previous "procedi" commit reduced prompt 75% (266→68 lines), lost critical context
+- **User Complaints**: "L'agente non può interpretare perchè non conosce PilotPro!!!!", "nel prompt non c'è scritto cosa è pilotppro? perchè cazzo?"
+- **Files Modified**: 5 files (+2472 -70 lines)
+- **Impact**: Agent has domain knowledge foundation (WHAT PilotProOS is + HOW to translate business terms)
+- **Duration**: ~3h (45min discovery + 1h design + 20min view + 30min tool + 45min prompt + 15min commit)
+- **Next**: Fast-path AMBIGUOUS detection + context pre-loader + routing (1.5h)
 
 ### Session #58 (2025-10-13)
 - **Focus**: Tool Schema Standardization (Anthropic Pattern A)
