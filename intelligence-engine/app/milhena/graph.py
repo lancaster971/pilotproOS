@@ -2334,14 +2334,22 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
             for tool_fn in tool_functions:
                 logger.info(f"[TOOL EXECUTION] Calling {tool_fn.name}...")
 
-                # Call tool with params from classifier
-                result = tool_fn.invoke(params)
+                try:
+                    # FIX: Use async ainvoke() instead of sync invoke()
+                    result = await tool_fn.ainvoke(params)
 
-                results.append({
-                    "tool": tool_fn.name,
-                    "result": result
-                })
-                logger.info(f"[TOOL EXECUTION] ✅ {tool_fn.name} completed")
+                    results.append({
+                        "tool": tool_fn.name,
+                        "result": result
+                    })
+                    logger.info(f"[TOOL EXECUTION] ✅ {tool_fn.name} completed")
+                except Exception as tool_error:
+                    logger.error(f"[TOOL EXECUTION] Tool {tool_fn.name} failed: {tool_error}")
+                    # Continue with other tools instead of failing completely
+                    results.append({
+                        "tool": tool_fn.name,
+                        "result": f"Error: {str(tool_error)}"
+                    })
 
             # Save RAW results (Responder will synthesize)
             state["tool_results"] = results
