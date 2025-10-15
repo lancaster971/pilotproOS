@@ -1,8 +1,32 @@
+⚠️ **OBSOLETO** - Architettura v3.5.0 mai implementata completamente
+
 # Milhena ReAct Agent - System Prompt
 
-**Version**: v3.5.0
+**Version**: v3.5.0 (OBSOLETO)
 **Date**: 2025-10-14
-**File**: `intelligence-engine/app/milhena/graph.py` (linee ~782-850)
+**Status**: 🔴 **OBSOLETO** - Architettura non implementata
+
+---
+
+## ⚠️ MOTIVO OBSOLESCENZA
+
+Questo documento descrive un'architettura **v3.5.0** basata su:
+- ReAct Agent classifier con `get_system_context_tool()`
+- Context injection dinamico per disambiguazione
+- 9 categorie + conditional edges
+
+**REALTÀ v3.5.5** (produzione attuale):
+- Simple LLM classifier (NO ReAct overhead)
+- CLASSIFIER_PROMPT inline in `graph.py:194-580`
+- Light context injection (5min RAM cache, ~500 chars)
+- 10 categorie (include CLARIFICATION_NEEDED)
+- Fast-path = DANGER/GREETING keywords only
+
+**Riferimento attuale**: Vedi `CONTEXT-SYSTEM.md` per architettura v3.5.5 production.
+
+---
+
+## 📋 DOCUMENTO ORIGINALE (archivio)
 
 ---
 

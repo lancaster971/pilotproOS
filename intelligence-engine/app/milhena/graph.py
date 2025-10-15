@@ -1179,9 +1179,10 @@ Timezone: Europe/Rome
             logger.error(f"🎯 [DEBUG] INSTANT MATCH: {instant['category']} - needs_db={instant.get('needs_database')}, needs_rag={instant.get('needs_rag')}")
             logger.info(f"[FAST-PATH] Instant match: {instant['category']} (bypassed LLM)")
 
+            # DISABLED v3.5.5 2025-10-15: Auto-learning disabilitato (vedi DEBITO-TECNICO.md)
             # Learn instant matches too (treat as high-confidence patterns)
-            instant_with_confidence = {**instant, "confidence": 1.0}  # Instant = 100% confidence
-            await self._maybe_learn_pattern(query, instant_with_confidence)
+            # instant_with_confidence = {**instant, "confidence": 1.0}  # Instant = 100% confidence
+            # await self._maybe_learn_pattern(query, instant_with_confidence)
 
             decision = SupervisorDecision(**instant)
             state["supervisor_decision"] = decision.model_dump()  # Convert to dict for state
@@ -1336,9 +1337,10 @@ Timezone: Europe/Rome
             logger.error(f"[CRITICAL] Classification values: {classification}")
             raise
 
+        # DISABLED v3.5.5 2025-10-15: Auto-learning disabilitato (vedi DEBITO-TECNICO.md)
         # STEP 3.5: Auto-learn pattern if high confidence (TODO-URGENTE.md)
         # Call after LLM classification to save high-confidence patterns
-        await self._maybe_learn_pattern(query, classification)
+        # await self._maybe_learn_pattern(query, classification)
 
         # STEP 4: Handle waiting clarification
         if decision["category"] == "CLARIFICATION_NEEDED":
@@ -1851,8 +1853,15 @@ CONTESTO SISTEMA (aggiornato):
             logger.error(f"[ADMIN] Failed to get all patterns: {e}")
             return []
 
+    # ============================================================================
+    # DISABLED v3.5.5 2025-10-15: AUTO-LEARNING SYSTEM
+    # Motivo: Sistema salva pattern ma NON li usa per bypassare LLM
+    # Vedi: DEBITO-TECNICO.md sezione "AUTO-LEARNING FAST-PATH - DISABLED"
+    # ============================================================================
     async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
         """
+        DISABLED 2025-10-15
+
         Auto-learn new pattern if LLM classification has high confidence (>0.9).
         Saves to PostgreSQL and updates in-memory cache.
 
@@ -1868,94 +1877,12 @@ CONTESTO SISTEMA (aggiornato):
         5. If existing: UPDATE times_used counter
 
         FIX 2025-10-13: Added DANGER validation to prevent security leaks from being learned
+
+        DISABLED: Sistema non implementa fast-path check prima di LLM
         """
-        if not hasattr(self, 'db_pool') or self.db_pool is None:
-            return  # Silently skip if DB not available
-
-        # Only learn high-confidence classifications (TODO-URGENTE.md line 284)
-        confidence = llm_result.get('confidence', 0.0)
-        if confidence < 0.9:
-            logger.info(f"[AUTO-LEARN] Skipped learning (confidence={confidence:.2f} < 0.9): '{query[:50]}'")
-            return
-
-        category = llm_result.get('category', '')
-        if not category:
-            return
-
-        # FIX 2025-10-13: NEVER learn DANGER patterns (security risk)
-        if category == "DANGER":
-            logger.warning(f"[AUTO-LEARN] BLOCKED learning DANGER pattern: '{query[:50]}' (security policy)")
-            return
-
-        # FIX 2025-10-13: Validate query doesn't contain tech keywords (double-check)
-        query_lower = query.lower()
-        danger_tech_keywords = [
-            "flowwise", "langchain", "langgraph", "database", "postgres",
-            "stack", "architettura", "tecnologie", "framework"
-        ]
-        if any(kw in query_lower for kw in danger_tech_keywords):
-            logger.warning(f"[AUTO-LEARN] BLOCKED learning tech query: '{query[:50]}' (contains: {[kw for kw in danger_tech_keywords if kw in query_lower]})")
-            return
-
-        # FIX 2025-10-13: BLOCK ambiguous queries (need clarification, not learning)
-        ambiguous_terms = [
-            "tabelle", "dati", "informazioni", "cose", "roba",
-            "tutto", "dimmi tutto", "overview", "generale",
-            "info", "dettagli generici"
-        ]
-        if any(term in query_lower for term in ambiguous_terms):
-            matched_terms = [term for term in ambiguous_terms if term in query_lower]
-            logger.warning(f"[AUTO-LEARN] BLOCKED ambiguous query: '{query[:50]}' (contains: {matched_terms}) - needs clarification")
-            return
-
-        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={category}")
-
-        # Normalize query for pattern matching
-        normalized = self._normalize_query(query)
-
-        # Skip very short patterns (< 3 chars)
-        if len(normalized) < 3:
-            return
-
-        try:
-            async with self.db_pool.acquire() as conn:
-                # Check if pattern already exists
-                existing = await conn.fetchrow("""
-                    SELECT id, times_used, times_correct, accuracy
-                    FROM pilotpros.auto_learned_patterns
-                    WHERE normalized_pattern = $1
-                """, normalized)
-
-                if existing:
-                    # Update usage counter (TODO-URGENTE.md lines 297-302)
-                    await conn.execute("""
-                        UPDATE pilotpros.auto_learned_patterns
-                        SET times_used = times_used + 1,
-                            last_used_at = NOW()
-                        WHERE id = $1
-                    """, existing['id'])
-                    logger.info(f"[AUTO-LEARN] Pattern reused: '{normalized}' (times_used={existing['times_used']+1})")
-                else:
-                    # Insert new pattern (TODO-URGENTE.md lines 303-312)
-                    result = await conn.fetchrow("""
-                        INSERT INTO pilotpros.auto_learned_patterns
-                        (pattern, normalized_pattern, category, confidence, created_by)
-                        VALUES ($1, $2, $3, $4, 'llm')
-                        RETURNING id
-                    """, query, normalized, category, confidence)
-                    pattern_id = result['id']
-                    logger.info(f"[AUTO-LEARN] New pattern saved: '{normalized}' → {category} (confidence={confidence:.2f}, id={pattern_id})")
-
-                    # Reload patterns cache
-                    await self._load_learned_patterns()
-
-                    # Trigger hot-reload via Redis PubSub (notify all replicas)
-                    from app.milhena.hot_reload import publish_reload_message
-                    redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
-                    await publish_reload_message(redis_url, pattern_id=pattern_id)
-
-        except Exception as e:
-            logger.error(f"[AUTO-LEARN] Failed to save pattern: {e}")
+        return  # DISABLED - do nothing
+        # DISABLED - all code commented out
+        pass
 
     # ============================================================================
     # REPHRASER NODES - Lightweight pre-check for ambiguous queries
