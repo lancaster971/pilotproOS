@@ -74,10 +74,13 @@ export const useLearningStore = defineStore('learning', () => {
    * Top performing patterns (sorted by usage)
    */
   const topPatterns = computed((): PatternData[] => {
-    return patterns.value
+    const result = patterns.value
       .filter(p => p.times_used > 0)
       .sort((a, b) => b.times_used - a.times_used)
       .slice(0, 10)
+
+    console.log('🔄 topPatterns computed:', result.length, 'patterns')
+    return result
   })
 
   /**
@@ -147,26 +150,36 @@ export const useLearningStore = defineStore('learning', () => {
       const data: LearningMetrics = await response.json()
       console.log('✅ Learning metrics fetched:', data)
 
-      // Update state
-      metrics.value = data
-      patterns.value = data.top_patterns || []
+      // Update state (triggers Vue reactivity)
+      // IMPORTANT: Create NEW array reference to force Vue re-render
+      metrics.value = { ...data }
+      patterns.value = [...(data.top_patterns || [])]
       lastUpdated.value = new Date().toISOString()
       lastFetchTime = now
 
-      // Map recent_feedback from API to feedbackEvents
+      console.log('📊 Store updated:', {
+        total_patterns: data.total_patterns,
+        patterns_loaded: patterns.value.length,
+        patterns_reference: patterns.value,
+        approved_count: patterns.value.filter(p => p.status === 'approved').length,
+        disabled_count: patterns.value.filter(p => p.status === 'disabled').length,
+        pending_count: patterns.value.filter(p => p.status === 'pending').length
+      })
+
+      // Map recent_feedback from API to feedbackEvents (NEW array reference)
       if (data.recent_feedback && Array.isArray(data.recent_feedback)) {
-        feedbackEvents.value = data.recent_feedback.map((fb: any) => ({
+        feedbackEvents.value = [...data.recent_feedback.map((fb: any) => ({
           session_id: fb.session_id || '',
           query: fb.query || '',
           classification: fb.classification || 'GENERAL',
           feedback: fb.feedback_type === 'positive' ? 'positive' : 'negative',
           timestamp: fb.timestamp || new Date().toISOString()
-        }))
+        }))]
         console.log(`📊 Mapped ${feedbackEvents.value.length} feedback events`)
       }
 
-      // Generate heatmap data from patterns
-      heatmapData.value = generateHeatmapData(patterns.value)
+      // Generate heatmap data from patterns (NEW array reference)
+      heatmapData.value = [...generateHeatmapData(patterns.value)]
       console.log(`📊 Generated ${heatmapData.value.length} heatmap data points`)
 
     } catch (err: any) {
@@ -265,6 +278,120 @@ export const useLearningStore = defineStore('learning', () => {
   }
 
   /**
+   * Approve a pending pattern (admin action)
+   * POST /api/milhena/patterns/:id/approve
+   */
+  const approvePattern = async (patternId: number): Promise<void> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      console.log(`✅ Approving pattern ${patternId}...`)
+
+      const response = await fetch(`${API_BASE}/api/milhena/patterns/${patternId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to approve pattern: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Pattern approved:', result)
+
+      // Refresh metrics after approval
+      await fetchMetrics(true)
+
+    } catch (err: any) {
+      error.value = err.message || 'Failed to approve pattern'
+      console.error('❌ Failed to approve pattern:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Disable a pattern (admin action)
+   * POST /api/milhena/patterns/:id/disable
+   */
+  const disablePattern = async (patternId: number): Promise<void> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      console.log(`⚠️ Disabling pattern ${patternId}...`)
+
+      const response = await fetch(`${API_BASE}/api/milhena/patterns/${patternId}/disable`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to disable pattern: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('⚠️ Pattern disabled:', result)
+
+      // Refresh metrics after disable
+      await fetchMetrics(true)
+
+    } catch (err: any) {
+      error.value = err.message || 'Failed to disable pattern'
+      console.error('❌ Failed to disable pattern:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Delete a pattern permanently (admin action)
+   * DELETE /api/milhena/patterns/:id
+   */
+  const deletePattern = async (patternId: number): Promise<void> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      console.log(`🗑️ Deleting pattern ${patternId}...`)
+
+      const response = await fetch(`${API_BASE}/api/milhena/patterns/${patternId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to delete pattern: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('🗑️ Pattern deleted:', result)
+
+      // Refresh metrics after delete
+      await fetchMetrics(true)
+
+    } catch (err: any) {
+      error.value = err.message || 'Failed to delete pattern'
+      console.error('❌ Failed to delete pattern:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * Clear cache and force refresh
    */
   const clearCache = (): void => {
@@ -348,6 +475,9 @@ export const useLearningStore = defineStore('learning', () => {
     fetchMetrics,
     sendFeedback,
     reloadPatterns,
+    approvePattern,
+    disablePattern,
+    deletePattern,
     clearCache,
     resetState
   }

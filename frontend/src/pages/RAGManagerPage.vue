@@ -152,7 +152,7 @@ onMounted(async () => {
 /* Container principale */
 .rag-manager-page {
   padding: 1.5rem;
-  background: #1a1a1a;
+  background: #0a0a0a;
   min-height: 100vh;
 }
 
@@ -160,9 +160,10 @@ onMounted(async () => {
 .page-header {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(20px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(31, 41, 55, 0.4);
 }
 
 .header-content {
@@ -200,16 +201,16 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 20, 0.6);
+  border: 1px solid rgba(31, 41, 55, 0.3);
   border-radius: 8px;
-  color: #a0a0a0;
+  color: #888888;
   font-size: 0.9rem;
 }
 
 .stat-badge.success {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   color: #10b981;
 }
 
@@ -219,8 +220,9 @@ onMounted(async () => {
 }
 
 .rag-tabs :deep(.p-tabview-nav) {
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(31, 41, 55, 0.3);
   border-radius: 8px 8px 0 0;
   padding: 0.5rem;
 }
@@ -230,14 +232,14 @@ onMounted(async () => {
 }
 
 .rag-tabs :deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
-  background: linear-gradient(135deg, #10b981 0%, #0d9668 100%);
+  background: #10b981;
   color: white;
   border-color: transparent;
 }
 
 .rag-tabs :deep(.p-tabview-nav-link) {
   background: transparent;
-  color: #a0a0a0;
+  color: #888888;
   border: 1px solid transparent;
   transition: all 0.3s ease;
 }
@@ -248,8 +250,9 @@ onMounted(async () => {
 }
 
 .rag-tabs :deep(.p-tabview-panels) {
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 20, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(31, 41, 55, 0.3);
   border-top: none;
   border-radius: 0 0 8px 8px;
   padding: 1.5rem;

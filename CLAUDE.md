@@ -94,17 +94,16 @@ Frontend NEVER exposes technical terms:
 
 PilotProOS utilizza una configurazione **ibrida** di MCP servers per capacità specializzate:
 
-#### **7 Server MCP Base** (dall'installazione globale):
+#### **6 Server MCP Base** (dall'installazione globale):
 1. **filesystem** - File system operations
-2. **context7-docs** - GitHub documentation fetcher (upstash/context7)
-3. **brave-search** - Web search capabilities
-4. **github** - GitHub API integration
-5. **memory** - Persistent knowledge graph storage
-6. **fetch** - HTTP request capabilities
-7. **postgres** - PostgreSQL database access
+2. **brave-search** - Web search capabilities
+3. **github** - GitHub API integration
+4. **memory** - Persistent knowledge graph storage
+5. **fetch** - HTTP request capabilities
+6. **postgres** - PostgreSQL database access
 
 #### **1 Server MCP Custom** (specifico PilotProOS):
-8. **testsprite** - Automated testing orchestration (frontend/backend)
+7. **testsprite** - Automated testing orchestration (frontend/backend)
    - `testsprite_bootstrap_tests` - Initialize test suite
    - `testsprite_generate_code_summary` - Codebase analysis
    - `testsprite_generate_standardized_prd` - PRD generation
@@ -112,11 +111,11 @@ PilotProOS utilizza una configurazione **ibrida** di MCP servers per capacità s
    - `testsprite_generate_backend_test_plan` - Backend test planning
    - `testsprite_generate_code_and_execute` - Test generation + execution
 
-**Configurazione**: `~/.claude/mcp_settings.json` (7 base) + `~/Dropbox/config/claude_desktop_config.json` (8th testsprite)
+**Configurazione**: `~/.claude/mcp_settings.json` (6 base) + `~/Dropbox/config/claude_desktop_config.json` (7th testsprite)
 
 **Documentazione MCP**: https://modelcontextprotocol.io/introduction
 
-#### **9. OpenMemory** - Persistent Cross-Session Memory
+#### **8. OpenMemory** - Persistent Cross-Session Memory
 **Server**: `@peakmojo/mcp-openmemory@latest`
 **Database**: `.openmemory/pilotpros-memory.sqlite` (24KB+, versionato Git)
 

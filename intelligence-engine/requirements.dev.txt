@@ -1,0 +1,67 @@
+# ============================================================================
+# DEVELOPMENT REQUIREMENTS - PilotProOS Intelligence Engine
+# ============================================================================
+# Extends production requirements with UI, testing, and development tools
+# Usage: Only for local development with LangGraph Studio
+# Date: 2025-10-13
+# ============================================================================
+
+# Extend production requirements (53 packages)
+-r requirements.prod.txt
+
+# ============================================================================
+# UI Components (LangGraph Studio, Dashboard, Monitoring)
+# ============================================================================
+streamlit==1.50.0
+plotly==5.24.1
+streamlit-chat==0.1.1
+streamlit-aggrid==0.3.5
+matplotlib==3.9.2
+
+# ============================================================================
+# Development & Testing Tools
+# ============================================================================
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-mock==3.14.0
+black==24.10.0
+ruff==0.8.3
+mypy==1.13.0
+
+# ============================================================================
+# Data Science (for development/analysis)
+# ============================================================================
+pandas>=2.2.0
+numpy>=1.26.0
+scikit-learn==1.6.1
+scipy==1.15.1
+
+# ============================================================================
+# Grafana (optional monitoring)
+# ============================================================================
+grafana-client==3.6.0
+
+# ============================================================================
+# EMBEDDINGS (for local testing ONLY - NOT for Docker container)
+# ============================================================================
+# IMPORTANT: These should NEVER be installed in production Docker image
+# They are for local testing when embeddings service is not available
+# Production uses HTTP client (httpx) to pilotpros-embeddings-dev:8002
+#
+# sentence-transformers==3.3.1
+# einops==0.8.1
+# faiss-cpu==1.9.0
+#
+# Uncomment ONLY if testing embeddings locally without Docker
+# ============================================================================
+
+# ============================================================================
+# BUILD COMMANDS
+# ============================================================================
+# Development mode (includes UI + testing):
+#   docker build --build-arg ENV=dev -t pilotpros-intelligence-engine:dev .
+#
+# Production mode (minimal, API only):
+#   docker build -t pilotpros-intelligence-engine:latest .
+#   (default: uses requirements.prod.txt)
+# ============================================================================

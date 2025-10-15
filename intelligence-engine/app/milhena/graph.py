@@ -53,6 +53,8 @@ from app.milhena.business_tools import (
     toggle_workflow_tool,
     search_knowledge_base_tool,
     get_full_database_dump,
+    # DYNAMIC CONTEXT SYSTEM (1) - v3.5.0
+    get_system_context_tool,
     # LEGACY WRAPPERS (3) - Backward compatibility
     get_performance_metrics_tool,
     get_system_monitoring_tool,
@@ -89,22 +91,96 @@ if is_mock_enabled():
 
     @tool
     def get_workflows_tool() -> str:
-        """Lista tutti i workflow (MOCK DATA)"""
+        """
+        Get complete list of business processes with their status (active/inactive).
+
+        🔑 KEYWORDS: processi, workflow, flussi, business process, automazione
+
+        USE THIS WHEN:
+        - User asks: "quanti processi abbiamo?", "quali workflow?", "elenco processi"
+        - User wants to know total count of business processes
+        - User asks about process names or status overview
+
+        DO NOT USE WHEN:
+        - User asks about "tabelle", "dati", "informazioni" (ambiguous terms - ask clarification first)
+        - User asks about execution statistics (use smart_analytics_query_tool)
+        - User asks about errors (use get_all_errors_summary_tool)
+        - User asks about specific process details (use get_workflow_details_tool)
+
+        Returns: Total count, active/inactive count, list of process names (MOCK DATA)
+        """
         return get_mock_workflows()
 
     @tool
     def get_all_errors_summary_tool() -> str:
-        """Errori aggregati per workflow (MOCK DATA)"""
+        """
+        Get aggregated error summary by business process (last 7 days).
+
+        🔑 KEYWORDS: errori totali, summary errori, riepilogo failure, tutti problemi, statistiche errori
+
+        USE THIS WHEN:
+        - User asks: "ci sono errori?", "quali processi hanno errori?", "summary errori"
+        - User wants error overview across multiple processes
+        - User needs to identify problematic processes
+
+        DO NOT USE WHEN:
+        - User asks for detailed error info for ONE specific process (use get_error_details_tool)
+        - User asks about execution statistics (use smart_analytics_query_tool)
+        - User asks about process list (use get_workflows_tool)
+
+        Returns: Error count per process, most recent errors, affected processes (MOCK DATA)
+        """
         return get_mock_errors()
 
     @tool
     def get_workflow_details_tool(workflow_name: str) -> str:
-        """Dettagli specifici workflow (MOCK DATA)"""
+        """
+        Get detailed information about ONE specific business process.
+
+        🔑 KEYWORDS: dettagli processo, info workflow, specifiche flusso, configurazione, workflow detail
+
+        USE THIS WHEN:
+        - User asks: "dettagli processo X", "come funziona workflow Y", "info su processo Z"
+        - User wants to know configuration, nodes, status of specific process
+        - User mentions a specific process name
+
+        DO NOT USE WHEN:
+        - User asks for list of ALL processes (use get_workflows_tool)
+        - User asks about execution history (use smart_executions_query_tool)
+        - User asks about errors only (use get_error_details_tool)
+
+        Args:
+            workflow_name: Exact name of the business process (case-sensitive)
+
+        Returns: Process configuration, number of nodes, active status, last update (MOCK DATA)
+        """
         return get_mock_workflow_details(workflow_name)
 
     @tool
     def get_full_database_dump(days: int = 7) -> str:
-        """Statistiche complete sistema (MOCK DATA)"""
+        """
+        Get COMPREHENSIVE system statistics for last N days (HEAVY tool).
+
+        🔑 KEYWORDS: tutto, completo, full report, overview completa, dump totale
+
+        USE THIS WHEN:
+        - User EXPLICITLY asks for "complete overview", "full report", "everything", "all statistics"
+        - User wants aggregated view across ALL metrics (executions + errors + performance)
+        - User says "dammi tutto" or "report completo"
+
+        DO NOT USE WHEN:
+        - User asks about "tabelle", "dati", "informazioni" (AMBIGUOUS - ask clarification first!)
+        - User asks about processes only (use get_workflows_tool - much faster)
+        - User asks about errors only (use get_all_errors_summary_tool - much faster)
+        - User asks about specific metric (use smart_analytics_query_tool - much faster)
+
+        ⚠️ WARNING: Returns 2000+ lines of data. Use ONLY when user explicitly requests complete dump.
+
+        Args:
+            days: Number of days to look back (default: 7)
+
+        Returns: Total executions, success/error rates, daily trends, all metrics aggregated (MOCK DATA)
+        """
         return get_mock_statistics()
 
     logger.info("✅ Mock tools initialized successfully")
@@ -128,9 +204,14 @@ Query che richiedono info sensibili o tecniche:
 - Password, credenziali, token, API key
 - "dammi password database", "utenti e password"
 - Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
+- Tech stack: "utilizzate Flowwise?", "che database usate?", "usate LangChain?"
+- Infrastruttura: "architettura sistema", "stack tecnologico", "tecnologie usate"
+- Framework/tools: "n8n", "Docker", "Redis", "Kubernetes", "LangGraph"
+
+REGOLA CRITICA: Qualsiasi domanda su QUALE tecnologia/database/framework usiamo = DANGER
 
 Esempio risposta:
-{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sensibili. Contatta l'amministratore."}}
+{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili. Contatta l'amministratore."}}
 
 ### 2. HELP/GREETING (💬 risposta diretta)
 Saluti, help, capabilities:
@@ -572,7 +653,7 @@ class MilhenaGraph:
 
         if os.getenv("OPENAI_API_KEY"):
             self.openai_llm = ChatOpenAI(
-                model="gpt-4.1-nano-2025-04-14",
+                model="gpt-4o-2024-11-20",  # 1M TPM - better query interpretation than nano
                 temperature=0.7,
                 api_key=os.getenv("OPENAI_API_KEY"),
                 rate_limiter=openai_rate_limiter
@@ -691,240 +772,217 @@ class MilhenaGraph:
             execute_workflow_tool,           # ⚠️ Execute action
             toggle_workflow_tool,            # ⚠️ Toggle action
             search_knowledge_base_tool,      # RAG system
-            get_full_database_dump           # Complete dump
+            get_full_database_dump,          # Complete dump
+
+            # DYNAMIC CONTEXT SYSTEM (1) - v3.5.0
+            get_system_context_tool          # PilotProOS metadata + business dictionary
         ]
 
-        # Use OpenAI Nano (10M tokens "Offerta Speciale") - GROQ hit rate limit
-        # gpt-4.1-nano-2025-04-14: 10M tokens budget, perfect for ReAct agent
+        # Use OpenAI gpt-4o (1M TPM, better query interpretation)
+        # Groq hitting rate limits during testing - switch back to Groq for production
         react_model = self.openai_llm if self.openai_llm else self.groq_llm
 
         # CRITICAL: Custom system prompt for intelligent tool selection
-        # IMPERATIVO: Forza l'uso dei tool invece di risposte generiche
-        react_system_prompt = """Sei Milhena, assistente intelligente per la gestione e il monitoraggio di workflow aziendali.
-
-⚠️ REGOLA ASSOLUTA:
-DEVI SEMPRE chiamare un tool PRIMA di rispondere.
-Non puoi rispondere direttamente, nemmeno in modo generico.
-Usa SEMPRE i dati real-time provenienti dal database o dai tool forniti.
-
----
-
-🧭 STRATEGIA DI RISPOSTA (segui questi step logici):
-
-1. Analizza la richiesta dell'utente e individua parole chiave o intenzioni latenti
-2. Applica i pattern della MAPPA TOOL sottostante per selezionare il tool corretto (dall'alto verso il basso)
-3. Se hai bisogno di cercare informazioni storiche o documentazione, usa search_knowledge_base_tool
-4. Converti riferimenti temporali in date esplicite:
-   - "oggi" → usa data corrente (2025-10-03)
-   - "ieri" → sottrai 1 giorno
-   - "stanotte" / "questa notte" → data corrente
-   - "ultimi giorni" / "recenti" → usa ultimi 7 giorni
-5. Dopo aver chiamato un tool e ricevuto i dati:
-   - Genera una risposta in italiano
-   - Usa linguaggio semplice, conciso, business-friendly
-   - Se possibile, suggerisci una domanda di follow-up
-
----
-
-🗺️ MAPPA TOOL - 12 TOOLS (consolidati per decisioni veloci)
-
-1️⃣ SMART ANALYTICS (9 metriche in 1 tool)
-smart_analytics_query_tool(metric_type, period_days)
-
-Use cases & metric_type:
-- "statistiche sistema" → metric_type="statistics"
-- "top performers" / "migliori workflow" → metric_type="top_performers"
-- "trend ultimi giorni" → metric_type="daily_trend", period_days=7
-- "orari picco" / "quando gira di più" → metric_type="hourly"
-- "analytics completo" → metric_type="overview"
-- "salute integrazioni" / "uptime" → metric_type="integration_health"
-- "insights automazioni" / "crescita" → metric_type="automation"
-- "performance dettagliate" → metric_type="performance"
-
-2️⃣ SMART WORKFLOW (dettagli workflow in 1 tool)
-smart_workflow_query_tool(workflow_id, detail_level)
-
-Use cases & detail_level:
-- "info su ChatOne" → detail_level="basic"
-- "dashboard ChatOne" → detail_level="dashboard" (include email/AI activity!)
-- "statistiche complete ChatOne" → detail_level="full_stats"
-
-3️⃣ SMART EXECUTIONS (esecuzioni in 1 tool)
-smart_executions_query_tool(scope, target, limit)
-
-Use cases & scope:
-- "ultime esecuzioni" → scope="recent_all", limit=20
-- "esecuzioni di oggi" → scope="by_date", target="2025-10-03"
-- "esecuzioni ChatOne" → scope="by_workflow", target="workflow_id"
-- "status esecuzione 123" → scope="specific", target="123"
-
-4️⃣ Errori workflow specifico
-get_error_details_tool(workflow_name="X")
-
-5️⃣ Errori aggregati sistema
-get_all_errors_summary_tool()
-
-6️⃣ Node-level query (massima granularità!)
-get_node_execution_details_tool(workflow_name="X", node_name="Y", date="oggi")
-
-7️⃣ Email ChatOne (conversazioni bot)
-get_chatone_email_details_tool(date="oggi")
-
-8️⃣ Timeline node-by-node (business intelligence completa)
-get_raw_modal_data_tool(workflow_id="...", execution_id=None)
-
-9️⃣ Eventi live real-time
-get_live_events_tool()
-
-🔟 Lista workflow base
-get_workflows_tool()
-
-1️⃣1️⃣ Card overview tutti workflow
-get_workflow_cards_tool()
-
-1️⃣2️⃣ Actions (⚠️ CRITICHE)
-- execute_workflow_tool(workflow_id) - Esegui workflow
-- toggle_workflow_tool(workflow_id, active) - Attiva/disattiva
-
-BONUS:
-- search_knowledge_base_tool(query) - RAG documentazione
-- get_full_database_dump(days) - Dump completo
-
----
-
-🎯 STRATEGIA DECISIONALE SEMPLIFICATA:
-
-1. Metriche/Analytics/Statistiche → smart_analytics_query_tool
-2. Dettagli workflow specifico → smart_workflow_query_tool
-3. Query su esecuzioni → smart_executions_query_tool
-4. Errori → get_error_details_tool o get_all_errors_summary_tool
-5. Node/Email/Timeline → tool specializzati
-6. Azioni → execute/toggle workflow
-7. Liste → get_workflows_tool o get_workflow_cards_tool
-
----
-
-📚 ESEMPI DI USO CORRETTO (Few-shot examples)
-
-User: "Statistiche sistema"
-→ Tool: smart_analytics_query_tool(metric_type="statistics")
-
-User: "Top 5 workflow migliori"
-→ Tool: smart_analytics_query_tool(metric_type="top_performers")
-
-User: "Trend ultimi 7 giorni"
-→ Tool: smart_analytics_query_tool(metric_type="daily_trend", period_days=7)
-
-User: "Quando gira di più il sistema?"
-→ Tool: smart_analytics_query_tool(metric_type="hourly")
-
-User: "Dashboard ChatOne"
-→ Tool: smart_workflow_query_tool(workflow_id="iZnBHM7mDFS2wW0u", detail_level="dashboard")
-
-User: "Info su TEST_LANG"
-→ Tool: smart_workflow_query_tool(workflow_id="TEST_LANG", detail_level="basic")
-
-User: "Ultime 20 esecuzioni"
-→ Tool: smart_executions_query_tool(scope="recent_all", limit=20)
-
-User: "Esecuzioni di oggi"
-→ Tool: smart_executions_query_tool(scope="by_date", target="2025-10-03")
-
-User: "Errori di ChatOne"
-→ Tool: get_error_details_tool(workflow_name="ChatOne")
-
-User: "Ci sono problemi?"
-→ Tool: get_all_errors_summary_tool()
-
-User: "Email ricevute oggi dal bot"
-→ Tool: get_chatone_email_details_tool(date="oggi")
-
-User: "Output del nodo Rispondi a mittente"
-→ Tool: get_node_execution_details_tool(workflow_name="ChatOne", node_name="Rispondi a mittente")
-
-User: "Timeline node-by-node ChatOne"
-→ Tool: get_raw_modal_data_tool(workflow_id="iZnBHM7mDFS2wW0u")
-
-User: "Cosa sta succedendo ora?"
-→ Tool: get_live_events_tool()
-
-User: "Lista workflow"
-→ Tool: get_workflows_tool()
-
-User: "Card overview processi"
-→ Tool: get_workflow_cards_tool()
-
----
-
-🔍 APPROFONDIMENTO MULTI-STEP - REGOLA CRITICA:
-
-Quando user dice "si", "sì", "vai", "continua", "dimmi di più", "approfondisci", "dettagli":
-
-⚠️ QUESTO SIGNIFICA: "non ho abbastanza informazioni, chiamane altri tool per avere quadro completo"
-
-**PROCEDURA OBBLIGATORIA per approfondimento:**
-
-STEP 1: Identifica workflow/errore discusso nel messaggio precedente
-STEP 2: Chiama ALMENO 3 TOOL diversi (non fermarti a 1!):
-
-Tool call #1: get_error_details_tool(workflow_name)
-  → Aspetta risposta
-
-Tool call #2: smart_workflow_query_tool(workflow_id, detail_level="full_stats")
-  → Aspetta risposta (trend errori, success rate, durata)
-
-Tool call #3: get_raw_modal_data_tool(workflow_id)
-  → Aspetta risposta (quale nodo specifico fallisce)
-
-STEP 3: DOPO aver ricevuto TUTTI i 3 risultati, sintetizza in risposta completa:
-  "L'errore è nel nodo X, fallisce da Y giorni, pattern Z, success rate W%, nodo specifico: [dettaglio]"
-
-❌ VIETATO terminare loop dopo 1 solo tool call se user ha chiesto approfondimento!
-
-**Esempio OBBLIGATORIO step-by-step:**
-
-User: "Quali workflow hanno errori?"
-Assistant: [CALL TOOL #1] get_all_errors_summary_tool()
-→ Result: "GRAB INFO SUPPLIER ha errori"
-Assistant: "GRAB INFO ha errori. Vuoi approfondire?"
-
-User: "Si"
-Assistant: [CALL TOOL #1] get_error_details_tool(workflow_name="GRAB INFO SUPPLIER FROM ORDINI")
-→ Wait for result
-Assistant: [CALL TOOL #2] smart_workflow_query_tool(workflow_id="...", detail_level="full_stats")
-→ Wait for result
-Assistant: [CALL TOOL #3] get_raw_modal_data_tool(workflow_id="...")
-→ Wait for result
-Assistant: [SYNTHESIS] "Il workflow GRAB INFO fallisce al nodo Excel DB1 per credenziali scadute. Success rate 0% ultimi 3gg. Nodo 'Excel DB1' fallisce sempre a 2:30 dall'avvio. Pattern: 5 fallimenti consecutivi."
-
-⚠️ CRITICO: Quando user dice "Si" devi chiamare ALMENO 3 tool PRIMA di rispondere!
-Non fermarti dopo get_error_details - continua con smart_workflow e get_raw_modal_data!
-
-**Gestione pronomi** ("quello", "quella", "quel processo"):
-- Estrai da conversation history ultimo workflow menzionato
-- Usa workflow_name o workflow_id per tool calls successive
-
----
-
-❌ ERRORI COMUNI DA EVITARE:
-
-- NON rispondere mai senza chiamare un tool
-- NON usare tool generici quando esiste un tool specifico
-- NON ignorare riferimenti temporali ("oggi", "ieri") - convertili in date
-- NON FERMARTI a 1 tool quando user chiede approfondimento - usa while-loop per multipli tool!
-- NON perdere contesto conversazione - ricorda workflow/errori menzionati precedentemente
-
----
-
-🎯 OBIETTIVO:
-Rispondere in modo chiaro e utile, sempre basandoti su dati ottenuti via tool.
-Quando user chiede approfondimento, fornisci ANALISI COMPLETA con dati da MULTIPLI tool.
-Usa terminologia business, evita tecnicismi."""
+        # v3.5.0: Dynamic Context System - Minimal prompt + tool-driven business dictionary
+        react_system_prompt = """Sei Milhena, assistente intelligente per PilotProOS.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 COS'È PILOTPROS (contesto fisso):
+
+PilotProOS è un sistema di monitoraggio e gestione di processi business automatizzati.
+
+COSA GESTISCE:
+- Processi business (automazioni workflow-based)
+- Esecuzioni processi (ogni run di un'automazione)
+- Errori/fallimenti (quando un processo non riesce)
+- Step di processo (azioni interne ai processi)
+- Performance metrics (durata, tasso successo, throughput)
+
+ARCHITETTURA BASE:
+- Database PostgreSQL (schema 'pilotpros' per analytics)
+- Workflow engine per automazioni business
+- Sistema di tracking esecuzioni real-time
+- Sistema di error reporting
+
+DATI TRACCIATI:
+- Chi: Quali processi sono attivi/inattivi
+- Cosa: Dettagli esecuzioni (successo/fallimento)
+- Quando: Timestamp start/end, durate
+- Dove: Errori in quali step specifici
+- Perché: Error messages, logs, context
+
+CASI D'USO TIPICI:
+- Monitoraggio salute processi business
+- Analisi errori e troubleshooting
+- Statistiche performance e trend
+- Gestione attivazione/disattivazione processi
+
+TUO COMPITO:
+1. Interpretare richieste utente
+2. Disambiguare termini ambigui
+3. Tradurre terminologia business in categorie sistema
+4. Chiamare tool appropriati
+5. Rispondere in linguaggio business (NO technical terms)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ DYNAMIC CONTEXT SYSTEM
+
+Quando ricevi query, system_context può essere PRE-CARICATO in state.
+
+system_context contiene (se disponibile):
+├─ workflows_attivi: {count, nomi, dettagli}
+├─ dizionario_business: {termine: {sinonimi, categoria, tool, dati_reali}}
+├─ statistiche: {esecuzioni, errori, success_rate, etc.}
+└─ esempi_uso: [{query, interpretazione, tool, response_template}]
+
+⚠️ USA system_context per:
+1. Validare workflow names (usa SOLO nomi in context.workflows_attivi.nomi)
+2. Tradurre terminologia business (consulta dizionario_business)
+3. Offrire clarification con dati reali (usa statistiche)
+4. Vedere esempi interpretazione (consulta esempi_uso)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 WORKFLOW INTERPRETAZIONE (5 STEP):
+
+STEP 1: ANALIZZA QUERY
+├─ system_context disponibile? (check state["system_context"])
+│  ├─ SÌ → Consulta dizionario_business per tradurre termini
+│  └─ NO → Procedi con query letterale
+│
+└─ Query contiene termini nel dizionario?
+   ├─ SÌ → Traduci usando "significa" + "categoria"
+   └─ NO → Query ambigua, serve clarification
+
+STEP 2: CLARIFICATION (se query ambigua/generica)
+├─ Leggi workflows_attivi.nomi da context
+├─ Leggi statistiche da context
+└─ Genera clarification con DATI REALI:
+
+Template:
+"PilotProOS gestisce [context.workflows_attivi.count] processi: [context.workflows_attivi.nomi].
+Abbiamo [context.statistiche.esecuzioni_7d] esecuzioni e [context.statistiche.errori_7d] errori recenti.
+
+Cosa intendi per '[termine ambiguo]'?
+- Opzione 1: Lista processi?
+- Opzione 2: Esecuzioni recenti?
+- Opzione 3: Errori/problemi?
+- Opzione 4: Statistiche performance?"
+
+⚠️ LIMITE: Max 2 iterazioni clarification. Dopo, termina cortesemente.
+
+STEP 3: CLASSIFICA RICHIESTA
+Identifica CATEGORIA tra 9 disponibili:
+
+┌────────────────────────────────────────────────┐
+│ CATEGORIE SISTEMA (mapping a tools):           │
+├────────────────────────────────────────────────┤
+│ 1. PROCESS_LIST                                │
+│    Sinonimi: processi, workflow, flussi        │
+│    Tool: get_workflows_tool()                  │
+├────────────────────────────────────────────────┤
+│ 2. PROCESS_DETAIL                              │
+│    Sinonimi: dettagli processo X, info workflow│
+│    Tool: smart_workflow_query_tool(id)         │
+├────────────────────────────────────────────────┤
+│ 3. EXECUTION_QUERY                             │
+│    Sinonimi: attività, lavori, task, run       │
+│    Tool: smart_executions_query_tool(scope)    │
+├────────────────────────────────────────────────┤
+│ 4. ERROR_ANALYSIS                              │
+│    Sinonimi: problemi, errori, issues, guasti  │
+│    Tool: get_error_details_tool(workflow)      │
+├────────────────────────────────────────────────┤
+│ 5. ANALYTICS                                   │
+│    Sinonimi: performance, KPI, statistiche     │
+│    Tool: smart_analytics_query_tool(metric)    │
+├────────────────────────────────────────────────┤
+│ 6. STEP_DETAIL                                 │
+│    Sinonimi: passi, step, fasi, nodi           │
+│    Tool: get_node_execution_details_tool()     │
+├────────────────────────────────────────────────┤
+│ 7. EMAIL_ACTIVITY                              │
+│    Sinonimi: clienti, email, conversazioni     │
+│    Tool: get_chatone_email_details_tool(date)  │
+├────────────────────────────────────────────────┤
+│ 8. PROCESS_ACTION                              │
+│    Sinonimi: attiva, disattiva, esegui         │
+│    Tool: toggle/execute_workflow_tool()        │
+├────────────────────────────────────────────────┤
+│ 9. SYSTEM_OVERVIEW                             │
+│    Sinonimi: overview completo, full report    │
+│    Tool: get_full_database_dump(days)          │
+└────────────────────────────────────────────────┘
+
+STEP 4: CHIAMA TOOL(S)
+├─ Categoria identificata → Chiama tool corrispondente
+├─ Serve deep-dive? → Chiama MULTIPLI tool sequenziali
+│  Esempio: "perché Flow_4 fallisce?" →
+│    1. get_error_details_tool(workflow="Flow_4")
+│    2. get_node_execution_details_tool(workflow="Flow_4", node=[dal primo tool])
+│
+└─ Parametri tool:
+   - workflow_name: Valida contro context.workflows_attivi.nomi
+   - date: "oggi" = current date, "recenti" = 7 giorni default
+   - scope: "recent_all", "by_date", "by_workflow", "specific"
+
+STEP 5: GENERA RISPOSTA
+├─ Traduci output tool in linguaggio business
+├─ NO greetings ("Ciao!"), NO fluff ("ecco i dati", "certo")
+├─ Usa emoji contestuali:
+│  - ⚠️ Per errori/problemi
+│  - ✅ Per successi/performance positive
+│  - 📊 Per statistiche/metriche
+│  - 📧 Per email/ChatOne
+│  - ⚡ Per azioni/modifiche
+│
+└─ Termina SEMPRE con "Altro?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚫 REGOLE MASKING (CRITICAL):
+
+⛔ MAI esporre in response:
+- Tool names (get_workflows_tool, smart_executions_query_tool, etc.)
+- Database terms (execution_entity, workflow_entity, finished=false)
+- Technical implementation (PostgreSQL, n8n, Redis, AsyncRedisSaver)
+- API details (HTTP Request, SMTP, timeout, connection string)
+- Code/query syntax (SELECT, WHERE, JOIN)
+
+✅ USA SOLO:
+- Terminologia business (processi, esecuzioni, errori, step, email)
+- Workflow names reali da context (ChatOne, Flow_X)
+- Dati numerici (counts, percentuali, date)
+- Descrizioni funzionali ("assistente email", "processo operativo")
+
+⚠️ Responder node applicherà final masking, ma TU sei prima linea difesa.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ REGOLE FINALI:
+
+1. ✅ system_context disponibile? Consultalo SEMPRE prima di rispondere
+2. ✅ Traduci termini business via dizionario_business
+3. ✅ Valida workflow names contro workflows_attivi.nomi
+4. ✅ Clarification con dati reali da statistiche
+5. ✅ Classifica in 1 delle 9 CATEGORIE (mapping diretto tool)
+6. ✅ Chiama tool(s) appropriati (multipli se deep-dive)
+7. ✅ Response business-friendly, NO technical terms
+8. ✅ Emoji contestuali (⚠️📊✅📧⚡)
+9. ✅ Limite 2 iterazioni disambiguazione
+10. ✅ End sempre con "Altro?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Data corrente: {current_date}
+Timezone: Europe/Rome
+"""
 
         # FLATTENED REACT LOGIC: Nodes added directly to main graph (v3.2 - Visualization Fix)
         # Store react model and tools as instance variables for node methods
         self.react_model_with_tools = react_model.bind_tools(react_tools)
-        self.react_system_prompt = react_system_prompt
+
+        # v3.5.0: Format prompt with current date
+        from datetime import datetime
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        self.react_system_prompt = react_system_prompt.format(current_date=current_date)
+
         self.react_tools = react_tools
 
         # v3.2: Add [TOOL] ReAct Execute Tools node with logging wrapper
@@ -1047,6 +1105,20 @@ Usa terminologia business, evita tecnicismi."""
             state["waiting_clarification"] = False
             if decision.direct_response:
                 state["response"] = decision.direct_response
+
+            # FIX v3.4.1: Map category to intent (fast-path early return)
+            category_to_intent_map = {
+                "DANGER": "SECURITY",
+                "HELP": "HELP",
+                "GREETING": "GENERAL",
+                "SIMPLE_QUERY": "STATUS",
+                "SIMPLE_METRIC": "METRIC",
+                "COMPLEX_QUERY": "ANALYSIS",
+                "CLARIFICATION_NEEDED": "CLARIFICATION"
+            }
+            state["intent"] = category_to_intent_map.get(decision.category, "GENERAL")
+            logger.info(f"[FAST-PATH] Mapped category '{decision.category}' → intent '{state['intent']}'")
+
             return state
 
         # STEP 1: Check Learning System (pattern già appresi)
@@ -1242,6 +1314,21 @@ Usa terminologia business, evita tecnicismi."""
 
         logger.info(f"[SUPERVISOR] Decision: {decision['category']} → needs_rag={decision['needs_rag']}, needs_db={decision['needs_database']}")
 
+        # FIX v3.4.1: Map supervisor category to user intent (LangGraph State best practice)
+        # Source: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
+        # Rationale: intent field was None for fast-path queries (bypassed IntentAnalyzer)
+        category_to_intent_map = {
+            "DANGER": "SECURITY",          # Security-sensitive queries
+            "HELP": "HELP",                # Help/capability questions
+            "GREETING": "GENERAL",         # Greetings
+            "SIMPLE_QUERY": "STATUS",      # "quanti workflow?"
+            "SIMPLE_METRIC": "METRIC",     # "quante esecuzioni?"
+            "COMPLEX_QUERY": "ANALYSIS",   # Multi-step analysis
+            "CLARIFICATION_NEEDED": "CLARIFICATION"
+        }
+        state["intent"] = category_to_intent_map.get(decision['category'], "GENERAL")
+        logger.info(f"[SUPERVISOR] Mapped category '{decision['category']}' → intent '{state['intent']}'")
+
         return state
 
     def _fallback_classification(self, query: str) -> Dict[str, Any]:
@@ -1362,20 +1449,39 @@ Usa terminologia business, evita tecnicismi."""
             }
 
         # DANGER keywords (expanded based on security best practices)
+        # FIX 2025-10-13: Added tech stack/architecture keywords to prevent leaks
         danger_keywords = [
+            # Credentials & Secrets (original)
             "password", "credenziali", "credential", "api key", "token",
             "secret", "chiave", "accesso admin", "root password",
             "connection string", "dsn", "db url", "database url",
             "api_key", "access_token", "bearer", "auth token",
-            "passwd", "pwd", "private key", "refresh token"
+            "passwd", "pwd", "private key", "refresh token",
+
+            # Tech Stack & Architecture (NEW - prevent technical leaks)
+            "flowwise", "langflow", "langgraph", "langchain",
+            "flowise", "n8n", "postgresql", "postgres", "mysql",
+            "redis", "chromadb", "docker", "kubernetes", "k8s",
+            "architettura", "struttura sistema", "stack tecnologico",
+            "tech stack", "tecnologie", "framework", "librerie",
+            "che database", "quale database", "usate database",
+            "che sistema", "quale sistema", "sistema usa",
+            "come funziona sistema", "come è fatto", "strutturato il sistema",
+
+            # Infrastructure terms
+            "nginx", "apache", "server", "hosting", "cloud provider",
+            "aws", "azure", "gcp", "digitalocean", "heroku",
+
+            # Development tools
+            "git", "github", "gitlab", "jenkins", "ci/cd", "pipeline"
         ]
         if any(kw in query_lower for kw in danger_keywords):
             return {
                 "action": "respond",
                 "category": "DANGER",
                 "confidence": 1.0,
-                "reasoning": "Blocco sicurezza immediato - fast-path",
-                "direct_response": "Non posso fornire informazioni su dati sensibili del sistema.",
+                "reasoning": "Blocco sicurezza immediato - richiesta info architettura/credenziali (fast-path)",
+                "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili del sistema. Per assistenza contatta l'amministratore.",
                 "needs_rag": False,
                 "needs_database": False,
                 "clarification_options": None,
@@ -1936,9 +2042,10 @@ Usa terminologia business, evita tecnicismi."""
                         times_correct,
                         created_at,
                         last_used_at,
-                        enabled
+                        enabled,
+                        status
                     FROM pilotpros.auto_learned_patterns
-                    WHERE enabled = TRUE
+                    WHERE enabled = TRUE AND status = 'approved'
                     ORDER BY accuracy DESC, times_used DESC
                 """)
 
@@ -1956,6 +2063,7 @@ Usa terminologia business, evita tecnicismi."""
                         'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                         'last_used_at': row['last_used_at'].isoformat() if row['last_used_at'] else None,
                         'enabled': row['enabled'],
+                        'status': row['status'],
                         'source': 'auto_learned'
                     }
 
@@ -1995,6 +2103,9 @@ Usa terminologia business, evita tecnicismi."""
         Get all loaded patterns with complete statistics.
         Returns list of pattern dictionaries for API consumption.
 
+        NOTE: This returns only APPROVED patterns (from self.learned_patterns cache).
+        For ALL patterns (pending, approved, disabled), use get_all_patterns_from_db().
+
         Returns:
             List of dicts with all pattern fields from database
         """
@@ -2012,9 +2123,68 @@ Usa terminologia business, evita tecnicismi."""
                 'created_at': data.get('created_at'),
                 'last_used_at': data.get('last_used_at'),
                 'enabled': data.get('enabled', True),
+                'status': data.get('status', 'approved'),  # Default 'approved' for loaded patterns
                 'source': data.get('source', 'auto_learned')
             })
         return patterns
+
+    async def get_all_patterns_from_db(self) -> List[Dict[str, Any]]:
+        """
+        Get ALL patterns from database (pending, approved, disabled).
+        Used by admin UI to manage pattern approvals.
+
+        Query: SELECT * FROM auto_learned_patterns (NO status filter)
+        Returns: List of all patterns with all fields including status
+        """
+        if not hasattr(self, 'db_pool') or self.db_pool is None:
+            logger.warning("[ADMIN] DB pool not initialized, returning empty list")
+            return []
+
+        try:
+            async with self.db_pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT
+                        id,
+                        pattern,
+                        normalized_pattern,
+                        category,
+                        confidence,
+                        accuracy,
+                        times_used,
+                        times_correct,
+                        created_at,
+                        last_used_at,
+                        enabled,
+                        status,
+                        created_by
+                    FROM pilotpros.auto_learned_patterns
+                    ORDER BY created_at DESC
+                """)
+
+                patterns = []
+                for row in rows:
+                    patterns.append({
+                        'id': int(row['id']),
+                        'pattern': row['pattern'],
+                        'normalized_pattern': row['normalized_pattern'],
+                        'category': row['category'],
+                        'confidence': float(row['confidence']),
+                        'accuracy': float(row['accuracy']),
+                        'times_used': int(row['times_used']),
+                        'times_correct': int(row['times_correct']) if row['times_correct'] else 0,
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'last_used_at': row['last_used_at'].isoformat() if row['last_used_at'] else None,
+                        'enabled': row['enabled'],
+                        'status': row['status'],
+                        'source': 'auto_learned'
+                    })
+
+                logger.info(f"[ADMIN] Retrieved {len(patterns)} patterns from database (all statuses)")
+                return patterns
+
+        except Exception as e:
+            logger.error(f"[ADMIN] Failed to get all patterns: {e}")
+            return []
 
     async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
         """
@@ -2031,6 +2201,8 @@ Usa terminologia business, evita tecnicismi."""
         3. Check if pattern already exists
         4. If new: INSERT into database
         5. If existing: UPDATE times_used counter
+
+        FIX 2025-10-13: Added DANGER validation to prevent security leaks from being learned
         """
         if not hasattr(self, 'db_pool') or self.db_pool is None:
             return  # Silently skip if DB not available
@@ -2041,11 +2213,37 @@ Usa terminologia business, evita tecnicismi."""
             logger.info(f"[AUTO-LEARN] Skipped learning (confidence={confidence:.2f} < 0.9): '{query[:50]}'")
             return
 
-        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={llm_result.get('category')}")
-
         category = llm_result.get('category', '')
         if not category:
             return
+
+        # FIX 2025-10-13: NEVER learn DANGER patterns (security risk)
+        if category == "DANGER":
+            logger.warning(f"[AUTO-LEARN] BLOCKED learning DANGER pattern: '{query[:50]}' (security policy)")
+            return
+
+        # FIX 2025-10-13: Validate query doesn't contain tech keywords (double-check)
+        query_lower = query.lower()
+        danger_tech_keywords = [
+            "flowwise", "langchain", "langgraph", "database", "postgres",
+            "stack", "architettura", "tecnologie", "framework"
+        ]
+        if any(kw in query_lower for kw in danger_tech_keywords):
+            logger.warning(f"[AUTO-LEARN] BLOCKED learning tech query: '{query[:50]}' (contains: {[kw for kw in danger_tech_keywords if kw in query_lower]})")
+            return
+
+        # FIX 2025-10-13: BLOCK ambiguous queries (need clarification, not learning)
+        ambiguous_terms = [
+            "tabelle", "dati", "informazioni", "cose", "roba",
+            "tutto", "dimmi tutto", "overview", "generale",
+            "info", "dettagli generici"
+        ]
+        if any(term in query_lower for term in ambiguous_terms):
+            matched_terms = [term for term in ambiguous_terms if term in query_lower]
+            logger.warning(f"[AUTO-LEARN] BLOCKED ambiguous query: '{query[:50]}' (contains: {matched_terms}) - needs clarification")
+            return
+
+        logger.info(f"[AUTO-LEARN] High confidence detected! confidence={confidence:.2f}, category={category}")
 
         # Normalize query for pattern matching
         normalized = self._normalize_query(query)
@@ -2731,7 +2929,26 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         tool_results = [msg.content for msg in messages if isinstance(msg, ToolMessage)]
 
         if not tool_results:
-            logger.warning("[RESPONDER] No tool results found - generating fallback")
+            # FIX 2025-10-13: Check if ReAct gave direct response (no tools called)
+            ai_messages = [msg.content for msg in messages if isinstance(msg, AIMessage)]
+            if ai_messages:
+                last_ai_response = ai_messages[-1]
+
+                # If ReAct gave conversational/clarification response, pass it through
+                conversational_markers = [
+                    "cosa intendi", "specifica", "non è chiaro",  # Clarification
+                    "mi dispiace", "non ho informazioni",  # Off-topic
+                    "sono milhena", "posso aiutarti",  # Meta-query
+                    "il mio scopo", "fornire supporto",  # Meta-query
+                    "rispondo con", "rispondo solo", "sono un assistente"  # Meta-explanation
+                ]
+
+                if any(marker in last_ai_response.lower() for marker in conversational_markers):
+                    logger.info("[RESPONDER] ReAct gave direct conversational response - passing through")
+                    state["response"] = last_ai_response
+                    return state
+
+            logger.warning("[RESPONDER] No tool results and no conversational response - generating fallback")
             state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."
             return state
 
@@ -2771,7 +2988,17 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
                 final_response = response.content
                 logger.info(f"[RESPONDER] OpenAI response: {final_response[:100]}")
 
-            state["response"] = final_response
+            # Apply ResponseFormatter for consistent closing formulas and formatting
+            from .response_formatter import ResponseFormatter
+            formatter = ResponseFormatter()
+            formatted_response = formatter.format(
+                response=final_response,
+                query=query,
+                intent=classification,
+                supervisor_decision=state.get("supervisor_decision")
+            )
+
+            state["response"] = formatted_response
 
         except Exception as e:
             logger.error(f"[RESPONDER] Failed: {e}")
@@ -2804,7 +3031,8 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
                 intent=intent,
                 llm=llm,
                 context=context,
-                session_id=session_id
+                session_id=session_id,
+                supervisor_decision=state.get("supervisor_decision")
             )
 
             state["response"] = response

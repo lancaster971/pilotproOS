@@ -30,13 +30,18 @@ class ResponseGenerator:
         from .token_manager import TokenManager
         from .learning import LearningSystem
         from .masking import BusinessTerminologyParser
+        from .response_formatter import ResponseFormatter
 
         self.token_manager = TokenManager()
         self.learning_system = LearningSystem()
 
         # Initialize Business Terminology Parser (LEVEL 2 masking)
         self.terminology_parser = BusinessTerminologyParser()
-        logger.info("✅ ResponseGenerator initialized with multi-layer masking (Prompt + Parser + Regex)")
+
+        # Initialize Response Formatter (LEVEL 4 post-processing)
+        self.response_formatter = ResponseFormatter()
+
+        logger.info("✅ ResponseGenerator initialized with multi-layer processing (Prompt + Parser + Masking + Formatter)")
 
     def _initialize_llms(self):
         """Initialize LLMs for response generation"""
@@ -142,37 +147,96 @@ class ResponseGenerator:
             ]),
 
             "METRIC": ChatPromptTemplate.from_messages([
-                ("system", """You are a DATA REPORTER for analytics metrics.
+                ("system", """You are Milhena, an INTELLIGENT business data analyst.
 
-                **MANDATORY RULES (VIOLATE = REJECTED):**
-                1. EXTRACT EVERY NUMBER from [Metrics] section below
-                2. Use bullet points (•) for each metric
-                3. FORBIDDEN: "spero che", "ecco i dati", "sono lieta", greetings
-                4. FORBIDDEN: Rounding numbers or approximations ("diverse", "alcune")
-                5. End with ONLY "Altro?" - no other text
+                **YOUR JOB**: INTERPRET the user's question and CRAFT a helpful, context-aware answer.
 
-                **EXTRACT FROM [Metrics]:**
-                • Esecuzioni totali (exact number)
-                • Successi (count + percentage)
-                • Errori (count + percentage)
-                • Tempo medio (if available)
-                • Trend vs periodo precedente (if available)
+                **CRITICAL 2-STEP PROCESS**:
 
-                GOOD:
-                "Oggi:
-                • 47 esecuzioni
-                • 45 successi (95.7%)
-                • 2 errori (4.3%)
-                • Tempo medio: 3.2s
-                • +15% vs ieri
+                STEP 1: UNDERSTAND USER INTENT
+                ================================
+                Read [User Question] carefully to detect what user wants:
+
+                A) FAILURE/PROBLEM ANALYSIS:
+                   Keywords in query: "fallimenti", "problemi", "errori", "basso successo", "peggiori", "36%"
+                   → User wants to identify WHAT'S FAILING
+                   → FOCUS: Workflows with LOW success rate (high failure rate)
+                   → TONE: Alert, urgent, highlight criticality
+                   → START: "⚠️ Questi N workflow stanno FALLENDO frequentemente:"
+                   → FORMAT: Show failures first (844 su 1432 = 59% ERRORI)
+
+                B) SUCCESS/TOP PERFORMER ANALYSIS:
+                   Keywords in query: "migliori", "top", "performanti", "successo alto", "più efficaci"
+                   → User wants to identify WHAT'S WORKING
+                   → FOCUS: Workflows with HIGH success rate
+                   → TONE: Positive, celebrate wins
+                   → START: "✅ Questi N workflow hanno ottime performance:"
+                   → FORMAT: Show successes first (588 su 1432 = 41% successi)
+
+                C) GENERAL OVERVIEW:
+                   Keywords in query: "statistiche", "panoramica", "situazione", "come va"
+                   → User wants balanced view
+                   → FOCUS: Both successes and failures
+                   → START: "📊 Situazione generale:"
+
+                STEP 2: CRAFT ANSWER FROM [Available Data]
+                ===========================================
+                - Use EXACT numbers from data (no rounding)
+                - Calculate failure rate if showing problems (100% - success_rate)
+                - Use natural Italian (not robotic bullets)
+                - FORBIDDEN: "Ciao", "Salve", "ecco i dati", generic fluff
+                - End with "Altro?"
+
+                **EXAMPLES (CRITICAL TO FOLLOW)**:
+
+                Query: "quali workflow hanno determinato un Tasso di successo: 36%?"
+                Data: "1. Flow_4 - 41% (1432 exec)\n2. Flow_2 - 41% (716 exec)\n3. Flow_1 - 39% (239 exec)"
+
+                CORRECT RESPONSE:
+                "⚠️ **Questi 3 workflow stanno FALLENDO frequentemente** (causano il basso 36% globale):
+
+                1. **Flow 4**: Fallisce 844 volte su 1,432 (59% errori) - CRITICO
+                2. **Flow 2**: Fallisce 422 volte su 716 (59% errori) - CRITICO
+                3. **Flow 1**: Fallisce 146 volte su 239 (61% errori) - CRITICO
+
+                Questi 3 rappresentano il 97% delle esecuzioni totali (2,387 su 2,459).
+
                 Altro?"
 
-                REJECTED (vague, no numbers):
-                "Buongiorno! Ci sono state diverse esecuzioni, la maggior parte con successo."
+                WRONG RESPONSE (DO NOT DO THIS):
+                "Ciao! Ecco i principali contribuenti al tasso di successo: Flow_4 - 41%, Flow_2 - 41%..."
+                ❌ WRONG because: ignores user intent (asking about PROBLEMS), uses "contribuenti al successo" (wrong framing)
 
-                IF [Metrics] empty, say: "Nessun dato disponibile. Altro?"
-                DO NOT invent or estimate numbers."""),
-                ("human", "Query: {query}\n\n[Metrics]:\n{data}\n\n⚠️ EXTRACT ALL NUMBERS FROM [Metrics] ABOVE")
+                ---
+
+                Query: "quali sono i workflow migliori?"
+                Data: (same as above)
+
+                CORRECT RESPONSE:
+                "✅ **I 3 workflow con più esecuzioni** (Flow 4, Flow 2, Flow 1) hanno performance simili (39-41% successo).
+
+                Tuttavia, nessuno supera il 50% di successo - tutti hanno margini significativi di miglioramento.
+
+                Altro?"
+
+                ---
+
+                **CRITICAL REMINDERS**:
+                - DO NOT use "principali contribuenti al successo" when user asks about failures
+                - DO calculate failure rate (100% - success rate) when discussing problems
+                - DO use bold (**text**) for emphasis on workflow names
+                - DO mention total executions for context
+                - NO greetings ("Ciao!", "Salve!")
+                - NO generic fluff ("spero che", "ecco i dati")
+                """),
+                ("human", """[User Question]: {query}
+
+[Context]: {supervisor_context}
+
+[Available Data]:
+{data}
+
+Now INTERPRET the question (Step 1) and CRAFT a helpful answer (Step 2) using the data above.""")
             ]),
 
             "HELP": ChatPromptTemplate.from_messages([
@@ -210,7 +274,8 @@ class ResponseGenerator:
         llm: Optional[Any] = None,
         context: Optional[Dict[str, Any]] = None,
         data: Optional[Dict[str, Any]] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        supervisor_decision: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Generate appropriate response based on intent
@@ -222,14 +287,15 @@ class ResponseGenerator:
             context: Conversation context
             data: Relevant data for response
             session_id: Session identifier
+            supervisor_decision: Supervisor classification metadata
 
         Returns:
-            Generated response (masked)
+            Generated response (masked and formatted)
         """
         try:
             # FIX 1: Wrap entire generation with 15s global timeout
             return await asyncio.wait_for(
-                self._generate_internal(query, intent, llm, context, data, session_id),
+                self._generate_internal(query, intent, llm, context, data, session_id, supervisor_decision),
                 timeout=15.0
             )
         except asyncio.TimeoutError:
@@ -246,7 +312,8 @@ class ResponseGenerator:
         llm: Optional[Any] = None,
         context: Optional[Dict[str, Any]] = None,
         data: Optional[Dict[str, Any]] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        supervisor_decision: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Internal method for response generation with timeout protection
@@ -258,9 +325,10 @@ class ResponseGenerator:
             context: Conversation context
             data: Relevant data for response
             session_id: Session identifier
+            supervisor_decision: Supervisor classification metadata
 
         Returns:
-            Generated response (masked)
+            Generated response (masked and formatted)
         """
         try:
             # FIX: If intent is None (fast-path routing), infer from context
@@ -339,9 +407,21 @@ class ResponseGenerator:
             # Combine all data sources into single context string
             enhanced_data = "\n\n".join(data_parts) if data_parts else "No specific data available."
 
+            # Build supervisor context string for template
+            supervisor_context = ""
+            if supervisor_decision:
+                category = supervisor_decision.get("category", "UNKNOWN")
+                reasoning = supervisor_decision.get("reasoning", "")
+                supervisor_context = f"Category: {category}"
+                if reasoning:
+                    supervisor_context += f"\nReasoning: {reasoning}"
+            else:
+                supervisor_context = "No supervisor context available"
+
             response_data = {
                 "query": query,
-                "data": enhanced_data
+                "data": enhanced_data,
+                "supervisor_context": supervisor_context
             }
 
             # Format prompt
@@ -398,27 +478,35 @@ class ResponseGenerator:
                     response = await llm.ainvoke(messages)
                     generated_text = response.content
 
-            # Apply multi-layer masking (LEVEL 2 → LEVEL 3)
+            # Apply multi-layer processing pipeline:
             # LEVEL 2: BusinessTerminologyParser (replace tech terms)
             terminology_cleaned = self.terminology_parser.parse(generated_text)
 
             # LEVEL 3: TechnicalMaskingEngine (final safety net)
             masked_response = self.masking_engine.mask(terminology_cleaned)
 
+            # LEVEL 4: ResponseFormatter (post-processing for consistency)
+            formatted_response = self.response_formatter.format(
+                response=masked_response,
+                query=query,
+                intent=intent,
+                supervisor_decision=supervisor_decision
+            )
+
             # Truncate if needed
-            if len(masked_response) > self.config.max_response_length:
-                masked_response = masked_response[:self.config.max_response_length] + "..."
+            if len(formatted_response) > self.config.max_response_length:
+                formatted_response = formatted_response[:self.config.max_response_length] + "..."
 
             # Record for learning
             await self.learning_system.record_feedback(
                 query=query,
                 intent=intent,
-                response=masked_response,
+                response=formatted_response,
                 feedback_type="neutral",
                 session_id=session_id
             )
 
-            return masked_response
+            return formatted_response
 
         except Exception as e:
             logger.error(f"Response generation error: {e}")

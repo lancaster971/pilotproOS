@@ -226,6 +226,179 @@ router.post('/patterns/reload', async (req, res) => {
 });
 
 /**
+ * @route   POST /api/milhena/patterns/:id/approve
+ * @desc    Approve a pending auto-learned pattern (admin only)
+ * @access  Admin (requires JWT authentication in production)
+ */
+router.post('/patterns/:id/approve', async (req, res) => {
+  try {
+    const patternId = parseInt(req.params.id);
+
+    if (isNaN(patternId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pattern ID'
+      });
+    }
+
+    businessLogger.log('Milhena pattern approval requested', {
+      pattern_id: patternId,
+      source: 'admin-endpoint'
+    });
+
+    // Forward to Intelligence Engine (has db_pool access)
+    const intelligenceResponse = await axios.post(
+      `${INTELLIGENCE_ENGINE_URL}/api/milhena/patterns/${patternId}/approve`,
+      {},
+      {
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    businessLogger.success('Milhena pattern approved', {
+      pattern_id: patternId,
+      pattern: intelligenceResponse.data.pattern
+    });
+
+    res.json({
+      success: true,
+      ...intelligenceResponse.data
+    });
+
+  } catch (error) {
+    businessLogger.error('Milhena pattern approval error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: 'Failed to approve pattern',
+      message: error.response?.data?.detail || error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/milhena/patterns/:id/disable
+ * @desc    Disable an auto-learned pattern (admin only)
+ * @access  Admin (requires JWT authentication in production)
+ */
+router.post('/patterns/:id/disable', async (req, res) => {
+  try {
+    const patternId = parseInt(req.params.id);
+
+    if (isNaN(patternId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pattern ID'
+      });
+    }
+
+    businessLogger.log('Milhena pattern disable requested', {
+      pattern_id: patternId,
+      source: 'admin-endpoint'
+    });
+
+    // Forward to Intelligence Engine (has db_pool access)
+    const intelligenceResponse = await axios.post(
+      `${INTELLIGENCE_ENGINE_URL}/api/milhena/patterns/${patternId}/disable`,
+      {},
+      {
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    businessLogger.success('Milhena pattern disabled', {
+      pattern_id: patternId,
+      pattern: intelligenceResponse.data.pattern
+    });
+
+    res.json({
+      success: true,
+      ...intelligenceResponse.data
+    });
+
+  } catch (error) {
+    businessLogger.error('Milhena pattern disable error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: 'Failed to disable pattern',
+      message: error.response?.data?.detail || error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/milhena/patterns/:id
+ * @desc    Delete an auto-learned pattern (admin only)
+ * @access  Admin (requires JWT authentication in production)
+ */
+router.delete('/patterns/:id', async (req, res) => {
+  try {
+    const patternId = parseInt(req.params.id);
+
+    if (isNaN(patternId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pattern ID'
+      });
+    }
+
+    businessLogger.log('Milhena pattern deletion requested', {
+      pattern_id: patternId,
+      source: 'admin-endpoint'
+    });
+
+    // Forward to Intelligence Engine (has db_pool access)
+    const intelligenceResponse = await axios.delete(
+      `${INTELLIGENCE_ENGINE_URL}/api/milhena/patterns/${patternId}`,
+      {
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    businessLogger.success('Milhena pattern deleted', {
+      pattern_id: patternId,
+      pattern: intelligenceResponse.data.pattern
+    });
+
+    res.json({
+      success: true,
+      ...intelligenceResponse.data
+    });
+
+  } catch (error) {
+    businessLogger.error('Milhena pattern deletion error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: 'Failed to delete pattern',
+      message: error.response?.data?.detail || error.message
+    });
+  }
+});
+
+/**
  * @route   POST /api/milhena/chat
  * @desc    Chat with Milhena assistant
  * @access  Public (will be protected in production)

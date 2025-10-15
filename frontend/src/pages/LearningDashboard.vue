@@ -109,28 +109,31 @@
         </div>
       </div>
 
-      <!-- Grid 2x2: Componenti principali -->
+      <!-- Pattern Management (Admin Section) - Below KPI, Above Grid -->
+      <div class="admin-section" v-if="store.patterns && store.patterns.length > 0">
+        <PatternManagement
+          :key="store.patterns.length"
+          :patterns="store.patterns"
+          :isLoading="store.isLoading"
+          :error="store.error"
+          @refresh="handleRefresh"
+        />
+      </div>
+      <div v-else class="admin-section-empty">
+        <p>No patterns available. Loading...</p>
+      </div>
+
+      <!-- Grid 1x2: Solo componenti utili -->
       <div class="dashboard-grid">
         <PatternPerformanceTable
           :patterns="store.topPatterns"
           :isLoading="store.isLoading"
           :error="store.error"
-        />
-
-        <AccuracyTrendChart
-          :data="store.accuracyTrend"
-          :isLoading="store.isLoading"
-          :error="store.error"
+          @refresh="handleRefresh"
         />
 
         <FeedbackTimeline
           :events="store.recentFeedback"
-          :isLoading="store.isLoading"
-          :error="store.error"
-        />
-
-        <PatternVisualization
-          :data="store.heatmapData"
           :isLoading="store.isLoading"
           :error="store.error"
         />
@@ -148,10 +151,9 @@ import { useLearningStore } from '../stores/learning-store'
 import { useToast } from 'vue-toastification'
 
 // Components
-import AccuracyTrendChart from '../components/learning/AccuracyTrendChart.vue'
 import PatternPerformanceTable from '../components/learning/PatternPerformanceTable.vue'
 import FeedbackTimeline from '../components/learning/FeedbackTimeline.vue'
-import PatternVisualization from '../components/learning/PatternVisualization.vue'
+import PatternManagement from '../components/learning/PatternManagement.vue'
 
 // Store & Toast
 const store = useLearningStore()
@@ -232,10 +234,26 @@ const handleRetry = async () => {
   }
 }
 
+// Handle refresh (after pattern approval/disable/delete)
+const handleRefresh = async () => {
+  try {
+    await store.fetchMetrics(true)
+  } catch (err: any) {
+    console.error('Failed to refresh metrics:', err)
+  }
+}
+
 // Fetch metrics on mount
 onMounted(async () => {
   try {
     await store.fetchMetrics()
+    console.log('🎯 LearningDashboard - store.patterns after fetch:')
+    console.log('  count:', store.patterns.length)
+    console.log('  firstPattern.id:', store.patterns[0]?.id)
+    console.log('  firstPattern.pattern:', store.patterns[0]?.pattern)
+    console.log('  firstPattern.status:', store.patterns[0]?.status)
+    console.log('  allStatuses:', store.patterns.map(p => p.status))
+    console.log('  Full pattern 0:', JSON.stringify(store.patterns[0], null, 2))
   } catch (err: any) {
     console.error('Failed to fetch metrics on mount:', err)
   }
@@ -403,11 +421,28 @@ onMounted(async () => {
   margin: 0 4px;
 }
 
-/* Dashboard Grid 2x2 */
+/* Dashboard Grid 1x2 (2 widgets side by side) */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
+  max-width: 100%;
+}
+
+/* Admin Section - Full Width Pattern Management (between KPI and Grid) */
+.admin-section,
+.admin-section-empty {
+  width: 100%;
+}
+
+.admin-section-empty {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 40px 20px;
+  border: 1px solid #2a2a2a;
+  text-align: center;
+  color: #888888;
+  font-size: 14px;
 }
 
 /* Responsive Design */
