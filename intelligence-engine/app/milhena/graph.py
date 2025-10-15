@@ -53,8 +53,6 @@ from app.milhena.business_tools import (
     toggle_workflow_tool,
     search_knowledge_base_tool,
     get_full_database_dump,
-    # DYNAMIC CONTEXT SYSTEM (1) - v3.5.0
-    get_system_context_tool,
     # LEGACY WRAPPERS (3) - Backward compatibility
     get_performance_metrics_tool,
     get_system_monitoring_tool,
@@ -405,7 +403,7 @@ class SupervisorDecision(BaseModel):
     needs_database: bool = False
     needs_context: bool = False  # v3.5.0: NEW - True if AMBIGUOUS category
     clarification_options: Optional[List[str]] = None
-    suggested_tool: Optional[str] = None  # v3.5.0: Tool to call (e.g., "get_system_context_tool")
+    suggested_tool: Optional[str] = None  # v3.5.0: DEPRECATED (context injected in prompt)
     llm_used: str
 
 class MilhenaState(TypedDict):
@@ -434,7 +432,7 @@ class MilhenaState(TypedDict):
     rephraser_triggered: bool  # Safety flag (max 1 rephrase)
 
     # v3.5.0: Dynamic Context System
-    system_context: Optional[Dict[str, Any]]  # Pre-loaded context from get_system_context_tool()
+    system_context: Optional[Dict[str, Any]]  # Pre-loaded context (v3.5.2: injected in prompt)
     tool_results: Optional[List[Dict[str, Any]]]  # RAW data from tool execution (v3.5.0)
 
 # ============================================================================
@@ -823,7 +821,7 @@ class MilhenaGraph:
         # v3.5.0: SIMPLIFIED ARCHITECTURE (6 components)
         # Fast-Path → Classifier (ReAct) → Tool Execution → Responder → Masking
 
-        # Agent 1: Classifier (ReAct with get_system_context_tool for disambiguation)
+        # Agent 1: Classifier (Simple LLM with context injected in prompt)
         graph.add_node("[AI] Classifier", self.supervisor_orchestrator)
 
         # Component 2: Tool Execution (direct calls, NO agent)
@@ -1233,13 +1231,13 @@ Timezone: Europe/Rome
         # Additional context (metadata, etc.)
         context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
 
-        # v3.5.0: Use ReAct Agent with get_system_context_tool + CONVERSATION MEMORY
+        # v3.5.2: Use Simple LLM with context injected in prompt (no ReAct overhead)
         from datetime import datetime
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = CLASSIFIER_PROMPT.format(query=query, current_date=current_date)
 
-        # v3.5.1: Inject light context in prompt (RAM cache, 5min TTL)
-        system_context_light = self._get_system_context_light()
+        # v3.5.2: Inject light context in prompt (RAM cache, 5min TTL, asyncpg query)
+        system_context_light = await self._get_system_context_light()
         prompt_with_context = prompt + "\n\n" + system_context_light
 
         logger.info(f"🔍 [CLASSIFIER v3.5.2] Starting Simple LLM (no ReAct) - query: '{query}'")
@@ -1250,8 +1248,6 @@ Timezone: Europe/Rome
             base_model = self.supervisor_fallback  # Always use OpenAI gpt-4.1-nano
 
             # Build messages for LLM (context in system, query in user message)
-            from langchain_core.messages import SystemMessage, HumanMessage
-
             messages = [
                 SystemMessage(content=prompt_with_context),  # v3.5.1: Prompt + light context
                 HumanMessage(content=query)
@@ -1377,8 +1373,8 @@ Timezone: Europe/Rome
 
         return state
 
-    # v3.5.0: load_system_context REMOVED
-    # Classifier Agent (ReAct) calls get_system_context_tool() directly when needed
+    # v3.5.2: load_system_context REMOVED
+    # Context injected directly in Classifier prompt via _get_system_context_light()
 
     def _fallback_classification(self, query: str) -> Dict[str, Any]:
         """
@@ -1469,10 +1465,59 @@ Timezone: Europe/Rome
             "clarification_options": ["status", "errori", "metriche", "processi", "report"]
         }
 
-    def _get_system_context_light(self) -> str:
+    async def _load_context_from_db(self) -> str:
         """
-        v3.5.1: Get light system context from RAM cache (5min TTL)
-        Prevents tool loop by injecting context directly in prompt
+        v3.5.2: Load LIGHT system context directly from DB (asyncpg pool)
+
+        Queries ONLY necessary fields (workflows_attivi_list, esecuzioni_7giorni)
+        to avoid 1800-token JSON overhead. Returns formatted string directly.
+
+        Returns:
+            Light context string (~200 tokens) or empty string on error
+        """
+        try:
+            # Query ONLY necessary fields (no full SELECT *)
+            query = """
+                SELECT
+                    workflows_attivi_list,
+                    workflows_attivi_count,
+                    esecuzioni_7giorni
+                FROM pilotpros.v_system_context
+            """
+
+            async with self.db_pool.acquire() as conn:
+                row = await conn.fetchrow(query)
+
+            if not row:
+                logger.warning("[DB] v_system_context returned no data")
+                return ""
+
+            # Parse workflow JSON list (already from view)
+            import json
+            workflows_data = row['workflows_attivi_list']
+            workflows = json.loads(workflows_data) if workflows_data else []
+
+            # Extract top 5 workflow names
+            top5_names = [w.get('name', 'Unknown') for w in workflows[:5] if isinstance(w, dict)]
+            workflow_names = ", ".join([f'"{name}"' for name in top5_names])
+
+            # Build light context string directly (no intermediate JSON)
+            light_context = f"""
+CONTESTO SISTEMA (aggiornato):
+- WORKFLOWS ATTIVI ({row['workflows_attivi_count']}): {workflow_names}
+- ESECUZIONI (7 giorni): {row['esecuzioni_7giorni']}
+- DIZIONARIO: "clienti"=Email ChatOne, "problemi"=Errori, "attività"=Esecuzioni, "passi"=Nodi, "workflow"=Processi
+"""
+            return light_context
+
+        except Exception as e:
+            logger.error(f"[DB ERROR] Failed to load system context: {e}", exc_info=True)
+            return ""  # Graceful fallback
+
+    async def _get_system_context_light(self) -> str:
+        """
+        v3.5.2: Get light system context from RAM cache (5min TTL)
+        Prevents DB overhead by caching context. Loads from DB on cache miss.
 
         Returns:
             Light context string (~200 tokens vs 1800 full JSON)
@@ -1484,40 +1529,17 @@ Timezone: Europe/Rome
             logger.info("[CACHE HIT] Using cached system context")
             return self._system_context_cache
 
-        # CACHE MISS - Query DB via tool
+        # CACHE MISS - Load from DB (async query via asyncpg pool)
         logger.info("[CACHE MISS] Fetching fresh system context from DB")
-        try:
-            full_context = get_system_context_tool.invoke({})
+        light_context = await self._load_context_from_db()
 
-            # Parse JSON response
-            import json
-            context_data = json.loads(full_context) if isinstance(full_context, str) else full_context
-
-            # Build light version (top 5 workflows + essentials)
-            workflows = context_data.get("workflows", {})
-            workflow_list = workflows.get("workflow_list", [])[:5]  # Top 5 only
-            workflow_names = ", ".join([f'"{w}"' for w in workflow_list])
-
-            stats = context_data.get("statistics", {})
-
-            # Light format (200 token vs 1800)
-            light_context = f"""
-CONTESTO SISTEMA (aggiornato):
-- WORKFLOWS ATTIVI ({workflows.get('active_count', 0)}): {workflow_names}
-- ESECUZIONI (7 giorni): {stats.get('executions_last_7_days', 0)}
-- DIZIONARIO: "clienti"=Email ChatOne, "problemi"=Errori, "attività"=Esecuzioni, "passi"=Nodi, "workflow"=Processi
-"""
-
+        if light_context:
             # Update cache
             self._system_context_cache = light_context
             self._cache_timestamp = time.time()
             logger.info(f"[CACHE UPDATED] Next refresh in {self._cache_ttl}s")
 
-            return light_context
-
-        except Exception as e:
-            logger.error(f"[CACHE ERROR] Failed to fetch context: {e}")
-            return ""  # Fallback to empty context
+        return light_context
 
     def _instant_classify(self, query: str) -> Optional[Dict[str, Any]]:
         """
