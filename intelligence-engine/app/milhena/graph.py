@@ -837,8 +837,28 @@ class MilhenaGraph:
         # ENTRY POINT: Classifier (with memory + disambiguation)
         graph.set_entry_point("[AI] Classifier")
 
-        # Linear flow: Classifier → Tool Execution → Responder → Masking → Feedback
-        graph.add_edge("[AI] Classifier", "[TOOL] Execute Tools")
+        # v3.5.0 FIX: Conditional routing after Classifier
+        # If Fast-Path match (direct_response exists) → END immediately
+        # Otherwise → Continue to Tool Execution
+        def route_after_classifier(state: MilhenaState) -> str:
+            """Route after Classifier: END if direct_response (Fast-Path), else continue"""
+            if state.get("response"):
+                logger.info("[ROUTER] Fast-Path response detected → END immediately")
+                return END
+            else:
+                logger.info("[ROUTER] No direct response → Continue to Tool Execution")
+                return "[TOOL] Execute Tools"
+
+        graph.add_conditional_edges(
+            "[AI] Classifier",
+            route_after_classifier,
+            {
+                END: END,
+                "[TOOL] Execute Tools": "[TOOL] Execute Tools"
+            }
+        )
+
+        # Linear flow after Tool Execution: Tools → Responder → Masking → Feedback
         graph.add_edge("[TOOL] Execute Tools", "[AI] Responder")
         graph.add_edge("[AI] Responder", "[LIB] Mask Response")
         graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
@@ -854,6 +874,9 @@ class MilhenaGraph:
         # v3.5.0: OLD ReAct Agent REMOVED (replaced by Tool Mapper + Direct Execution)
         # Architecture change: Classifier (ReAct) → Tool Mapper → Direct Tool Calls → Responder
 
+        # v3.5.0: Legacy Classifier Prompt (NOT USED - moved to REACT-PROMPT.md)
+        # Preserved for reference only
+        LEGACY_CLASSIFIER_PROMPT_V350 = """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🏢 COS'È PILOTPROS (contesto fisso):
 
@@ -1219,9 +1242,9 @@ Timezone: Europe/Rome
             # Create ReAct Agent with single tool + checkpointer for memory
             # Best Practice: Pass checkpointer to create_react_agent for conversation persistence
             classifier_agent = create_react_agent(
-                model=self.supervisor_llm if self.supervisor_llm else self.supervisor_fallback,
+                model=self.supervisor_fallback if self.supervisor_fallback else self.supervisor_llm,  # FIX: Use OpenAI primary
                 tools=[get_system_context_tool],
-                state_modifier=prompt,
+                prompt=prompt,  # FIX: Use 'prompt' parameter (not 'state_modifier')
                 checkpointer=self.external_checkpointer  # AsyncRedisSaver (7-day TTL)
             )
 
@@ -1263,7 +1286,7 @@ Timezone: Europe/Rome
                     logger.error(f"[CLASSIFIER v3.5.0] Failed to parse JSON from: {response_text}")
                     classification = self._fallback_classification(query)
 
-            classification["llm_used"] = "groq-react" if self.supervisor_llm else "openai-react"
+            classification["llm_used"] = "openai-react" if self.supervisor_fallback else "groq-react"
 
         except Exception as e:
             logger.error(f"[CLASSIFIER v3.5.0] ReAct Agent failed: {e}")
