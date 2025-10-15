@@ -225,39 +225,36 @@ CASI D'USO TIPICI:
 - Statistiche performance e trend
 - Gestione attivazione/disattivazione processi
 
-TUO COMPITO (CLASSIFIER AGENT):
-1. Interpretare richieste utente
-2. Disambiguare termini ambigui (usa get_system_context_tool se serve)
-3. Classificare in 1 delle 9 CATEGORIE
-4. Return JSON: {{category, confidence, params}}
+TUO COMPITO (CLASSIFIER v3.5.2):
+1. Leggere il CONTESTO SISTEMA fornito nel prompt (sotto)
+2. Interpretare richieste utente usando workflows/statistiche/dizionario
+3. Disambiguare termini ambigui consultando dizionario_business
+4. Classificare in 1 delle 9 CATEGORIE
+5. Return JSON: {{category, confidence, params}}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔧 TOOL DISPONIBILE: get_system_context_tool()
+💡 CONTESTO SISTEMA (già fornito nel prompt):
 
-Chiamalo quando:
-- Query ambigua (termini business generici: "clienti", "problemi")
-- Workflow name da verificare ("ChatOne esiste?")
-- Serve dizionario business per tradurre termini
+Il contesto reale del sistema è iniettato in questo prompt e contiene:
+- WORKFLOWS ATTIVI: Count + lista nomi workflow esistenti
+- ESECUZIONI (7 giorni): Statistiche reali
+- DIZIONARIO BUSINESS: Mapping termini → significato
+  * "clienti" = Email ChatOne
+  * "problemi" = Errori
+  * "attività" = Esecuzioni
+  * "passi" = Nodi
+  * "workflow" = Processi
 
-Tool ritorna:
-- workflows_attivi: {{count, nomi, dettagli}}
-- dizionario_business: {{termine: {{significa, categoria, tool}}}}
-- statistiche: {{esecuzioni, errori, success_rate}}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 STEP 1: DISAMBIGUA (se serve)
-
-Query ambigua? Chiama get_system_context_tool()
-- Verifica workflow names esistenti
-- Consulta dizionario_business
-- Ottieni dati reali per clarification
-
-Dopo tool call:
-- SE confidence 100% → Classifica in categoria (STEP 2)
-- SE ancora ambiguo → Return clarification (STEP 3)
+⚠️ REGOLA CRITICA: LEGGI il contesto fornito sotto, NON inventare dati.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 STEP 2: CLASSIFICA (9 categorie)
+📋 STEP 1: CLASSIFICA (9 categorie)
+
+Usa il contesto fornito per:
+1. Verificare workflow names esistenti
+2. Tradurre termini business via dizionario
+3. Classificare con confidence 1.0
+4. SE ancora ambiguo → Clarification (STEP 2)
 
 ┌────────────────────────────────────────────────┐
 │ 1. PROCESS_LIST                                │
@@ -279,7 +276,7 @@ Dopo tool call:
 │    Sinonimi: passi, step, fasi, nodi           │
 ├────────────────────────────────────────────────┤
 │ 7. EMAIL_ACTIVITY                              │
-│    Sinonimi: clienti, email, conversazioni     │
+│    Sinonimi: email, conversazioni ChatOne, messaggi email│
 ├────────────────────────────────────────────────┤
 │ 8. PROCESS_ACTION                              │
 │    Sinonimi: attiva, disattiva, esegui         │
@@ -289,7 +286,7 @@ Dopo tool call:
 └────────────────────────────────────────────────┘
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📤 OUTPUT JSON (confidence 100%)
+📤 OUTPUT JSON STEP 1 (confidence 100%)
 
 {{
   "category": "PROCESS_DETAIL",
@@ -300,7 +297,7 @@ Dopo tool call:
 }}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💬 STEP 3: CLARIFICATION (se confidence < 100%)
+💬 STEP 2: CLARIFICATION (se confidence < 100%)
 
 Template:
 "PilotProOS gestisce [X] processi: [nomi].
@@ -316,14 +313,14 @@ Altro?"
 Limite: Max 2 iterazioni clarification
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚡ REGOLE FINALI:
+⚡ REGOLE FINALI (v3.5.2):
 
-1. ✅ SE query ambigua → Chiama get_system_context_tool()
-2. ✅ Valida workflow names contro context.workflows_attivi.nomi
-3. ✅ Traduci termini business via context.dizionario_business
+1. ✅ LEGGI il CONTESTO SISTEMA fornito sotto (workflows, stats, dizionario)
+2. ✅ Valida workflow names contro workflows_attivi forniti
+3. ✅ Traduci termini business via dizionario fornito
 4. ✅ Classifica in 1 delle 9 CATEGORIE (confidence 1.0)
-5. ✅ SE ancora ambiguo dopo tool → Clarification con dati reali
-6. ✅ Return JSON valido
+5. ✅ SE ancora ambiguo → Clarification con dati reali dal contesto
+6. ✅ Return JSON valido (1 LLM call, NO tool calls)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Query: "{query}"
@@ -806,6 +803,11 @@ class MilhenaGraph:
         # v3.2: JsonOutputParser to handle JSON parsing robustly (FIX: '"action"' error)
         self.json_parser = JsonOutputParser()
 
+        # v3.5.1: RAM Cache for system context (prevent tool loop)
+        self._system_context_cache = None
+        self._cache_timestamp = 0
+        self._cache_ttl = 300  # 5 minutes TTL
+
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
         logger.info("MilhenaGraph initialized")
 
@@ -992,7 +994,7 @@ Identifica CATEGORIA tra 9 disponibili:
 │    Tool: get_node_execution_details_tool()     │
 ├────────────────────────────────────────────────┤
 │ 7. EMAIL_ACTIVITY                              │
-│    Sinonimi: clienti, email, conversazioni     │
+│    Sinonimi: email, conversazioni ChatOne, messaggi email│
 │    Tool: get_chatone_email_details_tool(date)  │
 ├────────────────────────────────────────────────┤
 │ 8. PROCESS_ACTION                              │
@@ -1236,63 +1238,55 @@ Timezone: Europe/Rome
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = CLASSIFIER_PROMPT.format(query=query, current_date=current_date)
 
-        logger.info(f"🔍 [CLASSIFIER v3.5.0] Starting ReAct Agent with MEMORY - query: '{query}'")
+        # v3.5.1: Inject light context in prompt (RAM cache, 5min TTL)
+        system_context_light = self._get_system_context_light()
+        prompt_with_context = prompt + "\n\n" + system_context_light
+
+        logger.info(f"🔍 [CLASSIFIER v3.5.2] Starting Simple LLM (no ReAct) - query: '{query}'")
 
         try:
-            # Create ReAct Agent with single tool + checkpointer for memory
-            # Best Practice: Pass checkpointer to create_react_agent for conversation persistence
-            classifier_agent = create_react_agent(
-                model=self.supervisor_fallback if self.supervisor_fallback else self.supervisor_llm,  # FIX: Use OpenAI primary
-                tools=[get_system_context_tool],
-                prompt=prompt,  # FIX: Use 'prompt' parameter (not 'state_modifier')
-                checkpointer=self.external_checkpointer  # AsyncRedisSaver (7-day TTL)
-            )
+            # v3.5.2: Simple LLM call (no ReAct overhead, context already in prompt)
+            # Force OpenAI 4.1-nano for Classifier (Groq rate limit issues)
+            base_model = self.supervisor_fallback  # Always use OpenAI gpt-4.1-nano
 
-            # Config for conversation memory (thread_id from session)
-            config = {
-                "configurable": {
-                    "thread_id": session_id
-                },
-                "recursion_limit": 10
-            }
+            # Build messages for LLM (context in system, query in user message)
+            from langchain_core.messages import SystemMessage, HumanMessage
 
-            # Invoke agent with FULL message history (conversation context)
-            # Agent automatically loads previous messages from Redis checkpointer
-            result = await classifier_agent.ainvoke(
-                {"messages": state["messages"]},  # Full history (pronouns, references)
-                config
-            )
+            messages = [
+                SystemMessage(content=prompt_with_context),  # v3.5.1: Prompt + light context
+                HumanMessage(content=query)
+            ]
 
-            logger.info(f"[CLASSIFIER v3.5.0] ReAct Agent completed - {len(result['messages'])} messages")
+            # Direct LLM call (single shot, no tools, no loop)
+            response = await base_model.ainvoke(messages)
+            response_text = response.content
 
-            # Extract final message from agent
-            final_message = result["messages"][-1]
-            response_text = final_message.content
+            logger.info(f"[CLASSIFIER v3.5.2] Simple LLM completed - response length: {len(response_text)} chars")
 
             # Parse JSON from response (agent should return JSON)
             import json
             try:
                 classification = json.loads(response_text)
-                logger.info(f"[CLASSIFIER v3.5.0] Parsed classification: {classification}")
+                logger.info(f"[CLASSIFIER v3.5.2] Parsed classification: {classification}")
             except json.JSONDecodeError:
                 # Fallback: extract JSON from text
                 import re
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
                     classification = json.loads(json_match.group(0))
-                    logger.warning(f"[CLASSIFIER v3.5.0] Extracted JSON from text: {classification}")
+                    logger.warning(f"[CLASSIFIER v3.5.2] Extracted JSON from text: {classification}")
                 else:
                     # Ultimate fallback
-                    logger.error(f"[CLASSIFIER v3.5.0] Failed to parse JSON from: {response_text}")
+                    logger.error(f"[CLASSIFIER v3.5.2] Failed to parse JSON from: {response_text}")
                     classification = self._fallback_classification(query)
 
-            classification["llm_used"] = "openai-react" if self.supervisor_fallback else "groq-react"
+            classification["llm_used"] = "openai-4.1-nano"  # v3.5.2: Always OpenAI for Classifier
 
         except Exception as e:
-            logger.error(f"[CLASSIFIER v3.5.0] ReAct Agent failed: {e}")
+            logger.error(f"[CLASSIFIER v3.5.2] Simple LLM failed: {e}")
             classification = self._fallback_classification(query)
             classification["llm_used"] = "rule-based"
-            logger.warning("[CLASSIFIER v3.5.0] Using rule-based fallback")
+            logger.warning("[CLASSIFIER v3.5.2] Using rule-based fallback")
 
         # STEP 3: Save decision
         try:
@@ -1474,6 +1468,56 @@ Timezone: Europe/Rome
             "needs_database": False,
             "clarification_options": ["status", "errori", "metriche", "processi", "report"]
         }
+
+    def _get_system_context_light(self) -> str:
+        """
+        v3.5.1: Get light system context from RAM cache (5min TTL)
+        Prevents tool loop by injecting context directly in prompt
+
+        Returns:
+            Light context string (~200 tokens vs 1800 full JSON)
+        """
+        import time
+
+        # Check cache validity
+        if self._system_context_cache and (time.time() - self._cache_timestamp < self._cache_ttl):
+            logger.info("[CACHE HIT] Using cached system context")
+            return self._system_context_cache
+
+        # CACHE MISS - Query DB via tool
+        logger.info("[CACHE MISS] Fetching fresh system context from DB")
+        try:
+            full_context = get_system_context_tool.invoke({})
+
+            # Parse JSON response
+            import json
+            context_data = json.loads(full_context) if isinstance(full_context, str) else full_context
+
+            # Build light version (top 5 workflows + essentials)
+            workflows = context_data.get("workflows", {})
+            workflow_list = workflows.get("workflow_list", [])[:5]  # Top 5 only
+            workflow_names = ", ".join([f'"{w}"' for w in workflow_list])
+
+            stats = context_data.get("statistics", {})
+
+            # Light format (200 token vs 1800)
+            light_context = f"""
+CONTESTO SISTEMA (aggiornato):
+- WORKFLOWS ATTIVI ({workflows.get('active_count', 0)}): {workflow_names}
+- ESECUZIONI (7 giorni): {stats.get('executions_last_7_days', 0)}
+- DIZIONARIO: "clienti"=Email ChatOne, "problemi"=Errori, "attività"=Esecuzioni, "passi"=Nodi, "workflow"=Processi
+"""
+
+            # Update cache
+            self._system_context_cache = light_context
+            self._cache_timestamp = time.time()
+            logger.info(f"[CACHE UPDATED] Next refresh in {self._cache_ttl}s")
+
+            return light_context
+
+        except Exception as e:
+            logger.error(f"[CACHE ERROR] Failed to fetch context: {e}")
+            return ""  # Fallback to empty context
 
     def _instant_classify(self, query: str) -> Optional[Dict[str, Any]]:
         """
