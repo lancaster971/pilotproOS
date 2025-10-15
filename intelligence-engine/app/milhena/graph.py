@@ -188,75 +188,187 @@ else:
     logger.info("✅ Using REAL database tools (PostgreSQL)")
 
 # ============================================================================
-# SUPERVISOR ORCHESTRATOR PROMPT
+# CLASSIFIER AGENT PROMPT (v3.5.0)
+# Source: REACT-PROMPT.md
 # ============================================================================
 
-CLASSIFIER_PROMPT = """Sei un CLASSIFICATORE INTELLIGENTE per Milhena, Business Process Assistant.
+CLASSIFIER_PROMPT = """Sei Milhena, assistente intelligente per PilotProOS.
 
-COMPITO: Analizzare la query e decidere come gestirla (VELOCE <100ms).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 COS'È PILOTPROS (contesto fisso):
 
----
+PilotProOS è un sistema di monitoraggio e gestione di processi business automatizzati.
 
-## 🎯 CLASSIFICAZIONI (priorità in ordine)
+COSA GESTISCE:
+- Processi business (automazioni workflow-based)
+- Esecuzioni processi (ogni run di un'automazione)
+- Errori/fallimenti (quando un processo non riesce)
+- Step di processo (azioni interne ai processi)
+- Performance metrics (durata, tasso successo, throughput)
 
-### 1. DANGER (⛔ BLOCCA - risposta diretta)
-Query che richiedono info sensibili o tecniche:
-- Password, credenziali, token, API key
-- "dammi password database", "utenti e password"
-- Architettura tecnica: "struttura PostgreSQL", "come è fatto il sistema"
-- Tech stack: "utilizzate Flowwise?", "che database usate?", "usate LangChain?"
-- Infrastruttura: "architettura sistema", "stack tecnologico", "tecnologie usate"
-- Framework/tools: "n8n", "Docker", "Redis", "Kubernetes", "LangGraph"
+ARCHITETTURA BASE:
+- Database PostgreSQL (schema 'pilotpros' per analytics)
+- Workflow engine per automazioni business
+- Sistema di tracking esecuzioni real-time
+- Sistema di error reporting
 
-REGOLA CRITICA: Qualsiasi domanda su QUALE tecnologia/database/framework usiamo = DANGER
+DATI TRACCIATI:
+- Chi: Quali processi sono attivi/inattivi
+- Cosa: Dettagli esecuzioni (successo/fallimento)
+- Quando: Timestamp start/end, durate
+- Dove: Errori in quali step specifici
+- Perché: Error messages, logs, context
 
-Esempio risposta:
-{{"action": "respond", "category": "DANGER", "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili. Contatta l'amministratore."}}
+CASI D'USO TIPICI:
+- Monitoraggio salute processi business
+- Analisi errori e troubleshooting
+- Statistiche performance e trend
+- Gestione attivazione/disattivazione processi
 
-### 2. HELP/GREETING (💬 risposta diretta)
-Saluti, help, capabilities:
-- "ciao", "buongiorno", "hey"
-- "cosa puoi fare per me?", "come funzioni?", "aiutami", "help"
-- "grazie", "ok grazie"
+TUO COMPITO (CLASSIFIER AGENT):
+1. Interpretare richieste utente
+2. Disambiguare termini ambigui (usa get_system_context_tool se serve)
+3. Classificare in 1 delle 9 CATEGORIE
+4. Return JSON: {{category, confidence, params}}
 
-Esempio risposta:
-{{"action": "respond", "category": "HELP", "direct_response": "Ciao! Sono Milhena, assistente per processi aziendali. Posso aiutarti con stato processi, errori, statistiche e performance. Chiedi pure!"}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 TOOL DISPONIBILE: get_system_context_tool()
 
-### 3. SIMPLE_QUERY (🔧 passa al ReAct - 1 tool)
-Query chiare, un tool basta:
-- "quali processi abbiamo?"
-- "ci sono errori?"
-- "quante esecuzioni oggi?"
+Chiamalo quando:
+- Query ambigua (termini business generici: "clienti", "problemi")
+- Workflow name da verificare ("ChatOne esiste?")
+- Serve dizionario business per tradurre termini
 
-Esempio risposta:
-{{"action": "react", "category": "SIMPLE_QUERY", "suggested_tool": "get_workflows_tool"}}
+Tool ritorna:
+- workflows_attivi: {{count, nomi, dettagli}}
+- dizionario_business: {{termine: {{significa, categoria, tool}}}}
+- statistiche: {{esecuzioni, errori, success_rate}}
 
-### 4. COMPLEX_QUERY (🧠 passa al ReAct - multi tool)
-Query che richiedono analisi approfondita:
-- "analizza performance ultimo mese"
-- "report completo errori"
-- "approfondisci processo X"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 STEP 1: DISAMBIGUA (se serve)
 
-Esempio risposta:
-{{"action": "react", "category": "COMPLEX_QUERY", "hint": "use 3+ tools for complete analysis"}}
+Query ambigua? Chiama get_system_context_tool()
+- Verifica workflow names esistenti
+- Consulta dizionario_business
+- Ottieni dati reali per clarification
 
----
+Dopo tool call:
+- SE confidence 100% → Classifica in categoria (STEP 2)
+- SE ancora ambiguo → Return clarification (STEP 3)
 
-## ⚡ REGOLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 STEP 2: CLASSIFICA (9 categorie)
 
-1. DANGER ha priorità assoluta
-2. HELP è semplice - saluti e "cosa puoi fare" → respond
-3. Se dubbio tra simple/complex → SIMPLE
-4. **OBBLIGATORIO**: Campo "action" SEMPRE presente (respond o react)
-5. direct_response OBBLIGATORIA se action=respond
-6. suggested_tool utile per guidare ReAct
+┌────────────────────────────────────────────────┐
+│ 1. PROCESS_LIST                                │
+│    Sinonimi: processi, workflow, flussi        │
+├────────────────────────────────────────────────┤
+│ 2. PROCESS_DETAIL                              │
+│    Sinonimi: dettagli processo X, info workflow│
+├────────────────────────────────────────────────┤
+│ 3. EXECUTION_QUERY                             │
+│    Sinonimi: attività, lavori, task, run       │
+├────────────────────────────────────────────────┤
+│ 4. ERROR_ANALYSIS                              │
+│    Sinonimi: problemi, errori, issues, guasti  │
+├────────────────────────────────────────────────┤
+│ 5. ANALYTICS                                   │
+│    Sinonimi: performance, KPI, statistiche     │
+├────────────────────────────────────────────────┤
+│ 6. STEP_DETAIL                                 │
+│    Sinonimi: passi, step, fasi, nodi           │
+├────────────────────────────────────────────────┤
+│ 7. EMAIL_ACTIVITY                              │
+│    Sinonimi: clienti, email, conversazioni     │
+├────────────────────────────────────────────────┤
+│ 8. PROCESS_ACTION                              │
+│    Sinonimi: attiva, disattiva, esegui         │
+├────────────────────────────────────────────────┤
+│ 9. SYSTEM_OVERVIEW                             │
+│    Sinonimi: overview completo, full report    │
+└────────────────────────────────────────────────┘
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 OUTPUT JSON (confidence 100%)
 
+{{
+  "category": "PROCESS_DETAIL",
+  "confidence": 1.0,
+  "params": {{
+    "workflow_id": "CHATBOT_MAIL__SIMPLE"
+  }}
+}}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💬 STEP 3: CLARIFICATION (se confidence < 100%)
+
+Template:
+"PilotProOS gestisce [X] processi: [nomi].
+Abbiamo [Y] esecuzioni e [Z] errori recenti.
+
+Cosa intendi per '[termine ambiguo]'?
+- Opzione 1: ...
+- Opzione 2: ...
+- Opzione 3: ...
+
+Altro?"
+
+Limite: Max 2 iterazioni clarification
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ REGOLE FINALI:
+
+1. ✅ SE query ambigua → Chiama get_system_context_tool()
+2. ✅ Valida workflow names contro context.workflows_attivi.nomi
+3. ✅ Traduci termini business via context.dizionario_business
+4. ✅ Classifica in 1 delle 9 CATEGORIE (confidence 1.0)
+5. ✅ SE ancora ambiguo dopo tool → Clarification con dati reali
+6. ✅ Return JSON valido
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Query: "{query}"
+Data corrente: {current_date}
 
-Rispondi SOLO con JSON valido, niente altro.
+Return JSON SOLO (no text, no markdown).
 """
+
+
+# ============================================================================
+# TOOL MAPPER - v3.5.0
+# Maps 9 categories to business tools (LangGraph best practice pattern)
+# ============================================================================
+
+def map_category_to_tools(category: str) -> list:
+    """
+    Map classification category to appropriate tool function(s).
+
+    Args:
+        category: One of 9 categories (PROCESS_LIST, PROCESS_DETAIL, etc.)
+
+    Returns:
+        List of tool functions (NOT tuples - params passed separately)
+
+    Note: Params come from classifier JSON and are passed to tool.invoke(params)
+    """
+    mapping = {
+        "PROCESS_LIST": [get_workflows_tool],
+        "PROCESS_DETAIL": [smart_workflow_query_tool],
+        "EXECUTION_QUERY": [smart_executions_query_tool],
+        "ERROR_ANALYSIS": [get_error_details_tool],
+        "ANALYTICS": [smart_analytics_query_tool],
+        "STEP_DETAIL": [get_node_execution_details_tool],
+        "EMAIL_ACTIVITY": [get_chatone_email_details_tool],
+        "PROCESS_ACTION": [execute_workflow_tool, toggle_workflow_tool],  # Both available
+        "SYSTEM_OVERVIEW": [get_full_database_dump]
+    }
+
+    tools = mapping.get(category)
+    if not tools:
+        logger.warning(f"[TOOL MAPPER] Unknown category: {category}, returning empty list")
+        return []
+
+    logger.info(f"[TOOL MAPPER] {category} → {len(tools)} tool(s)")
+    return tools
 
 
 # ============================================================================
@@ -281,19 +393,26 @@ else:
 # ============================================================================
 
 class SupervisorDecision(BaseModel):
-    """Supervisor classification decision - FIXED: BaseModel instead of TypedDict (LangGraph compatibility)"""
-    action: str = Field(description="respond|react|tool|route")  # v3.2: Added 'react' (used in CLASSIFIER_PROMPT)
-    category: str = Field(description="GREETING|DANGER|CLARIFICATION_NEEDED|SIMPLE_STATUS|SIMPLE_METRIC|COMPLEX_ANALYSIS")
+    """
+    Supervisor classification decision - v3.5.0 Dynamic Context System
+
+    action: respond (direct answer) | tool (load context) | react (use ReAct agent)
+    category: DANGER | HELP | AMBIGUOUS | SIMPLE | COMPLEX
+    """
+    action: str = Field(description="respond|tool|react")
+    category: str = Field(description="DANGER|HELP|AMBIGUOUS|SIMPLE|COMPLEX")
     confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
     direct_response: Optional[str] = None
     needs_rag: bool = False
     needs_database: bool = False
+    needs_context: bool = False  # v3.5.0: NEW - True if AMBIGUOUS category
     clarification_options: Optional[List[str]] = None
+    suggested_tool: Optional[str] = None  # v3.5.0: Tool to call (e.g., "get_system_context_tool")
     llm_used: str
 
 class MilhenaState(TypedDict):
-    """State for Milhena conversation flow"""
+    """State for Milhena conversation flow - v3.5.0 with Dynamic Context System"""
     messages: Annotated[List[BaseMessage], add_messages]
     query: str
     intent: Optional[str]
@@ -316,6 +435,10 @@ class MilhenaState(TypedDict):
     # NEW: Rephraser fields
     is_ambiguous: bool  # Rule-based ambiguity detection
     rephraser_triggered: bool  # Safety flag (max 1 rephrase)
+
+    # v3.5.0: Dynamic Context System
+    system_context: Optional[Dict[str, Any]]  # Pre-loaded context from get_system_context_tool()
+    tool_results: Optional[List[Dict[str, Any]]]  # RAW data from tool execution (v3.5.0)
 
 # ============================================================================
 # MILHENA TOOLS - Business-focused tools with masking
@@ -695,96 +818,41 @@ class MilhenaGraph:
         # 3 AI Agents: Classifier → ReAct (tools only) → Responder (synthesis)
 
         # Agent 1: Classifier (interprets ALL queries, NO whitelist)
+        # v3.5.0: SIMPLIFIED ARCHITECTURE (6 components)
+        # Fast-Path → Classifier (ReAct) → Tool Execution → Responder → Masking
+
+        # Agent 1: Classifier (ReAct with get_system_context_tool for disambiguation)
         graph.add_node("[AI] Classifier", self.supervisor_orchestrator)
 
-        # Agent 2: ReAct (ONLY calls tools, returns RAW data)
-        graph.add_node("[AI] ReAct Call Model", self.react_call_model)
-        # NOTE: [TOOL] Execute Tools added after react_tools definition
+        # Component 2: Tool Execution (direct calls, NO agent)
+        graph.add_node("[TOOL] Execute Tools", self.execute_tools_direct)
 
-        # Agent 3: Responder (ONLY synthesizes user-friendly response from tool data)
+        # Agent 3: Responder (RAW data → business language)
         graph.add_node("[AI] Responder", self.generate_final_response)
 
         # Libraries: Masking & Persistence
         graph.add_node("[LIB] Mask Response", self.mask_response)
         graph.add_node("[DB] Record Feedback", self.record_feedback)
 
-        # v3.1 MICROSERVICES ROUTING (clean separation of concerns)
-
-        # ENTRY POINT: Classifier (interprets ALL queries with LLM)
+        # ENTRY POINT: Classifier (with memory + disambiguation)
         graph.set_entry_point("[AI] Classifier")
 
-        # Classifier decides: respond directly OR use ReAct
-        graph.add_conditional_edges(
-            "[AI] Classifier",
-            self.route_supervisor_simplified,
-            {
-                "react": "[AI] ReAct Call Model",       # Queries needing tools
-                "respond": "[LIB] Mask Response"        # Direct response (HELP/DANGER)
-            }
-        )
-
-        # ReAct loop (Call Model ↔ Execute Tools - returns RAW data)
-        graph.add_conditional_edges(
-            "[AI] ReAct Call Model",
-            self.route_react_loop,
-            {
-                "execute_tools": "[TOOL] ReAct Execute Tools",
-                "responder": "[AI] Responder"           # v3.1: Go to Responder when done
-            }
-        )
-        graph.add_edge("[TOOL] ReAct Execute Tools", "[AI] ReAct Call Model")
-
-        # Responder synthesizes final response
+        # Linear flow: Classifier → Tool Execution → Responder → Masking → Feedback
+        graph.add_edge("[AI] Classifier", "[TOOL] Execute Tools")
+        graph.add_edge("[TOOL] Execute Tools", "[AI] Responder")
         graph.add_edge("[AI] Responder", "[LIB] Mask Response")
-
-        # Final edges
         graph.add_edge("[LIB] Mask Response", "[DB] Record Feedback")
         graph.add_edge("[DB] Record Feedback", END)
 
-        # v3.2: Use external checkpointer if provided (initialized in main.py lifespan)
-        # This follows the official pattern: async context manager in lifespan + asetup()
+        # v3.5.0: Checkpointer used by Classifier Agent (passed to create_react_agent)
+        # AsyncRedisSaver initialized in main.py lifespan, shared across all graph nodes
         if self.external_checkpointer:
-            checkpointer = self.external_checkpointer
-            logger.info("✅ Using externally provided checkpointer (from FastAPI lifespan)")
+            logger.info("✅ Using AsyncRedisSaver checkpointer (7-day TTL)")
         else:
-            # Fallback: Create MemorySaver if no external checkpointer provided
-            logger.warning("⚠️  No external checkpointer provided - using MemorySaver (in-memory only)")
-            checkpointer = MemorySaver()
+            logger.warning("⚠️  No external checkpointer - memory disabled")
 
-        # Initialize ReAct Agent for tool calling with conversation memory
-        # Best Practice (LangGraph Official): Use create_react_agent for LLM-based tool selection
-        # This replaces hardcoded if/elif pattern matching with intelligent tool selection
-        react_tools = [
-            # SMART CONSOLIDATED TOOLS (3) - Primary decision layer
-            smart_analytics_query_tool,      # 9 analytics tools in 1
-            smart_workflow_query_tool,       # 3 workflow details in 1
-            smart_executions_query_tool,     # 4 executions tools in 1
-
-            # SPECIALIZED TOOLS (9) - Unique functionality
-            get_error_details_tool,          # Errors for specific workflow
-            get_all_errors_summary_tool,     # Aggregated errors
-            get_node_execution_details_tool, # Node-level granularity
-            get_chatone_email_details_tool,  # Email conversations
-            get_raw_modal_data_tool,         # Timeline node-by-node
-            get_live_events_tool,            # Real-time stream
-            get_workflows_tool,              # Basic workflow list
-            get_workflow_cards_tool,         # Cards overview
-            execute_workflow_tool,           # ⚠️ Execute action
-            toggle_workflow_tool,            # ⚠️ Toggle action
-            search_knowledge_base_tool,      # RAG system
-            get_full_database_dump,          # Complete dump
-
-            # DYNAMIC CONTEXT SYSTEM (1) - v3.5.0
-            get_system_context_tool          # PilotProOS metadata + business dictionary
-        ]
-
-        # Use OpenAI gpt-4o (1M TPM, better query interpretation)
-        # Groq hitting rate limits during testing - switch back to Groq for production
-        react_model = self.openai_llm if self.openai_llm else self.groq_llm
-
-        # CRITICAL: Custom system prompt for intelligent tool selection
-        # v3.5.0: Dynamic Context System - Minimal prompt + tool-driven business dictionary
-        react_system_prompt = """Sei Milhena, assistente intelligente per PilotProOS.
+        # v3.5.0: OLD ReAct Agent REMOVED (replaced by Tool Mapper + Direct Execution)
+        # Architecture change: Classifier (ReAct) → Tool Mapper → Direct Tool Calls → Responder
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🏢 COS'È PILOTPROS (contesto fisso):
@@ -830,10 +898,10 @@ TUO COMPITO:
 Quando ricevi query, system_context può essere PRE-CARICATO in state.
 
 system_context contiene (se disponibile):
-├─ workflows_attivi: {count, nomi, dettagli}
-├─ dizionario_business: {termine: {sinonimi, categoria, tool, dati_reali}}
-├─ statistiche: {esecuzioni, errori, success_rate, etc.}
-└─ esempi_uso: [{query, interpretazione, tool, response_template}]
+├─ workflows_attivi: {{count, nomi, dettagli}}
+├─ dizionario_business: {{termine: {{sinonimi, categoria, tool, dati_reali}}}}
+├─ statistiche: {{esecuzioni, errori, success_rate, etc.}}
+└─ esempi_uso: [{{query, interpretazione, tool, response_template}}]
 
 ⚠️ USA system_context per:
 1. Validare workflow names (usa SOLO nomi in context.workflows_attivi.nomi)
@@ -974,42 +1042,14 @@ Data corrente: {current_date}
 Timezone: Europe/Rome
 """
 
-        # FLATTENED REACT LOGIC: Nodes added directly to main graph (v3.2 - Visualization Fix)
-        # Store react model and tools as instance variables for node methods
-        self.react_model_with_tools = react_model.bind_tools(react_tools)
+        # v3.5.0: No ReAct Agent initialization (replaced by direct tool calls)
 
-        # v3.5.0: Format prompt with current date
-        from datetime import datetime
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        self.react_system_prompt = react_system_prompt.format(current_date=current_date)
-
-        self.react_tools = react_tools
-
-        # v3.2: Add [TOOL] ReAct Execute Tools node with logging wrapper
-        async def logged_tool_node(state: MilhenaState) -> MilhenaState:
-            """Wrapper for ToolNode that logs tool calls and results"""
-            from langchain_core.messages import ToolMessage
-
-            # Execute tools
-            tool_node = ToolNode(react_tools)
-            result_state = await tool_node.ainvoke(state)
-
-            # Log tool executions
-            for msg in result_state.get("messages", []):
-                if isinstance(msg, ToolMessage):
-                    tool_name = msg.name if hasattr(msg, 'name') else "unknown"
-                    content_preview = str(msg.content)[:150] if hasattr(msg, 'content') else "N/A"
-                    logger.info(f"[TOOL EXECUTED] {tool_name} → {content_preview}...")
-
-            return result_state
-
-        graph.add_node("[TOOL] ReAct Execute Tools", logged_tool_node)
-
-        logger.info("✅ ReAct Agent flattened into main graph (12 tools, deep-dive enabled, visualization-friendly)")
+        logger.info("✅ v3.5.0 Architecture: Classifier (ReAct + memory) → Tool Mapper → Direct Execution → Responder")
 
         # Compile the graph with checkpointer for memory
+        # v3.5.0: AsyncRedisSaver used by Classifier Agent (passed to create_react_agent)
         self.compiled_graph = graph.compile(
-            checkpointer=checkpointer,
+            checkpointer=self.external_checkpointer if self.external_checkpointer else MemorySaver(),
             debug=False
         )
 
@@ -1168,79 +1208,68 @@ Timezone: Europe/Rome
         # Additional context (metadata, etc.)
         context_str = json.dumps(context_additional, indent=2) if context_additional else "{}"
 
-        # v3.1: Use simplified CLASSIFIER_PROMPT (no chat_history, no complex context)
-        prompt = CLASSIFIER_PROMPT.format(query=query)
+        # v3.5.0: Use ReAct Agent with get_system_context_tool + CONVERSATION MEMORY
+        from datetime import datetime
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = CLASSIFIER_PROMPT.format(query=query, current_date=current_date)
 
-        logger.error(f"🔍 [DEBUG] About to classify with LLM - query: '{query}'")
+        logger.info(f"🔍 [CLASSIFIER v3.5.0] Starting ReAct Agent with MEMORY - query: '{query}'")
 
         try:
-            # v3.2: Use JsonOutputParser with LangChain pipe operator (FIX: '"action"' error)
-            if self.supervisor_llm:
-                logger.info("[CLASSIFIER v3.2] Using GROQ + JsonOutputParser")
+            # Create ReAct Agent with single tool + checkpointer for memory
+            # Best Practice: Pass checkpointer to create_react_agent for conversation persistence
+            classifier_agent = create_react_agent(
+                model=self.supervisor_llm if self.supervisor_llm else self.supervisor_fallback,
+                tools=[get_system_context_tool],
+                state_modifier=prompt,
+                checkpointer=self.external_checkpointer  # AsyncRedisSaver (7-day TTL)
+            )
 
-                # Create chain: LLM | JsonOutputParser (official LangChain pattern)
-                chain = self.supervisor_llm | self.json_parser
+            # Config for conversation memory (thread_id from session)
+            config = {
+                "configurable": {
+                    "thread_id": session_id
+                },
+                "recursion_limit": 10
+            }
 
-                # Invoke chain (returns parsed dict, NOT string)
-                classification = await chain.ainvoke(prompt)
+            # Invoke agent with FULL message history (conversation context)
+            # Agent automatically loads previous messages from Redis checkpointer
+            result = await classifier_agent.ainvoke(
+                {"messages": state["messages"]},  # Full history (pronouns, references)
+                config
+            )
 
-                logger.error(f"[DEBUG] GROQ classification (JsonOutputParser): type={type(classification)}, value={classification}")
+            logger.info(f"[CLASSIFIER v3.5.0] ReAct Agent completed - {len(result['messages'])} messages")
 
-                # Validate required field 'action' (FIX: LLM sometimes omits it)
-                if "action" not in classification:
-                    # Infer action from category
-                    category = classification.get("category", "")
-                    if category in ["DANGER", "HELP", "GREETING"]:
-                        classification["action"] = "respond"
-                    elif category in ["COMPLEX_QUERY"]:
-                        classification["action"] = "react"
-                    else:
-                        classification["action"] = "react"  # Default to ReAct for safety
-                    logger.warning(f"[FIX] Added missing 'action' field: {classification['action']}")
+            # Extract final message from agent
+            final_message = result["messages"][-1]
+            response_text = final_message.content
 
-                classification["llm_used"] = "groq"
-                logger.info(f"[CLASSIFIER v3.2] GROQ: {classification.get('category')} action={classification.get('action')}")
-            else:
-                raise Exception("GROQ not available")
+            # Parse JSON from response (agent should return JSON)
+            import json
+            try:
+                classification = json.loads(response_text)
+                logger.info(f"[CLASSIFIER v3.5.0] Parsed classification: {classification}")
+            except json.JSONDecodeError:
+                # Fallback: extract JSON from text
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    classification = json.loads(json_match.group(0))
+                    logger.warning(f"[CLASSIFIER v3.5.0] Extracted JSON from text: {classification}")
+                else:
+                    # Ultimate fallback
+                    logger.error(f"[CLASSIFIER v3.5.0] Failed to parse JSON from: {response_text}")
+                    classification = self._fallback_classification(query)
+
+            classification["llm_used"] = "groq-react" if self.supervisor_llm else "openai-react"
 
         except Exception as e:
-            # Fallback to OpenAI
-            logger.warning(f"[CLASSIFIER v3.2] GROQ failed: {e}, using OpenAI")
-
-            try:
-                if self.supervisor_fallback:
-                    logger.info("[CLASSIFIER v3.2] Using OpenAI + JsonOutputParser")
-
-                    # Create chain: LLM | JsonOutputParser (same pattern as Groq)
-                    chain = self.supervisor_fallback | self.json_parser
-
-                    # Invoke chain (returns parsed dict, NOT string)
-                    classification = await chain.ainvoke(prompt)
-
-                    logger.error(f"[DEBUG] OpenAI classification (JsonOutputParser): type={type(classification)}, value={classification}")
-
-                    # Validate 'action' field
-                    if "action" not in classification:
-                        category = classification.get("category", "")
-                        if category in ["DANGER", "HELP", "GREETING"]:
-                            classification["action"] = "respond"
-                        elif category in ["COMPLEX_QUERY"]:
-                            classification["action"] = "react"
-                        else:
-                            classification["action"] = "react"
-                        logger.warning(f"[FIX OpenAI] Added missing 'action' field: {classification['action']}")
-
-                    classification["llm_used"] = "openai-nano"
-                    logger.info(f"[CLASSIFIER v3.2] OpenAI: {classification.get('category')} action={classification.get('action')}")
-                else:
-                    raise Exception("OpenAI not available")
-
-            except Exception as openai_err:
-                # Ultimate fallback: rule-based (when BOTH Groq AND OpenAI fail)
-                logger.error(f"[CLASSIFIER v3.2] OpenAI ALSO failed: {openai_err}")
-                classification = self._fallback_classification(query)
-                classification["llm_used"] = "rule-based"
-                logger.warning("[CLASSIFIER v3.2] Using rule-based fallback (both LLMs failed)")
+            logger.error(f"[CLASSIFIER v3.5.0] ReAct Agent failed: {e}")
+            classification = self._fallback_classification(query)
+            classification["llm_used"] = "rule-based"
+            logger.warning("[CLASSIFIER v3.5.0] Using rule-based fallback")
 
         # STEP 3: Save decision
         try:
@@ -1330,6 +1359,9 @@ Timezone: Europe/Rome
         logger.info(f"[SUPERVISOR] Mapped category '{decision['category']}' → intent '{state['intent']}'")
 
         return state
+
+    # v3.5.0: load_system_context REMOVED
+    # Classifier Agent (ReAct) calls get_system_context_tool() directly when needed
 
     def _fallback_classification(self, query: str) -> Dict[str, Any]:
         """
@@ -1422,43 +1454,29 @@ Timezone: Europe/Rome
 
     def _instant_classify(self, query: str) -> Optional[Dict[str, Any]]:
         """
-        Instant classification using regex patterns (bypass LLM).
-        Returns classification dict or None if no match.
+        v3.5.0 SIMPLIFIED Fast-Path Classification - ONLY SAFETY CHECKS
 
-        This fast-path reduces latency from ~3s to <50ms for common queries.
-        Best Practice: Use regex for high-frequency patterns to reduce LLM costs.
+        Principle: Fast-path = ONLY safety (DANGER + GREETING)
+        Everything else → LLM Classifier decides
+
+        Reference: CONTEXT-SYSTEM.md v3.5.0 Phase 1
+
+        Returns classification dict or None (= pass to LLM)
         """
-        import re
-
         query_lower = query.lower().strip()
 
-        # GREETING patterns (exact match)
-        greeting_exact = {"ciao", "buongiorno", "buonasera", "hello", "hi", "salve",
-                         "grazie", "arrivederci", "buonanotte", "hey"}
-        if query_lower in greeting_exact:
-            return {
-                "action": "respond",
-                "category": "GREETING",
-                "confidence": 1.0,
-                "reasoning": "Saluto comune - fast-path",
-                "direct_response": "Ciao! Come posso aiutarti con i processi aziendali?",
-                "needs_rag": False,
-                "needs_database": False,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # DANGER keywords (expanded based on security best practices)
-        # FIX 2025-10-13: Added tech stack/architecture keywords to prevent leaks
+        # ============================================================================
+        # SAFETY CHECK 1: DANGER Keywords (Security-First)
+        # ============================================================================
         danger_keywords = [
-            # Credentials & Secrets (original)
+            # Credentials & Secrets
             "password", "credenziali", "credential", "api key", "token",
             "secret", "chiave", "accesso admin", "root password",
             "connection string", "dsn", "db url", "database url",
             "api_key", "access_token", "bearer", "auth token",
             "passwd", "pwd", "private key", "refresh token",
 
-            # Tech Stack & Architecture (NEW - prevent technical leaks)
+            # Tech Stack & Architecture (prevent technical leaks)
             "flowwise", "langflow", "langgraph", "langchain",
             "flowise", "n8n", "postgresql", "postgres", "mysql",
             "redis", "chromadb", "docker", "kubernetes", "k8s",
@@ -1480,499 +1498,37 @@ Timezone: Europe/Rome
                 "action": "respond",
                 "category": "DANGER",
                 "confidence": 1.0,
-                "reasoning": "Blocco sicurezza immediato - richiesta info architettura/credenziali (fast-path)",
-                "direct_response": "Non posso fornire informazioni sull'architettura tecnica o dati sensibili del sistema. Per assistenza contatta l'amministratore.",
+                "reasoning": "Blocco sicurezza immediato (fast-path)",
+                "direct_response": "⚠️ Non posso fornire informazioni sull'architettura tecnica o dati sensibili. Per assistenza contatta l'amministratore.",
                 "needs_rag": False,
                 "needs_database": False,
                 "clarification_options": None,
                 "llm_used": "fast-path"
             }
 
-        # META-QUERIES: Questions ABOUT the assistant itself (NOT workflows)
-        # IMPORTANT: Check this BEFORE workflow patterns to avoid confusion
-        # BUT: Skip if user explicitly mentions "workflow" or "processo"
-        if not re.search(r'\b(workflow|processo|processi|process|esecuzione)', query_lower):
-            meta_patterns = [
-                r'\b(chi sei|cosa sei|come ti chiami)\b',
-                r'\b(cosa|chi|come).*\b(milhena|milena)\b',
-                r'\b(milhena|milena)\b.*\b(cosa|chi|come|puoi|fai)\b',
-                r'\binformazioni\s+(su|di|riguard)?\s*(milhena|milena)$',  # Solo se finisce con milhena
-                r'\bparla.*\b(milhena|milena)\b',
-            ]
-        else:
-            meta_patterns = []
-        for pattern in meta_patterns:
-            if re.search(pattern, query_lower):
-                logger.info(f"[FAST-PATH] META-QUERY detected: asking about assistant itself")
-                return {
-                    "action": "respond",  # Direct response (RAG search not reliable for meta-queries)
-                    "category": "ABOUT_ASSISTANT",
-                    "confidence": 0.95,
-                    "reasoning": "Meta-query - user asking about Milhena assistant (not workflow)",
-                    "direct_response": "Sono Milhena, l'assistente intelligente di PilotProOS.\n\n**Cosa faccio:**\n• Fornisco informazioni sui processi aziendali\n• Mostro statistiche e metriche in tempo reale\n• Spiego errori in linguaggio business\n\n**Cosa NON faccio:**\n• NON ho accesso a password o credenziali\n• NON posso eseguire processi (solo informazioni)\n\n**Come aiutarti:**\nChiedi in italiano: \"Quanti processi?\", \"Ci sono errori?\", \"Info sul processo X\"\n\nAltro?",
-                    "needs_rag": False,
-                    "needs_database": False,
-                    "clarification_options": None,
-                    "llm_used": "fast-path"
-                }
-
-        # AUTO-LEARNED PATTERNS (Priority 1 - HIGHEST PRIORITY AFTER SECURITY CHECKS, BEFORE HARDCODED RULES)
-        # Check learned patterns from database (TODO-URGENTE.md lines 317-335)
-        # Auto-learned patterns have priority over hardcoded fast-path to maximize learning usage
-        if hasattr(self, 'learned_patterns') and self.learned_patterns:
-            normalized = self._normalize_query(query)
-            if normalized in self.learned_patterns:
-                pattern_info = self.learned_patterns[normalized]
-                logger.info(f"[AUTO-LEARNED-MATCH] '{normalized}' → {pattern_info['category']} (accuracy={pattern_info['accuracy']:.2f})")
-
-                # UPDATE USAGE COUNTER (asyncpg best practice: use pool.execute for fire-and-forget UPDATEs)
-                # Official docs: https://magicstack.github.io/asyncpg/current/usage.html#connection-pools
-                # Pattern: Pool.execute() acquires connection automatically and commits immediately
-                if self.db_pool is not None:
-                    try:
-                        # Schedule UPDATE in background (non-blocking)
-                        # asyncpg Pool.execute() usage: awaitable but fire-and-forget safe for metrics
-                        import asyncio
-                        asyncio.create_task(
-                            self.db_pool.execute(
-                                """
-                                UPDATE pilotpros.auto_learned_patterns
-                                SET times_used = times_used + 1,
-                                    last_used_at = NOW()
-                                WHERE normalized_pattern = $1
-                                """,
-                                normalized
-                            )
-                        )
-                        # Update in-memory cache for immediate reflection
-                        pattern_info['times_used'] += 1
-                        logger.debug(f"[USAGE-COUNTER] Incremented times_used for '{normalized}' (now {pattern_info['times_used']})")
-                    except Exception as e:
-                        # Non-critical error: log but don't block pattern matching
-                        logger.warning(f"[USAGE-COUNTER] Failed to update times_used for '{normalized}': {e}")
-
-                return {
-                    "action": "tool",  # Assume learned patterns require database
-                    "category": pattern_info['category'],
-                    "confidence": pattern_info['confidence'],
-                    "reasoning": f"Auto-learned pattern match (used {pattern_info['times_used']} times, accuracy {pattern_info['accuracy']:.0%})",
-                    "direct_response": None,
-                    "needs_rag": False,
-                    "needs_database": True,
-                    "clarification_options": None,
-                    "llm_used": "auto-learned-fast-path"
-                }
-
-        # WORKFLOW/PROCESS patterns (HIGH PRIORITY - core mission)
-        workflow_patterns = [
-            "mostra workflow", "lista workflow", "workflow attiv", "processi attiv",
-            "quali workflow", "quali processi", "elenco workflow", "elenco processi",
-            "vedi workflow", "vedi processi", "workflow", "processi",
-            "quale workflow", "quale processo", "ultimo workflow", "ultim",
-            "esecuzioni", "esecuzione", "errori", "errore", "fallito", "falliti",
-            "stato", "status", "come va", "come stanno", "tutto ok"
-        ]
-        if any(pattern in query_lower for pattern in workflow_patterns):
+        # ============================================================================
+        # GREETING: Quick Response for Common Greetings
+        # ============================================================================
+        greeting_exact = {"ciao", "buongiorno", "buonasera", "hello", "hi", "salve",
+                         "grazie", "arrivederci", "buonanotte", "hey"}
+        if query_lower in greeting_exact:
             return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.95,  # Aumentata confidence per workflow queries
-                "reasoning": "Query workflow/esecuzioni - fast-path (missione core)",
-                "direct_response": None,
+                "action": "respond",
+                "category": "GREETING",
+                "confidence": 1.0,
+                "reasoning": "Saluto comune (fast-path)",
+                "direct_response": "Ciao! Come posso aiutarti?",
                 "needs_rag": False,
-                "needs_database": True,
+                "needs_database": False,
                 "clarification_options": None,
                 "llm_used": "fast-path"
             }
 
-        # PERFORMANCE/METRICS patterns (NEW - analytics queries)
-        performance_patterns = [
-            "performance", "metriche", "statistiche", "analisi",
-            "andamento", "trend", "come va", "come stanno andando"
-        ]
-        if any(pattern in query_lower for pattern in performance_patterns) and len(query.split()) <= 6:
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query performance - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # SIMPLE_METRIC patterns (starts with - quantitative queries)
-        metric_starts = ["quant", "quand", "numero", "count", "quanti", "quante"]
-        if any(query_lower.startswith(prefix) for prefix in metric_starts):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.9,
-                "reasoning": "Query metrica quantitativa - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # SIMPLE_STATUS patterns (system health checks)
-        status_patterns = [
-            "tutto ok", "sistema ok", "funziona", "va bene",
-            "stato sistema", "tutto bene", "status", "salute sistema",
-            "ci sono problemi", "problemi sistema"
-        ]
-        if any(pattern in query_lower for pattern in status_patterns) and len(query.split()) <= 5:
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.85,
-                "reasoning": "Query status sistema - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # ERROR patterns (error checking queries)
-        error_patterns = [
-            "ci sono errori", "errori da segnalare", "problemi da segnalare",
-            "errori sistema", "errori nel sistema", "ci sono problemi",
-            "qualche errore", "errori recenti", "ultimi errori"
-        ]
-        if any(pattern in query_lower for pattern in error_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.9,
-                "reasoning": "Query errori sistema - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # TEMPORAL patterns (when/last time - HIGH PRIORITY)
-        # Based on help desk research: users frequently ask "when did X happen"
-        temporal_patterns = [
-            "quando", "a che ora", "ultima volta", "ultimo",
-            "data", "timestamp", "orario", "recente", "ultime"
-        ]
-        if any(pattern in query_lower for pattern in temporal_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query temporale - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # DURATION patterns (how long - HIGH PRIORITY)
-        # Based on business monitoring: users want to know execution times
-        duration_patterns = [
-            "quanto tempo", "quanto dura", "durata",
-            "tempo di", "ci vuole", "impiega", "velocità"
-        ]
-        if any(pattern in query_lower for pattern in duration_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query durata - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # TREND/HISTORICAL patterns (negli ultimi/scorsi - HIGH PRIORITY)
-        # Based on analytics needs: users want historical data
-        trend_patterns = [
-            "negli ultimi", "ultimi", "scorsi", "passati",
-            "trend", "andamento", "storico", "settimana", "mese", "giorni"
-        ]
-        if any(pattern in query_lower for pattern in trend_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query trend/storico - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # LIST/ENUMERATION patterns (extended - HIGH PRIORITY)
-        # Based on business needs: users want complete lists
-        list_patterns = [
-            "lista", "elenco", "tutti", "tutte",
-            "visualizza", "fammi vedere", "elenca"
-        ]
-        if any(pattern in query_lower for pattern in list_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query lista/elenco - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # COMPARATIVE patterns (MEDIUM PRIORITY - Fase 2)
-        # Based on KPI analysis: users want to compare metrics
-        comparative_patterns = [
-            "più", "meno", "migliore", "peggiore",
-            "confronta", "differenza", "meglio", "vs"
-        ]
-        if any(pattern in query_lower for pattern in comparative_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query comparativa - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # AGGREGATION patterns (MEDIUM PRIORITY - Fase 2)
-        # Based on business metrics: users want totals/averages
-        aggregation_patterns = [
-            "totale", "somma", "media", "percentuale",
-            "rapporto", "ratio", "tasso", "average"
-        ]
-        if any(pattern in query_lower for pattern in aggregation_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query aggregazione - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # CAUSALITY patterns (MEDIUM PRIORITY - Fase 2)
-        # Based on troubleshooting: users want explanations
-        causality_patterns = [
-            "perché", "perchè", "come mai", "motivo",
-            "causa", "ragione"
-        ]
-        if any(pattern in query_lower for pattern in causality_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.75,
-                "reasoning": "Query causale - fast-path",
-                "direct_response": None,
-                "needs_rag": True,  # Might need RAG for explanations
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # BATCH 3 - HIGH FREQUENCY PATTERNS (50 pattern)
-        # Based on comprehensive business KPI research
-
-        # FREQUENCY patterns (ogni quanto/frequenza)
-        frequency_patterns = [
-            "ogni quanto", "frequenza", "periodicità", "cadenza",
-            "intervallo", "quante volte", "spesso"
-        ]
-        if any(pattern in query_lower for pattern in frequency_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query frequenza - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # RATE/PERCENTAGE patterns (tasso/percentuale)
-        rate_patterns = [
-            "tasso", "rate", "percentuale", "%",
-            "success rate", "failure rate", "conversion"
-        ]
-        if any(pattern in query_lower for pattern in rate_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query tasso/rate - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # TOP/BEST patterns (migliore/top/peggiore)
-        ranking_patterns = [
-            "top", "best", "worst", "bottom",
-            "first", "last", "maggior", "minor"
-        ]
-        if any(pattern in query_lower for pattern in ranking_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query ranking - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # COUNT/NUMBER patterns (count/numero/totale variations)
-        count_variations = [
-            "count", "numero di", "quantità",
-            "ammontare", "how many", "volume"
-        ]
-        if any(pattern in query_lower for pattern in count_variations):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.85,
-                "reasoning": "Query count - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # DETAILS patterns (dettagli/informazioni/show me)
-        details_patterns = [
-            "dettagli", "informazioni", "info",
-            "show me", "dammi info", "voglio sapere"
-        ]
-        if any(pattern in query_lower for pattern in details_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.75,
-                "reasoning": "Query dettagli - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # HEALTH/STATUS variations (salute/disponibilità)
-        health_patterns = [
-            "salute", "health", "disponibilità",
-            "availability", "uptime", "operativo"
-        ]
-        if any(pattern in query_lower for pattern in health_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.85,
-                "reasoning": "Query health - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # ACTIVE/INACTIVE patterns (attivo/inattivo/running)
-        activity_patterns = [
-            "running", "in esecuzione", "fermo",
-            "stopped", "paused", "in pausa"
-        ]
-        if any(pattern in query_lower for pattern in activity_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.8,
-                "reasoning": "Query activity - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # FIRST/LAST patterns (primo/ultimo)
-        position_patterns = [
-            "primo", "prima", "first",
-            "latest", "earliest", "più recente"
-        ]
-        if any(pattern in query_lower for pattern in position_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.8,
-                "reasoning": "Query posizione - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # FAILED/SUCCESS patterns (fallito/successo)
-        outcome_patterns = [
-            "fallito", "failed", "success",
-            "riuscito", "completato", "interrotto"
-        ]
-        if any(pattern in query_lower for pattern in outcome_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_STATUS",
-                "confidence": 0.85,
-                "reasoning": "Query outcome - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # CHANGES patterns (modificato/aggiornato/cambiato)
-        change_patterns = [
-            "modificato", "cambiato", "aggiornato",
-            "changed", "updated", "modifiche"
-        ]
-        if any(pattern in query_lower for pattern in change_patterns):
-            return {
-                "action": "tool",
-                "category": "SIMPLE_METRIC",
-                "confidence": 0.75,
-                "reasoning": "Query changes - fast-path",
-                "direct_response": None,
-                "needs_rag": False,
-                "needs_database": True,
-                "clarification_options": None,
-                "llm_used": "fast-path"
-            }
-
-        # No fast-path match → use LLM
+        # ============================================================================
+        # PASS TO LLM CLASSIFIER (Everything else)
+        # ============================================================================
+        # v3.5.0: LLM handles ALL intelligence (AMBIGUOUS/SIMPLE classification)
+        # Fast-path handles ONLY safety (DANGER + GREETING above)
         return None
 
     # ============================================================================
@@ -2697,163 +2253,68 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
     # v3.2 FLATTENED REACT NODES - Direct integration (no nested graph)
     # ============================================================================
 
-    @traceable(
-        name="MilhenaReActCallModel",
-        run_type="chain",
-        metadata={"component": "react_call_model", "version": "3.2"}
-    )
-    async def react_call_model(self, state: MilhenaState) -> MilhenaState:
-        """
-        ReAct Call Model node - Flattened into main graph (v3.2)
-        Calls LLM with tools bound, using custom system prompt with MAPPA TOOL
-        """
-        from langchain_core.messages import SystemMessage
-
-        messages = state["messages"]
-        session_id = state["session_id"]
-
-        logger.info(f"[REACT] Call Model with {len(messages)} messages, session: {session_id}")
-
-        try:
-            # Prepend system prompt to messages
-            messages_with_prompt = [SystemMessage(content=self.react_system_prompt)] + messages
-
-            # Invoke model with tools bound
-            response = await self.react_model_with_tools.ainvoke(messages_with_prompt)
-
-            # Append response to state messages
-            state["messages"].append(response)
-
-            logger.info(f"[REACT] Model response: {str(response.content)[:100]}")
-
-        except Exception as e:
-            logger.error(f"[REACT] Call Model failed: {e}")
-            state["error"] = str(e)
-
-        return state
-
-    def route_react_loop(self, state: MilhenaState) -> str:
-        """
-        Routing function for ReAct loop (v3.2 flattened)
-        Decides whether to execute tools or finish loop
-
-        CUSTOM LOGIC: Force minimum tool calls when user asks to dig deeper
-        """
-        from langchain_core.messages import HumanMessage, ToolMessage
-
-        messages = state["messages"]
-        last_message = messages[-1]
-
-        # Find last HumanMessage to check for deep-dive keywords
-        last_human_msg = None
-        for msg in reversed(messages):
-            if isinstance(msg, HumanMessage):
-                last_human_msg = msg
-                break
-
-        if last_human_msg:
-            user_text = last_human_msg.content.lower() if hasattr(last_human_msg, 'content') else ""
-
-            # Count tool messages in current conversation
-            tool_count = sum(1 for m in messages if isinstance(m, ToolMessage))
-
-            deep_keywords = ["si", "sì", "vai", "continua", "approfondisci", "dettagli", "dimmi di più", "dammi tutto"]
-            is_deep_dive = any(kw in user_text for kw in deep_keywords)
-
-            logger.info(f"[DEEP-DIVE-CHECK] User: '{user_text[:50]}' | Tools called: {tool_count} | Is deep-dive: {is_deep_dive}")
-
-            # If user wants deep dive AND called <3 tools → CONTINUE LOOP
-            if is_deep_dive and tool_count < 3:
-                logger.warning(f"[DEEP-DIVE] Forcing continue - only {tool_count}/3 tools called for deep dive request")
-                # Continue to tools if model wants to call them
-                # (we can't force it, but we prevent early termination)
-
-        # Standard termination logic
-        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-            tool_names = [tc.get("name", "unknown") if isinstance(tc, dict) else getattr(tc, "name", "unknown") for tc in last_message.tool_calls]
-            logger.info(f"[REACT] Routing to execute_tools ({len(last_message.tool_calls)} tools): {', '.join(tool_names)}")
-            return "execute_tools"
-        else:
-            # v3.1: ReAct finished calling tools → go to Responder for synthesis
-            logger.info("[REACT v3.1] Tools done, routing to Responder for final synthesis")
-            return "responder"
+    # v3.5.0: OLD react_call_model + route_react_loop REMOVED
+    # Replaced by: Classifier (ReAct) → Tool Execution (direct) → Responder
 
     @traceable(
-        name="MilhenaReActAgent_DEPRECATED",
-        run_type="chain",
-        metadata={"component": "react_agent_deprecated", "version": "3.1"}
+        name="MilhenaToolExecution",
+        run_type="tool",
+        metadata={"component": "tool_execution", "version": "3.5.0"}
     )
-    async def execute_react_agent(self, state: MilhenaState) -> MilhenaState:
+    async def execute_tools_direct(self, state: MilhenaState) -> MilhenaState:
         """
-        Execute ReAct Agent with conversation memory for intelligent tool selection
+        v3.5.0: Direct tool execution (NO agent)
 
-        Best Practice (LangGraph Official): Use create_react_agent for context-aware tool calling
-        The agent receives full conversation history and intelligently selects tools
+        Flow:
+        1. Get category + params from classifier
+        2. Map category → tool function(s)
+        3. Call tool.invoke(params) directly
+        4. Save RAW data in state (NO synthesis here)
 
-        Benefits:
-        - Understands pronouns and references ("quali sono?" → knows from history)
-        - LLM-based tool selection (no hardcoded if/elif)
-        - Automatic conversation context resolution
+        Synthesis happens in Responder Agent (separate node)
         """
-        session_id = state["session_id"]
-        query = state.get("query", "")
+        classification = state.get("supervisor_decision", {})
+        category = classification.get("category")
+        params = classification.get("params", {})
 
-        logger.error(f"🛠️ [DEBUG] EXECUTE_REACT_AGENT CALLED - query='{query[:60]}'")
+        logger.info(f"[TOOL EXECUTION v3.5.0] category={category}, params={params}")
+
+        if not category:
+            logger.error("[TOOL EXECUTION] No category in classification!")
+            state["tool_results"] = []
+            return state
 
         try:
-            # Config for ReAct agent with thread_id for memory
-            config = {
-                "configurable": {
-                    "thread_id": session_id
-                }
-            }
+            # Get tool function(s) from mapper
+            tool_functions = map_category_to_tools(category)
 
-            # Invoke ReAct agent with full message history
-            # Agent automatically loads previous messages from checkpointer
-            logger.error(f"🔍 [DEBUG] Invoking ReAct with {len(state['messages'])} messages, session: {session_id}")
+            if not tool_functions:
+                logger.warning(f"[TOOL EXECUTION] No tools mapped for category: {category}")
+                state["tool_results"] = []
+                return state
 
-            result = await self.react_agent.ainvoke(
-                {"messages": state["messages"]},
-                config
-            )
+            # Execute tool(s) directly
+            results = []
+            for tool_fn in tool_functions:
+                logger.info(f"[TOOL EXECUTION] Calling {tool_fn.name}...")
 
-            # Debug: Log ALL messages in result to see if tools were called
-            logger.error(f"📊 [DEBUG] ReAct result has {len(result['messages'])} messages:")
-            for i, msg in enumerate(result["messages"]):
-                msg_type = type(msg).__name__
-                content_preview = str(msg.content)[:100] if hasattr(msg, 'content') else str(msg)[:100]
-                logger.error(f"  [{i}] {msg_type}: {content_preview}")
+                # Call tool with params from classifier
+                result = tool_fn.invoke(params)
 
-            # SIMPLIFIED: Usa l'AIMessage finale che contiene risposta formattata dall'LLM
-            # Il ReAct Agent ha già elaborato tool results e generato risposta finale
-            from langchain_core.messages import AIMessage
+                results.append({
+                    "tool": tool_fn.name,
+                    "result": result
+                })
+                logger.info(f"[TOOL EXECUTION] ✅ {tool_fn.name} completed")
 
-            # Trova l'ultimo AIMessage (risposta finale dell'agent)
-            ai_messages = [msg for msg in result["messages"] if isinstance(msg, AIMessage)]
-
-            if ai_messages:
-                content = ai_messages[-1].content
-                # FIX 3: Handle both string and list (multimodal) content
-                if isinstance(content, list):
-                    final_response = " ".join([
-                        part.get("text", "") if isinstance(part, dict) else str(part)
-                        for part in content
-                    ])
-                else:
-                    final_response = str(content)
-
-                state["response"] = final_response
-                logger.error(f"✅ [DEBUG] ReAct Agent response: {final_response[:200]}")
-            else:
-                # Fallback se non c'è AIMessage
-                state["response"] = "Errore: nessuna risposta dall'agent"
-                logger.error(f"⚠️ [DEBUG] NO AIMessages found!")
+            # Save RAW results (Responder will synthesize)
+            state["tool_results"] = results
+            logger.info(f"[TOOL EXECUTION] {len(results)} tool(s) executed successfully")
 
         except Exception as e:
-            logger.error(f"ReAct Agent failed: {e}")
-            state["context"]["database_error"] = str(e)
-            # Fallback to empty result
-            state["context"]["database_result"] = "Unable to retrieve data at this time."
+            logger.error(f"[TOOL EXECUTION] Failed: {e}")
+            state["tool_results"] = []
+            state["context"]["tool_error"] = str(e)
 
         return state
 
@@ -2911,49 +2372,32 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
     )
     async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
         """
-        v3.1 RESPONDER: Synthesizes final user-friendly response from RAW tool data
+        v3.5.0 RESPONDER: Synthesizes final user-friendly response from RAW tool data
 
         Separation of concerns:
-        - ReAct Agent: ONLY calls tools, returns RAW data
+        - Tool Execution: ONLY calls tools, returns RAW data in state["tool_results"]
         - Responder: ONLY synthesizes response from tool data
         """
-        from langchain_core.messages import AIMessage, ToolMessage
-
         query = state["query"]
-        messages = state["messages"]
         classification = state.get("supervisor_decision", {}).get("category", "GENERAL")
+        tool_results = state.get("tool_results", [])
 
-        logger.info(f"[RESPONDER] Synthesizing response for: {query[:50]}")
-
-        # Extract tool results from messages
-        tool_results = [msg.content for msg in messages if isinstance(msg, ToolMessage)]
+        logger.info(f"[RESPONDER v3.5.0] Synthesizing response for: {query[:50]}")
+        logger.info(f"[RESPONDER v3.5.0] Tool results: {len(tool_results)} tool(s)")
 
         if not tool_results:
-            # FIX 2025-10-13: Check if ReAct gave direct response (no tools called)
-            ai_messages = [msg.content for msg in messages if isinstance(msg, AIMessage)]
-            if ai_messages:
-                last_ai_response = ai_messages[-1]
-
-                # If ReAct gave conversational/clarification response, pass it through
-                conversational_markers = [
-                    "cosa intendi", "specifica", "non è chiaro",  # Clarification
-                    "mi dispiace", "non ho informazioni",  # Off-topic
-                    "sono milhena", "posso aiutarti",  # Meta-query
-                    "il mio scopo", "fornire supporto",  # Meta-query
-                    "rispondo con", "rispondo solo", "sono un assistente"  # Meta-explanation
-                ]
-
-                if any(marker in last_ai_response.lower() for marker in conversational_markers):
-                    logger.info("[RESPONDER] ReAct gave direct conversational response - passing through")
-                    state["response"] = last_ai_response
-                    return state
-
-            logger.warning("[RESPONDER] No tool results and no conversational response - generating fallback")
+            logger.warning("[RESPONDER] No tool results - generating fallback")
             state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."
             return state
 
         # Combine all tool data
-        tool_data_combined = "\n\n".join(tool_results)
+        tool_data_parts = []
+        for result in tool_results:
+            tool_name = result.get("tool", "unknown")
+            tool_result = result.get("result", "")
+            tool_data_parts.append(f"[{tool_name}]\n{tool_result}")
+
+        tool_data_combined = "\n\n".join(tool_data_parts)
 
         # Build Responder prompt
         responder_prompt = f"""Sei un RESPONSE GENERATOR per Milhena, assistente processi aziendali.
@@ -3168,32 +2612,10 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
             logger.info("[OPTIMIZATION] Taking FULL PATH - complex query needs full pipeline")
             return "complex"
 
-    def route_supervisor_simplified(self, state: MilhenaState) -> str:
-        """
-        v3.1 SIMPLIFIED routing (PDF Best Practice: minimal branching)
-        Supervisor decides: respond directly (GREETING/HELP) OR use ReAct agent
-        """
-        decision = state.get("supervisor_decision")
-
-        if not decision:
-            logger.warning("[ROUTING v3.1] No supervisor decision - default to ReAct")
-            return "react"
-
-        action = decision.get("action", "tool")
-        category = decision.get("category", "GENERAL")
-
-        logger.info(f"[ROUTING v3.1] action={action}, category={category}")
-
-        # SIMPLE LOGIC: respond directly OR use ReAct agent
-        if action == "respond":
-            # Supervisor generated direct_response (GREETING, HELP, CLARIFICATION)
-            state["response"] = decision.get("direct_response", "Come posso aiutarti?")
-            logger.info(f"[ROUTING v3.1] Direct response: {category}")
-            return "respond"
-        else:
-            # Everything else → ReAct agent (tools, database, RAG)
-            logger.info(f"[ROUTING v3.1] Using ReAct agent for: {category}")
-            return "react"
+    # v3.5.0: OLD routing functions REMOVED (linear flow replaces conditional routing)
+    # - route_supervisor_simplified (AMBIGUOUS/SIMPLE/COMPLEX branching)
+    # - load_system_context (Classifier calls tool directly now)
+    # - react_call_model + route_react_loop (replaced by Tool Execution)
 
     def route_from_intent(self, state: MilhenaState) -> str:
         """Route based on intent (DEPRECATED in v3.1 - kept for backward compatibility)"""

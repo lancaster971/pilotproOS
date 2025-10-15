@@ -55,10 +55,10 @@ TUO COMPITO:
 Quando ricevi query, system_context può essere PRE-CARICATO in state.
 
 system_context contiene (se disponibile):
-├─ workflows_attivi: {count, nomi, dettagli}
-├─ dizionario_business: {termine: {sinonimi, categoria, tool, dati_reali}}
-├─ statistiche: {esecuzioni, errori, success_rate, etc.}
-└─ esempi_uso: [{query, interpretazione, tool, response_template}]
+├─ workflows_attivi: {{count, nomi, dettagli}}
+├─ dizionario_business: {{termine: {{sinonimi, categoria, tool, dati_reali}}}}
+├─ statistiche: {{esecuzioni, errori, success_rate, etc.}}
+└─ esempi_uso: [{{query, interpretazione, tool, response_template}}]
 
 ⚠️ USA system_context per:
 1. Validare workflow names (usa SOLO nomi in context.workflows_attivi.nomi)
@@ -170,8 +170,8 @@ ESEMPIO 1: Termine business (traduzione via dizionario)
 User: "problemi clienti oggi?"
 
 STEP 1: Consulta system_context.dizionario_business
-  └─ "problemi" → {categoria: "ERROR_ANALYSIS", workflow: "Tutti"}
-  └─ "clienti" → {categoria: "EMAIL_ACTIVITY", workflow: "ChatOne"}
+  └─ "problemi" → {{categoria: "ERROR_ANALYSIS", workflow: "Tutti"}}
+  └─ "clienti" → {{categoria: "EMAIL_ACTIVITY", workflow: "ChatOne"}}
 
 STEP 2: Non ambiguo (skip clarification)
 
@@ -192,7 +192,7 @@ ESEMPIO 2: Termine ambiguo (clarification con context)
 User: "quante tabelle abbiamo?"
 
 STEP 1: Consulta dizionario_business
-  └─ "tabelle" → {categoria: "AMBIGUOUS", clarification: "..."}
+  └─ "tabelle" → {{categoria: "AMBIGUOUS", clarification: "..."}}
 
 STEP 2: Clarification con dati reali →
   └─ Leggi: context.workflows_attivi.count = 6
