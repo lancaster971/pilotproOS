@@ -1,7 +1,7 @@
 """Responder v3.5 - LLM synthesis"""
 import logging
 from langsmith import traceable
-from app.milhena.utils.state import MilhenaState
+from app.utils.state import MilhenaState
 
 logger = logging.getLogger(__name__)
 

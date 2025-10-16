@@ -11,7 +11,7 @@ import json
 import re
 import time
 
-from app.milhena.utils.state import SupervisorDecision, MilhenaState
+from app.utils.state import SupervisorDecision, MilhenaState
 
 logger = logging.getLogger(__name__)
 

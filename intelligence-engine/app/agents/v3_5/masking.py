@@ -1,6 +1,6 @@
 """Masking v3.5 - Business terminology"""
 import logging
-from app.milhena.utils.state import MilhenaState
+from app.utils.state import MilhenaState
 
 logger = logging.getLogger(__name__)
 

@@ -27,15 +27,15 @@ import uuid
 import json
 
 # Import Milhena components (using ABSOLUTE imports for LangGraph Studio compatibility)
-from app.milhena.core import MilhenaCore, MilhenaConfig
-from app.milhena.llm_disambiguator import LLMDisambiguator
-from app.milhena.intent_analyzer import IntentAnalyzer
-from app.milhena.response_generator import ResponseGenerator
-from app.milhena.learning import LearningSystem
-from app.milhena.token_manager import TokenManager
-from app.milhena.cache_manager import CacheManager
-from app.milhena.masking import TechnicalMaskingEngine
-from app.milhena.business_tools import (
+from app.utils.core import MilhenaCore, MilhenaConfig
+from app.utils.llm_disambiguator import LLMDisambiguator
+from app.utils.intent_analyzer import IntentAnalyzer
+from app.utils.response_generator import ResponseGenerator
+from app.utils.learning import LearningSystem
+from app.utils.token_manager import TokenManager
+from app.utils.cache_manager import CacheManager
+from app.utils.masking import TechnicalMaskingEngine
+from app.utils.business_tools import (
     # SMART CONSOLIDATED TOOLS (3) - Reduce 30→12 decision space
     smart_analytics_query_tool,
     smart_workflow_query_tool,
@@ -60,18 +60,18 @@ from app.milhena.business_tools import (
 )
 
 # Import RAG System for knowledge retrieval
-from app.rag import get_rag_system
+from app.utils.rag import get_rag_system
 
 # v3.2: Mock Tools Integration for testing without database
-from app.milhena.mock_tools import is_mock_enabled, get_mock_info
+from app.utils.mock_tools import is_mock_enabled, get_mock_info
 import os
 
 # v3.5.5: Import modular components (CONTEXT-SYSTEM.md architecture)
-from app.milhena.utils.state import SupervisorDecision, MilhenaState
-from app.milhena.agents.v3_5.classifier import Classifier
-from app.milhena.agents.v3_5.responder import Responder
-from app.milhena.agents.v3_5.tool_executor import execute_tools_direct
-from app.milhena.agents.v3_5.masking import mask_response
+from app.utils.state import SupervisorDecision, MilhenaState
+from app.agents.v3_5.classifier import Classifier
+from app.agents.v3_5.responder import Responder
+from app.agents.v3_5.tool_executor import execute_tools_direct
+from app.agents.v3_5.masking import mask_response
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ if is_mock_enabled():
     logger.warning("=" * 80)
 
     # Import mock functions
-    from app.milhena.mock_tools import (
+    from app.utils.mock_tools import (
         get_mock_workflows,
         get_mock_errors,
         get_mock_workflow_details,
