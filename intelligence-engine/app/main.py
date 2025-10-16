@@ -35,7 +35,7 @@ from .database import init_database, get_session
 from .services.monitoring import setup_monitoring, track_request
 # from .api_models import router as models_router  # Not needed with Milhena
 from .n8n_endpoints import router as n8n_router  # n8n integration
-from .api import router as milhena_router  # Milhena v3.0 API (legacy routes)
+from .milhena_api import router as milhena_router  # Milhena v3.0 API (legacy routes)
 from .graph import MilhenaGraph  # v3.5.5 Agent Architecture (PRIMARY SYSTEM)
 from .api.rag import router as rag_router  # RAG Management System
 # Removed v4.0 GraphSupervisor (deprecated)

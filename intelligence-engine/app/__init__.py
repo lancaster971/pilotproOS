@@ -1,13 +1,13 @@
 """
-Milhena Business Workflow Assistant
+PilotProOS Intelligence Engine
 Enterprise-Grade Business Assistant for Workflow Monitoring
-Version: 3.0-SECURE
+Version: 3.5.5 - Self-Contained Agent Architecture
 """
 
-from .core import MilhenaCore
-from .masking import TechnicalMaskingEngine
-from .intent_analyzer import IntentAnalyzer
-from .response_generator import ResponseGenerator
+from .utils.core import MilhenaCore
+from .utils.masking import TechnicalMaskingEngine
+from .utils.intent_analyzer import IntentAnalyzer
+from .utils.response_generator import ResponseGenerator
 from .graph import MilhenaGraph, milhena_graph
 
 __all__ = [

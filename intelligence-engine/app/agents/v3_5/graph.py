@@ -60,7 +60,7 @@ from app.utils.business_tools import (
 )
 
 # Import RAG System for knowledge retrieval
-from app.utils.rag import get_rag_system
+from app.rag import get_rag_system
 
 # v3.2: Mock Tools Integration for testing without database
 from app.utils.mock_tools import is_mock_enabled, get_mock_info

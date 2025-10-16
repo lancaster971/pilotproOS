@@ -11,10 +11,10 @@ from langsmith import traceable
 import uuid
 
 # Import Milhena components
-from .graph import MilhenaGraph, get_milhena_graph
-from .learning import LearningSystem
-from .token_manager import TokenManager
-from .cache_manager import CacheManager
+from .graph import MilhenaGraph
+from .utils.learning import LearningSystem
+from .utils.token_manager import TokenManager
+from .utils.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ async def chat_with_milhena(request: MilhenaRequest) -> MilhenaResponse:
         logger.info(f"[LangSmith] New chat request - Session: {session_id}, Trace: {trace_id}")
 
         # Get Milhena graph instance
-        milhena = get_milhena_graph()
+        milhena = request.app.state.milhena
 
         # Process the query
         result = await milhena.process(
@@ -427,7 +427,7 @@ async def test_milhena() -> Dict[str, Any]:
         ]
 
         results = []
-        milhena = get_milhena_graph()
+        milhena = request.app.state.milhena
 
         for query in test_queries:
             result = await milhena.process(
