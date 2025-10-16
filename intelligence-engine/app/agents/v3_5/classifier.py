@@ -11,7 +11,7 @@ import json
 import re
 import time
 
-from app.utils.state import SupervisorDecision, AgentState
+from app.agents.v3_5.utils.state import SupervisorDecision, AgentState
 
 logger = logging.getLogger(__name__)
 

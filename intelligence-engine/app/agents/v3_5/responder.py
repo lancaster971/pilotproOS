@@ -1,7 +1,7 @@
 """Responder v3.5 - LLM synthesis"""
 import logging
 from langsmith import traceable
-from app.utils.state import AgentState
+from app.agents.v3_5.utils.state import AgentState
 
 logger = logging.getLogger(__name__)
 

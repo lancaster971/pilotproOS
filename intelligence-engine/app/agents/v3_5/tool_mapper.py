@@ -22,7 +22,7 @@ def map_category_to_tools(category: str, raw_params: Optional[Dict[str, Any]] = 
     - Add default params where needed (e.g., active=true for toggle)
     """
     # Import tools here to avoid circular imports
-    from app.utils.business_tools import (
+    from app.agents.v3_5.utils.business_tools import (
         smart_analytics_query_tool,
         smart_workflow_query_tool,
         smart_executions_query_tool,

@@ -1,6 +1,6 @@
 """Masking v3.5 - Business terminology"""
 import logging
-from app.utils.state import AgentState
+from app.agents.v3_5.utils.state import AgentState
 
 logger = logging.getLogger(__name__)
 

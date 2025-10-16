@@ -27,15 +27,15 @@ import uuid
 import json
 
 # Import Milhena components (using ABSOLUTE imports for LangGraph Studio compatibility)
-from app.utils.core import AgentCore, AgentConfig
-from app.utils.llm_disambiguator import LLMDisambiguator
-from app.utils.intent_analyzer import IntentAnalyzer
-from app.utils.response_generator import ResponseGenerator
-from app.utils.learning import LearningSystem
-from app.utils.token_manager import TokenManager
-from app.utils.cache_manager import CacheManager
-from app.utils.masking import TechnicalMaskingEngine
-from app.utils.business_tools import (
+from app.agents.v3_5.utils.core import AgentCore, AgentConfig
+from app.agents.v3_5.utils.llm_disambiguator import LLMDisambiguator
+from app.agents.v3_5.utils.intent_analyzer import IntentAnalyzer
+from app.agents.v3_5.utils.response_generator import ResponseGenerator
+from app.agents.v3_5.utils.learning import LearningSystem
+from app.agents.v3_5.utils.token_manager import TokenManager
+from app.agents.v3_5.utils.cache_manager import CacheManager
+from app.agents.v3_5.utils.masking import TechnicalMaskingEngine
+from app.agents.v3_5.utils.business_tools import (
     # SMART CONSOLIDATED TOOLS (3) - Reduce 30→12 decision space
     smart_analytics_query_tool,
     smart_workflow_query_tool,
@@ -63,11 +63,11 @@ from app.utils.business_tools import (
 from app.rag import get_rag_system
 
 # v3.2: Mock Tools Integration for testing without database
-from app.utils.mock_tools import is_mock_enabled, get_mock_info
+from app.agents.v3_5.utils.mock_tools import is_mock_enabled, get_mock_info
 import os
 
 # v3.5.5: Import modular components (CONTEXT-SYSTEM.md architecture)
-from app.utils.state import SupervisorDecision, AgentState
+from app.agents.v3_5.utils.state import SupervisorDecision, AgentState
 from app.agents.v3_5.classifier import Classifier
 from app.agents.v3_5.responder import Responder
 from app.agents.v3_5.tool_executor import execute_tools_direct
@@ -83,7 +83,7 @@ if is_mock_enabled():
     logger.warning("=" * 80)
 
     # Import mock functions
-    from app.utils.mock_tools import (
+    from app.agents.v3_5.utils.mock_tools import (
         get_mock_workflows,
         get_mock_errors,
         get_mock_workflow_details,
@@ -930,7 +930,10 @@ class AgentGraph:
         graph.add_node("[AI] Responder", self.responder.generate_final_response)
 
         # Libraries: Masking & Persistence
-        graph.add_node("[LIB] Mask Response", lambda state: mask_response(state, self.masking_engine))
+        async def _mask_wrapper(state):
+            return await mask_response(state, self.masking_engine)
+
+        graph.add_node("[LIB] Mask Response", _mask_wrapper)
         graph.add_node("[DB] Record Feedback", self.record_feedback)
 
         # ENTRY POINT: Classifier (with memory + disambiguation)
