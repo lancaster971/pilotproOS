@@ -11,7 +11,7 @@ import json
 import re
 import time
 
-from app.utils.state import SupervisorDecision, MilhenaState
+from app.utils.state import SupervisorDecision, AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class Classifier:
         self._cache_ttl = cache_ttl
 
     @traceable(name="Classifier", run_type="chain", metadata={"version": "3.5.5"})
-    async def classify(self, state: MilhenaState) -> MilhenaState:
+    async def classify(self, state: AgentState) -> AgentState:
         query = state["query"]
         instant = self._instant_classify(query)
         if instant:

@@ -31,7 +31,7 @@ class SupervisorDecision(BaseModel):
     llm_used: str
 
 
-class MilhenaState(TypedDict):
+class AgentState(TypedDict):
     """State for Milhena conversation flow - v3.5.0 with Dynamic Context System"""
     messages: Annotated[List[BaseMessage], add_messages]
     query: str

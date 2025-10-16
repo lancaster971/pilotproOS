@@ -153,7 +153,7 @@ class MaintainableRAGSystem:
         except Exception as e:
             # ChromaDB may raise exception even with get_or_create in concurrent scenarios
             if "already exists" in str(e).lower():
-                # This is expected in multi-instance setup (API + MilhenaGraph)
+                # This is expected in multi-instance setup (API + AgentGraph)
                 logger.info(f"ℹ️  Collection '{collection_name}' already exists, retrieving...")
                 self.collection = self.chroma_client.get_collection(
                     name=collection_name,

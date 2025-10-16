@@ -1,5 +1,5 @@
 """
-MilhenaCore - Main orchestrator for Business Workflow Assistant
+AgentCore - Main orchestrator for Business Workflow Assistant
 """
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 @dataclass
-class MilhenaConfig:
+class AgentConfig:
     """Configuration for Milhena Assistant"""
     database_url: str = os.getenv("DATABASE_URL", "")
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -25,7 +25,7 @@ class MilhenaConfig:
     rate_limit_per_minute: int = 30
     budget_limit_per_day: float = 10.0  # $10 per day
 
-class MilhenaRole:
+class AgentRole:
     """
     Milhena è l'interfaccia business-friendly per i workflow n8n
     """
@@ -44,15 +44,15 @@ class MilhenaRole:
         "deflect_technical": "Per informazioni tecniche contatta il supporto IT"
     }
 
-class MilhenaCore:
+class AgentCore:
     """
     Core orchestrator for Milhena Business Assistant
     """
 
-    def __init__(self, config: Optional[MilhenaConfig] = None):
-        self.config = config or MilhenaConfig()
+    def __init__(self, config: Optional[AgentConfig] = None):
+        self.config = config or AgentConfig()
         self._setup_logging()
-        self.role = MilhenaRole()
+        self.role = AgentRole()
         self._initialize_components()
 
     def _setup_logging(self):

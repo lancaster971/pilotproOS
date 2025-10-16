@@ -1,13 +1,13 @@
 """Tool Executor v3.5 - Direct async execution"""
 import logging
 from langsmith import traceable
-from app.utils.state import MilhenaState
+from app.utils.state import AgentState
 from app.agents.v3_5.tool_mapper import map_category_to_tools
 
 logger = logging.getLogger(__name__)
 
 @traceable(name="ToolExecution", run_type="tool", metadata={"version": "3.5.5"})
-async def execute_tools_direct(state: MilhenaState, tool_mapper_fn=None) -> MilhenaState:
+async def execute_tools_direct(state: AgentState, tool_mapper_fn=None) -> AgentState:
     classification = state.get("supervisor_decision", {})
     category = classification.get("category")
     params = classification.get("params", {})

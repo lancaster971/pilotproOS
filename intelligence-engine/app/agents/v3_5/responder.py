@@ -1,7 +1,7 @@
 """Responder v3.5 - LLM synthesis"""
 import logging
 from langsmith import traceable
-from app.utils.state import MilhenaState
+from app.utils.state import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class Responder:
         self.openai_llm = openai_llm
 
     @traceable(name="Responder", run_type="chain", metadata={"version": "3.5.5"})
-    async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
+    async def generate_final_response(self, state: AgentState) -> AgentState:
         tool_results = state.get("tool_results", [])
         if not tool_results:
             state["response"] = "Non ho trovato dati. Riformula la domanda."

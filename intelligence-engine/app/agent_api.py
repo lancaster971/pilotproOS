@@ -11,7 +11,7 @@ from langsmith import traceable
 import uuid
 
 # Import Milhena components
-from .graph import MilhenaGraph
+from .graph import AgentGraph
 from .utils.learning import LearningSystem
 from .utils.token_manager import TokenManager
 from .utils.cache_manager import CacheManager
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Create API router
 router = APIRouter(
     prefix="/api/milhena",
-    tags=["milhena"],
+    tags=["agent"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -86,7 +86,7 @@ class StatsResponse(BaseModel):
     run_type="chain",
     metadata={"endpoint": "chat", "version": "3.0"}
 )
-async def chat_with_milhena(request: MilhenaRequest) -> MilhenaResponse:
+async def chat_with_agent(request: MilhenaRequest) -> MilhenaResponse:
     """
     Main chat endpoint for Milhena Business Assistant
     Fully traced in LangSmith for monitoring
@@ -101,10 +101,10 @@ async def chat_with_milhena(request: MilhenaRequest) -> MilhenaResponse:
         logger.info(f"[LangSmith] New chat request - Session: {session_id}, Trace: {trace_id}")
 
         # Get Milhena graph instance
-        milhena = request.app.state.milhena
+        agent = request.app.state.agent
 
         # Process the query
-        result = await milhena.process(
+        result = await agent.process(
             query=request.query,
             session_id=session_id,
             context=request.context
@@ -170,7 +170,7 @@ async def submit_feedback(feedback_request: FeedbackRequest, request: Request) -
         # Update pattern accuracy for positive feedback (v3.3.0 Auto-Learning)
         if feedback_request.feedback_type == "positive":
             try:
-                await _increment_pattern_correct(feedback_request.query, request.app.state.milhena)
+                await _increment_pattern_correct(feedback_request.query, request.app.state.agent)
             except Exception as pattern_error:
                 # Don't fail the request if pattern update fails
                 logger.error(f"[Feedback] Pattern accuracy update failed: {pattern_error}")
@@ -226,7 +226,7 @@ async def get_performance_report(request: Request) -> Dict[str, Any]:
         logger.info("[Performance] Report requested - reading from PostgreSQL")
 
         feedback_store = request.app.state.feedback_store
-        milhena_graph = request.app.state.milhena
+        agent_graph = request.app.state.agent
 
         if not feedback_store:
             logger.warning("[Performance] FeedbackStore not available, returning empty metrics")
@@ -236,7 +236,7 @@ async def get_performance_report(request: Request) -> Dict[str, Any]:
         recent_feedback_db = await feedback_store.get_recent_feedback(limit=50)
 
         # Get ALL patterns from database (pending, approved, disabled) for admin UI
-        patterns_data = await milhena_graph.get_all_patterns_from_db()
+        patterns_data = await agent_graph.get_all_patterns_from_db()
 
         # Calculate metrics
         total_feedback = len(recent_feedback_db)
@@ -375,7 +375,7 @@ def _empty_performance_report() -> Dict[str, Any]:
     run_type="chain",
     metadata={"endpoint": "stats", "version": "3.0"}
 )
-async def get_milhena_stats() -> StatsResponse:
+async def get_agent_stats() -> StatsResponse:
     """
     Get Milhena statistics and performance metrics
     Visible in LangSmith dashboard
@@ -411,7 +411,7 @@ async def get_milhena_stats() -> StatsResponse:
     run_type="chain",
     metadata={"endpoint": "test", "version": "3.0"}
 )
-async def test_milhena() -> Dict[str, Any]:
+async def test_agent() -> Dict[str, Any]:
     """
     Test endpoint to verify Milhena is working and visible in LangSmith
     """
@@ -427,10 +427,10 @@ async def test_milhena() -> Dict[str, Any]:
         ]
 
         results = []
-        milhena = request.app.state.milhena
+        agent = request.app.state.agent
 
         for query in test_queries:
-            result = await milhena.process(
+            result = await agent.process(
                 query=query,
                 session_id="test-session",
                 context={"test": True}
@@ -487,7 +487,7 @@ async def create_langsmith_dataset() -> Dict[str, str]:
         client = Client()
 
         # Create dataset
-        dataset_name = "milhena-v3-test-queries"
+        dataset_name = "pilot-v3-test-queries"
 
         # Example test cases
         examples = [
@@ -545,24 +545,24 @@ async def create_langsmith_dataset() -> Dict[str, str]:
 # PATTERN ACCURACY TRACKING (v3.3.0 AUTO-LEARNING)
 # ============================================================================
 
-async def _increment_pattern_correct(query: str, milhena: MilhenaGraph):
+async def _increment_pattern_correct(query: str, agent: AgentGraph):
     """
     Find the pattern that matched this query and increment times_correct
 
     Args:
         query: Original user query
-        milhena: MilhenaGraph instance with db_pool
+        agent: AgentGraph instance with db_pool
     """
     try:
         # Check if DB pool available
-        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+        if not hasattr(agent, 'db_pool') or agent.db_pool is None:
             logger.warning("[Feedback] DB pool not available, skipping pattern update")
             return
 
         # Normalize query to find matching pattern
-        normalized = milhena._normalize_query(query)
+        normalized = agent._normalize_query(query)
 
-        async with milhena.db_pool.acquire() as conn:
+        async with agent.db_pool.acquire() as conn:
             # Find pattern with exact normalized match
             pattern = await conn.fetchrow("""
                 SELECT id, pattern, times_used, times_correct
@@ -587,9 +587,9 @@ async def _increment_pattern_correct(query: str, milhena: MilhenaGraph):
                 new_accuracy = (new_correct / pattern['times_used']) if pattern['times_used'] > 0 else 0
 
                 # Update in-memory cache to keep consistency with database
-                if normalized in milhena.learned_patterns:
-                    milhena.learned_patterns[normalized]['times_correct'] = new_correct
-                    milhena.learned_patterns[normalized]['accuracy'] = new_accuracy
+                if normalized in agent.learned_patterns:
+                    agent.learned_patterns[normalized]['times_correct'] = new_correct
+                    agent.learned_patterns[normalized]['accuracy'] = new_accuracy
 
                 logger.info(
                     f"[Feedback] ✅ Pattern accuracy updated: '{pattern['pattern'][:30]}...' "
@@ -613,12 +613,12 @@ async def approve_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
     Updates status to 'approved' and triggers hot-reload
     """
     try:
-        milhena = request.app.state.milhena
+        agent = request.app.state.agent
 
-        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+        if not hasattr(agent, 'db_pool') or agent.db_pool is None:
             raise HTTPException(status_code=500, detail="Database pool not initialized")
 
-        async with milhena.db_pool.acquire() as conn:
+        async with agent.db_pool.acquire() as conn:
             result = await conn.fetchrow("""
                 UPDATE pilotpros.auto_learned_patterns
                 SET status = 'approved', enabled = true
@@ -630,7 +630,7 @@ async def approve_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
                 raise HTTPException(status_code=404, detail="Pattern not found")
 
         # Trigger hot-reload
-        await milhena.reload_patterns()
+        await agent.reload_patterns()
 
         logger.info(f"[ADMIN] Pattern {pattern_id} approved: {result['pattern']}")
 
@@ -658,12 +658,12 @@ async def disable_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
     Updates status to 'disabled' and enabled = false, triggers hot-reload
     """
     try:
-        milhena = request.app.state.milhena
+        agent = request.app.state.agent
 
-        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+        if not hasattr(agent, 'db_pool') or agent.db_pool is None:
             raise HTTPException(status_code=500, detail="Database pool not initialized")
 
-        async with milhena.db_pool.acquire() as conn:
+        async with agent.db_pool.acquire() as conn:
             result = await conn.fetchrow("""
                 UPDATE pilotpros.auto_learned_patterns
                 SET status = 'disabled', enabled = false
@@ -675,7 +675,7 @@ async def disable_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
                 raise HTTPException(status_code=404, detail="Pattern not found")
 
         # Trigger hot-reload
-        await milhena.reload_patterns()
+        await agent.reload_patterns()
 
         logger.info(f"[ADMIN] Pattern {pattern_id} disabled: {result['pattern']}")
 
@@ -703,12 +703,12 @@ async def delete_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
     Removes from database and triggers hot-reload
     """
     try:
-        milhena = request.app.state.milhena
+        agent = request.app.state.agent
 
-        if not hasattr(milhena, 'db_pool') or milhena.db_pool is None:
+        if not hasattr(agent, 'db_pool') or agent.db_pool is None:
             raise HTTPException(status_code=500, detail="Database pool not initialized")
 
-        async with milhena.db_pool.acquire() as conn:
+        async with agent.db_pool.acquire() as conn:
             result = await conn.fetchrow("""
                 DELETE FROM pilotpros.auto_learned_patterns
                 WHERE id = $1
@@ -719,7 +719,7 @@ async def delete_pattern(pattern_id: int, request: Request) -> Dict[str, Any]:
                 raise HTTPException(status_code=404, detail="Pattern not found")
 
         # Trigger hot-reload
-        await milhena.reload_patterns()
+        await agent.reload_patterns()
 
         logger.info(f"[ADMIN] Pattern {pattern_id} deleted: {result['pattern']}")
 

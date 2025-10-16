@@ -35,8 +35,8 @@ from .database import init_database, get_session
 from .services.monitoring import setup_monitoring, track_request
 # from .api_models import router as models_router  # Not needed with Milhena
 from .n8n_endpoints import router as n8n_router  # n8n integration
-from .milhena_api import router as milhena_router  # Milhena v3.0 API (legacy routes)
-from .graph import MilhenaGraph  # v3.5.5 Agent Architecture (PRIMARY SYSTEM)
+from .agent_api import router as milhena_router  # Milhena v3.0 API (legacy routes)
+from .graph import AgentGraph  # v3.5.5 Agent Architecture (PRIMARY SYSTEM)
 from .api.rag import router as rag_router  # RAG Management System
 # Removed v4.0 GraphSupervisor (deprecated)
 from .observability.observability import (
@@ -106,12 +106,12 @@ async def lifespan(app: FastAPI):
 
     # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
     # Flow: Classifier → ReAct → Response → Masking
-    # Pass checkpointer to MilhenaGraph
-    app.state.milhena = MilhenaGraph(checkpointer=app.state.redis_checkpointer)
-    logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
+    # Pass checkpointer to AgentGraph
+    app.state.agent = AgentGraph(checkpointer=app.state.redis_checkpointer)
+    logger.info("✅ v3.1 AgentGraph initialized with 4-agent pipeline (18 tools)")
 
     # Initialize auto-learning system (asyncpg pool + pattern loading)
-    await app.state.milhena.async_init()
+    await app.state.agent.async_init()
     logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
 
     # Initialize FeedbackStore for PostgreSQL feedback persistence
@@ -135,7 +135,7 @@ async def lifespan(app: FastAPI):
     redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
     app.state.pattern_reloader = PatternReloader(
         redis_url=redis_url,
-        reload_callback=app.state.milhena.reload_patterns,
+        reload_callback=app.state.agent.reload_patterns,
         channel="pilotpros:patterns:reload"
     )
     await app.state.pattern_reloader.start()
@@ -315,10 +315,10 @@ async def chat(request: ChatRequest):
     try:
         with track_request(request.user_id, "chat"):
             # Use Milhena v3.1 Graph (with internal Supervisor)
-            milhena = app.state.milhena
+            agent = app.state.agent
 
             # Process through Milhena's compiled graph
-            result = await milhena.process_query(
+            result = await agent.process_query(
                 query=request.message,
                 session_id=request.user_id or "default-session",
                 context=request.context or {}
@@ -377,15 +377,15 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use v3.1 MilhenaGraph
-        milhena = app.state.milhena
+        # Use v3.1 AgentGraph
+        agent = app.state.agent
 
         # Generate session ID for web
         import uuid
         session_id = f"web-{uuid.uuid4()}"
 
-        # Process through milhena
-        result = await milhena.compiled_graph.ainvoke(
+        # Process through agent
+        result = await agent.compiled_graph.ainvoke(
             {
                 "messages": [HumanMessage(content=request.message)],
                 "session_id": session_id,
@@ -402,7 +402,7 @@ async def webhook_chat(request: ChatRequest):
             response=response_text,
             status="success",
             metadata={
-                "model": "milhena-v3.1-4-agents",
+                "model": "pilot-v3.5-agent",
                 "masked": result.get("masked", False)
             },
             sources=[],
@@ -443,7 +443,7 @@ async def get_stats():
 # ============================================================================
 
 # v4.0 endpoints removed - not applicable to v3.1 linear pipeline
-# Feedback endpoint moved to milhena/api.py (line 130-204)
+# Feedback endpoint moved to agent_api.py (line 130-204)
 
 @app.get("/metrics")
 async def get_prometheus_metrics():
@@ -473,7 +473,7 @@ async def get_graph_mermaid():
     v3.2: [AI]=Rosso, [LIB]=Verde, [TOOL]=Blu, [DB]=Giallo
     """
     try:
-        graph = app.state.milhena.compiled_graph
+        graph = app.state.agent.compiled_graph
         mermaid_text = graph.draw_mermaid()
 
         # v3.2: Inject custom classDef for colored nodes by category
@@ -528,7 +528,7 @@ async def get_graph_structure():
     Mostra nodi, edges e tools disponibili
     """
     try:
-        graph = app.state.milhena.compiled_graph
+        graph = app.state.agent.compiled_graph
 
         # Ottieni informazioni sul grafo
         nodes = list(graph.nodes.keys())

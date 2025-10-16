@@ -1,10 +1,10 @@
 """Masking v3.5 - Business terminology"""
 import logging
-from app.utils.state import MilhenaState
+from app.utils.state import AgentState
 
 logger = logging.getLogger(__name__)
 
-async def mask_response(state: MilhenaState, masking_engine) -> MilhenaState:
+async def mask_response(state: AgentState, masking_engine) -> AgentState:
     response = state.get("response", "")
     if response:
         try:

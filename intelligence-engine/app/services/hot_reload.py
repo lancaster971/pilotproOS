@@ -34,7 +34,7 @@ class PatternReloader:
     Usage:
         reloader = PatternReloader(
             redis_url="redis://redis-dev:6379/0",
-            reload_callback=milhena_graph.reload_patterns
+            reload_callback=agent_graph.reload_patterns
         )
         await reloader.start()  # Starts background subscriber task
         await reloader.stop()   # Graceful shutdown

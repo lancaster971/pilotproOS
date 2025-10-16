@@ -1,5 +1,5 @@
 """
-MilhenaGraph - LangGraph workflow for Business Assistant
+AgentGraph - LangGraph workflow for Business Assistant
 Following official LangGraph patterns with conditional routing
 FULL LANGSMITH TRACING ENABLED
 """
@@ -27,7 +27,7 @@ import uuid
 import json
 
 # Import Milhena components (using ABSOLUTE imports for LangGraph Studio compatibility)
-from app.utils.core import MilhenaCore, MilhenaConfig
+from app.utils.core import AgentCore, AgentConfig
 from app.utils.llm_disambiguator import LLMDisambiguator
 from app.utils.intent_analyzer import IntentAnalyzer
 from app.utils.response_generator import ResponseGenerator
@@ -67,7 +67,7 @@ from app.utils.mock_tools import is_mock_enabled, get_mock_info
 import os
 
 # v3.5.5: Import modular components (CONTEXT-SYSTEM.md architecture)
-from app.utils.state import SupervisorDecision, MilhenaState
+from app.utils.state import SupervisorDecision, AgentState
 from app.agents.v3_5.classifier import Classifier
 from app.agents.v3_5.responder import Responder
 from app.agents.v3_5.tool_executor import execute_tools_direct
@@ -489,7 +489,7 @@ class SupervisorDecision(BaseModel):
     suggested_tool: Optional[str] = None  # v3.5.0: DEPRECATED (context injected in prompt)
     llm_used: str
 
-class MilhenaState(TypedDict):
+class AgentState(TypedDict):
     """State for Milhena conversation flow - v3.5.0 with Dynamic Context System"""
     messages: Annotated[List[BaseMessage], add_messages]
     query: str
@@ -738,21 +738,21 @@ def translate_technical_error(error: str) -> str:
 # GRAPH NODES - Each step in the Milhena workflow
 # ============================================================================
 
-class MilhenaGraph:
+class AgentGraph:
     """
     LangGraph workflow for Milhena Business Assistant
     """
 
-    def __init__(self, config: Optional[MilhenaConfig] = None, checkpointer=None):
+    def __init__(self, config: Optional[AgentConfig] = None, checkpointer=None):
         """
-        Initialize MilhenaGraph
+        Initialize AgentGraph
 
         Args:
-            config: Optional MilhenaConfig for component initialization
+            config: Optional AgentConfig for component initialization
             checkpointer: Optional checkpointer (AsyncRedisSaver, MemorySaver, etc.)
                          If None, will create MemorySaver as fallback
         """
-        self.config = config or MilhenaConfig()
+        self.config = config or AgentConfig()
         self.external_checkpointer = checkpointer  # Store externally provided checkpointer
         self._initialize_components()
         self._build_graph()
@@ -763,8 +763,8 @@ class MilhenaGraph:
         Must be called after __init__ from FastAPI lifespan.
 
         Usage in main.py:
-            milhena_graph = MilhenaGraph(checkpointer=checkpointer)
-            await milhena_graph.async_init()
+            agent_graph = AgentGraph(checkpointer=checkpointer)
+            await agent_graph.async_init()
         """
         import asyncpg
         import os
@@ -905,12 +905,12 @@ class MilhenaGraph:
         )
 
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
-        logger.info("MilhenaGraph initialized")
+        logger.info("AgentGraph initialized")
 
     def _build_graph(self):
         """Build the LangGraph workflow with Supervisor entry point"""
         # Create the graph
-        graph = StateGraph(MilhenaState)
+        graph = StateGraph(AgentState)
 
         # v3.1 MICROSERVICES ARCHITECTURE - 6 Nodes (PDF Best Practices)
         # 3 AI Agents: Classifier → ReAct (tools only) → Responder (synthesis)
@@ -939,7 +939,7 @@ class MilhenaGraph:
         # v3.5.0 FIX: Conditional routing after Classifier
         # If Fast-Path match (direct_response exists) → END immediately
         # Otherwise → Continue to Tool Execution
-        def route_after_classifier(state: MilhenaState) -> str:
+        def route_after_classifier(state: AgentState) -> str:
             """Route after Classifier: END if direct_response (Fast-Path), else continue"""
             if state.get("response"):
                 logger.info("[ROUTER] Fast-Path response detected → END immediately")
@@ -1175,7 +1175,7 @@ Timezone: Europe/Rome
             debug=False
         )
 
-        logger.info("MilhenaGraph compiled with Supervisor entry point + Memory")
+        logger.info("AgentGraph compiled with Supervisor entry point + Memory")
 
     # ============================================================================
     # NODE IMPLEMENTATIONS - ALL WITH LANGSMITH TRACING
@@ -1186,7 +1186,7 @@ Timezone: Europe/Rome
         run_type="chain",
         metadata={"component": "cache", "version": "3.0"}
     )
-    async def check_cache(self, state: MilhenaState) -> MilhenaState:
+    async def check_cache(self, state: AgentState) -> AgentState:
         """Check if response is cached"""
 
         # Extract query from messages if not present (LangGraph Studio compatibility)
@@ -1241,7 +1241,7 @@ Timezone: Europe/Rome
         run_type="chain",
         metadata={"component": "supervisor", "version": "3.1"}
     )
-    async def supervisor_orchestrator(self, state: MilhenaState) -> MilhenaState:
+    async def supervisor_orchestrator(self, state: AgentState) -> AgentState:
         """
         Supervisor Orchestrator: classifica query e decide routing
         Best Practice 2025: Supervisor non fa lavoro, solo coordina
@@ -1829,7 +1829,7 @@ CONTESTO SISTEMA (aggiornato):
 
         Usage:
             # Called by PatternReloader background task
-            await milhena_graph.reload_patterns()
+            await agent_graph.reload_patterns()
         """
         import time
         start_time = time.time()
@@ -1972,7 +1972,7 @@ CONTESTO SISTEMA (aggiornato):
         run_type="chain",
         metadata={"component": "rephraser", "version": "1.0"}
     )
-    async def check_ambiguity(self, state: MilhenaState) -> MilhenaState:
+    async def check_ambiguity(self, state: AgentState) -> AgentState:
         """
         Rule-based ambiguity detection (<10ms overhead).
         Checks if query is too vague for direct ReAct Agent processing.
@@ -2060,7 +2060,7 @@ CONTESTO SISTEMA (aggiornato):
         run_type="chain",
         metadata={"component": "rephraser", "version": "1.0"}
     )
-    async def rephrase_query(self, state: MilhenaState) -> MilhenaState:
+    async def rephrase_query(self, state: AgentState) -> AgentState:
         """
         LLM-based query rephrasing using Groq (fast & free).
         Reformulates ambiguous queries to match MAPPA TOOL patterns.
@@ -2117,7 +2117,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
 
         return state
 
-    def route_after_ambiguity_check(self, state: MilhenaState) -> str:
+    def route_after_ambiguity_check(self, state: AgentState) -> str:
         """Routing function dopo check ambiguity"""
         if state.get("is_ambiguous", False):
             return "rephrase"
@@ -2133,7 +2133,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         run_type="chain",
         metadata={"component": "optimization", "version": "3.0"}
     )
-    async def classify_complexity(self, state: MilhenaState) -> MilhenaState:
+    async def classify_complexity(self, state: AgentState) -> AgentState:
         """
         Classify query complexity for fast-path optimization.
         Simple queries skip disambiguation and RAG retrieval.
@@ -2174,7 +2174,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         run_type="chain",
         metadata={"component": "learning", "version": "3.0"}
     )
-    async def apply_learned_patterns(self, state: MilhenaState) -> MilhenaState:
+    async def apply_learned_patterns(self, state: AgentState) -> AgentState:
         """Apply learned patterns from previous interactions"""
         query = state["query"]
         session_id = state["session_id"]
@@ -2198,7 +2198,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         return state
 
     @traceable(name="MilhenaDisambiguate")
-    async def disambiguate_query(self, state: MilhenaState) -> MilhenaState:
+    async def disambiguate_query(self, state: AgentState) -> AgentState:
         """Disambiguate ambiguous queries"""
         query = state["query"]
         context = state["context"]
@@ -2231,7 +2231,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         return state
 
     @traceable(name="MilhenaAnalyzeIntent")
-    async def analyze_intent(self, state: MilhenaState) -> MilhenaState:
+    async def analyze_intent(self, state: AgentState) -> AgentState:
         """Analyze user intent"""
         query = state["query"]
         context = state["context"]
@@ -2249,7 +2249,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         return state
 
     @traceable(name="MilhenaDatabaseQuery")
-    async def database_query(self, state: MilhenaState) -> MilhenaState:
+    async def database_query(self, state: AgentState) -> AgentState:
         """Execute database query based on intent
 
         Best Practice (LangChain 2025): Use tool.invoke({args}) instead of tool(args)
@@ -2376,7 +2376,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         run_type="tool",
         metadata={"component": "tool_execution", "version": "3.5.0"}
     )
-    async def execute_tools_direct(self, state: MilhenaState) -> MilhenaState:
+    async def execute_tools_direct(self, state: AgentState) -> AgentState:
         """
         v3.5.0: Direct tool execution (NO agent)
 
@@ -2448,7 +2448,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         run_type="retriever",
         metadata={"component": "rag", "version": "3.0"}
     )
-    async def retrieve_rag_context(self, state: MilhenaState) -> MilhenaState:
+    async def retrieve_rag_context(self, state: AgentState) -> AgentState:
         """Retrieve relevant context from RAG knowledge base"""
         query = state["query"]
         intent = state.get("intent", "GENERAL")
@@ -2495,7 +2495,7 @@ Rispondi SOLO con la query riformulata, nessun testo extra."""
         run_type="chain",
         metadata={"component": "responder", "version": "4.0"}
     )
-    async def generate_final_response(self, state: MilhenaState) -> MilhenaState:
+    async def generate_final_response(self, state: AgentState) -> AgentState:
         """
         v3.5.0 RESPONDER: Synthesizes final user-friendly response from RAW tool data
 
@@ -2577,7 +2577,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         return state
 
     @traceable(name="MilhenaGenerateResponse_DEPRECATED")
-    async def generate_response(self, state: MilhenaState) -> MilhenaState:
+    async def generate_response(self, state: AgentState) -> AgentState:
         """Generate appropriate response"""
         query = state["query"]
         intent = state.get("intent", "GENERAL")
@@ -2627,7 +2627,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         return state
 
     @traceable(name="MilhenaMaskResponse")
-    async def mask_response(self, state: MilhenaState) -> MilhenaState:
+    async def mask_response(self, state: AgentState) -> AgentState:
         """Apply final masking to response"""
         response = state.get("response", "")
 
@@ -2647,7 +2647,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         return state
 
     @traceable(name="MilhenaRecordFeedback")
-    async def record_feedback(self, state: MilhenaState) -> MilhenaState:
+    async def record_feedback(self, state: AgentState) -> AgentState:
         """Record interaction for learning"""
         query = state["query"]
         intent = state.get("intent")  # v3.2 FIX: Optional intent (fast-path bypasses intent analysis)
@@ -2667,7 +2667,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         return state
 
     @traceable(name="MilhenaHandleError")
-    async def handle_error(self, state: MilhenaState) -> MilhenaState:
+    async def handle_error(self, state: AgentState) -> AgentState:
         """Handle errors and technical queries"""
         state["response"] = "Per informazioni tecniche, contatta il team IT."
         state["error"] = "Technical query deflected"
@@ -2680,7 +2680,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
     # ROUTING FUNCTIONS
     # ============================================================================
 
-    def route_from_supervisor(self, state: MilhenaState) -> str:
+    def route_from_supervisor(self, state: AgentState) -> str:
         """
         Route based on Supervisor ACTION decision.
         Best Practice 2025: Action-based routing (respond/tool/route)
@@ -2723,7 +2723,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         logger.warning(f"[ROUTING] Unknown action '{action}', defaulting to full pipeline")
         return "apply_patterns"
 
-    def route_from_complexity(self, state: MilhenaState) -> str:
+    def route_from_complexity(self, state: AgentState) -> str:
         """
         Route based on query complexity for fast-path optimization.
         Simple queries skip disambiguation/RAG and go directly to response generation.
@@ -2742,7 +2742,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
     # - load_system_context (Classifier calls tool directly now)
     # - react_call_model + route_react_loop (replaced by Tool Execution)
 
-    def route_from_intent(self, state: MilhenaState) -> str:
+    def route_from_intent(self, state: AgentState) -> str:
         """Route based on intent (DEPRECATED in v3.1 - kept for backward compatibility)"""
         intent = state.get("intent", "GENERAL")
 
@@ -2754,7 +2754,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
         else:
             return "business"
 
-    def route_after_rag(self, state: MilhenaState) -> str:
+    def route_after_rag(self, state: AgentState) -> str:
         """Route after RAG retrieval - decide if we need DB data or can answer directly"""
         rag_context = state.get("rag_context", [])
         intent = state.get("intent", "GENERAL")
@@ -2835,7 +2835,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
                 # Continue without history if loading fails
 
             # Initialize state WITH conversation history
-            initial_state = MilhenaState(
+            initial_state = AgentState(
                 messages=previous_messages + [HumanMessage(content=query)],  # History + new message
                 query=query,
                 intent=None,
@@ -2877,7 +2877,7 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
             }
 
         except Exception as e:
-            logger.error(f"Error in MilhenaGraph: {e}", exc_info=True)  # Show full traceback
+            logger.error(f"Error in AgentGraph: {e}", exc_info=True)  # Show full traceback
             return {
                 "success": False,
                 "response": "Si è verificato un problema temporaneo. Riprova.",
@@ -2968,11 +2968,11 @@ Genera risposta utile basata SOLO sui dati ricevuti."""
 # Create a singleton instance
 _milhena_instance = None
 
-def get_milhena_graph() -> MilhenaGraph:
+def get_agent_graph() -> AgentGraph:
     """Get or create the Milhena graph singleton"""
     global _milhena_instance
     if _milhena_instance is None:
-        _milhena_instance = MilhenaGraph()
+        _milhena_instance = AgentGraph()
     return _milhena_instance
 
 # ============================================================================
@@ -2981,4 +2981,4 @@ def get_milhena_graph() -> MilhenaGraph:
 
 # Export the compiled graph for LangGraph Studio
 # This is what langgraph.json references
-milhena_graph = get_milhena_graph().compiled_graph
+agent_graph = get_agent_graph().compiled_graph
