@@ -66,6 +66,13 @@ from app.rag import get_rag_system
 from app.milhena.mock_tools import is_mock_enabled, get_mock_info
 import os
 
+# v3.5.5: Import modular components (CONTEXT-SYSTEM.md architecture)
+from app.milhena.utils.state import SupervisorDecision, MilhenaState
+from app.milhena.agents.v3_5.classifier import Classifier
+from app.milhena.agents.v3_5.responder import Responder
+from app.milhena.agents.v3_5.tool_executor import execute_tools_direct
+from app.milhena.agents.v3_5.masking import mask_response
+
 logger = logging.getLogger(__name__)
 
 # v3.2: Wrap tools with mock versions if USE_MOCK_DATA=true
@@ -882,6 +889,21 @@ class MilhenaGraph:
         self._cache_timestamp = 0
         self._cache_ttl = 300  # 5 minutes TTL
 
+        # v3.5.5: Initialize modular components (CONTEXT-SYSTEM.md architecture)
+        self.classifier = Classifier(
+            learning_system=self.learning_system,
+            cache_manager=self.cache_manager,
+            supervisor_llm=self.supervisor_fallback,  # Always use OpenAI gpt-4.1-nano
+            db_pool=self.db_pool,
+            system_context_cache=self._system_context_cache,
+            cache_ttl=self._cache_ttl
+        )
+
+        self.responder = Responder(
+            groq_llm=self.groq_llm,
+            openai_llm=self.openai_llm
+        )
+
         logger.info(f"Supervisor: GROQ={bool(self.supervisor_llm)}, Fallback={bool(self.supervisor_fallback)}")
         logger.info("MilhenaGraph initialized")
 
@@ -897,17 +919,18 @@ class MilhenaGraph:
         # v3.5.0: SIMPLIFIED ARCHITECTURE (6 components)
         # Fast-Path → Classifier (ReAct) → Tool Execution → Responder → Masking
 
+        # v3.5.5: Use modular components (CONTEXT-SYSTEM.md architecture)
         # Agent 1: Classifier (Simple LLM with context injected in prompt)
-        graph.add_node("[AI] Classifier", self.supervisor_orchestrator)
+        graph.add_node("[AI] Classifier", self.classifier.classify)
 
         # Component 2: Tool Execution (direct calls, NO agent)
-        graph.add_node("[TOOL] Execute Tools", self.execute_tools_direct)
+        graph.add_node("[TOOL] Execute Tools", execute_tools_direct)
 
         # Agent 3: Responder (RAW data → business language)
-        graph.add_node("[AI] Responder", self.generate_final_response)
+        graph.add_node("[AI] Responder", self.responder.generate_final_response)
 
         # Libraries: Masking & Persistence
-        graph.add_node("[LIB] Mask Response", self.mask_response)
+        graph.add_node("[LIB] Mask Response", lambda state: mask_response(state, self.masking_engine))
         graph.add_node("[DB] Record Feedback", self.record_feedback)
 
         # ENTRY POINT: Classifier (with memory + disambiguation)
