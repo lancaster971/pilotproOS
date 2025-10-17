@@ -146,7 +146,7 @@ app.use(cookieParser());
 // JWT Authentication - Simple and Battle-tested
 // ============================================================================
 
-// Rate limiting (RELAXED for development)
+// Global rate limiting (RELAXED for development)
 app.use(rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute window for development
   max: 10000, // 10000 requests per minute for development
@@ -154,6 +154,16 @@ app.use(rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 }));
+
+// Strict rate limiting for login endpoint (SECURITY: Prevent brute-force)
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 login attempts per 15 minutes
+  message: 'Too many login attempts from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true // Only count failed login attempts
+});
 
 // ============================================================================
 // N8N ICON SYSTEM - CATEGORY-BASED WITH FALLBACKS 
@@ -4411,6 +4421,11 @@ function extractBusinessContext(executionData, timeline) {
 
 // ============================================================================
 // JWT authentication routes
+
+// Apply strict rate limiting ONLY to login endpoint
+app.use('/api/auth/login', loginRateLimiter);
+
+// Mount auth controller
 app.use('/api/auth', authController);
 
 // ============================================================================
