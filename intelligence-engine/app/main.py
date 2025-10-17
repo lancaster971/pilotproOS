@@ -59,6 +59,22 @@ async def lifespan(app: FastAPI):
     # Initialize database
     await init_database()
 
+    # Initialize LLMs (DEPENDENCY INJECTION)
+    from langchain_groq import ChatGroq
+
+    app.state.groq_llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.7,
+        api_key=os.getenv("GROQ_API_KEY")
+    )
+
+    app.state.openai_llm = ChatOpenAI(
+        model="gpt-4o-2024-11-20",
+        temperature=0.7,
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
+    logger.info("✅ LLMs initialized (Groq + OpenAI)")
+
     # Initialize LangChain components
     app.state.llm = setup_llm()
     app.state.memory = setup_memory()
@@ -68,7 +84,6 @@ async def lifespan(app: FastAPI):
     # Initialize AsyncRedisSaver for persistent conversation memory (v3.2 FIX)
     # Pattern from official docs: Use async context manager + asetup()
     from langgraph.checkpoint.redis import AsyncRedisSaver
-    import os
 
     redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
     logger.info(f"🔗 Initializing AsyncRedisSaver: {redis_url}")
@@ -104,15 +119,39 @@ async def lifespan(app: FastAPI):
         app.state.redis_checkpointer = MemorySaver()
         app.state.redis_checkpointer_cm = None
 
-    # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
-    # Flow: Classifier → ReAct → Response → Masking
-    # Pass checkpointer to AgentGraph
-    app.state.agent = AgentGraph(checkpointer=app.state.redis_checkpointer)
-    logger.info("✅ v3.1 AgentGraph initialized with 4-agent pipeline (18 tools)")
+    # Initialize asyncpg connection pool for auto-learning (DEPENDENCY INJECTION)
+    import asyncpg
 
-    # Initialize auto-learning system (asyncpg pool + pattern loading)
-    await app.state.agent.async_init()
-    logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
+    db_url = os.getenv("DATABASE_URL", "postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db")
+    app.state.db_pool = await asyncpg.create_pool(
+        db_url,
+        min_size=2,
+        max_size=10,
+        max_inactive_connection_lifetime=300.0,
+        command_timeout=60.0
+    )
+    logger.info("✅ asyncpg connection pool created (min=2, max=10)")
+
+    # Initialize RAG system (DEPENDENCY INJECTION)
+    from app.rag import get_rag_system
+
+    try:
+        app.state.rag_system = get_rag_system()
+        logger.info("✅ RAG System initialized")
+    except Exception as e:
+        logger.error(f"❌ RAG System failed: {e}")
+        app.state.rag_system = None
+
+    # Initialize AgentGraph v3.5.6 - Self-Contained Architecture (DEPENDENCY INJECTION)
+    # Flow: Fast-Path → Classifier → Tool Mapper → Tool Executor → Responder → Masking
+    app.state.agent = AgentGraph(
+        openai_llm=app.state.openai_llm,
+        groq_llm=app.state.groq_llm,
+        db_pool=app.state.db_pool,
+        rag_system=app.state.rag_system,
+        external_checkpointer=app.state.redis_checkpointer
+    )
+    logger.info("✅ AgentGraph v3.5.6 initialized (self-contained architecture)")
 
     # Initialize FeedbackStore for PostgreSQL feedback persistence
     from app.services.feedback_store import FeedbackStore
@@ -165,6 +204,14 @@ async def lifespan(app: FastAPI):
             logger.info("✅ FeedbackStore closed gracefully")
         except Exception as e:
             logger.error(f"⚠️  Error closing FeedbackStore: {e}")
+
+    # Close asyncpg connection pool
+    if hasattr(app.state, 'db_pool') and app.state.db_pool:
+        try:
+            await app.state.db_pool.close()
+            logger.info("✅ asyncpg pool closed gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error closing db_pool: {e}")
 
     # Stop hot-reload pattern system (Redis PubSub subscriber)
     if hasattr(app.state, 'pattern_reloader') and app.state.pattern_reloader:
