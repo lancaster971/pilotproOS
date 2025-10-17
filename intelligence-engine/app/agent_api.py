@@ -12,9 +12,9 @@ import uuid
 
 # Import Agent components (v3.5.6 Self-Contained Architecture)
 from .agents.v3_5.graph import AgentGraph
-from .utils.learning import LearningSystem
-from .utils.token_manager import TokenManager
-from .utils.cache_manager import CacheManager
+from .agents.v3_5.utils.learning import LearningSystem
+from .agents.v3_5.utils.token_manager import TokenManager
+from .agents.v3_5.utils.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 
