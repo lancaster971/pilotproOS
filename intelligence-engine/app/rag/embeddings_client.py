@@ -49,6 +49,7 @@ class EmbeddingsClient:
         self.model = model
         self.dimension = dimension
         self.timeout = timeout
+        self._model_name = f"embeddings-{model}"  # Store for name() method
 
         # HTTP client (persistent connection pool)
         self.client = httpx.AsyncClient(
@@ -58,6 +59,15 @@ class EmbeddingsClient:
         )
 
         logger.info(f"EmbeddingsClient initialized: {self.base_url} (model: {model})")
+
+    def name(self) -> str:
+        """
+        Model name method for ChromaDB compatibility
+
+        ChromaDB expects embedding_function.name() as a METHOD (not attribute).
+        Returns the model identifier string.
+        """
+        return self._model_name
 
     async def embed(
         self,
@@ -147,18 +157,20 @@ class EmbeddingsClient:
         await self.client.aclose()
         logger.info("EmbeddingsClient closed")
 
-    def __call__(self, texts: List[str]) -> List[List[float]]:
+    def __call__(self, input: List[str]) -> List[List[float]]:
         """
-        Synchronous wrapper for ChromaDB compatibility
+        Synchronous wrapper for ChromaDB v0.4.16+ compatibility
 
-        ChromaDB expects a callable that takes texts and returns embeddings.
+        ChromaDB v0.4.16+ expects EmbeddingFunction interface:
+        __call__(self, input: Documents) -> Embeddings
+
         This method wraps the async embed() in a sync interface.
 
         Args:
-            texts: List of texts to embed
+            input: List of texts to embed (ChromaDB Documents)
 
         Returns:
-            List of embeddings
+            List of embeddings (ChromaDB Embeddings)
         """
         import asyncio
 
@@ -177,12 +189,12 @@ class EmbeddingsClient:
                 # This should NOT happen in ChromaDB context
                 logger.warning("⚠️  Sync __call__ invoked from async context")
                 return asyncio.run_coroutine_threadsafe(
-                    self.embed(texts),
+                    self.embed(input),
                     loop
                 ).result(timeout=self.timeout)
             else:
                 # Standard sync context (ChromaDB)
-                return loop.run_until_complete(self.embed(texts))
+                return loop.run_until_complete(self.embed(input))
 
         except Exception as e:
             logger.error(f"Error in sync embed wrapper: {e}")
