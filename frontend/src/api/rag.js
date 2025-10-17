@@ -2,12 +2,16 @@
  * RAG (Retrieval-Augmented Generation) API Client
  * BATTLE-TESTED: Using OFETCH (same as rest of frontend)
  * Following TODO-MILHENA-EXPERT.md specifications exactly
+ *
+ * ARCHITECTURE FIX (2025-10-17):
+ * Now routes through Backend Express proxy for proper auth/logging
+ * Frontend → Backend (:3001/api/rag) → Intelligence Engine (:8000/api/rag)
  */
 
 import { ofetch } from 'ofetch'
 
-// Base configuration
-const RAG_API_BASE = import.meta.env.VITE_INTELLIGENCE_API_URL || 'http://localhost:8000'
+// Base configuration - USE BACKEND PROXY (not direct Intelligence Engine)
+const RAG_API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
 // Create ofetch instance with default configuration
 const ragApiClient = ofetch.create({
@@ -17,12 +21,20 @@ const ragApiClient = ofetch.create({
   },
   timeout: 30000, // 30 seconds timeout for file uploads
   onRequest({ options }) {
+    // CRITICAL FIX: Ensure Content-Type is always set (not automatically merged from defaults)
     // Add auth token if available
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
     if (token) {
       options.headers = {
+        'Content-Type': 'application/json',  // MUST explicitly include default headers
         ...options.headers,
         'Authorization': `Bearer ${token}`
+      }
+    } else {
+      // Even without auth, ensure Content-Type is set
+      options.headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
       }
     }
   },
@@ -290,11 +302,15 @@ export const ragApi = {
 
   /**
    * Create WebSocket connection for real-time updates
+   * NOTE: WebSocket connects DIRECTLY to Intelligence Engine (not through backend proxy)
+   * Reason: Backend Express doesn't proxy WebSocket connections
    * @param {Function} onMessage - Message handler
    * @returns {WebSocket} WebSocket instance
    */
   createWebSocket(onMessage) {
-    const wsUrl = `${RAG_API_BASE}/api/rag/ws`.replace('http', 'ws')
+    // WebSocket connects directly to Intelligence Engine (ws://localhost:8000)
+    const intelligenceEngineUrl = import.meta.env.VITE_INTELLIGENCE_API_URL || 'http://localhost:8000'
+    const wsUrl = `${intelligenceEngineUrl}/api/rag/ws`.replace('http', 'ws')
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {

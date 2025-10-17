@@ -119,10 +119,12 @@ export const useAuthStore = defineStore('auth', () => {
     // If we have a token, add it to the headers
     if (token.value) {
       init = init || {}
-      init.headers = {
-        ...init.headers,
-        'Authorization': `Bearer ${token.value}`
-      }
+
+      // CRITICAL FIX: Properly handle Headers object vs plain object
+      // ofetch passes a Headers instance which doesn't spread correctly
+      const headers = new Headers(init.headers || {})
+      headers.set('Authorization', `Bearer ${token.value}`)
+      init.headers = headers
     }
     return originalFetch(input, init)
   }
