@@ -173,32 +173,73 @@ class EmbeddingsClient:
             List of embeddings (ChromaDB Embeddings)
         """
         import asyncio
+        import concurrent.futures
+        import threading
+
+        def run_async_in_thread(coro):
+            """Run coroutine in a new thread with its own event loop"""
+            result = None
+            exception = None
+
+            def thread_target():
+                nonlocal result, exception
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result = loop.run_until_complete(coro)
+                    finally:
+                        loop.close()
+                except Exception as e:
+                    exception = e
+
+            thread = threading.Thread(target=thread_target)
+            thread.start()
+            thread.join(timeout=self.timeout)
+
+            if thread.is_alive():
+                raise TimeoutError(f"Embedding operation timed out after {self.timeout}s")
+
+            if exception:
+                raise exception
+
+            return result
 
         try:
-            # Get or create event loop
+            # Check if we're in an async context
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
+                # We're in async context (FastAPI), run in separate thread
+                return run_async_in_thread(self.embed(input))
             except RuntimeError:
-                # No running loop, create new one
+                # No running loop, create new one and run directly
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-
-            # Run async embed in sync context
-            if loop.is_running():
-                # We're in an async context, use asyncio.create_task
-                # This should NOT happen in ChromaDB context
-                logger.warning("⚠️  Sync __call__ invoked from async context")
-                return asyncio.run_coroutine_threadsafe(
-                    self.embed(input),
-                    loop
-                ).result(timeout=self.timeout)
-            else:
-                # Standard sync context (ChromaDB)
-                return loop.run_until_complete(self.embed(input))
+                try:
+                    return loop.run_until_complete(self.embed(input))
+                finally:
+                    loop.close()
 
         except Exception as e:
             logger.error(f"Error in sync embed wrapper: {e}")
             raise
+
+    def embed_query(self, input: str) -> List[float]:
+        """
+        ChromaDB v0.4.16+ query embedding method
+
+        ChromaDB calls this for .query() operations (single query text).
+        Delegates to __call__() with list wrapper.
+
+        Args:
+            input: Single query text (ChromaDB query string)
+
+        Returns:
+            Single embedding vector
+        """
+        # Wrap single query in list, call __call__, return first result
+        embeddings = self.__call__([input])
+        return embeddings[0]
 
 
 # Singleton instance
