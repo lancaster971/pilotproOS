@@ -1,8 +1,32 @@
+⚠️ **OBSOLETO** - Architettura v3.5.0 mai implementata completamente
+
 # Milhena ReAct Agent - System Prompt
 
-**Version**: v3.5.0
+**Version**: v3.5.0 (OBSOLETO)
 **Date**: 2025-10-14
-**File**: `intelligence-engine/app/milhena/graph.py` (linee ~782-850)
+**Status**: 🔴 **OBSOLETO** - Architettura non implementata
+
+---
+
+## ⚠️ MOTIVO OBSOLESCENZA
+
+Questo documento descrive un'architettura **v3.5.0** basata su:
+- ReAct Agent classifier con `get_system_context_tool()`
+- Context injection dinamico per disambiguazione
+- 9 categorie + conditional edges
+
+**REALTÀ v3.5.5** (produzione attuale):
+- Simple LLM classifier (NO ReAct overhead)
+- CLASSIFIER_PROMPT inline in `graph.py:194-580`
+- Light context injection (5min RAM cache, ~500 chars)
+- 10 categorie (include CLARIFICATION_NEEDED)
+- Fast-path = DANGER/GREETING keywords only
+
+**Riferimento attuale**: Vedi `CONTEXT-SYSTEM.md` per architettura v3.5.5 production.
+
+---
+
+## 📋 DOCUMENTO ORIGINALE (archivio)
 
 ---
 
@@ -55,10 +79,10 @@ TUO COMPITO:
 Quando ricevi query, system_context può essere PRE-CARICATO in state.
 
 system_context contiene (se disponibile):
-├─ workflows_attivi: {count, nomi, dettagli}
-├─ dizionario_business: {termine: {sinonimi, categoria, tool, dati_reali}}
-├─ statistiche: {esecuzioni, errori, success_rate, etc.}
-└─ esempi_uso: [{query, interpretazione, tool, response_template}]
+├─ workflows_attivi: {{count, nomi, dettagli}}
+├─ dizionario_business: {{termine: {{sinonimi, categoria, tool, dati_reali}}}}
+├─ statistiche: {{esecuzioni, errori, success_rate, etc.}}
+└─ esempi_uso: [{{query, interpretazione, tool, response_template}}]
 
 ⚠️ USA system_context per:
 1. Validare workflow names (usa SOLO nomi in context.workflows_attivi.nomi)
@@ -170,8 +194,8 @@ ESEMPIO 1: Termine business (traduzione via dizionario)
 User: "problemi clienti oggi?"
 
 STEP 1: Consulta system_context.dizionario_business
-  └─ "problemi" → {categoria: "ERROR_ANALYSIS", workflow: "Tutti"}
-  └─ "clienti" → {categoria: "EMAIL_ACTIVITY", workflow: "ChatOne"}
+  └─ "problemi" → {{categoria: "ERROR_ANALYSIS", workflow: "Tutti"}}
+  └─ "clienti" → {{categoria: "EMAIL_ACTIVITY", workflow: "ChatOne"}}
 
 STEP 2: Non ambiguo (skip clarification)
 
@@ -192,7 +216,7 @@ ESEMPIO 2: Termine ambiguo (clarification con context)
 User: "quante tabelle abbiamo?"
 
 STEP 1: Consulta dizionario_business
-  └─ "tabelle" → {categoria: "AMBIGUOUS", clarification: "..."}
+  └─ "tabelle" → {{categoria: "AMBIGUOUS", clarification: "..."}}
 
 STEP 2: Clarification con dati reali →
   └─ Leggi: context.workflows_attivi.count = 6

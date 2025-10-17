@@ -68,7 +68,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # NOTE: Using singleton from maintainable_rag.py (imported above) to avoid duplicate instances
-# This ensures MilhenaGraph and API share the same RAG system instance
+# This ensures AgentGraph and API share the same RAG system instance
 
 # Pydantic models for API requests/responses
 class DocumentUploadResponse(BaseModel):

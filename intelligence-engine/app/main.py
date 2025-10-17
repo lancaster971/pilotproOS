@@ -32,11 +32,11 @@ from langserve import add_routes
 # Local imports
 from .config import settings
 from .database import init_database, get_session
-from .monitoring import setup_monitoring, track_request
+from .services.monitoring import setup_monitoring, track_request
 # from .api_models import router as models_router  # Not needed with Milhena
 from .n8n_endpoints import router as n8n_router  # n8n integration
-from .milhena.api import router as milhena_router  # Milhena v3.0 API (legacy routes)
-from .milhena.graph import MilhenaGraph  # v3.1 4-Agent Architecture (PRIMARY SYSTEM)
+from .agent_api import router as milhena_router  # Milhena v3.0 API (legacy routes)
+from app import AgentGraph  # v3.5.6 Version Switcher (respects AGENT_VERSION env var)
 from .api.rag import router as rag_router  # RAG Management System
 # Removed v4.0 GraphSupervisor (deprecated)
 from .observability.observability import (
@@ -59,6 +59,22 @@ async def lifespan(app: FastAPI):
     # Initialize database
     await init_database()
 
+    # Initialize LLMs (DEPENDENCY INJECTION)
+    from langchain_groq import ChatGroq
+
+    app.state.groq_llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.7,
+        api_key=os.getenv("GROQ_API_KEY")
+    )
+
+    app.state.openai_llm = ChatOpenAI(
+        model="gpt-4.1-mini-2025-04-14",  # Testing GPT-4.1 Mini for Responder
+        temperature=0.3,  # v3.5.2: Reduced from 0.7 to prevent hallucinations
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
+    logger.info("✅ LLMs initialized (Groq + OpenAI)")
+
     # Initialize LangChain components
     app.state.llm = setup_llm()
     app.state.memory = setup_memory()
@@ -68,7 +84,6 @@ async def lifespan(app: FastAPI):
     # Initialize AsyncRedisSaver for persistent conversation memory (v3.2 FIX)
     # Pattern from official docs: Use async context manager + asetup()
     from langgraph.checkpoint.redis import AsyncRedisSaver
-    import os
 
     redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
     logger.info(f"🔗 Initializing AsyncRedisSaver: {redis_url}")
@@ -104,18 +119,42 @@ async def lifespan(app: FastAPI):
         app.state.redis_checkpointer = MemorySaver()
         app.state.redis_checkpointer_cm = None
 
-    # Initialize Milhena v3.1 - 4-Agent Architecture (PRIMARY SYSTEM)
-    # Flow: Classifier → ReAct → Response → Masking
-    # Pass checkpointer to MilhenaGraph
-    app.state.milhena = MilhenaGraph(checkpointer=app.state.redis_checkpointer)
-    logger.info("✅ v3.1 MilhenaGraph initialized with 4-agent pipeline (18 tools)")
+    # Initialize asyncpg connection pool for auto-learning (DEPENDENCY INJECTION)
+    import asyncpg
 
-    # Initialize auto-learning system (asyncpg pool + pattern loading)
-    await app.state.milhena.async_init()
-    logger.info("✅ Auto-learning system initialized (asyncpg pool + learned patterns)")
+    db_url = os.getenv("DATABASE_URL", "postgresql://pilotpros_user:pilotpros_secure_pass_2025@postgres-dev:5432/pilotpros_db")
+    app.state.db_pool = await asyncpg.create_pool(
+        db_url,
+        min_size=2,
+        max_size=10,
+        max_inactive_connection_lifetime=300.0,
+        command_timeout=60.0
+    )
+    logger.info("✅ asyncpg connection pool created (min=2, max=10)")
+
+    # Initialize RAG system (DEPENDENCY INJECTION)
+    from app.rag import get_rag_system
+
+    try:
+        app.state.rag_system = get_rag_system()
+        logger.info("✅ RAG System initialized")
+    except Exception as e:
+        logger.error(f"❌ RAG System failed: {e}")
+        app.state.rag_system = None
+
+    # Initialize AgentGraph v3.5.6 - Self-Contained Architecture (DEPENDENCY INJECTION)
+    # Flow: Fast-Path → Classifier → Tool Mapper → Tool Executor → Responder → Masking
+    app.state.agent = AgentGraph(
+        openai_llm=app.state.openai_llm,
+        groq_llm=app.state.groq_llm,
+        db_pool=app.state.db_pool,
+        rag_system=app.state.rag_system,
+        external_checkpointer=app.state.redis_checkpointer
+    )
+    logger.info("✅ AgentGraph v3.5.6 initialized (self-contained architecture)")
 
     # Initialize FeedbackStore for PostgreSQL feedback persistence
-    from app.milhena.feedback_store import FeedbackStore
+    from app.services.feedback_store import FeedbackStore
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
         logger.error("❌ DATABASE_URL not set, cannot initialize FeedbackStore")
@@ -131,11 +170,11 @@ async def lifespan(app: FastAPI):
         app.state.feedback_store = None
 
     # Initialize hot-reload pattern system (Redis PubSub subscriber)
-    from app.milhena.hot_reload import PatternReloader
+    from app.services.hot_reload import PatternReloader
     redis_url = os.getenv("REDIS_URL", "redis://redis-dev:6379/0")
     app.state.pattern_reloader = PatternReloader(
         redis_url=redis_url,
-        reload_callback=app.state.milhena.reload_patterns,
+        reload_callback=app.state.agent.reload_patterns,
         channel="pilotpros:patterns:reload"
     )
     await app.state.pattern_reloader.start()
@@ -165,6 +204,14 @@ async def lifespan(app: FastAPI):
             logger.info("✅ FeedbackStore closed gracefully")
         except Exception as e:
             logger.error(f"⚠️  Error closing FeedbackStore: {e}")
+
+    # Close asyncpg connection pool
+    if hasattr(app.state, 'db_pool') and app.state.db_pool:
+        try:
+            await app.state.db_pool.close()
+            logger.info("✅ asyncpg pool closed gracefully")
+        except Exception as e:
+            logger.error(f"⚠️  Error closing db_pool: {e}")
 
     # Stop hot-reload pattern system (Redis PubSub subscriber)
     if hasattr(app.state, 'pattern_reloader') and app.state.pattern_reloader:
@@ -315,10 +362,10 @@ async def chat(request: ChatRequest):
     try:
         with track_request(request.user_id, "chat"):
             # Use Milhena v3.1 Graph (with internal Supervisor)
-            milhena = app.state.milhena
+            agent = app.state.agent
 
             # Process through Milhena's compiled graph
-            result = await milhena.process_query(
+            result = await agent.process_query(
                 query=request.message,
                 session_id=request.user_id or "default-session",
                 context=request.context or {}
@@ -377,15 +424,15 @@ async def chat(request: ChatRequest):
 async def webhook_chat(request: ChatRequest):
     """Webhook endpoint for frontend Vue widget chat"""
     try:
-        # Use v3.1 MilhenaGraph
-        milhena = app.state.milhena
+        # Use v3.1 AgentGraph
+        agent = app.state.agent
 
         # Generate session ID for web
         import uuid
         session_id = f"web-{uuid.uuid4()}"
 
-        # Process through milhena
-        result = await milhena.compiled_graph.ainvoke(
+        # Process through agent
+        result = await agent.compiled_graph.ainvoke(
             {
                 "messages": [HumanMessage(content=request.message)],
                 "session_id": session_id,
@@ -402,7 +449,7 @@ async def webhook_chat(request: ChatRequest):
             response=response_text,
             status="success",
             metadata={
-                "model": "milhena-v3.1-4-agents",
+                "model": "pilot-v3.5-agent",
                 "masked": result.get("masked", False)
             },
             sources=[],
@@ -443,7 +490,7 @@ async def get_stats():
 # ============================================================================
 
 # v4.0 endpoints removed - not applicable to v3.1 linear pipeline
-# Feedback endpoint moved to milhena/api.py (line 130-204)
+# Feedback endpoint moved to agent_api.py (line 130-204)
 
 @app.get("/metrics")
 async def get_prometheus_metrics():
@@ -473,7 +520,7 @@ async def get_graph_mermaid():
     v3.2: [AI]=Rosso, [LIB]=Verde, [TOOL]=Blu, [DB]=Giallo
     """
     try:
-        graph = app.state.milhena.compiled_graph
+        graph = app.state.agent.compiled_graph
         mermaid_text = graph.draw_mermaid()
 
         # v3.2: Inject custom classDef for colored nodes by category
@@ -528,7 +575,7 @@ async def get_graph_structure():
     Mostra nodi, edges e tools disponibili
     """
     try:
-        graph = app.state.milhena.compiled_graph
+        graph = app.state.agent.compiled_graph
 
         # Ottieni informazioni sul grafo
         nodes = list(graph.nodes.keys())

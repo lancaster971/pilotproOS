@@ -14,9 +14,10 @@ import httpx
 from typing import List, Optional, Literal
 from loguru import logger
 import os
+from chromadb import Documents, EmbeddingFunction, Embeddings
 
 
-class EmbeddingsClient:
+class EmbeddingsClient(EmbeddingFunction[Documents]):
     """
     HTTP client for ON-PREMISE Embeddings Service
 
@@ -49,6 +50,7 @@ class EmbeddingsClient:
         self.model = model
         self.dimension = dimension
         self.timeout = timeout
+        self._model_name = f"embeddings-{model}"  # Store for name() method
 
         # HTTP client (persistent connection pool)
         self.client = httpx.AsyncClient(
@@ -58,6 +60,15 @@ class EmbeddingsClient:
         )
 
         logger.info(f"EmbeddingsClient initialized: {self.base_url} (model: {model})")
+
+    def name(self) -> str:
+        """
+        Model name method for ChromaDB compatibility
+
+        ChromaDB expects embedding_function.name() as a METHOD (not attribute).
+        Returns the model identifier string.
+        """
+        return self._model_name
 
     async def embed(
         self,
@@ -80,6 +91,10 @@ class EmbeddingsClient:
             httpx.HTTPError: If API call fails
         """
         try:
+            # DEBUG: Log input BEFORE creating payload
+            logger.debug(f"🔍 embed() called with texts type: {type(texts)}, len: {len(texts) if isinstance(texts, list) else 'NOT_A_LIST'}")
+            logger.debug(f"🔍 First text preview: {texts[0][:100] if texts and isinstance(texts, list) else 'N/A'}")
+
             # Prepare request payload
             payload = {
                 "texts": texts,
@@ -89,6 +104,9 @@ class EmbeddingsClient:
             # Add dimension only for stella
             if (model or self.model) == "stella" and (dimension or self.dimension):
                 payload["dimension"] = dimension or self.dimension
+
+            # DEBUG: Log payload BEFORE sending
+            logger.debug(f"📤 Sending payload to {self.base_url}/embed: {payload}")
 
             # Call embeddings API
             response = await self.client.post("/embed", json=payload)
@@ -147,45 +165,72 @@ class EmbeddingsClient:
         await self.client.aclose()
         logger.info("EmbeddingsClient closed")
 
-    def __call__(self, texts: List[str]) -> List[List[float]]:
+    def __call__(self, input: Documents) -> Embeddings:
         """
-        Synchronous wrapper for ChromaDB compatibility
+        ChromaDB EmbeddingFunction interface implementation
 
-        ChromaDB expects a callable that takes texts and returns embeddings.
+        ChromaDB v0.4.16+ expects:
+        __call__(self, input: Documents) -> Embeddings
+
         This method wraps the async embed() in a sync interface.
 
         Args:
-            texts: List of texts to embed
+            input: Documents (List[str]) from ChromaDB
 
         Returns:
-            List of embeddings
+            Embeddings (List[List[float]]) - list of embedding vectors
         """
         import asyncio
+        import threading
+
+        def run_async_in_thread(texts):
+            """Run async embed in a new thread with its own event loop"""
+            result = None
+            exception = None
+
+            def thread_target():
+                nonlocal result, exception
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result = loop.run_until_complete(self.embed(texts))
+                    finally:
+                        loop.close()
+                except Exception as e:
+                    exception = e
+
+            thread = threading.Thread(target=thread_target)
+            thread.start()
+            thread.join(timeout=self.timeout)
+
+            if thread.is_alive():
+                raise TimeoutError(f"Embedding operation timed out after {self.timeout}s")
+
+            if exception:
+                raise exception
+
+            return result
 
         try:
-            # Get or create event loop
+            # Check if we're in an async context (FastAPI)
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
+                # We're in async context, run in separate thread
+                logger.debug(f"ChromaDB __call__ with {len(input)} documents (async context)")
+                return run_async_in_thread(input)
             except RuntimeError:
-                # No running loop, create new one
+                # No running loop, create new one and run directly
+                logger.debug(f"ChromaDB __call__ with {len(input)} documents (sync context)")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-
-            # Run async embed in sync context
-            if loop.is_running():
-                # We're in an async context, use asyncio.create_task
-                # This should NOT happen in ChromaDB context
-                logger.warning("⚠️  Sync __call__ invoked from async context")
-                return asyncio.run_coroutine_threadsafe(
-                    self.embed(texts),
-                    loop
-                ).result(timeout=self.timeout)
-            else:
-                # Standard sync context (ChromaDB)
-                return loop.run_until_complete(self.embed(texts))
+                try:
+                    return loop.run_until_complete(self.embed(input))
+                finally:
+                    loop.close()
 
         except Exception as e:
-            logger.error(f"Error in sync embed wrapper: {e}")
+            logger.error(f"Error in ChromaDB __call__: {e}")
             raise
 
 

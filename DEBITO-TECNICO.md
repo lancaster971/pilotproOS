@@ -622,6 +622,217 @@ async def feedback_endpoint(request):
 
 ---
 
+## 🚫 AUTO-LEARNING FAST-PATH - DISABLED
+
+**Priorità**: 🟡 **MEDIA** (Post-refactoring)
+**Effort**: 8-12 ore
+**Owner**: AI/ML Lead + Backend Team
+**Status**: ❌ **DISABILITATO in v3.5.5** (2025-10-15)
+**Version**: v3.3.0-v3.5.4 (sperimentale)
+
+### **❌ Problema Rilevato**
+
+Sistema di auto-learning implementato ma **NON funzionante** per fast-path optimization.
+
+**Workflow ATTUALE (sbagliato)**:
+```
+1. Query arriva
+2. ❌ Chiama SEMPRE Classifier LLM (200-500ms)
+3. LLM classifica (confidence 0.9)
+4. Salva pattern in PostgreSQL
+5. Hot-reload Redis PubSub (2.74ms)
+6. Pattern caricato in self.learned_patterns dict
+7. Query ripetuta → LLM chiamato DI NUOVO ❌
+```
+
+**Workflow ATTESO (non implementato)**:
+```
+1. Query arriva
+2. ✅ Check self.learned_patterns dict (<1ms)
+3. Pattern trovato? → Return category (NO LLM!)
+4. Pattern NON trovato? → Chiama LLM classifier
+```
+
+### **📊 Evidence dal Testing (2025-10-15)**
+
+**Test**: 4 query ripetute 2 volte ciascuna
+
+| Call | Query | First Call | Second Call | Expected |
+|------|-------|-----------|-------------|----------|
+| 1 | "lista processi business" | 5972ms (LLM) | 113ms (LLM!) | <10ms |
+| 2 | "errori ultimi 7 giorni" | 1421ms (LLM) | 111ms (LLM!) | <10ms |
+| 3 | "email da ChatOne" | 2095ms (LLM) | 118ms (LLM!) | <10ms |
+
+**Risultato**: Pattern salvati (3/4) ma LLM chiamato SEMPRE.
+
+**Log evidence**:
+```
+21:34:46 [CLASSIFIER v3.5.2] Starting Simple LLM - query: 'lista completa processi business'
+21:34:46 [AUTO-LEARN] Pattern reused: 'lista completa processi business' (times_used=1)
+```
+
+→ LLM chiamato PRIMA di check pattern (ordine invertito!)
+
+### **🔧 Codice Disabilitato**
+
+**File**: `intelligence-engine/app/milhena/graph.py`
+
+**Funzioni commentate**:
+```python
+# Riga 1182-1185: Chiamata in instant_classify
+# DISABLED v3.5.5 2025-10-15
+# await self._maybe_learn_pattern(query, instant_with_confidence)
+
+# Riga 1340-1343: Chiamata dopo classifier
+# DISABLED v3.5.5 2025-10-15
+# await self._maybe_learn_pattern(query, classification)
+
+# Riga 1855-1884: Funzione completa
+async def _maybe_learn_pattern(self, query: str, llm_result: Dict[str, Any]):
+    """DISABLED 2025-10-15"""
+    return  # DISABLED - do nothing
+```
+
+### **📋 Cosa Serve per Riabilitare**
+
+#### **1. Implementare Fast-Path Check PRIMA di LLM** (4h)
+
+```python
+# intelligence-engine/app/milhena/graph.py:1230 (BEFORE LLM call)
+
+async def supervisor_orchestrator(self, state: MilhenaState) -> MilhenaState:
+    query = state["query"]
+
+    # STEP 0: Instant classify (DANGER/GREETING)
+    instant = self._instant_classify(query)
+    if instant:
+        return state
+
+    # STEP 1: Learning system (old clarifications)
+    learned_pattern = await self.learning_system.check_learned_clarifications(...)
+    if learned_pattern:
+        return state
+
+    # ✅ NEW STEP 1.5: Check auto-learned patterns (FAST-PATH)
+    normalized_query = self._normalize_query(query)
+    pattern = self.learned_patterns.get(normalized_query)
+
+    if pattern:
+        logger.info(f"[FAST-PATH] HIT: '{normalized_query}' → {pattern['category']}")
+
+        # Increment usage counter
+        await self._increment_pattern_usage(pattern['id'])
+
+        # Return SupervisorDecision (NO LLM call!)
+        decision = SupervisorDecision(
+            action="react",
+            category=pattern["category"],
+            confidence=1.0,  # Pattern già validato
+            reasoning=f"Auto-learned pattern (fast-path, times_used={pattern['times_used']})",
+            needs_rag=False,
+            needs_database=True,
+            llm_used="fast-path"
+        )
+        state["supervisor_decision"] = decision.model_dump()
+        return state
+
+    logger.info(f"[FAST-PATH] MISS: calling LLM classifier")
+
+    # STEP 2: Classifier LLM (SOLO se pattern non trovato)
+    prompt = CLASSIFIER_PROMPT.format(query=query, ...)
+    # ... existing LLM call
+```
+
+#### **2. Implementare Pattern Increment** (1h)
+
+```python
+async def _increment_pattern_usage(self, pattern_id: int):
+    """Increment times_used counter in DB"""
+    try:
+        async with self.db_pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE pilotpros.auto_learned_patterns
+                SET times_used = times_used + 1,
+                    last_used_at = NOW()
+                WHERE id = $1
+            """, pattern_id)
+    except Exception as e:
+        logger.error(f"[FAST-PATH] Failed to increment pattern usage: {e}")
+```
+
+#### **3. Riabilitare Auto-Learning** (1h)
+
+```python
+# Uncomment lines 1182-1185, 1340-1343
+# Restore function body at line 1855-1884
+```
+
+#### **4. Testing Completo** (4h)
+
+```bash
+# Test 1: First call → LLM classifier
+curl -X POST http://localhost:8000/api/chat \
+  -d '{"message": "lista processi", "session_id": "test1"}'
+# Expected: ~200-500ms (LLM call)
+
+# Test 2: Second call → Fast-path
+curl -X POST http://localhost:8000/api/chat \
+  -d '{"message": "lista processi", "session_id": "test2"}'
+# Expected: <10ms (pattern lookup)
+
+# Verify logs
+docker logs pilotpros-intelligence-engine-dev | grep "FAST-PATH HIT"
+# Expected: [FAST-PATH] HIT: 'lista processi' → PROCESS_LIST
+```
+
+### **📊 Performance Impact (quando riabilitato)**
+
+| Metric | Current (v3.5.5) | Target (con fast-path) | Improvement |
+|--------|------------------|------------------------|-------------|
+| **Latency (learned query)** | 100-500ms (LLM) | <10ms (DB lookup) | 10-50x faster |
+| **Cost (learned query)** | $0.0003 | $0.00 | 100% savings |
+| **Cache Hit Rate** | 0% | 60-80% (dopo learning) | - |
+
+**ROI**: Per sistema maturo (1000+ queries/giorno, 500+ patterns learned):
+- Cost Savings: ~$150/mese
+- Latency Reduction: P95 da 300ms → 50ms
+- User Experience: Significativa
+
+### **⚠️ Perché Disabilitato ORA**
+
+1. **Fast-path check MANCANTE** - Pattern salvati ma mai controllati
+2. **Ordine workflow errato** - LLM chiamato prima di check pattern
+3. **Zero beneficio** - Sistema spreca risorse (DB writes + Redis PubSub) senza ROI
+4. **Test falliti** - 0/4 queries usano fast-path (expected 4/4 on second call)
+
+**Scelta**: Disabilitare completamente invece di lasciare sistema "zombie" che occupa risorse inutilmente.
+
+### **✅ Checklist Riabilitazione (Future)**
+
+**Pre-requisiti**:
+- [ ] Implementare fast-path check PRIMA di LLM (4h)
+- [ ] Implementare pattern usage increment (1h)
+- [ ] Riabilitare auto-learning function (1h)
+- [ ] Testing completo (4h)
+
+**Success Criteria**:
+- [ ] Second call query usa fast-path (<10ms latency)
+- [ ] Log mostra `[FAST-PATH] HIT:` per query ripetute
+- [ ] `times_used` counter incrementato correttamente
+- [ ] Cache hit rate >60% dopo 1 settimana
+- [ ] Zero regressioni su classifier accuracy
+
+**Total Effort**: 10 ore (1.5 developer-days)
+
+---
+
+**Disabled**: 2025-10-15 (v3.5.5)
+**Priority**: 🟡 **MEDIA** (post-refactoring RLHF)
+**Status**: ⏳ Da riabilitare DOPO learning system refactoring
+**Owner**: AI/ML Lead + Backend Team
+
+---
+
 ## 📋 TEMPLATE-IZZAZIONE MILHENA
 
 **Priorità**: 🔴 ALTA (Post-Development)

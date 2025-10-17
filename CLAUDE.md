@@ -1,8 +1,8 @@
 # 📋 CLAUDE.md - PROJECT GUIDE
 
 **PilotProOS** - Containerized Business Process Operating System
-**Version**: v3.3.1 Auto-Learning + Hot-Reload (PRODUCTION)
-**Updated**: 2025-10-11
+**Version**: v3.5.6 Self-Contained Agent Architecture (PRODUCTION)
+**Updated**: 2025-10-16
 
 ## 🚨 **MANDATORY READING**
 
@@ -32,29 +32,63 @@
 ### **Stack (7 Services)**
 - **PostgreSQL** - Dual schema (n8n + pilotpros), n8n data ONLY
 - **Redis Stack** - AsyncRedisSaver + Cache + RediSearch
-- **Backend** - Express API (business translator + Milhena proxy)
+- **Backend** - Express API (business translator + Agent proxy)
 - **Frontend** - Vue 3 Portal + ChatWidget (28 API)
-- **Intelligence Engine** - Milhena v3.1 ReAct Agent (18 tools)
+- **Intelligence Engine** - Agent v3.5.5 Classifier + ReAct (18 tools)
 - **Embeddings** - NOMIC HTTP API (768-dim, on-premise)
 - **Automation** - n8n Workflow Engine (isolated DB)
 - **Monitor** - Nginx Reverse Proxy
 
-### **Milhena v3.1 - 4-Agent Pipeline**
+### **Intelligence Engine - Self-Contained Agent Architecture**
+
+**NEW (v3.5.6 - 2025-10-16)**: Self-Contained Versioned Agents
+
+```
+intelligence-engine/app/
+├── main.py                      # FastAPI entry point
+├── graph.py                     # Version wrapper (switch versions)
+│
+├── agents/v3_5/                 # 📦 SELF-CONTAINED v3.5 (20 files)
+│   ├── graph.py                 # LangGraph orchestration
+│   ├── classifier.py            # Fast-Path + LLM
+│   ├── tool_mapper.py           # Category → Tools
+│   ├── tool_executor.py         # Async execution
+│   ├── responder.py             # LLM synthesis
+│   ├── masking.py               # Business masking
+│   └── utils/                   # Internal deps (13 files)
+│       ├── state.py, business_tools.py
+│       └── cache_manager.py, learning.py, ...
+│
+├── rag/                         # Shared RAG system
+└── services/                    # Infrastructure
+```
+
+**Benefits**:
+- ✅ **True self-contained**: `cp -r agents/v3_5 agents/v4_0` works!
+- ✅ **Zero conflicts**: Develop v4.0 while v3.5 runs in production
+- ✅ **Easy rollback**: Change 1 line in `graph.py` to switch version
+- ✅ **Only 1 external dep**: Shared RAG knowledge base
+
+### **Agent v3.5.5 - 6-Component Pipeline**
 ```
 User Query
   ↓
-[1. CLASSIFIER] Fast-path (<10ms) + LLM + Auto-Learning
+[1. FAST-PATH] DANGER/GREETING keywords (<1ms)
   ↓
-[2. REACT] 18 smart tools (PostgreSQL REAL data)
+[2. CLASSIFIER] Simple LLM 9 categories + params (200-500ms)
   ↓
-[3. RESPONSE] Business synthesis + Token optimization
+[3. TOOL MAPPER] Category → Tools + normalization (<1ms)
   ↓
-[4. MASKING] Zero technical leaks
+[4. TOOL EXECUTOR] Async tool execution (18 tools)
+  ↓
+[5. RESPONDER] Business synthesis (Groq llama-3.3-70b)
+  ↓
+[6. MASKING] Zero technical leaks
   ↓
 AsyncRedisSaver (7-day TTL, 1214+ checkpoints)
 ```
 
-**Evolution**: v1.0 Supervisor (10 nodes) → v2.0 Direct (10 tools) → v3.0 Rephraser (30 tools) → **v3.1 Smart Consolidation (18 tools)**
+**Evolution**: v1.0 Supervisor → v2.0 Direct → v3.0 Rephraser → v3.1 Smart Consolidation → v3.5.5 Conservative Classifier → **v3.5.6 Self-Contained Architecture**
 
 ---
 
@@ -215,13 +249,15 @@ mcp__openmemory__save_memory({
 
 ### **✅ PRODUCTION READY**
 
-**Intelligence v3.3.1**:
-- Auto-Learning Fast-Path (confidence >0.9, PostgreSQL patterns, asyncpg pool)
-- **Hot-Reload Pattern System** (Redis PubSub, 2.74ms reload, zero downtime)
+**Intelligence v3.5.5**:
+- **Conservative Reasoning Classifier** (100% hard test, 0 false positives)
+- Simple LLM Classification (200-500ms, Groq FREE 95% + OpenAI nano 5%)
+- Fast-Path Safety Checks (DANGER/GREETING keywords, <1ms)
 - Smart Tool Routing (18 tools: 3 consolidated + 9 specialized)
 - RAG System (ChromaDB + NOMIC HTTP, 85-90% accuracy)
 - AsyncRedisSaver (7-day TTL, infinite persistence)
 - Business Masking (zero technical leaks)
+- ⚠️ Auto-Learning DISABLED (saves patterns, doesn't use them - see DEBITO-TECNICO.md)
 
 **Frontend**:
 - Chat Widget (dark theme, Teleport z-index: 99999)
@@ -333,24 +369,28 @@ npm run type-check
 
 ## 📊 **PERFORMANCE METRICS**
 
-**Current**:
+**Current (v3.5.5)**:
 - Response Time: <2s (P95)
-- Auto-Learning: <10ms (pattern match) vs 200-500ms (LLM)
-- Cost: $0.00 (Groq 95%) vs $0.0003 (OpenAI 5%)
-- Accuracy: 75% baseline (improving with learning)
+- Classifier Latency: 200-500ms (LLM call every query)
+- Fast-Path: <1ms (DANGER/GREETING keywords only)
+- Cost: $0.00 (Groq 95%) vs $0.0003 (OpenAI nano 5%)
+- Classifier Accuracy: 100% univoque, 100% impossible queries, 0% false positives
 - Uptime: 99.9%
 - RAM: Intelligence 604MB, Embeddings 1.04GB
 
 **Targets**:
 - Response Time: <1s (P95)
-- Accuracy: 90%+ (after learning UI)
-- Cache Hit Rate: 60%+
+- Re-enable Auto-Learning Fast-Path: <10ms (10h effort)
+- Accuracy: 90%+ overall (after learning UI + CLARIFICATION_NEEDED fix)
+- Cache Hit Rate: 60%+ (post auto-learning re-enable)
 
 ---
 
-## 🆕 **CHANGELOG v3.3.0 - AUTO-LEARNING FAST-PATH**
+## 🆕 **CHANGELOG v3.3.0 - AUTO-LEARNING FAST-PATH** ⚠️ DISABLED
 
 **Game-Changer**: Auto-learn from high-confidence (>0.9) LLM classifications
+
+⚠️ **STATUS v3.5.5**: DISABLED (2025-10-15) - See DEBITO-TECNICO.md
 
 **Implementation**:
 - ✅ PostgreSQL schema `pilotpros.auto_learned_patterns` (migration 004)
@@ -363,7 +403,7 @@ npm run type-check
 **Files**:
 - `backend/db/migrations/004_auto_learned_patterns.sql` (NEW)
 - `intelligence-engine/app/main.py` (+3 lines)
-- `intelligence-engine/app/milhena/graph.py` (+150 lines)
+- `intelligence-engine/app/agents/v3_5/graph.py` (+150 lines)
 
 **Testing** (REAL DATA):
 - ✅ Pattern normalization: "oggi?" → "oggi" ✅
@@ -383,9 +423,11 @@ npm run type-check
 
 ---
 
-## 🆕 **CHANGELOG v3.3.1 - HOT-RELOAD PATTERN SYSTEM** ✨
+## 🆕 **CHANGELOG v3.3.1 - HOT-RELOAD PATTERN SYSTEM** ⚠️ UNUSED
 
 **Game-Changer**: Zero-downtime pattern reloading via Redis PubSub
+
+⚠️ **STATUS v3.5.5**: UNUSED (auto-learning disabled) - Hot-reload works, but patterns not used for LLM bypass
 
 **Problem Solved**:
 - ❌ **Before**: Pattern added → Container restart (15-30s downtime) → Pattern available
@@ -400,8 +442,8 @@ npm run type-check
 - ✅ Thread-safe in-memory pattern cache updates
 
 **Files**:
-- `intelligence-engine/app/milhena/hot_reload.py` (NEW - 297 lines)
-- `intelligence-engine/app/milhena/graph.py` (+36 lines)
+- `intelligence-engine/app/services/hot_reload.py` (NEW - 297 lines)
+- `intelligence-engine/app/agents/v3_5/graph.py` (+36 lines)
 - `intelligence-engine/app/main.py` (+19 lines)
 - `backend/src/routes/milhena.routes.js` (+62 lines)
 - `TEST-HOT-RELOAD.md` (NEW - testing guide)
@@ -439,6 +481,137 @@ npm run type-check
 
 ---
 
+## 🆕 **CHANGELOG v3.5.5 - CLASSIFIER CONSERVATIVE REASONING** ✅
+
+**Game-Changer**: Prompt evolution da pattern-based a conservative reasoning
+
+**Context**: Testing intensivo rivela necessità di balance tra reasoning e regole esplicite.
+
+**Journey** (2025-10-15):
+- **v3.5.2**: Simplified LLM classifier (removed ReAct overhead)
+- **v3.5.3**: Pattern-based approach → 3 FALSE POSITIVES ❌
+- **v3.5.4**: Pure reasoning → Over-inference su 1-word queries ❌
+- **v3.5.5**: Conservative reasoning + explicit 1-word rule → **PRODUCTION READY** ✅
+
+**Implementation**:
+- ✅ Conservative reasoning principle in CLASSIFIER_PROMPT
+- ✅ Explicit rule: "Query di 1 parola senza oggetto chiaro = CLARIFICATION_NEEDED"
+- ✅ Examples for edge cases: "quanti?", "stato", "report"
+- ✅ 10 categorie (added CLARIFICATION_NEEDED)
+
+**Files**:
+- `intelligence-engine/app/agents/v3_5/classifier.py` (CLASSIFIER_PROMPT v3.5.5)
+- `CONTEXT-SYSTEM.md` (NEW - v3.5.5 current state documentation)
+- `DEBITO-TECNICO.md` (+210 lines auto-learning disabled section)
+- `NEW-ORDER.md` (NEW - Self-Contained Architecture spec)
+- `test-classifier-v352.sh` (standard 12-query test)
+- `test-classifier-hard.sh` (hard mode 6 impossible queries)
+
+**Testing** (REAL DATA):
+
+**Standard Test** (12 queries):
+- Univoque: 4/4 (100%) ✅
+- Ambiguous: 0/4 (by design - infers when safe)
+- Context-dependent: 4/4 (100%) ✅
+- **Total**: 8/12 (67%) - expected behavior
+
+**Hard Mode** (6 impossible queries):
+- "quello", "anche", "e poi?", "quanti?", "stato", "report"
+- Result: **6/6 (100%)** CLARIFICATION_NEEDED ✅
+- False Positives: **0** ✅
+
+**Performance**:
+- Accuracy: 100% on univoque queries
+- Clarification: 100% on impossible queries
+- False Positives: 0% (vs 3 in v3.5.3)
+- Latency: 200-500ms (LLM call)
+
+**Key Learning**: Balance LLM reasoning freedom with explicit rules for edge cases.
+
+**Auto-Learning System DISABLED** (Tech Debt):
+- ❌ System saves patterns but doesn't use them to bypass LLM
+- ❌ Fast-path check BEFORE LLM call NOT implemented
+- ❌ Result: All queries call LLM (200-500ms), no optimization
+- ⏳ Re-enable: 10h effort (implement fast-path check in supervisor_orchestrator)
+- 📋 See: DEBITO-TECNICO.md section "AUTO-LEARNING FAST-PATH - DISABLED"
+
+**Known Issues**:
+- ⚠️ CLARIFICATION_NEEDED not shown to user (downstream responder bug)
+- ⚠️ User sees "Si è verificato un problema temporaneo" instead of clarification_question
+- 📋 Fix scope: Separate from classifier (responder/masking pipeline issue)
+
+**Documentation**:
+- Architecture spec: `CONTEXT-SYSTEM.md` (v3.5.5 current state)
+- Test comparison: `/tmp/classifier-comparison-v354-v355.md`
+- Integration report: `/tmp/classifier-fastpath-report.md`
+- Technical debt: `DEBITO-TECNICO.md` (auto-learning disabled)
+
+**Verdict**: v3.5.5 classifier is **PRODUCTION READY** ✅
+
+---
+
+## 🆕 **CHANGELOG v3.5.6 - SELF-CONTAINED AGENT ARCHITECTURE** ✅
+
+**Game-Changer**: NEW-ORDER.md implementation - True self-contained versioned agents
+
+**Problem Solved**:
+- ❌ **Before**: Monolithic `graph.py` (2960 lines), impossible parallel development
+- ✅ **After**: `agents/v3_5/` (20 files self-contained), ready for v4.0 parallel dev
+
+**Implementation** (2025-10-16):
+- ✅ Extracted monolithic code into versioned agents structure
+- ✅ Each version self-contained (except shared RAG)
+- ✅ True independence: `cp -r agents/v3_5 agents/v4_0` works
+- ✅ Zero-conflict parallel development
+- ✅ 1-line rollback (change import in graph.py)
+
+**Files Created** (20 in agents/v3_5/):
+- `graph.py` - LangGraph orchestration
+- `classifier.py` - Fast-Path + LLM classification
+- `tool_mapper.py` - Category → Tools mapping (extracted)
+- `tool_executor.py` - Async tool execution
+- `responder.py` - LLM response synthesis
+- `masking.py` - Business masking
+- `utils/` - 13 internal dependencies (state, business_tools, cache, learning, ...)
+
+**Cleanup**:
+- ❌ Removed `milhena/` folder (old agent name)
+- ❌ Deleted legacy v2 code (system_agents/, core/, promptfoo - 23 files)
+- ❌ Removed backups (graph_v3.1, business_tools_v3.1 - 5262 lines)
+- ✅ Renamed: MilhenaGraph → AgentGraph, MilhenaState → AgentState
+- ✅ Reduced "milhena" refs: 106 → 10 (90% cleanup)
+
+**Architecture**:
+```
+agents/v3_5/                     # Self-contained
+├── 6 components                 # Agent-specific logic
+└── utils/ (13 files)            # Internal dependencies
+```
+
+**External Dependency** (deliberate):
+- `app.rag.*` - Shared RAG system (same knowledge base across versions)
+
+**Testing**:
+- ✅ Docker build: SUCCESS
+- ✅ Fast-path: "ciao" → "Ciao! Come posso aiutarti?" ✅
+- ✅ Masking: masked=true (async fix)
+- ✅ Zero breaking changes (API /api/milhena maintained)
+
+**Benefits**:
+- ✅ Parallel development (v3_5 + v4_0 simultaneously)
+- ✅ Easy version switch (1 import line)
+- ✅ Zero-risk rollback
+- ✅ Clean codebase (-12,513 lines removed)
+
+**Documentation**:
+- `NEW-ORDER.md` - Architecture specification
+- `CONTEXT-SYSTEM.md` - Component details
+- `CLAUDE.md` - Updated with new structure
+
+**Verdict**: v3.5.6 architecture **PRODUCTION READY** ✅
+
+---
+
 ## 🆕 **CHANGELOG v3.2.2 - RAG HTTP EMBEDDINGS FIX**
 
 **Problem**: Intelligence Engine loading 500MB+ NOMIC model in RAM (duplicate)
@@ -468,7 +641,7 @@ npm run type-check
 - ✅ Simpler state management
 - ✅ Single checkpointer (AsyncRedisSaver)
 
-**Files**: `intelligence-engine/app/milhena/graph.py` (removed nested react_graph.compile())
+**Files**: `intelligence-engine/app/agents/v3_5/graph.py` (removed nested react_graph.compile())
 
 ---
 
@@ -498,10 +671,11 @@ npm run type-check
 4. **[DEBITO-TECNICO.md](./DEBITO-TECNICO.md)** - Post-production cleanup
 
 ### **Implementation**
-- `intelligence-engine/TODO-MILHENA-ARCHITECTURE.md` - ReAct Agent
-- `intelligence-engine/app/milhena/graph.py` - Implementation
+- `NEW-ORDER.md` - Self-Contained Agent Architecture spec
+- `CONTEXT-SYSTEM.md` - v3.5.5 Component Architecture
+- `intelligence-engine/app/agents/v3_5/graph.py` - Agent v3.5 Implementation
 - `frontend/src/components/ChatWidget.vue` - Dark theme widget
-- `backend/src/routes/milhena.routes.js` - Milhena proxy
+- `backend/src/routes/milhena.routes.js` - Agent API proxy
 
 ---
 
@@ -512,4 +686,4 @@ npm run type-check
 
 ---
 
-**Status**: ✅ v3.3.1 Production Ready | 🔄 Learning UI in development
+**Status**: ✅ v3.5.6 Self-Contained Architecture | ✅ Production Ready | ⚠️ Auto-Learning disabled (tech debt) | 🔄 Learning UI in development

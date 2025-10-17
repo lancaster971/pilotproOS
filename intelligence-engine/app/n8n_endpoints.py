@@ -37,7 +37,7 @@ async def n8n_customer_support(request: N8nRequest):
     """
     try:
         from .main import app
-        milhena = app.state.milhena  # v3.1 with 4-agent pipeline
+        agent = app.state.agent  # v3.1 with 4-agent pipeline
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -49,8 +49,8 @@ async def n8n_customer_support(request: N8nRequest):
         if request.execution_id:
             context["execution_id"] = request.execution_id
 
-        # Process with MilhenaGraph v3.1
-        result = await milhena.compiled_graph.ainvoke(
+        # Process with AgentGraph v3.1
+        result = await agent.compiled_graph.ainvoke(
             {
                 "messages": [HumanMessage(content=request.message)],
                 "session_id": session_id,
@@ -70,7 +70,7 @@ async def n8n_customer_support(request: N8nRequest):
             status="success",
             metadata={
                 "session_id": session_id,
-                "model": "milhena-v3.1-4-agents",
+                "model": "pilot-v3.5-agent",
                 "masked": result.get("masked", False),
                 "workflow_id": request.workflow_id,
                 "execution_id": request.execution_id
