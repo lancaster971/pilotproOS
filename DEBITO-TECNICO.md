@@ -1005,3 +1005,188 @@ milhena-template/
 **Priority**: 🔴 ALTA
 **Status**: ⏳ Da implementare post-development
 **Owner**: Development Team
+
+---
+
+## 🔍 RAG VIEW DOCUMENT - FUNZIONALITÀ INCOMPLETA
+
+**Priorità**: 🟡 **MEDIA**
+**Effort**: 4-6 ore
+**Owner**: Frontend Team
+**Status**: ⚠️ **PARZIALMENTE IMPLEMENTATO**
+**Version**: v3.5.7 (2025-10-17)
+
+### **❌ Problema Riscontrato**
+
+Sistema RAG search funziona correttamente, ma la funzionalità "Visualizza" documento presenta problemi di integrazione frontend.
+
+**Workflow ATTUALE**:
+```
+1. User ricerca documenti → ✅ FUNZIONA
+2. Risultati mostrati correttamente → ✅ FUNZIONA
+3. Click bottone "Visualizza" → ⚠️ PROBLEMATICO
+4. Modal apertura documento → ❌ NON FUNZIONA
+```
+
+### **🔧 Fix Applicati (Parziali)**
+
+#### **1. Backend GET Endpoint Mancante** ✅ RISOLTO
+```javascript
+// backend/src/routes/rag.routes.js
+router.get('/documents/:id', async (req, res) => {
+  // Proxy to intelligence engine
+})
+```
+
+#### **2. Intelligence Engine Endpoint** ✅ RISOLTO
+```python
+# intelligence-engine/app/api/rag.py
+@router.get("/documents/{doc_id}")
+async def get_document(doc_id: str):
+    # Retrieve full document by ID
+```
+
+#### **3. Frontend API Call** ✅ RISOLTO
+```typescript
+// frontend/src/components/rag/SemanticSearch.vue
+const response = await ragApi.getDocument(docId)
+// Usa backend proxy invece di chiamata diretta
+```
+
+#### **4. Headers Management** ✅ RISOLTO
+```typescript
+// frontend/src/stores/auth.ts
+const headers = new Headers(init.headers || {})
+headers.set('Authorization', `Bearer ${token.value}`)
+// Fix Headers object spread issue
+```
+
+### **❌ Issues Rimanenti**
+
+**Sintomo**: Click "Visualizza" non apre modal o genera errore silente
+
+**Possibili Cause**:
+1. **Emit non gestito** - `emit('view-document', response.document)` potrebbe non avere listener nel parent
+2. **Modal Component mancante** - Component per visualizzare documento potrebbe non esistere
+3. **Struttura dati** - `response.document` potrebbe avere struttura diversa da quella attesa
+4. **Error handling** - Errori swallowed dal try/catch senza logging adeguato
+
+### **📋 Checklist Risoluzione**
+
+#### **Phase 1: Debug Root Cause (2h)**
+```typescript
+// frontend/src/components/rag/SemanticSearch.vue
+const viewDocument = async (result: any) => {
+  try {
+    console.log('🔍 DEBUG: Fetching document', result.doc_id)
+    const response = await ragApi.getDocument(result.doc_id)
+    console.log('✅ DEBUG: Response received', response)
+
+    // Verify emit works
+    console.log('📤 DEBUG: Emitting view-document event')
+    emit('view-document', response.document)
+  } catch (error) {
+    console.error('❌ DEBUG: Full error object', error)
+    // Show error to user with full details
+  }
+}
+```
+
+#### **Phase 2: Parent Component Verification (1h)**
+```vue
+<!-- frontend/src/pages/RAGManagerPage.vue -->
+<SemanticSearch @view-document="handleViewDocument" />
+
+<script setup>
+const handleViewDocument = (document) => {
+  console.log('🎯 Parent: Received document', document)
+  // Open modal or navigate to detail page
+  showDocumentModal.value = true
+  selectedDocument.value = document
+}
+</script>
+```
+
+#### **Phase 3: Modal Implementation (1h)**
+```vue
+<!-- frontend/src/components/rag/DocumentModal.vue (NEW) -->
+<Dialog v-model:visible="visible" modal header="Dettagli Documento">
+  <div class="document-details">
+    <h3>{{ document.metadata?.filename }}</h3>
+    <p class="content">{{ document.content }}</p>
+    <div class="metadata">
+      <Tag :value="document.metadata?.category" />
+      <Tag v-for="tag in document.metadata?.tags" :key="tag" :value="tag" />
+    </div>
+  </div>
+</Dialog>
+```
+
+#### **Phase 4: Integration Testing (1h)**
+- [ ] Test con documenti esistenti
+- [ ] Verificare struttura response API
+- [ ] Test modal open/close
+- [ ] Test con documenti mancanti (404)
+- [ ] Test con network errors
+
+### **🔄 Workaround Temporaneo**
+
+**Option A: Disable Button** (5 min)
+```vue
+<!-- Nascondere bottone fino a fix completo -->
+<Button
+  @click="viewDocument(result)"
+  :disabled="true"
+  icon="pi pi-eye"
+  label="Visualizza (Coming Soon)"
+/>
+```
+
+**Option B: Copy Content Only** (già funzionante)
+```vue
+<!-- Usare solo bottone "Copia" che funziona -->
+<Button
+  @click="copyContent(result.content)"
+  icon="pi pi-copy"
+  label="Copia Contenuto"
+/>
+```
+
+### **📊 Impact Analysis**
+
+| Aspetto | Stato Attuale | Impact | Urgency |
+|---------|---------------|--------|---------|
+| **Search** | ✅ Funzionante | - | - |
+| **Results Display** | ✅ Funzionante | - | - |
+| **Copy Content** | ✅ Funzionante | - | - |
+| **View Full Document** | ❌ Non Funzionante | **MEDIO** (Nice-to-have) | 🟡 BASSA |
+| **Delete Document** | ✅ Funzionante | - | - |
+
+**Conclusione**: Feature **NON BLOCCANTE** - sistema RAG core è operativo.
+
+### **✅ Success Criteria (Future)**
+
+- [ ] Click "Visualizza" apre modal con documento completo
+- [ ] Modal mostra: filename, content, metadata, tags, category
+- [ ] Test e2e: search → view → close modal
+- [ ] Error handling con feedback utente chiaro
+- [ ] Loading state durante fetch documento
+- [ ] Responsive design modal (mobile-friendly)
+
+### **📚 References**
+
+**PrimeVue Components**:
+- [Dialog Component](https://primevue.org/dialog/)
+- [Modal Patterns](https://primevue.org/overview/)
+
+**Vue 3 Events**:
+- [Component Events](https://vuejs.org/guide/components/events.html)
+- [defineEmits](https://vuejs.org/api/sfc-script-setup.html#defineemits)
+
+---
+
+**Created**: 2025-10-17
+**Priority**: 🟡 **MEDIA**
+**Status**: ⏸️ **POSTICIPATO** (RAG search funzionante, view document nice-to-have)
+**Owner**: Frontend Team
+**Estimated Resolution**: 4-6 ore (quando prioritizzato)

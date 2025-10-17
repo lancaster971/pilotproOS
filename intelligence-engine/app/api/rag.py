@@ -305,6 +305,32 @@ async def list_documents(
         logger.error(f"Error listing documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/documents/{doc_id}")
+async def get_document(doc_id: str):
+    """Get single document by ID with full content and metadata"""
+    try:
+        rag = get_rag_system()
+
+        # Search for document by doc_id in metadata
+        documents = await rag.list_documents(limit=10000)
+
+        # Find document with matching doc_id
+        document = next((doc for doc in documents if doc.get("doc_id") == doc_id), None)
+
+        if not document:
+            raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+
+        return {
+            "success": True,
+            "document": document
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting document {doc_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/documents/{doc_id}")
 async def update_document(
     doc_id: str,
@@ -354,6 +380,10 @@ async def delete_document(
             doc_id=doc_id,
             hard_delete=not soft_delete
         )
+
+        # Defensive check for None (should not happen after fix, but safety first)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
 
         if result.get("status") == "error":
             raise HTTPException(status_code=404, detail=result.get("message", "Document not found"))

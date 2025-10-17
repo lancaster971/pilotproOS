@@ -70,11 +70,26 @@ class EmbeddingsClient(EmbeddingFunction[Documents]):
         """
         return self._model_name
 
+    async def _recreate_client(self):
+        """Recreate HTTP client (for handling closed connections)"""
+        try:
+            await self.client.aclose()
+        except:
+            pass
+
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=httpx.Timeout(self.timeout),
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+        )
+        logger.info("🔄 HTTP client recreated after connection reset")
+
     async def embed(
         self,
         texts: List[str],
         model: Optional[str] = None,
-        dimension: Optional[int] = None
+        dimension: Optional[int] = None,
+        _retry: bool = True
     ) -> List[List[float]]:
         """
         Generate embeddings via HTTP API
@@ -83,6 +98,7 @@ class EmbeddingsClient(EmbeddingFunction[Documents]):
             texts: List of texts to embed
             model: Embedding model (overrides default)
             dimension: Dimension (only for stella, overrides default)
+            _retry: Internal flag for retry logic
 
         Returns:
             List of embeddings (list of float vectors)
@@ -127,6 +143,14 @@ class EmbeddingsClient(EmbeddingFunction[Documents]):
             logger.error(f"Embeddings API error: {e}")
             raise
         except Exception as e:
+            # Check if it's a closed connection error
+            error_str = str(e).lower()
+            if ("closed" in error_str or "handler is closed" in error_str) and _retry:
+                logger.warning(f"Connection closed error detected, retrying with new client: {e}")
+                await self._recreate_client()
+                # Retry ONCE with new client (_retry=False prevents infinite loop)
+                return await self.embed(texts, model, dimension, _retry=False)
+
             logger.error(f"Unexpected error in embed(): {e}")
             raise
 

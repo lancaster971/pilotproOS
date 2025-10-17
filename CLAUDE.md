@@ -1,8 +1,8 @@
 # 📋 CLAUDE.md - PROJECT GUIDE
 
 **PilotProOS** - Containerized Business Process Operating System
-**Version**: v3.5.6 Self-Contained Agent Architecture (PRODUCTION)
-**Updated**: 2025-10-16
+**Version**: v3.5.7 RAG Search Fixes (PRODUCTION)
+**Updated**: 2025-10-17
 
 ## 🚨 **MANDATORY READING**
 

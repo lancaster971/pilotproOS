@@ -107,11 +107,16 @@ router.get('/documents', async (req, res) => {
  */
 router.post('/search', async (req, res) => {
   try {
+    // DEBUG: Log what we receive
+    console.log('🔍 RAG SEARCH REQUEST BODY:', JSON.stringify(req.body, null, 2));
+
     const { query, top_k } = req.body;
 
     if (!query) {
+      console.log('❌ QUERY MISSING! Body was:', req.body);
       return res.status(400).json({
-        error: 'Missing required field: query'
+        error: 'Missing required field: query',
+        received: req.body  // DEBUG: Show what we got
       });
     }
 
@@ -144,11 +149,12 @@ router.post('/search', async (req, res) => {
 });
 
 /**
- * @route   POST /api/rag/upload
+ * @route   POST /api/rag/documents
  * @desc    Upload documents to knowledge base (FIXED multipart/form-data)
  * @access  Public
+ * @note    Aligned with Intelligence Engine endpoint naming
  */
-router.post('/upload', upload.array('files'), async (req, res) => {
+router.post('/documents', upload.array('files'), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -231,6 +237,42 @@ router.post('/upload', upload.array('files'), async (req, res) => {
 
     res.status(error.response?.status || 500).json({
       error: 'Upload failed',
+      message: error.response?.data?.detail || error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/rag/documents/:id
+ * @desc    Get single document by ID
+ * @access  Public
+ */
+router.get('/documents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    businessLogger.log('RAG document get', { document_id: id });
+
+    const intelligenceResponse = await axios.get(
+      `${INTELLIGENCE_ENGINE_URL}/api/rag/documents/${id}`,
+      {
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json(intelligenceResponse.data);
+
+  } catch (error) {
+    businessLogger.error('RAG get document error:', {
+      message: error.message,
+      status: error.response?.status
+    });
+
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to get document',
       message: error.response?.data?.detail || error.message
     });
   }

@@ -96,11 +96,11 @@
               </div>
               <div class="result-score">
                 <ProgressBar
-                  :value="Math.round(result.score * 100)"
+                  :value="Math.round((result.relevance_score || 0) * 100)"
                   :showValue="false"
                   class="score-bar"
                 />
-                <span class="score-text">{{ Math.round(result.score * 100) }}%</span>
+                <span class="score-text">{{ Math.round((result.relevance_score || 0) * 100) }}%</span>
               </div>
             </div>
           </template>
@@ -180,7 +180,7 @@
           v-for="example in exampleQueries"
           :key="example"
           :label="example"
-          @click="searchQuery = example; performSearch()"
+          @click="selectExample(example)"
           class="example-chip"
         />
       </div>
@@ -270,11 +270,18 @@ const performSearch = async () => {
   hasSearched.value = true
 
   try {
-    const searchRequest = {
+    const searchRequest: any = {
       query,
-      top_k: searchOptions.limit,
-      threshold: searchOptions.threshold / 100,
-      category: searchOptions.category
+      top_k: searchOptions.limit
+    }
+
+    // Add optional parameters only if they have values
+    if (searchOptions.threshold && searchOptions.threshold > 0) {
+      searchRequest.threshold = searchOptions.threshold / 100
+    }
+
+    if (searchOptions.category) {
+      searchRequest.category = searchOptions.category
     }
 
     const response = await ragApi.searchDocuments(searchRequest)
@@ -303,6 +310,11 @@ const performSearch = async () => {
   }
 }
 
+const selectExample = async (example: string) => {
+  searchQuery.value = example
+  await performSearch()
+}
+
 const clearResults = () => {
   searchResults.value = []
   hasSearched.value = false
@@ -311,30 +323,29 @@ const clearResults = () => {
 }
 
 const onPageChange = (event: any) => {
-  // Ricarica risultati per la nuova pagina
-  performSearch()
+  // Ricarica risultati per la nuova pagina SOLO se c'è una query
+  if (searchQuery.value.trim()) {
+    performSearch()
+  }
 }
 
 const viewDocument = async (result: any) => {
   try {
-    // Fetch full document from API
+    // Fetch full document from API using backend proxy
     const docId = result.doc_id || result.metadata?.doc_id
     if (!docId) {
       throw new Error('Document ID not found')
     }
 
-    const response = await fetch(`http://localhost:8000/api/rag/documents/${docId}`)
-    if (!response.ok) throw new Error('Failed to fetch document')
-
-    const fullDoc = await response.json()
+    const response = await ragApi.getDocument(docId)
 
     // Open view dialog (emit event to parent or use local dialog)
-    emit('view-document', fullDoc)
+    emit('view-document', response.document)
 
     toast.add({
       severity: 'success',
       summary: 'Documento Caricato',
-      detail: `${fullDoc.metadata?.filename || 'Documento'} caricato`,
+      detail: `${response.document?.metadata?.filename || 'Documento'} caricato`,
       life: 2000
     })
   } catch (error) {

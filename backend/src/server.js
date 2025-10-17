@@ -4585,7 +4585,7 @@ app.get('/api/business/workflow/:workflowId/full-stats', async (req, res) => {
   }
 });
 
-// Business error handler (exclude auth routes)
+// Business error handler (exclude auth and RAG routes)
 app.use((error, req, res, next) => {
   console.error('❌ Error:', error);
 
@@ -4593,6 +4593,14 @@ app.use((error, req, res, next) => {
   if (req.path.startsWith('/api/auth')) {
     return res.status(error.status || 500).json({
       error: error.message || 'Authentication failed',
+      message: error.message
+    });
+  }
+
+  // Don't sanitize RAG routes - return helpful file validation errors
+  if (req.path.startsWith('/api/rag')) {
+    return res.status(error.status || 400).json({
+      error: 'Upload validation failed',
       message: error.message
     });
   }
