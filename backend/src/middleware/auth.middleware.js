@@ -6,6 +6,7 @@
  */
 
 import jwt from 'jsonwebtoken';
+import config from '../config/index.js';
 
 /**
  * Validate JWT token from Authorization header
@@ -29,7 +30,7 @@ export const authenticate = (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'dev-secret-change-in-production'
+      config.security.jwtSecret
     );
 
     // Add user info to request
@@ -104,7 +105,7 @@ export const requireAdmin = (req, res, next) => {
 export const authenticateService = (req, res, next) => {
   // Priority 1: Check service token
   const serviceToken = req.headers['x-service-auth'];
-  const expectedToken = process.env.SERVICE_AUTH_TOKEN || 'intelligence-engine-service-token-2025';
+  const expectedToken = config.security.serviceAuthToken || 'intelligence-engine-service-token-2025';
 
   if (serviceToken) {
     // Service token provided

@@ -9,6 +9,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { dbPool } from '../db/pg-pool.js';
+import config from '../config/index.js';
 
 const router = express.Router();
 
@@ -55,8 +56,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role
       },
-      process.env.JWT_SECRET || 'dev-secret-change-in-production',
-      { expiresIn: '7d' }
+      config.security.jwtSecret,
+      { expiresIn: config.security.jwtExpiresIn }
     );
 
     // Return token and user data (NO COOKIES!)
@@ -98,7 +99,7 @@ router.get('/verify', async (req, res) => {
     // Verify token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'dev-secret-change-in-production'
+      config.security.jwtSecret
     );
 
     // Token is valid
