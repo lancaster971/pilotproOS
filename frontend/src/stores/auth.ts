@@ -102,15 +102,40 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('✅ Logged out - localStorage cleared')
   }
 
-  // Initialize auth - just check if token is still valid
+  // Initialize auth - verify token with backend
   const initializeAuth = async () => {
-    // If we have a token in localStorage, we're authenticated
-    // Optionally verify with backend if needed
-    if (token.value) {
-      console.log('✅ Auth initialized from localStorage')
-      return true
+    // No token in localStorage - user not authenticated
+    if (!token.value) {
+      return false
     }
-    return false
+
+    // Token exists - verify it's still valid with backend
+    try {
+      console.log('🔐 Verifying token with backend...')
+      const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+      const response = await fetch(`${API_BASE}/api/auth/verify`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      })
+
+      if (!response.ok) {
+        // Token is invalid or expired - logout
+        console.warn('⚠️ Token verification failed - logging out')
+        await logout()
+        return false
+      }
+
+      console.log('✅ Token verified successfully')
+      return true
+
+    } catch (err) {
+      // Network error or backend unavailable - logout for security
+      console.error('❌ Token verification error:', err)
+      await logout()
+      return false
+    }
   }
 
   // Add Authorization header to all fetch requests
