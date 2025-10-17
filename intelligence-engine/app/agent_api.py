@@ -11,7 +11,7 @@ from langsmith import traceable
 import uuid
 
 # Import Agent components (v3.5.6 Self-Contained Architecture)
-from .agents.v3_5.graph import AgentGraph
+from app import AgentGraph  # Uses version switcher (respects AGENT_VERSION env var)
 from .agents.v3_5.utils.learning import LearningSystem
 from .agents.v3_5.utils.token_manager import TokenManager
 from .agents.v3_5.utils.cache_manager import CacheManager
