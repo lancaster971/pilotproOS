@@ -14,9 +14,10 @@ import httpx
 from typing import List, Optional, Literal
 from loguru import logger
 import os
+from chromadb import Documents, EmbeddingFunction, Embeddings
 
 
-class EmbeddingsClient:
+class EmbeddingsClient(EmbeddingFunction[Documents]):
     """
     HTTP client for ON-PREMISE Embeddings Service
 
@@ -90,6 +91,10 @@ class EmbeddingsClient:
             httpx.HTTPError: If API call fails
         """
         try:
+            # DEBUG: Log input BEFORE creating payload
+            logger.debug(f"🔍 embed() called with texts type: {type(texts)}, len: {len(texts) if isinstance(texts, list) else 'NOT_A_LIST'}")
+            logger.debug(f"🔍 First text preview: {texts[0][:100] if texts and isinstance(texts, list) else 'N/A'}")
+
             # Prepare request payload
             payload = {
                 "texts": texts,
@@ -99,6 +104,9 @@ class EmbeddingsClient:
             # Add dimension only for stella
             if (model or self.model) == "stella" and (dimension or self.dimension):
                 payload["dimension"] = dimension or self.dimension
+
+            # DEBUG: Log payload BEFORE sending
+            logger.debug(f"📤 Sending payload to {self.base_url}/embed: {payload}")
 
             # Call embeddings API
             response = await self.client.post("/embed", json=payload)
@@ -157,27 +165,26 @@ class EmbeddingsClient:
         await self.client.aclose()
         logger.info("EmbeddingsClient closed")
 
-    def __call__(self, input: List[str]) -> List[List[float]]:
+    def __call__(self, input: Documents) -> Embeddings:
         """
-        Synchronous wrapper for ChromaDB v0.4.16+ compatibility
+        ChromaDB EmbeddingFunction interface implementation
 
-        ChromaDB v0.4.16+ expects EmbeddingFunction interface:
+        ChromaDB v0.4.16+ expects:
         __call__(self, input: Documents) -> Embeddings
 
         This method wraps the async embed() in a sync interface.
 
         Args:
-            input: List of texts to embed (ChromaDB Documents)
+            input: Documents (List[str]) from ChromaDB
 
         Returns:
-            List of embeddings (ChromaDB Embeddings)
+            Embeddings (List[List[float]]) - list of embedding vectors
         """
         import asyncio
-        import concurrent.futures
         import threading
 
-        def run_async_in_thread(coro):
-            """Run coroutine in a new thread with its own event loop"""
+        def run_async_in_thread(texts):
+            """Run async embed in a new thread with its own event loop"""
             result = None
             exception = None
 
@@ -187,7 +194,7 @@ class EmbeddingsClient:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
-                        result = loop.run_until_complete(coro)
+                        result = loop.run_until_complete(self.embed(texts))
                     finally:
                         loop.close()
                 except Exception as e:
@@ -206,13 +213,15 @@ class EmbeddingsClient:
             return result
 
         try:
-            # Check if we're in an async context
+            # Check if we're in an async context (FastAPI)
             try:
                 asyncio.get_running_loop()
-                # We're in async context (FastAPI), run in separate thread
-                return run_async_in_thread(self.embed(input))
+                # We're in async context, run in separate thread
+                logger.debug(f"ChromaDB __call__ with {len(input)} documents (async context)")
+                return run_async_in_thread(input)
             except RuntimeError:
                 # No running loop, create new one and run directly
+                logger.debug(f"ChromaDB __call__ with {len(input)} documents (sync context)")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
@@ -221,25 +230,8 @@ class EmbeddingsClient:
                     loop.close()
 
         except Exception as e:
-            logger.error(f"Error in sync embed wrapper: {e}")
+            logger.error(f"Error in ChromaDB __call__: {e}")
             raise
-
-    def embed_query(self, input: str) -> List[float]:
-        """
-        ChromaDB v0.4.16+ query embedding method
-
-        ChromaDB calls this for .query() operations (single query text).
-        Delegates to __call__() with list wrapper.
-
-        Args:
-            input: Single query text (ChromaDB query string)
-
-        Returns:
-            Single embedding vector
-        """
-        # Wrap single query in list, call __call__, return first result
-        embeddings = self.__call__([input])
-        return embeddings[0]
 
 
 # Singleton instance
