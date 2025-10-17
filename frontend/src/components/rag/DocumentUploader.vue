@@ -300,8 +300,8 @@ const uploadFiles = async () => {
   }
 
   try {
-    // Upload con progress tracking
-    const response = await fetch('/api/rag/upload', {
+    // Upload con progress tracking (FIXED: use /documents endpoint)
+    const response = await fetch('/api/rag/documents', {
       method: 'POST',
       body: formData,
       headers: {
