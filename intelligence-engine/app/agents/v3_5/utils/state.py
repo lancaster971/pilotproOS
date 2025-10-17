@@ -46,6 +46,7 @@ class AgentState(TypedDict):
     error: Optional[str]
     rag_context: Optional[List[Dict[str, Any]]]  # RAG retrieved documents
     learned_patterns: Optional[List[Dict[str, Any]]]  # Learning system patterns
+    tool_results: Optional[List[Dict[str, Any]]]  # Tool execution results (v3.5.6)
 
     # NEW: Supervisor fields
     supervisor_decision: Optional[SupervisorDecision]

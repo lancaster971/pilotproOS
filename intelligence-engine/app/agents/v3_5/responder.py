@@ -43,6 +43,12 @@ class Responder:
         logger.info(f"[RESPONDER v3.5.0] Synthesizing response for: {query[:50]}")
         logger.info(f"[RESPONDER v3.5.0] Tool results: {len(tool_results)} tool(s)")
 
+        # DEBUG: Log tool_results content
+        if tool_results:
+            logger.info(f"[RESPONDER DEBUG] First tool result: {str(tool_results[0])[:200]}")
+        else:
+            logger.warning(f"[RESPONDER DEBUG] tool_results is empty! State keys: {list(state.keys())}")
+
         if not tool_results:
             logger.warning("[RESPONDER] No tool results - generating fallback")
             state["response"] = "Non ho trovato dati specifici. Prova a riformulare la domanda."

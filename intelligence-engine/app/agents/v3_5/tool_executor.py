@@ -59,6 +59,10 @@ async def execute_tools_direct(state: AgentState) -> AgentState:
                 # Use normalized params from tool_mapper
                 result = await tool_fn.ainvoke(normalized_params)
 
+                # DEBUG: Log result content
+                result_preview = result[:200] if isinstance(result, str) else str(result)[:200]
+                logger.info(f"[TOOL EXECUTION] Tool {tool_fn.name} returned: {result_preview}")
+
                 results.append({
                     "tool": tool_fn.name,
                     "result": result
