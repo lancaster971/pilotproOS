@@ -4,8 +4,7 @@ import type { User } from '../types'
 import { API_BASE_URL } from '../utils/api-config'
 
 export const useAuthStore = defineStore('auth', () => {
-  // Initialize from localStorage on startup
-  const token = ref<string | null>(localStorage.getItem('token'))
+  // State (HttpOnly cookie, no token in localStorage)
   const user = ref<User | null>(
     localStorage.getItem('user')
       ? JSON.parse(localStorage.getItem('user')!)
@@ -13,19 +12,19 @@ export const useAuthStore = defineStore('auth', () => {
   )
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const isInitialized = ref(true) // Always initialized from localStorage
+  const isInitialized = ref(true)
 
   // Computed
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!user.value)
   const tenantId = computed(() => user.value?.tenantId || 'client_simulation_a')
 
-  // Login function - saves to localStorage
+  // Login function - uses HttpOnly cookies
   const login = async (email: string, password: string) => {
     isLoading.value = true
     error.value = null
 
     try {
-      console.log('🌐 Logging in with new JWT system...')
+      console.log('🔐 Logging in with HttpOnly cookies...')
 
       const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
       const response = await fetch(`${API_BASE}/api/auth/login`, {
@@ -33,8 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // CRITICAL: Send/receive HttpOnly cookies
         body: JSON.stringify({ email, password })
-        // NO credentials: 'include' - we don't use cookies anymore!
       })
 
       console.log('📡 Response:', response.status)
@@ -47,8 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await response.json()
       console.log('✅ Login successful:', data)
 
-      // Store token and user in memory
-      token.value = data.token
+      // Store user info in localStorage (NOT sensitive)
       user.value = {
         id: data.user.id,
         email: data.user.email,
@@ -58,11 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
         createdAt: new Date().toISOString()
       }
 
-      // Persist to localStorage
-      localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(user.value))
 
-      console.log('✅ Token saved to localStorage')
+      console.log('✅ User saved to localStorage (token in HttpOnly cookie)')
 
     } catch (err: any) {
       error.value = err.message || 'Login failed'
@@ -73,91 +69,82 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Logout - clears localStorage
+  // Logout - clears HttpOnly cookie
   const logout = async () => {
     console.log('🚪 Logging out...')
 
-    // Optional: Call logout endpoint (not really needed)
+    // Call logout endpoint to clear HttpOnly cookie
     try {
       const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
       await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token.value}`
-        }
+        credentials: 'include' // Send HttpOnly cookie
       })
     } catch (err) {
-      // Ignore errors - we're logging out anyway
+      console.error('Logout error:', err)
+      // Continue logout even on error
     }
 
     // Clear memory
-    token.value = null
     user.value = null
     error.value = null
 
-    // Clear localStorage
-    localStorage.removeItem('token')
+    // Clear localStorage (user info only, no token)
     localStorage.removeItem('user')
 
-    console.log('✅ Logged out - localStorage cleared')
+    console.log('✅ Logged out - HttpOnly cookie cleared')
   }
 
-  // Initialize auth - verify token with backend
+  // Initialize auth - verify HttpOnly cookie with backend
   const initializeAuth = async () => {
-    // No token in localStorage - user not authenticated
-    if (!token.value) {
+    // No user in localStorage - not authenticated
+    if (!user.value) {
       return false
     }
 
-    // Token exists - verify it's still valid with backend
+    // User exists - verify HttpOnly cookie is still valid
     try {
-      console.log('🔐 Verifying token with backend...')
+      console.log('🔐 Verifying HttpOnly cookie with backend...')
       const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
       const response = await fetch(`${API_BASE}/api/auth/verify`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token.value}`
-        }
+        credentials: 'include' // Send HttpOnly cookie
       })
 
       if (!response.ok) {
-        // Token is invalid or expired - logout
-        console.warn('⚠️ Token verification failed - logging out')
+        // Cookie is invalid or expired - logout
+        console.warn('⚠️ Cookie verification failed - logging out')
         await logout()
         return false
       }
 
-      console.log('✅ Token verified successfully')
+      console.log('✅ Cookie verified successfully')
       return true
 
     } catch (err) {
       // Network error or backend unavailable - logout for security
-      console.error('❌ Token verification error:', err)
+      console.error('❌ Cookie verification error:', err)
       await logout()
       return false
     }
   }
 
-  // Add Authorization header to all fetch requests
+  // Add credentials: 'include' to all fetch requests (for HttpOnly cookies)
   const originalFetch = window.fetch
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    // If we have a token, add it to the headers
-    if (token.value) {
-      init = init || {}
+    init = init || {}
 
-      // CRITICAL FIX: Properly handle Headers object vs plain object
-      // ofetch passes a Headers instance which doesn't spread correctly
-      const headers = new Headers(init.headers || {})
-      headers.set('Authorization', `Bearer ${token.value}`)
-      init.headers = headers
+    // CRITICAL: Always send cookies for authenticated requests
+    if (!init.credentials) {
+      init.credentials = 'include'
     }
+
     return originalFetch(input, init)
   }
 
   return {
     // State
     user,
-    token,
     isLoading,
     error,
     isInitialized,
@@ -172,8 +159,8 @@ export const useAuthStore = defineStore('auth', () => {
     initializeAuth,
 
     // Legacy compatibility
-    resetAutoLogoutTimer: () => {}, // Not needed with JWT
-    clearAutoLogoutTimer: () => {}, // Not needed with JWT
+    resetAutoLogoutTimer: () => {}, // Not needed with HttpOnly cookies
+    clearAutoLogoutTimer: () => {}, // Not needed with HttpOnly cookies
     ensureInitialized: async () => {
       await initializeAuth()
     }

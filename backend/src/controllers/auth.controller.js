@@ -60,10 +60,18 @@ router.post('/login', async (req, res) => {
       { expiresIn: config.security.jwtExpiresIn }
     );
 
-    // Return token and user data (NO COOKIES!)
+    // Set HttpOnly cookie (SECURITY: XSS protection)
+    res.cookie('access_token', token, {
+      httpOnly: true,          // Cannot be accessed by JavaScript
+      secure: config.server.isProduction, // HTTPS only in production
+      sameSite: 'strict',      // CSRF protection
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    });
+
+    // Return token and user data (BACKWARD COMPATIBLE - will remove later)
     res.json({
       success: true,
-      token,
+      token, // Keep for backward compatibility with localStorage clients
       user: {
         id: user.id,
         email: user.email,
@@ -81,13 +89,14 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * VERIFY TOKEN - Optional endpoint to check if token is still valid
- * Frontend can use this on app init if needed
+ * VERIFY TOKEN - Check if token (from cookie or header) is still valid
  */
 router.get('/verify', async (req, res) => {
   try {
-    // Get token from Authorization header
-    const token = req.headers.authorization?.split(' ')[1];
+    // Get token from Authorization header OR HttpOnly cookie
+    const authHeader = req.headers.authorization;
+    const headerToken = authHeader?.split(' ')[1];
+    const token = headerToken || req.cookies?.access_token;
 
     if (!token) {
       return res.status(401).json({
@@ -122,11 +131,16 @@ router.get('/verify', async (req, res) => {
 });
 
 /**
- * LOGOUT - Frontend just clears localStorage
- * But we can have this endpoint for consistency
+ * LOGOUT - Clear HttpOnly cookie
  */
 router.post('/logout', (req, res) => {
-  // Nothing to do server-side. Frontend clears localStorage.
+  // Clear HttpOnly cookie
+  res.clearCookie('access_token', {
+    httpOnly: true,
+    secure: config.server.isProduction,
+    sameSite: 'strict'
+  });
+
   res.json({
     success: true,
     message: 'Logged out successfully'

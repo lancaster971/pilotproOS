@@ -14,11 +14,14 @@ import config from '../config/index.js';
  */
 export const authenticate = (req, res, next) => {
   try {
-    // Get token from Authorization header
+    // Get token from Authorization header OR HttpOnly cookie
     const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ')
+    const headerToken = authHeader?.startsWith('Bearer ')
       ? authHeader.substring(7)
       : null;
+
+    // Priority: Authorization header, fallback to HttpOnly cookie
+    const token = headerToken || req.cookies?.access_token;
 
     if (!token) {
       return res.status(401).json({
