@@ -52,3 +52,4 @@ class AgentState(TypedDict):
     supervisor_decision: Optional[SupervisorDecision]
     waiting_clarification: bool
     original_query: Optional[str]  # For learning
+    fast_path_match: bool  # True if fast-path handled query (DANGER/GREETING)

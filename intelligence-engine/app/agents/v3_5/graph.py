@@ -149,7 +149,7 @@ class AgentGraph:
         # Otherwise → Continue to Classifier
         def route_after_fast_path(state: AgentState) -> str:
             """Route after Fast-Path: END if match, else Classifier"""
-            if state.get("response"):
+            if state.get("fast_path_match"):
                 logger.info("[ROUTER] Fast-Path match detected → END immediately")
                 return END
             else:

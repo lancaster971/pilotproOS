@@ -69,8 +69,8 @@ async def lifespan(app: FastAPI):
     )
 
     app.state.openai_llm = ChatOpenAI(
-        model="gpt-4o-2024-11-20",
-        temperature=0.7,
+        model="gpt-4.1-mini-2025-04-14",  # Testing GPT-4.1 Mini for Responder
+        temperature=0.3,  # v3.5.2: Reduced from 0.7 to prevent hallucinations
         api_key=os.getenv("OPENAI_API_KEY")
     )
     logger.info("✅ LLMs initialized (Groq + OpenAI)")

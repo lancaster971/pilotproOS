@@ -69,6 +69,10 @@ class FastPath:
             state: Modified state with supervisor_decision if match found,
                    or unmodified state if no match (pass to Classifier)
         """
+        # Clear previous query state to prevent contamination
+        state["response"] = ""
+        state["fast_path_match"] = False
+
         query = state["query"]
         query_lower = query.lower().strip()
 
@@ -94,6 +98,7 @@ class FastPath:
             state["waiting_clarification"] = False
             state["response"] = decision.direct_response
             state["intent"] = "SECURITY"
+            state["fast_path_match"] = True
 
             logger.info(f"[FAST-PATH] Blocked DANGER query with direct response")
             return state
@@ -120,6 +125,7 @@ class FastPath:
             state["waiting_clarification"] = False
             state["response"] = decision.direct_response
             state["intent"] = "GENERAL"
+            state["fast_path_match"] = True
 
             logger.info(f"[FAST-PATH] Responded to greeting with quick message")
             return state

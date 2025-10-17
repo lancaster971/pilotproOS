@@ -16,7 +16,7 @@ class ResponseFormatter:
     - Appropriate emoji based on query intent
     - Consistent number formatting
     - Proper spacing and structure
-    - Always ends with "Altro?"
+    - v3.5.1: NO automatic closing (Responder LLM handles engagement)
     """
 
     def __init__(self):
@@ -207,46 +207,22 @@ class ResponseFormatter:
 
     def _ensure_closing(self, response: str, query: str = "", intent: Optional[str] = None) -> str:
         """
-        Ensure response ends with context-aware interactive closing formula
+        v3.5.1: DISABLED automatic closing - Responder LLM generates contextual questions
 
-        Formulas:
-        - Problems/Failures: "È questo quello che cercavi? Posso approfondire?"
-        - Success/Metrics: "Ti è utile? Vuoi altri dettagli?"
-        - Generic: "Altro?"
+        Rationale: The new Responder prompt (v3.5.1 ENRICHED) instructs the LLM to always
+        include proactive questions in the "AZIONI SUGGERITE" section. Adding a generic
+        closing question here creates REDUNDANCY (2 questions at the end).
+
+        Solution: If response already ends with "?" (LLM-generated question), skip closing.
         """
-        # Determine context from response content
-        response_lower = response.lower()
-        query_lower = query.lower() if query else ""
+        # Check if Responder already added a question
+        if response.rstrip().endswith("?"):
+            logger.info("Response ends with '?' - Skipping automatic closing (LLM already asked)")
+            return response
 
-        # Check if response is about problems/failures
-        is_problem = any(kw in response_lower for kw in ['fallisce', 'fallimenti', 'errori', 'critico', 'problema'])
-        is_problem_query = any(kw in query_lower for kw in ['fallimenti', 'problemi', 'errori', 'peggiori', 'fallisce'])
-
-        # Check if response is about success/metrics
-        is_metric = any(kw in response_lower for kw in ['successo', 'performance', 'statistiche', 'kpi', 'processi', 'totali', 'attivi'])
-
-        # Select appropriate closing formula
-        if is_problem or is_problem_query:
-            closing = "È questo quello che cercavi? Posso approfondire?"
-        elif is_metric:
-            closing = "Ti è utile? Vuoi altri dettagli?"
-        else:
-            closing = "Altro?"
-
-        # Add closing if not present
-        if not any(response.endswith(phrase) for phrase in [
-            "Altro?",
-            "È questo quello che cercavi? Posso approfondire?",
-            "Ti è utile? Vuoi altri dettagli?"
-        ]):
-            # Add newlines if response doesn't already have them
-            if not response.endswith("\n\n"):
-                if response.endswith("\n"):
-                    response += "\n"
-                else:
-                    response += "\n\n"
-            response += closing
-
+        # If no question from LLM, skip closing anyway (per user request)
+        # User feedback: "elimina l'ultima non serve" - no generic closings needed
+        logger.info("No automatic closing added - Responder handles engagement")
         return response
 
     def _validate_response(self, response: str, query: str) -> str:
