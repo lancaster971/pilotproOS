@@ -8,6 +8,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { dbPool } from '../db/pg-pool.js';
 import config from '../config/index.js';
 
@@ -49,19 +50,38 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate JWT token (7 days expiry is fine)
-    const token = jwt.sign(
+    // Generate Access Token (30 minutes - SHORT LIVED)
+    const accessToken = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role
       },
       config.security.jwtSecret,
-      { expiresIn: config.security.jwtExpiresIn }
+      { expiresIn: '30m' } // Changed from 7 days to 30 minutes
     );
 
-    // Set HttpOnly cookie (SECURITY: XSS protection)
-    res.cookie('access_token', token, {
+    // Generate Refresh Token (cryptographically secure random - 7 days)
+    const refreshToken = crypto.randomBytes(32).toString('hex');
+    const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Store refresh token in database
+    await dbPool.query(
+      `INSERT INTO pilotpros.refresh_tokens (user_id, token, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, refreshToken, refreshExpiresAt]
+    );
+
+    // Set Access Token cookie (30 minutes - SHORT LIVED)
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,          // Cannot be accessed by JavaScript
+      secure: config.server.isProduction, // HTTPS only in production
+      sameSite: 'strict',      // CSRF protection
+      maxAge: 30 * 60 * 1000   // 30 minutes in milliseconds
+    });
+
+    // Set Refresh Token cookie (7 days - LONG LIVED)
+    res.cookie('refresh_token', refreshToken, {
       httpOnly: true,          // Cannot be accessed by JavaScript
       secure: config.server.isProduction, // HTTPS only in production
       sameSite: 'strict',      // CSRF protection
@@ -71,7 +91,7 @@ router.post('/login', async (req, res) => {
     // Return token and user data (BACKWARD COMPATIBLE - will remove later)
     res.json({
       success: true,
-      token, // Keep for backward compatibility with localStorage clients
+      token: accessToken, // Keep for backward compatibility with localStorage clients
       user: {
         id: user.id,
         email: user.email,
@@ -131,20 +151,161 @@ router.get('/verify', async (req, res) => {
 });
 
 /**
- * LOGOUT - Clear HttpOnly cookie
+ * REFRESH TOKEN - Generate new access token from refresh token
  */
-router.post('/logout', (req, res) => {
-  // Clear HttpOnly cookie
-  res.clearCookie('access_token', {
-    httpOnly: true,
-    secure: config.server.isProduction,
-    sameSite: 'strict'
-  });
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
 
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'No refresh token provided'
+      });
+    }
+
+    // Check if refresh token exists and is not revoked
+    const result = await dbPool.query(
+      `SELECT user_id, expires_at, revoked_at
+       FROM pilotpros.refresh_tokens
+       WHERE token = $1`,
+      [refreshToken]
+    );
+
+    const tokenRecord = result.rows[0];
+
+    // Validate token exists
+    if (!tokenRecord) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid refresh token'
+      });
+    }
+
+    // Validate token not revoked
+    if (tokenRecord.revoked_at) {
+      return res.status(403).json({
+        success: false,
+        message: 'Refresh token has been revoked'
+      });
+    }
+
+    // Validate token not expired
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Refresh token has expired'
+      });
+    }
+
+    // Get user details
+    const userResult = await dbPool.query(
+      'SELECT id, email, role FROM pilotpros.users WHERE id = $1 AND is_active = true',
+      [tokenRecord.user_id]
+    );
+
+    const user = userResult.rows[0];
+
+    if (!user) {
+      return res.status(403).json({
+        success: false,
+        message: 'User not found or inactive'
+      });
+    }
+
+    // Generate new access token (30 minutes)
+    const newAccessToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      },
+      config.security.jwtSecret,
+      { expiresIn: '30m' }
+    );
+
+    // Set new access token cookie
+    res.cookie('access_token', newAccessToken, {
+      httpOnly: true,
+      secure: config.server.isProduction,
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000 // 30 minutes
+    });
+
+    res.json({
+      success: true,
+      message: 'Access token refreshed successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Refresh error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * LOGOUT - Clear HttpOnly cookies and revoke refresh token
+ */
+router.post('/logout', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+
+    // Revoke refresh token in database if exists
+    if (refreshToken) {
+      await dbPool.query(
+        `UPDATE pilotpros.refresh_tokens
+         SET revoked_at = CURRENT_TIMESTAMP
+         WHERE token = $1 AND revoked_at IS NULL`,
+        [refreshToken]
+      );
+    }
+
+    // Clear both cookies
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: config.server.isProduction,
+      sameSite: 'strict'
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: config.server.isProduction,
+      sameSite: 'strict'
+    });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Still clear cookies even if DB update fails
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: config.server.isProduction,
+      sameSite: 'strict'
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: config.server.isProduction,
+      sameSite: 'strict'
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Logout completed with warnings'
+    });
+  }
 });
 
 export default router;

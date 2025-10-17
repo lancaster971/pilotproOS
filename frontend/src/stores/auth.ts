@@ -129,7 +129,50 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Add credentials: 'include' to all fetch requests (for HttpOnly cookies)
+  // Auto-refresh interceptor: transparently refresh access token on 401
+  let isRefreshing = false
+  let refreshPromise: Promise<boolean> | null = null
+
+  const refreshAccessToken = async (): Promise<boolean> => {
+    // Prevent concurrent refresh attempts
+    if (isRefreshing && refreshPromise) {
+      return refreshPromise
+    }
+
+    isRefreshing = true
+    refreshPromise = (async () => {
+      try {
+        console.log('🔄 Access token expired - attempting refresh...')
+        const API_BASE = import.meta.env.VITE_API_URL || API_BASE_URL
+        const response = await originalFetch(`${API_BASE}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include' // Send refresh_token cookie
+        })
+
+        if (!response.ok) {
+          // Refresh failed (403) - logout required
+          console.warn('⚠️ Refresh token invalid or expired - logging out')
+          await logout()
+          return false
+        }
+
+        console.log('✅ Access token refreshed successfully')
+        return true
+
+      } catch (error) {
+        console.error('❌ Token refresh error:', error)
+        await logout()
+        return false
+      } finally {
+        isRefreshing = false
+        refreshPromise = null
+      }
+    })()
+
+    return refreshPromise
+  }
+
+  // Add credentials: 'include' + auto-refresh on 401
   const originalFetch = window.fetch
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     init = init || {}
@@ -139,7 +182,30 @@ export const useAuthStore = defineStore('auth', () => {
       init.credentials = 'include'
     }
 
-    return originalFetch(input, init)
+    // Make initial request
+    let response = await originalFetch(input, init)
+
+    // If 401 and not the refresh endpoint itself, try auto-refresh
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const isRefreshEndpoint = url.includes('/api/auth/refresh')
+    const isLoginEndpoint = url.includes('/api/auth/login')
+
+    if (response.status === 401 && !isRefreshEndpoint && !isLoginEndpoint) {
+      console.log('🔒 401 Unauthorized - attempting auto-refresh...')
+
+      const refreshSuccess = await refreshAccessToken()
+
+      if (refreshSuccess) {
+        // Retry original request with new access token
+        console.log('🔄 Retrying original request with new token...')
+        response = await originalFetch(input, init)
+      } else {
+        // Refresh failed - user logged out, return 401
+        console.warn('⚠️ Auto-refresh failed - request aborted')
+      }
+    }
+
+    return response
   }
 
   return {
