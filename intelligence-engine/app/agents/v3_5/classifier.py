@@ -1,8 +1,11 @@
 """
-Classifier v3.5 - Conservative Reasoning LLM Classification
+Classifier v3.5.9 - KNOWLEDGE_BASE_SEARCH Category
 
 Extracted from graph.py:1165-1500 (CONTEXT-SYSTEM.md compliance)
 
+NEW v3.5.9: KNOWLEDGE_BASE_SEARCH category for didactic queries (how it works, guides, explanations)
+v3.5.8: Polisemia disambiguation, Double negation normalization, Hypothetical queries
+v3.5.7: Explicit CoT structured reasoning in prompt
 PURE LLM classification (NO fast-path logic - that's in fast_path.py)
 """
 from typing import Dict, Any, Optional
@@ -32,6 +35,18 @@ Classifica richieste utente in categorie operative per attivare le funzioni corr
 - Step interni ai processi
 - Performance metrics
 
+## Terminologia Ambigua (Polisemia)
+
+Alcuni termini hanno significati multipli. Usa contesto query per disambiguare:
+
+- **"esecuzioni"**: Default = workflow runs UNLESS query menziona "database" o "SQL"
+- **"report"**: Default = analytics query UNLESS query menziona "genera" o "PDF"
+- **"attività"**: Default = workflow executions UNLESS query menziona "business" o "vendite"
+- **"stato"**: Default = workflow status SE query menziona processo specifico, ELSE system health
+- **"processo"**: Default = workflow UNLESS query menziona "business process"
+
+**Regola**: Se ambiguità persiste dopo context check → CLARIFICATION_NEEDED
+
 # Istruzioni
 
 ## Principi di Ragionamento
@@ -40,6 +55,20 @@ Classifica richieste utente in categorie operative per attivare le funzioni corr
 - **Query senza oggetto/contesto richiedono chiarimenti** (es: "quanti?", "stato", "report")
 - Valuta se hai informazioni sufficienti per essere genuinamente utile
 - Fidati del tuo giudizio ma sii conservativo con query ultra-vaghe
+
+### Gestione Negazioni
+
+Le negazioni NON cambiano categoria, ma tone della risposta:
+
+- "Hai problemi?" → ERROR_ANALYSIS (neutral tone)
+- "Non hai problemi?" → ERROR_ANALYSIS (confirmation tone, expect positive answer)
+
+**Nel reasoning (Step 1)**: Identifica negazione e normalizza per category mapping.
+**Nei params**: Aggiungi `"tone": "confirmation"` se query ha negazione.
+
+Esempi:
+- "Non ci sono errori?" → ERROR_ANALYSIS + `{{"tone": "confirmation"}}`
+- "Il workflow non fallisce?" → ERROR_ANALYSIS + `{{"workflow_id": "X", "tone": "confirmation"}}`
 
 ## Processo
 1. Analizza richiesta → intento business
@@ -61,16 +90,82 @@ Classifica richieste utente in categorie operative per attivare le funzioni corr
 7. **EMAIL_ACTIVITY** - Gestione email ChatOne
 8. **PROCESS_ACTION** - Attivare/disattivare/eseguire
 9. **SYSTEM_OVERVIEW** - Panoramica completa
+10. **KNOWLEDGE_BASE_SEARCH** - Query didattiche (come funziona, spiegazioni, guide)
+11. **CLARIFICATION_NEEDED** - Query ambigua, ipotetica, o non supportata
+
+# Gestione Query Ipotetiche
+
+Il sistema NON supporta:
+- Simulazioni what-if ("se faccio X, cosa succede?")
+- Raccomandazioni ("quale processo dovrei...")
+- Predizioni future ("quanti errori avrò domani?")
+
+**Per query ipotetiche**: Classifica CLARIFICATION_NEEDED e offri alternative concrete.
+
+Esempi:
+- "Se disattivo X?" → "Non supporto simulazioni. Vuoi vedere dipendenze di X o stato attuale?"
+- "Quale workflow eseguire?" → "Non fornisco raccomandazioni. Vuoi lista workflow disponibili?"
+- "Errori futuri?" → "Non posso predire. Vuoi trend errori ultimi 7 giorni?"
+
+# Gestione Query Didattiche (KNOWLEDGE_BASE_SEARCH)
+
+Query che richiedono spiegazioni/documentazione invece di dati operativi:
+
+**Trigger keywords**:
+- "come funziona X"
+- "spiegami X"
+- "cos'è X"
+- "cosa significa X"
+- "guida X"
+- "manuale X"
+- "documentazione X"
+- "tutorial X"
+
+**Esempi**:
+- "come funziona pilotpro" → KNOWLEDGE_BASE_SEARCH (non SYSTEM_OVERVIEW dati)
+- "spiegami i workflow" → KNOWLEDGE_BASE_SEARCH (non PROCESS_LIST)
+- "cos'è un processo business" → KNOWLEDGE_BASE_SEARCH
+- "guida per usare il sistema" → KNOWLEDGE_BASE_SEARCH
+
+**Distinzione chiave**:
+- "quali workflow?" → PROCESS_LIST (dati operativi)
+- "come funzionano i workflow?" → KNOWLEDGE_BASE_SEARCH (spiegazione)
+
+# Chain of Thought Process
+
+IMPORTANT: Before classifying, think through these steps explicitly:
+
+1. **Query Analysis**
+   - What is the user literally asking?
+   - What business intent might be behind it?
+   - Are there ambiguous terms that need translation?
+
+2. **Context Check**
+   - Does the query reference specific entities (workflow names, timeframes)?
+   - What information would I need to answer this usefully?
+   - Is there enough context to proceed or do I need clarification?
+
+3. **Category Mapping**
+   - Which category best matches the business intent?
+   - What params would make the answer most useful?
+   - What's my confidence level (0.0-1.0)?
+
+4. **Self-Verification**
+   - Does my classification make sense given the query?
+   - Would this category lead to a useful answer?
+   - Should I ask for clarification instead?
+
+**Output your reasoning for each step in the "reasoning" field.**
 
 # Output Format
 
-**JSON response (max 150 tokens):**
+**JSON response (max 300 tokens):**
 
 ```json
 {{
   "category": "CATEGORY_NAME",
   "confidence": 0.8,
-  "reasoning": "Breve spiegazione processo decisionale",
+  "reasoning": "STEP-BY-STEP THOUGHT PROCESS:\n1. Query Analysis: ...\n2. Context Check: ...\n3. Category Mapping: ...\n4. Decision: ...",
   "params": {{}}
 }}
 ```
@@ -153,6 +248,17 @@ Utente: "stato"
 }}
 ```
 
+**Query didattica (KNOWLEDGE_BASE_SEARCH):**
+Utente: "come funziona pilotpro"
+```json
+{{
+  "category": "KNOWLEDGE_BASE_SEARCH",
+  "confidence": 0.9,
+  "reasoning": "1. Query Analysis: 'come funziona' = richiesta spiegazione didattica, non dati operativi.\n2. Context Check: Query generica su funzionamento sistema.\n3. Category Mapping: KNOWLEDGE_BASE_SEARCH per cercare documentazione/guide.\n4. Decision: Alta confidenza, query didattica chiara.",
+  "params": {{"query": "pilotpro funzionamento overview"}}
+}}
+```
+
 # Contesto Sistema Attuale (fornito dal sistema)
 
 Il sistema ha iniettato contesto reale qui sotto con:
@@ -169,7 +275,11 @@ Usa questi dati per validare nomi workflow, capire cosa è disponibile, e classi
 **Query utente:** "{query}"
 **Data corrente:** {current_date}
 
-Analizza la richiesta usando contesto fornito e reasoning. Think step by step through your classification process.
+Analizza la richiesta usando contesto fornito e reasoning.
+
+**CRITICAL**: Work through the Chain of Thought process above BEFORE deciding.
+Show your step-by-step reasoning explicitly in the "reasoning" field.
+This helps ensure accurate classification and builds trust with the user.
 
 Return JSON SOLO (no text, no markdown).
 """
@@ -189,23 +299,29 @@ class Classifier:
         self._cache_timestamp = 0
         self._cache_ttl = cache_ttl
 
-    @traceable(name="Classifier", run_type="chain", metadata={"version": "3.5.6"})
+    @traceable(name="Classifier", run_type="chain", metadata={"version": "3.5.9"})
     async def classify(self, state: AgentState) -> AgentState:
         """
-        v3.5.6: PURE LLM Classification (CONTEXT-SYSTEM.md compliance)
+        v3.5.9: KNOWLEDGE_BASE_SEARCH Category (CONTEXT-SYSTEM.md compliance)
+
+        NEW v3.5.9: KNOWLEDGE_BASE_SEARCH for didactic queries (how it works, guides)
+        v3.5.8: Polisemia disambiguation, Double negation, Hypothetical queries
+        v3.5.7: Explicit Chain of Thought reasoning in prompt
 
         Pipeline Step 2 (after Fast-Path):
-        1. LLM Classification with system context
-        2. Parse JSON response
+        1. LLM Classification with system context + CoT + edge cases + RAG category
+        2. Parse JSON response (includes structured reasoning + params)
         3. Handle CLARIFICATION_NEEDED
         """
         query = state["query"]
 
-        logger.info(f"[CLASSIFIER v3.5.6] Starting LLM classification for: {query[:50]}...")
+        logger.info(f"[CLASSIFIER v3.5.9] Starting classification with KNOWLEDGE_BASE_SEARCH category for: {query[:50]}...")
 
         # ========================================================================
-        # STEP 1: LLM Classification with System Context
+        # STEP 1: LLM Classification with System Context + CoT + Edge Cases
         # From graph.py:1342-1418
+        # v3.5.8: Edge case handling (polisemia, negations, hypothetical)
+        # v3.5.7: Enhanced with explicit Chain of Thought reasoning
         # ========================================================================
         from datetime import datetime
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -215,7 +331,7 @@ class Classifier:
         system_context_light = await self._get_system_context_light()
         prompt_with_context = prompt + "\n\n" + system_context_light
 
-        logger.info(f"🔍 [CLASSIFIER v3.5.6] Starting LLM call - query: '{query}'")
+        logger.info(f"🔍 [CLASSIFIER v3.5.9] Starting LLM call with CoT + KNOWLEDGE_BASE_SEARCH - query: '{query}'")
 
         try:
             # v3.5.2: Simple LLM call (no ReAct overhead, context already in prompt)
@@ -232,33 +348,34 @@ class Classifier:
             response = await base_model.ainvoke(messages)
             response_text = response.content
 
-            logger.info(f"[CLASSIFIER v3.5.6] LLM completed - response length: {len(response_text)} chars")
+            logger.info(f"[CLASSIFIER v3.5.9] LLM completed - response length: {len(response_text)} chars")
 
             # ====================================================================
             # STEP 3: Parse JSON from Response
             # From graph.py:1395-1418
+            # v3.5.8: Response includes CoT reasoning + edge case handling
             # ====================================================================
             try:
                 classification = json.loads(response_text)
-                logger.info(f"[CLASSIFIER v3.5.6] Parsed classification: {classification}")
+                logger.info(f"[CLASSIFIER v3.5.9] Parsed classification: {classification}")
             except json.JSONDecodeError:
                 # Fallback: extract JSON from text
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
                     classification = json.loads(json_match.group(0))
-                    logger.warning(f"[CLASSIFIER v3.5.6] Extracted JSON from text: {classification}")
+                    logger.warning(f"[CLASSIFIER v3.5.9] Extracted JSON from text: {classification}")
                 else:
                     # Ultimate fallback
-                    logger.error(f"[CLASSIFIER v3.5.6] Failed to parse JSON from: {response_text}")
+                    logger.error(f"[CLASSIFIER v3.5.9] Failed to parse JSON from: {response_text}")
                     classification = self._fallback_classification(query)
 
             classification["llm_used"] = "openai-4.1-nano"  # v3.5.2: Always OpenAI for Classifier
 
         except Exception as e:
-            logger.error(f"[CLASSIFIER v3.5.6] LLM call failed: {e}")
+            logger.error(f"[CLASSIFIER v3.5.9] LLM call failed: {e}")
             classification = self._fallback_classification(query)
             classification["llm_used"] = "rule-based"
-            logger.warning("[CLASSIFIER v3.5.6] Using rule-based fallback")
+            logger.warning("[CLASSIFIER v3.5.9] Using rule-based fallback")
 
         # ========================================================================
         # STEP 4: Save SupervisorDecision
@@ -299,8 +416,9 @@ class Classifier:
         if decision["category"] == "CLARIFICATION_NEEDED":
             state["waiting_clarification"] = True
             state["original_query"] = query
-            state["response"] = decision.get("direct_response", "")
-            logger.info(f"[CLASSIFIER] Waiting clarification with {len(decision.get('clarification_options', []))} options")
+            # Use clarification_question as direct response to user
+            state["response"] = classification.get("clarification_question", "Mi dispiace, non ho capito. Puoi essere più specifico?")
+            logger.info(f"[CLASSIFIER] Waiting clarification with {len(decision.get('clarification_options') or [])} options")
         else:
             state["waiting_clarification"] = False
             if decision.get("direct_response"):
@@ -321,6 +439,7 @@ class Classifier:
             "EMAIL_ACTIVITY": "METRIC",
             "PROCESS_ACTION": "ACTION",
             "SYSTEM_OVERVIEW": "STATUS",
+            "KNOWLEDGE_BASE_SEARCH": "KNOWLEDGE",
             "CLARIFICATION_NEEDED": "CLARIFICATION"
         }
         state["intent"] = category_to_intent_map.get(decision["category"], "GENERAL")

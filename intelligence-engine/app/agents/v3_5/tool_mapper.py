@@ -33,7 +33,8 @@ def map_category_to_tools(category: str, raw_params: Optional[Dict[str, Any]] = 
         get_workflows_tool,
         execute_workflow_tool,
         toggle_workflow_tool,
-        get_full_database_dump
+        get_full_database_dump,
+        search_knowledge_base_tool
     )
 
     params = raw_params or {}
@@ -102,6 +103,11 @@ def map_category_to_tools(category: str, raw_params: Optional[Dict[str, Any]] = 
 
     elif category == "SYSTEM_OVERVIEW":
         return [get_full_database_dump], {}
+
+    elif category == "KNOWLEDGE_BASE_SEARCH":
+        # Params: topic (optional), query (optional)
+        # RAG search for didactic queries (how it works, guides, explanations)
+        return [search_knowledge_base_tool], params
 
     else:
         logger.warning(f"[TOOL MAPPER] Unknown category: {category}, returning empty list")
