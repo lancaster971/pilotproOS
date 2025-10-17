@@ -9,7 +9,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// import config from './config/index.js'; // TEMPORARILY DISABLED
+import config from './config/index.js';
 // import { getErrorNotificationService } from './services/errorNotification.service.js'; // Temporarily disabled
 import { createServer } from 'http';
 import fs from 'fs';
@@ -121,15 +121,10 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Configure CORS with environment variables
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',')
-  : [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173'
-    ];
+// Configure CORS - Lockdown in production, relaxed in development
+const corsOrigins = config.server.isProduction
+  ? [config.security.frontendUrl] // PRODUCTION: Single origin only
+  : config.security.corsOrigins;  // DEVELOPMENT: Multiple origins allowed
 
 app.use(cors({
   origin: corsOrigins,
