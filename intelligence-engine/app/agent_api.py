@@ -10,8 +10,8 @@ import logging
 from langsmith import traceable
 import uuid
 
-# Import Milhena components
-from .graph import AgentGraph
+# Import Agent components (v3.5.6 Self-Contained Architecture)
+from .agents.v3_5.graph import AgentGraph
 from .utils.learning import LearningSystem
 from .utils.token_manager import TokenManager
 from .utils.cache_manager import CacheManager
