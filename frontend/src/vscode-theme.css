@@ -2449,9 +2449,17 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
   box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.3) !important;
 }
 
-/* Select internal elements */
+/* Select internal elements - FORCE GRAY ON CLOSED DROPDOWN */
 .p-select .p-select-label,
-.p-select .p-select-trigger {
+.p-select .p-select-trigger,
+.p-select .p-select-label *,
+.p-select span,
+.p-select div,
+.p-select-label,
+span.p-select-label,
+span.p-select-label *,
+.p-dropdown .p-dropdown-label,
+.p-dropdown .p-dropdown-trigger {
   background: transparent !important;
   color: #9CA3AF !important;
 }
@@ -2467,11 +2475,11 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
   border: 1px solid #3C3C3C !important;
 }
 
-/* Select items/options */
+/* Select items/options - MUTED GRAY */
 .p-select-overlay .p-select-option,
 .p-select-overlay .p-select-item {
   background: transparent !important;
-  color: #E0E0E0 !important;
+  color: #9CA3AF !important;
 }
 
 .p-select-overlay .p-select-option:not(.p-disabled):hover,
@@ -2489,12 +2497,84 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
 .p-select-overlay .p-select-option.p-highlight,
 .p-select-overlay .p-select-item.p-highlight {
   background: #4B5563 !important;
-  color: #FFFFFF !important;
+  color: #9CA3AF !important;
 }
 
 .p-select-overlay .p-select-option.p-highlight.p-focus,
 .p-select-overlay .p-select-item.p-highlight.p-focus {
   background: #374151 !important;
+  color: #9CA3AF !important;
 }
 
-/* Force reload Sat Oct 18 20:48:00 CEST 2025 - GRAY DROPDOWN FIX */
+/* ============================================
+   NUCLEAR FIX - FORCE GRAY ON ALL DROPDOWNS
+   ============================================ */
+
+/* Override ANY blue/cyan text in ALL dropdowns GLOBALLY */
+.p-select,
+.p-select *,
+.p-dropdown,
+.p-dropdown *,
+.p-select-label,
+.p-dropdown-label,
+span[role="combobox"],
+span[role="combobox"] *,
+[class*="select"] span,
+[class*="dropdown"] span {
+  color: #9CA3AF !important;
+}
+
+/* Override focus border colors GLOBALLY */
+.p-select:focus,
+.p-select.p-focus,
+.p-dropdown:focus,
+.p-dropdown.p-focus {
+  border-color: #6B7280 !important;
+  box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.3) !important;
+}
+
+/* ULTIMATE FIX - CLOSED DROPDOWN TEXT MUST BE GRAY */
+.p-select .p-select-label,
+span.p-select-label,
+.p-dropdown .p-dropdown-label,
+span.p-dropdown-label,
+[role="combobox"],
+.p-inputtext {
+  color: #9CA3AF !important;
+}
+
+/* ABSOLUTE MAXIMUM PRIORITY - TARGET EXACT WRAPPER */
+span.p-select-label[role="combobox"],
+span.p-select-label[tabindex],
+span.p-select-label[aria-label],
+span.p-dropdown-label[role="combobox"],
+span[class*="select-label"],
+span[class*="dropdown-label"] {
+  color: #9CA3AF !important;
+}
+
+/* Force all children to inherit gray */
+span.p-select-label[role="combobox"] *,
+span.p-dropdown-label[role="combobox"] * {
+  color: inherit !important;
+}
+
+/* ABSOLUTE FINAL NUCLEAR OPTION - FORCE GRAY EVERYWHERE */
+* [class*="select-label"],
+* [class*="dropdown-label"],
+* [role="combobox"],
+.p-select-label,
+.p-dropdown-label,
+span[role="combobox"] {
+  color: #9CA3AF !important;
+}
+
+/* Kill any color inheritance from parent */
+.p-select *,
+.p-dropdown *,
+[class*="select"] *,
+[class*="dropdown"] * {
+  color: #9CA3AF !important;
+}
+
+/* Force reload Sat Oct 18 21:04:00 CEST 2025 - NUCLEAR GRAY FIX */

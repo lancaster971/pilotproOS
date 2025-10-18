@@ -105,6 +105,9 @@
                 filterPlaceholder="Search workflows..."
                 :showClear="false"
                 scrollHeight="400px"
+                :pt="{
+                  label: { style: 'color: #9CA3AF !important' }
+                }"
               >
                 <!-- Custom option template con status badge -->
                 <template #option="slotProps">
