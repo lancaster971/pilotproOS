@@ -7,6 +7,7 @@
 
     <!-- ALWAYS RENDER - Debug mode -->
     <DataTable
+      id="learning-patterns-table-vscode"
       :value="patterns"
       :rows="10"
       :paginator="patterns.length > 10"
@@ -633,5 +634,74 @@ const handleDelete = async (patternId: number) => {
   .detail-label {
     min-width: 120px;
   }
+}
+</style>
+
+<!-- GLOBAL VS CODE THEME OVERRIDE - NO SCOPED - ID SPECIFICITY -->
+<style>
+/* ⚡ PAGINATOR - Force VS Code gray (not blue!) */
+#learning-patterns-table-vscode .p-paginator {
+  background: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+  border-top: 1px solid #3C3C3C !important;
+  color: #9E9E9E !important;
+}
+
+/* Paginator buttons - Gray background */
+#learning-patterns-table-vscode .p-paginator .p-paginator-page,
+#learning-patterns-table-vscode .p-paginator .p-paginator-first,
+#learning-patterns-table-vscode .p-paginator .p-paginator-prev,
+#learning-patterns-table-vscode .p-paginator .p-paginator-next,
+#learning-patterns-table-vscode .p-paginator .p-paginator-last {
+  background: #2A2A2A !important;
+  background-color: #2A2A2A !important;
+  color: #9E9E9E !important;
+  border: 1px solid #3C3C3C !important;
+}
+
+/* Paginator buttons hover - Lighter gray */
+#learning-patterns-table-vscode .p-paginator .p-paginator-page:not(.p-disabled):hover,
+#learning-patterns-table-vscode .p-paginator .p-paginator-first:not(.p-disabled):hover,
+#learning-patterns-table-vscode .p-paginator .p-paginator-prev:not(.p-disabled):hover,
+#learning-patterns-table-vscode .p-paginator .p-paginator-next:not(.p-disabled):hover,
+#learning-patterns-table-vscode .p-paginator .p-paginator-last:not(.p-disabled):hover {
+  background: #3C3C3C !important;
+  background-color: #3C3C3C !important;
+  color: #E0E0E0 !important;
+  border-color: #6B6B6B !important;
+}
+
+/* Active page - VS Code accent blue */
+#learning-patterns-table-vscode .p-paginator .p-paginator-page.p-highlight {
+  background: #007ACC !important;
+  background-color: #007ACC !important;
+  color: #FFFFFF !important;
+  border-color: #007ACC !important;
+}
+
+#learning-patterns-table-vscode .p-paginator .p-paginator-page.p-highlight:hover {
+  background: #005A9E !important;
+  background-color: #005A9E !important;
+}
+
+/* Disabled buttons */
+#learning-patterns-table-vscode .p-paginator .p-paginator-page.p-disabled,
+#learning-patterns-table-vscode .p-paginator .p-paginator-first.p-disabled,
+#learning-patterns-table-vscode .p-paginator .p-paginator-prev.p-disabled,
+#learning-patterns-table-vscode .p-paginator .p-paginator-next.p-disabled,
+#learning-patterns-table-vscode .p-paginator .p-paginator-last.p-disabled {
+  opacity: 0.4 !important;
+  background: #1A1A1A !important;
+}
+
+/* Rows per page dropdown */
+#learning-patterns-table-vscode .p-paginator .p-dropdown {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #E0E0E0 !important;
+}
+
+#learning-patterns-table-vscode .p-paginator .p-dropdown:hover {
+  border-color: #007ACC !important;
 }
 </style>

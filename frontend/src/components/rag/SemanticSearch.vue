@@ -153,6 +153,7 @@
 
       <!-- Pagination -->
       <Paginator
+        id="rag-semantic-search-paginator-vscode"
         v-if="totalResults > searchOptions.limit"
         v-model:first="currentPage"
         :rows="searchOptions.limit"
@@ -755,5 +756,68 @@ onMounted(async () => {
 /* Utility */
 .mb-2 {
   margin-bottom: 0.5rem;
+}
+</style>
+
+<!-- GLOBAL VS CODE THEME OVERRIDE - NO SCOPED - ID SPECIFICITY -->
+<style>
+/* ⚡ PAGINATOR - Force VS Code gray (not blue!) */
+#rag-semantic-search-paginator-vscode {
+  background: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #9E9E9E !important;
+}
+
+/* Paginator buttons - Gray background */
+#rag-semantic-search-paginator-vscode .p-paginator-page,
+#rag-semantic-search-paginator-vscode .p-paginator-first,
+#rag-semantic-search-paginator-vscode .p-paginator-prev,
+#rag-semantic-search-paginator-vscode .p-paginator-next,
+#rag-semantic-search-paginator-vscode .p-paginator-last {
+  background: #2A2A2A !important;
+  background-color: #2A2A2A !important;
+  color: #9E9E9E !important;
+  border: 1px solid #3C3C3C !important;
+}
+
+/* Paginator buttons hover - Lighter gray */
+#rag-semantic-search-paginator-vscode .p-paginator-page:not(.p-disabled):hover,
+#rag-semantic-search-paginator-vscode .p-paginator-first:not(.p-disabled):hover,
+#rag-semantic-search-paginator-vscode .p-paginator-prev:not(.p-disabled):hover,
+#rag-semantic-search-paginator-vscode .p-paginator-next:not(.p-disabled):hover,
+#rag-semantic-search-paginator-vscode .p-paginator-last:not(.p-disabled):hover {
+  background: #3C3C3C !important;
+  background-color: #3C3C3C !important;
+  color: #E0E0E0 !important;
+  border-color: #6B6B6B !important;
+}
+
+/* Active page - VS Code accent blue */
+#rag-semantic-search-paginator-vscode .p-paginator-page.p-highlight {
+  background: #007ACC !important;
+  background-color: #007ACC !important;
+  color: #FFFFFF !important;
+  border-color: #007ACC !important;
+}
+
+#rag-semantic-search-paginator-vscode .p-paginator-page.p-highlight:hover {
+  background: #005A9E !important;
+  background-color: #005A9E !important;
+}
+
+/* Disabled buttons */
+#rag-semantic-search-paginator-vscode .p-paginator-page.p-disabled,
+#rag-semantic-search-paginator-vscode .p-paginator-first.p-disabled,
+#rag-semantic-search-paginator-vscode .p-paginator-prev.p-disabled,
+#rag-semantic-search-paginator-vscode .p-paginator-next.p-disabled,
+#rag-semantic-search-paginator-vscode .p-paginator-last.p-disabled {
+  opacity: 0.4 !important;
+  background: #1A1A1A !important;
+}
+
+/* Current page display */
+#rag-semantic-search-paginator-vscode .p-paginator-current {
+  color: #9E9E9E !important;
 }
 </style>
