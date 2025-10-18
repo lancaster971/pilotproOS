@@ -1,12 +1,13 @@
 # 📋 CLAUDE.md - PROJECT GUIDE
 
 **PilotProOS** - Containerized Business Process Operating System
-**Version**: v3.5.7 RAG Search Fixes (PRODUCTION)
-**Updated**: 2025-10-17
+**Version**: v3.5.8-security (PRODUCTION READY)
+**Updated**: 2025-10-18
 
 ## 🚨 **MANDATORY READING**
 
-**READ FIRST**: [`TODO-URGENTE.md`](./TODO-URGENTE.md) - FIX CRITICI + Development Roadmap (17-23h timeline)
+**READ FIRST**: [`TODO-URGENTE.md`](./TODO-URGENTE.md) - Development Roadmap
+**SECURITY**: [`DEBITO-TECNICO.md`](./DEBITO-TECNICO.md) - Security Score 7.5/10 ✅ (6 critical fixes completed)
 
 ---
 
@@ -263,7 +264,7 @@ mcp__openmemory__save_memory({
 - Chat Widget (dark theme, Teleport z-index: 99999)
 - RAG Manager UI (8 categories, drag-drop upload, semantic search)
 - Graph Visualization (4700x2745px PNG + D3.js)
-- Authentication (JWT HttpOnly cookies, 30min timeout)
+- Authentication (JWT HttpOnly cookies + Refresh tokens, auto-refresh on 401)
 
 **Monitoring**:
 - Prometheus (24 custom metrics)
@@ -274,6 +275,15 @@ mcp__openmemory__save_memory({
 - node-cron v3.0.3 (configurable directory, 2AM daily default)
 - Retention management (30 days default)
 - Manual + scheduled backups
+
+**Security** (v3.5.8-security):
+- HttpOnly Cookies (XSS protection, CVSS 8.1 fixed)
+- Refresh Token Strategy (30min access + 7d refresh, DB revocation)
+- Rate Limiting (5 login attempts / 15min, brute-force protection)
+- JWT Secret Validation (32+ chars enforced in production)
+- CORS Lockdown (single origin in production)
+- Token Expiry Verification (server-side validation on init)
+- **Security Score**: 7.5/10 🟢 (was 4.5/10 🔴)
 
 ### **⏳ IN DEVELOPMENT**
 

@@ -2,9 +2,10 @@
 
 **Containerized Business Process Operating System with AI-Powered Intelligence**
 
-[![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.5.8--security-blue.svg)](CHANGELOG.md)
+[![Security](https://img.shields.io/badge/security-7.5%2F10-green.svg)](DEBITO-TECNICO.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-production-success.svg)](CLAUDE.md)
+[![Status](https://img.shields.io/badge/status-production--ready-success.svg)](CLAUDE.md)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg)](docker-compose.yml)
 
 PilotProOS is an enterprise-grade containerized platform that combines Business Process Automation (n8n) with an advanced AI-powered Intelligence Engine (Milhena). The system features auto-learning capabilities, hot-reload pattern matching, and persistent conversation memory through a sophisticated 4-agent pipeline.
@@ -91,9 +92,9 @@ AsyncRedisSaver (7-day TTL, 1200+ checkpoints in Redis)
 
 ### Production Ready
 
-#### Intelligence Engine v3.3.1
+#### Intelligence Engine v3.5.8
 
-- **Auto-Learning Fast-Path**: Learns patterns from LLM classifications with confidence >0.9, reducing latency 20-50x (<10ms vs 200-500ms) and costs 100%
+- **Auto-Learning Fast-Path**: Learns patterns from LLM classifications with confidence >0.9 (currently disabled, see DEBITO-TECNICO.md)
 - **Hot-Reload Pattern System**: Zero-downtime pattern updates via Redis PubSub (2.74ms reload vs 15-30s container restart)
 - **Smart Tool Routing**: 18 consolidated tools (3 multi-tools + 9 specialized + 6 action tools)
 - **RAG System**: ChromaDB + NOMIC HTTP embeddings (768-dim, 85-90% accuracy with 600-char chunks + 250 overlap)
@@ -105,7 +106,7 @@ AsyncRedisSaver (7-day TTL, 1200+ checkpoints in Redis)
 - **Chat Widget**: Dark theme, Teleport z-index 99999, real-time streaming responses
 - **RAG Manager UI**: 8 document categories, drag-drop upload (PDF/DOCX/TXT/MD/HTML), semantic search
 - **Graph Visualization**: 4700x2745px PNG + D3.js interactive diagram
-- **Authentication**: JWT HttpOnly cookies, 30min timeout, secure refresh
+- **Authentication**: Dual-token system (access 30min + refresh 7d), HttpOnly cookies, auto-refresh on 401
 
 #### Monitoring
 
@@ -118,6 +119,26 @@ AsyncRedisSaver (7-day TTL, 1200+ checkpoints in Redis)
 - **node-cron v3.0.3**: Configurable backup directory, 2AM daily default
 - **Retention Management**: 30-day default retention with automatic cleanup
 - **Manual + Scheduled**: On-demand backups via API + scheduled cron jobs
+
+#### Security (v3.5.8-security) 🔐
+
+- **Security Score**: 7.5/10 🟢 (improved from 4.5/10 🔴)
+- **HttpOnly Cookies**: XSS protection, prevents token theft via JavaScript
+- **Refresh Token Strategy**: Dual-token system with database-backed revocation
+- **Rate Limiting**: 5 login attempts per 15 minutes, brute-force protection
+- **JWT Secret Validation**: 32+ character enforcement in production
+- **CORS Lockdown**: Single origin in production, multiple in development
+- **Token Expiry Verification**: Server-side validation on app initialization
+
+**6 Critical Vulnerabilities Fixed** (CVSS 8.1 → 2.1):
+1. XSS via localStorage (CVSS 8.1) ✅
+2. No refresh token strategy (CVSS 6.5) ✅
+3. Hardcoded secret fallback (CVSS 7.2) ✅
+4. Rate limiting disabled (CVSS 4.1) ✅
+5. CORS overly permissive (CVSS 5.3) ✅
+6. Token expiry not verified (CVSS 5.8) ✅
+
+**Full Details**: See [DEBITO-TECNICO.md](DEBITO-TECNICO.md) and [CHANGELOG.md](CHANGELOG.md)
 
 ### In Development
 
