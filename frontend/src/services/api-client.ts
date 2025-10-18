@@ -13,10 +13,11 @@ const baseFetch = ofetch.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  // NO credentials: 'include' - we use JWT Bearer tokens now!
-  // Token is automatically added by auth store's fetch interceptor
+  // ✅ credentials: 'include' - REQUIRED for HttpOnly cookies!
+  // Without this, Safari won't send cookies to localhost:3001 from localhost:3000
+  credentials: 'include',
   onRequest({ options }) {
-    // Get token from localStorage if available
+    // Get token from localStorage if available (backward compatibility)
     const token = localStorage.getItem('token')
     if (token) {
       options.headers = {
