@@ -341,31 +341,30 @@ html[data-theme="vscode"] .p-dropdown {
   color: #9E9E9E !important;
 }
 
-/* Dropdown panel (options list) */
-[data-theme="vscode"] .p-dropdown-panel,
-body[data-theme="vscode"] .p-dropdown-panel {
+/* Dropdown panel (options list) - NO data-theme selector! Panel is appended to body */
+.p-dropdown-panel {
   background: #2A2A2A !important;
   border: 1px solid #3C3C3C !important;
   color: #E0E0E0 !important;
 }
 
 /* Dropdown items */
-[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
   background: transparent !important;
   color: #E0E0E0 !important;
 }
 
-[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
   background: #3C3C3C !important;
   color: #FFFFFF !important;
 }
 
-[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
   background: #007ACC !important;
   color: #FFFFFF !important;
 }
 
-[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-focus {
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-focus {
   background: #3C3C3C !important;
 }
 
