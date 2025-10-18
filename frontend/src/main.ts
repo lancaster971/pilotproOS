@@ -141,18 +141,10 @@ const pinia = createPinia()
 // Register Pinia FIRST - before any service that might use stores
 app.use(pinia)
 
-// CLEAN PrimeVue Configuration - No more inline CSS chaos!
+// CLEAN PrimeVue Configuration - UNSTYLED mode (CSS from our files only)
 app.use(PrimeVue, {
-  theme: {
-    preset: Nora,
-    options: {
-      prefix: 'p',
-      darkModeSelector: 'system'
-      // ⚠️ cssLayer REMOVED - App CSS without layer has highest specificity!
-      // This allows our VS Code theme overrides to work properly
-    }
-  },
-  ripple: true
+  unstyled: true, // ⚡ CRITICAL: No PrimeVue CSS generation! Our CSS has full control
+  ripple: false
   // NO MORE PT STYLES! Design system handles everything
 })
 
