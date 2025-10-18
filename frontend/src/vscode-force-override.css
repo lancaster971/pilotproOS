@@ -301,4 +301,72 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
 [data-theme="vscode"] [class*="text-"][class*="green"] {
   color: var(--vscode-success) !important;
 }
-/* Force reload Sat Oct 18 15:30:35 CEST 2025 */
+
+/* ============================================
+   DROPDOWNS - Force VS Code theme (MAXIMUM SPECIFICITY)
+   ============================================ */
+
+/* Dropdown container - ALL dropdowns in vscode theme */
+[data-theme="vscode"] .p-dropdown,
+body[data-theme="vscode"] .p-dropdown,
+html[data-theme="vscode"] .p-dropdown {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #E0E0E0 !important;
+}
+
+[data-theme="vscode"] .p-dropdown:hover {
+  border-color: #6B6B6B !important;
+}
+
+[data-theme="vscode"] .p-dropdown:focus,
+[data-theme="vscode"] .p-dropdown.p-focus {
+  border-color: #007ACC !important;
+  box-shadow: 0 0 0 1px #007ACC !important;
+}
+
+/* Dropdown label (selected value) */
+[data-theme="vscode"] .p-dropdown .p-dropdown-label {
+  color: #E0E0E0 !important;
+  background: transparent !important;
+}
+
+[data-theme="vscode"] .p-dropdown .p-dropdown-label.p-placeholder {
+  color: #9E9E9E !important;
+}
+
+/* Dropdown trigger button */
+[data-theme="vscode"] .p-dropdown .p-dropdown-trigger {
+  background: transparent !important;
+  color: #9E9E9E !important;
+}
+
+/* Dropdown panel (options list) */
+[data-theme="vscode"] .p-dropdown-panel,
+body[data-theme="vscode"] .p-dropdown-panel {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #E0E0E0 !important;
+}
+
+/* Dropdown items */
+[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  background: transparent !important;
+  color: #E0E0E0 !important;
+}
+
+[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+  background: #3C3C3C !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background: #007ACC !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="vscode"] .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-focus {
+  background: #3C3C3C !important;
+}
+
+/* Force reload Sat Oct 18 19:40:00 CEST 2025 */
