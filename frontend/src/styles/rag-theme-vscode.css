@@ -1,0 +1,277 @@
+/* ============================================
+   RAG COMPONENTS - VS Code Dark Modern Theme
+   Applied ONLY when data-theme="vscode"
+   Uses VS Code color palette variables
+   ============================================ */
+
+/* Scope ALL RAG styles to data-theme="vscode" */
+[data-theme="vscode"] {
+  /* RAG Manager Container */
+  .rag-manager {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  /* RAG Header - VS Code glass pattern */
+  .rag-header {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .rag-title {
+    color: var(--vscode-text-primary) !important;
+    font-size: 1.5rem !important;
+  }
+
+  .rag-description {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* Stats Cards - VS Code KPI pattern */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  .stat-card:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  /* Icon backgrounds - VS Code semantic colors */
+  .stat-icon-primary,
+  .card-icon.primary {
+    background: linear-gradient(135deg, var(--vscode-keyword) 0%, var(--vscode-accent) 100%) !important;
+  }
+
+  .stat-icon-success,
+  .card-icon.success {
+    background: linear-gradient(135deg, var(--vscode-success) 0%, var(--vscode-comment) 100%) !important;
+  }
+
+  .stat-icon-info,
+  .card-icon.info {
+    background: linear-gradient(135deg, var(--vscode-info) 0%, var(--vscode-variable) 100%) !important;
+  }
+
+  .stat-icon-warning,
+  .card-icon.warning {
+    background: linear-gradient(135deg, var(--vscode-warning) 0%, var(--vscode-string) 100%) !important;
+  }
+
+  /* TabView - VS Code theme */
+  .p-tabview-nav {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-bottom: none !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  .p-tabview-panels {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+
+  /* Search Panel */
+  .rag-search-panel,
+  .search-form {
+    background: transparent !important;
+  }
+
+  .search-form {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+  }
+
+  /* Result Cards */
+  .result-card,
+  .document-table {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  .result-card:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Upload Zone - VS Code dark glass */
+  .upload-zone,
+  .zip-upload-zone {
+    background: var(--vscode-input-bg) !important;
+    border: 2px dashed var(--vscode-border-light) !important;
+    border-radius: 12px !important;
+  }
+
+  .upload-zone.drag-over,
+  .zip-upload-zone.drag-over {
+    border-color: var(--vscode-success) !important;
+    background: var(--vscode-success-bg) !important;
+  }
+
+  /* File Items */
+  .file-item {
+    background: var(--vscode-input-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  /* Text colors - VS Code hierarchy */
+  .rag-manager h2,
+  .rag-manager h3,
+  .rag-manager h4,
+  .title-text,
+  .file-name,
+  .document-title {
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .rag-manager p,
+  .file-meta,
+  .title-meta,
+  .date-info {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* Empty states */
+  .empty-state,
+  .initial-state,
+  .empty-table-state {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .empty-icon,
+  .initial-icon {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* WebSocket Status */
+  .websocket-status {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+  }
+
+  .websocket-status.connected {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+  }
+
+  /* Dialog/Sidebar */
+  .p-dialog,
+  .p-sidebar {
+    background: var(--vscode-bg-elevated) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-dialog .p-dialog-header,
+  .p-sidebar .p-sidebar-header {
+    background: var(--vscode-bg-secondary) !important;
+    border-bottom: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  /* Input fields */
+  .p-inputtext,
+  .p-dropdown,
+  .p-textarea {
+    background: var(--vscode-input-bg) !important;
+    border: 1px solid var(--vscode-input-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-inputtext:focus,
+  .p-dropdown:focus,
+  .p-textarea:focus {
+    border-color: var(--vscode-input-focus) !important;
+    box-shadow: 0 0 0 1px var(--vscode-border-focus) !important;
+  }
+
+  /* DataTable */
+  .p-datatable .p-datatable-thead > tr > th {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    color: var(--vscode-text-primary) !important;
+    border-color: var(--vscode-border) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr {
+    background: var(--vscode-bg-secondary) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background: var(--vscode-highlight-bg) !important;
+  }
+
+  /* Progress bars */
+  .p-progressbar {
+    background: var(--vscode-input-bg) !important;
+  }
+
+  .p-progressbar .p-progressbar-value {
+    background: linear-gradient(90deg, var(--vscode-success) 0%, var(--vscode-comment) 100%) !important;
+  }
+
+  /* Chips */
+  .p-chip {
+    background: var(--vscode-input-bg) !important;
+    color: var(--vscode-text-primary) !important;
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  /* Category colors - VS Code semantic palette */
+  .category-business {
+    background: var(--vscode-success-bg) !important;
+    color: var(--vscode-success) !important;
+    border-color: var(--vscode-success) !important;
+  }
+
+  .category-docs {
+    background: var(--vscode-info-bg) !important;
+    color: var(--vscode-info) !important;
+    border-color: var(--vscode-info) !important;
+  }
+
+  .category-training {
+    background: var(--vscode-warning-bg) !important;
+    color: var(--vscode-warning) !important;
+    border-color: var(--vscode-warning) !important;
+  }
+
+  .category-policy {
+    background: rgba(200, 140, 200, 0.2) !important;
+    color: #C896C8 !important;
+    border-color: rgba(200, 140, 200, 0.4) !important;
+  }
+
+  .category-general {
+    background: var(--vscode-input-bg) !important;
+    color: var(--vscode-text-muted) !important;
+    border-color: var(--vscode-border) !important;
+  }
+
+  /* Remove all light backgrounds */
+  .rag-manager *[style*="background: white"],
+  .rag-manager *[style*="background: linear-gradient"] {
+    background: var(--vscode-glass-bg) !important;
+  }
+}

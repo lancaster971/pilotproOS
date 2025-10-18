@@ -1,0 +1,457 @@
+/**
+ * WORKFLOW THEME MODERN - VS Code Color Palette
+ *
+ * Design: Complete override using Visual Studio Code Dark Modern colors
+ * Target: .workflow-flow-modern .ultra-card (conditional activation)
+ * Typography: Inter font system
+ * Colors: VS Code Dark Modern official palette (2023+)
+ *
+ * Rollback: Set USE_MODERN_THEME = false in WorkflowCommandCenter.vue
+ *
+ * Created: 2025-10-18
+ * Version: 3.0.0 (VS Code palette)
+ */
+
+/* ============================================
+   1. BACKGROUND - Dark Slate Gradient
+   ============================================ */
+
+/* Remove VueFlow default dots background */
+.workflow-flow-modern :deep(.vue-flow__background) {
+  display: none !important;
+}
+
+/* Apply dark slate gradient + subtle grid pattern to VueFlow container */
+.workflow-flow-modern {
+  background:
+    /* Subtle grid pattern for glassmorphism visibility */
+    repeating-linear-gradient(
+      0deg,
+      rgba(148, 163, 184, 0.03) 0px,
+      transparent 1px,
+      transparent 40px,
+      rgba(148, 163, 184, 0.03) 41px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(148, 163, 184, 0.03) 0px,
+      transparent 1px,
+      transparent 40px,
+      rgba(148, 163, 184, 0.03) 41px
+    ),
+    /* Main gradient */
+    linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ============================================
+   2. NODE CARDS - Glassmorphism Override
+   ============================================ */
+
+/* MAIN CARD - Complete glassmorphism redesign */
+.workflow-flow-modern .ultra-card {
+  /* Glassmorphism base - MORE transparent + MORE blur */
+  background: rgba(30, 41, 59, 0.25) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+
+  /* Borders - Brighter for visibility */
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 16px !important;
+
+  /* Shadows - Deeper for contrast */
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+
+  /* Remove old gradient */
+  background-image: none !important;
+
+  /* Smooth transitions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hover state - Lift + glow */
+.workflow-flow-modern .ultra-card:hover {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+  transform: translateY(-6px) scale(1.02) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(6, 182, 212, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Selected state - Purple glow */
+.workflow-flow-modern .card-selected {
+  border: 2px solid rgba(139, 92, 246, 0.6) !important;
+  box-shadow:
+    0 0 0 3px rgba(139, 92, 246, 0.2),
+    0 20px 40px rgba(139, 92, 246, 0.3),
+    inset 0 1px 0 rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Executing state - Emerald glow */
+.workflow-flow-modern .card-executing {
+  border: 2px solid rgba(16, 185, 129, 0.8) !important;
+  animation: emerald-pulse 1.5s ease-in-out infinite !important;
+}
+
+@keyframes emerald-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(16, 185, 129, 0.4),
+      0 0 20px rgba(16, 185, 129, 0.3),
+      inset 0 0 10px rgba(16, 185, 129, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(16, 185, 129, 0),
+      0 0 40px rgba(16, 185, 129, 0.5),
+      inset 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* Error state - Red glow */
+.workflow-flow-modern .card-error {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  box-shadow:
+    0 8px 32px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(239, 68, 68, 0.1) !important;
+}
+
+/* ============================================
+   3. RIBBON - HIDDEN (too tacky)
+   ============================================ */
+
+.workflow-flow-modern .card-ribbon {
+  display: none !important;
+}
+
+/* ============================================
+   4. CARD CONTENT - Clean glassmorphism
+   ============================================ */
+
+.workflow-flow-modern .card-content {
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  padding: 20px 16px !important;
+  border-radius: 16px !important; /* Full rounded corners since ribbon/footer hidden */
+}
+
+/* Icon container - Subtle glow */
+.workflow-flow-modern .icon-container {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Icon pulse - Softer animation */
+.workflow-flow-modern .icon-pulse {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1)) !important;
+  animation: soft-pulse 4s infinite !important;
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Main icon - Colored instead of white - FORCE with high specificity */
+.workflow-flow-modern .ultra-card.card-trigger .main-icon,
+.workflow-flow-modern .ultra-card.card-trigger .main-icon svg,
+.workflow-flow-modern .ultra-card.card-trigger .main-icon path {
+  color: #8B5CF6 !important;
+  fill: #8B5CF6 !important;
+  filter: drop-shadow(0 2px 8px rgba(139, 92, 246, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-ai .main-icon,
+.workflow-flow-modern .ultra-card.card-ai .main-icon svg,
+.workflow-flow-modern .ultra-card.card-ai .main-icon path,
+.workflow-flow-modern .ultra-card.card-ai-wide .main-icon,
+.workflow-flow-modern .ultra-card.card-ai-wide .main-icon svg,
+.workflow-flow-modern .ultra-card.card-ai-wide .main-icon path {
+  color: #06B6D4 !important;
+  fill: #06B6D4 !important;
+  filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-storage .main-icon,
+.workflow-flow-modern .ultra-card.card-storage .main-icon svg,
+.workflow-flow-modern .ultra-card.card-storage .main-icon path {
+  color: #10B981 !important;
+  fill: #10B981 !important;
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-integration .main-icon,
+.workflow-flow-modern .ultra-card.card-integration .main-icon svg,
+.workflow-flow-modern .ultra-card.card-integration .main-icon path {
+  color: #F59E0B !important;
+  fill: #F59E0B !important;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-logic .main-icon,
+.workflow-flow-modern .ultra-card.card-logic .main-icon svg,
+.workflow-flow-modern .ultra-card.card-logic .main-icon path {
+  color: #94A3B8 !important;
+  fill: #94A3B8 !important;
+  filter: drop-shadow(0 2px 8px rgba(148, 163, 184, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-transform .main-icon,
+.workflow-flow-modern .ultra-card.card-transform .main-icon svg,
+.workflow-flow-modern .ultra-card.card-transform .main-icon path {
+  color: #0EA5E9 !important;
+  fill: #0EA5E9 !important;
+  filter: drop-shadow(0 2px 8px rgba(14, 165, 233, 0.4)) !important;
+}
+
+.workflow-flow-modern .ultra-card.card-process .main-icon,
+.workflow-flow-modern .ultra-card.card-process .main-icon svg,
+.workflow-flow-modern .ultra-card.card-process .main-icon path,
+.workflow-flow-modern .ultra-card.card-communication .main-icon,
+.workflow-flow-modern .ultra-card.card-communication .main-icon svg,
+.workflow-flow-modern .ultra-card.card-communication .main-icon path {
+  color: #E5E7EB !important;
+  fill: #E5E7EB !important;
+  filter: drop-shadow(0 2px 8px rgba(229, 231, 235, 0.3)) !important;
+}
+
+/* Typography - Inter font + better contrast */
+.workflow-flow-modern .card-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #F1F5F9 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.3 !important;
+}
+
+.workflow-flow-modern .card-subtitle {
+  font-family: 'Inter', sans-serif !important;
+  color: #94A3B8 !important;
+  font-size: 11px !important;
+}
+
+/* ============================================
+   5. TECH STRIP - HIDDEN (too tacky)
+   ============================================ */
+
+.workflow-flow-modern .tech-strip {
+  display: none !important;
+}
+
+/* ============================================
+   6. HANDLES - Modern connection points
+   ============================================ */
+
+.workflow-flow-modern .ultra-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background: linear-gradient(135deg, #06B6D4, #8B5CF6) !important;
+  border: 2px solid rgba(15, 23, 42, 0.8) !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.workflow-flow-modern .ultra-handle:hover {
+  transform: scale(1.6) !important;
+  background: linear-gradient(135deg, #06B6D4, #8B5CF6) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.5),
+    0 0 16px rgba(139, 92, 246, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Trigger handles - Purple */
+.workflow-flow-modern .handle-trigger {
+  background: linear-gradient(135deg, #8B5CF6, #A78BFA) !important;
+}
+
+.workflow-flow-modern .handle-trigger:hover {
+  box-shadow:
+    0 4px 12px rgba(139, 92, 246, 0.6),
+    0 0 16px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Tool handles - Cyan */
+.workflow-flow-modern .handle-tool-input,
+.workflow-flow-modern .handle-tool-output {
+  background: linear-gradient(135deg, #06B6D4, #22D3EE) !important;
+}
+
+/* ============================================
+   7. CATEGORY-SPECIFIC ACCENTS
+   ============================================ */
+
+/* Trigger nodes - Purple accent */
+.workflow-flow-modern .card-trigger {
+  border-color: rgba(139, 92, 246, 0.25) !important;
+}
+
+.workflow-flow-modern .card-trigger:hover {
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* AI nodes - Cyan accent */
+.workflow-flow-modern .card-ai,
+.workflow-flow-modern .card-ai-wide {
+  border-color: rgba(6, 182, 212, 0.25) !important;
+}
+
+.workflow-flow-modern .card-ai:hover,
+.workflow-flow-modern .card-ai-wide:hover {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* Storage nodes - Emerald accent */
+.workflow-flow-modern .card-storage {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+.workflow-flow-modern .card-storage:hover {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Integration nodes - Amber accent */
+.workflow-flow-modern .card-integration {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+.workflow-flow-modern .card-integration:hover {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Tool nodes (narrow cards) - Blue accent */
+.workflow-flow-modern .card-tool-narrow {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  background: rgba(30, 41, 59, 0.3) !important;
+}
+
+.workflow-flow-modern .card-tool-narrow:hover {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+/* ============================================
+   8. FALLBACK for NO backdrop-filter support
+   ============================================ */
+
+@supports not (backdrop-filter: blur(16px)) {
+  .workflow-flow-modern .ultra-card {
+    background: rgba(30, 41, 59, 0.92) !important;
+  }
+
+  .workflow-flow-modern .ultra-card:hover {
+    background: rgba(30, 41, 59, 0.98) !important;
+  }
+}
+
+/* ============================================
+   9. EDGES/CONNECTIONS - Ultra minimal elegant lines
+   ============================================ */
+
+/* Override ALL edge styles with maximum specificity */
+.workflow-flow-modern :deep(.vue-flow__edge .vue-flow__edge-path),
+.workflow-flow-modern :deep(.main-edge .vue-flow__edge-path),
+.workflow-flow-modern :deep(.secondary-edge .vue-flow__edge-path),
+.workflow-flow-modern :deep(.vue-flow__edge-default .vue-flow__edge-path) {
+  stroke: rgba(100, 116, 139, 0.12) !important;
+  stroke-width: 1px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-dasharray: none !important;
+  opacity: 1 !important;
+  transition: all 0.3s ease !important;
+  filter: none !important;
+}
+
+/* Hover state - subtle highlight */
+.workflow-flow-modern :deep(.vue-flow__edge:hover .vue-flow__edge-path),
+.workflow-flow-modern :deep(.main-edge:hover .vue-flow__edge-path),
+.workflow-flow-modern :deep(.secondary-edge:hover .vue-flow__edge-path) {
+  stroke: rgba(6, 182, 212, 0.35) !important;
+  stroke-width: 1.5px !important;
+  filter: drop-shadow(0 0 3px rgba(6, 182, 212, 0.25)) !important;
+}
+
+/* Selected edge - purple glow */
+.workflow-flow-modern :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+  stroke: rgba(139, 92, 246, 0.45) !important;
+  stroke-width: 1.5px !important;
+  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.3)) !important;
+}
+
+/* Animated edge for executing workflows - emerald dashed */
+.workflow-flow-modern :deep(.vue-flow__edge.animated .vue-flow__edge-path) {
+  stroke: rgba(16, 185, 129, 0.5) !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 4 3 !important;
+  animation: edge-flow 1.2s linear infinite !important;
+  filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.2)) !important;
+}
+
+@keyframes edge-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 14;
+  }
+}
+
+/* Remove arrow markers - cleaner minimal look */
+.workflow-flow-modern :deep(.vue-flow__edge-marker) {
+  display: none !important;
+}
+
+/* Remove edge labels background - cleaner look */
+.workflow-flow-modern :deep(.vue-flow__edge-textbg) {
+  fill: transparent !important;
+}
+
+.workflow-flow-modern :deep(.vue-flow__edge-text) {
+  fill: rgba(203, 213, 225, 0.7) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================
+   10. CONTROLS - Match theme aesthetic
+   ============================================ */
+
+.workflow-flow-modern button {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* ============================================
+   END OF MODERN THEME
+   ============================================ */

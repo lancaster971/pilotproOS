@@ -150,23 +150,23 @@ onMounted(async () => {
 
 <style scoped>
 /* Container principale */
-.rag-manager-page {
+[data-theme="vscode"] .rag-manager-page {
   padding: 1.5rem;
-  background: #0a0a0a;
+  background: var(--vscode-bg-primary);
   min-height: 100vh;
 }
 
 /* Header */
-.page-header {
+[data-theme="vscode"] .page-header {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(20px);
+  background: var(--vscode-glass-bg);
+  backdrop-filter: var(--vscode-glass-blur);
   border-radius: 12px;
-  border: 1px solid rgba(31, 41, 55, 0.4);
+  border: 1px solid var(--vscode-border);
 }
 
-.header-content {
+[data-theme="vscode"] .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -174,85 +174,85 @@ onMounted(async () => {
   gap: 1.5rem;
 }
 
-.page-title {
+[data-theme="vscode"] .page-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--vscode-text-inverse);
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.title-icon {
+[data-theme="vscode"] .title-icon {
   font-size: 1.5rem;
-  color: #10b981;
+  color: var(--vscode-success);
 }
 
 /* Statistiche header */
-.header-stats {
+[data-theme="vscode"] .header-stats {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
 }
 
-.stat-badge {
+[data-theme="vscode"] .stat-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(15, 15, 20, 0.6);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+  background: var(--vscode-bg-secondary);
+  border: 1px solid var(--vscode-border);
   border-radius: 8px;
-  color: #888888;
+  color: var(--vscode-text-muted);
   font-size: 0.9rem;
 }
 
-.stat-badge.success {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #10b981;
+[data-theme="vscode"] .stat-badge.success {
+  background: var(--vscode-selection-bg);
+  border: 1px solid var(--vscode-border);
+  color: var(--vscode-success);
 }
 
 /* Tab styles */
-.rag-tabs {
+[data-theme="vscode"] .rag-tabs {
   background: transparent;
 }
 
-.rag-tabs :deep(.p-tabview-nav) {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-nav) {
+  background: var(--vscode-glass-bg);
+  backdrop-filter: var(--vscode-glass-blur);
+  border: 1px solid var(--vscode-border);
   border-radius: 8px 8px 0 0;
   padding: 0.5rem;
 }
 
-.rag-tabs :deep(.p-tabview-header) {
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-header) {
   background: transparent;
 }
 
-.rag-tabs :deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
-  background: #10b981;
-  color: white;
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
+  background: var(--vscode-success);
+  color: var(--vscode-text-inverse);
   border-color: transparent;
 }
 
-.rag-tabs :deep(.p-tabview-nav-link) {
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-nav-link) {
   background: transparent;
-  color: #888888;
+  color: var(--vscode-text-muted);
   border: 1px solid transparent;
   transition: all 0.3s ease;
 }
 
-.rag-tabs :deep(.p-tabview-nav-link:hover) {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-nav-link:hover) {
+  background: var(--vscode-highlight-bg);
+  color: var(--vscode-text-inverse);
 }
 
-.rag-tabs :deep(.p-tabview-panels) {
-  background: rgba(15, 15, 20, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+[data-theme="vscode"] .rag-tabs :deep(.p-tabview-panels) {
+  background: var(--vscode-glass-bg);
+  backdrop-filter: var(--vscode-glass-blur);
+  border: 1px solid var(--vscode-border);
   border-top: none;
   border-radius: 0 0 8px 8px;
   padding: 1.5rem;
@@ -260,50 +260,50 @@ onMounted(async () => {
 }
 
 /* Tab header personalizzato */
-.tab-header {
+[data-theme="vscode"] .tab-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0;
 }
 
-.tab-header :deep(.p-badge) {
+[data-theme="vscode"] .tab-header :deep(.p-badge) {
   margin-left: 0.5rem;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .rag-manager-page {
+  [data-theme="vscode"] .rag-manager-page {
     padding: 1rem;
   }
 
-  .page-header {
+  [data-theme="vscode"] .page-header {
     padding: 1rem;
   }
 
-  .header-content {
+  [data-theme="vscode"] .header-content {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .page-title {
+  [data-theme="vscode"] .page-title {
     font-size: 1.5rem;
   }
 
-  .header-stats {
+  [data-theme="vscode"] .header-stats {
     width: 100%;
   }
 
-  .stat-badge {
+  [data-theme="vscode"] .stat-badge {
     flex: 1;
     justify-content: center;
   }
 
-  .rag-tabs :deep(.p-tabview-nav) {
+  [data-theme="vscode"] .rag-tabs :deep(.p-tabview-nav) {
     flex-direction: column;
   }
 
-  .tab-header {
+  [data-theme="vscode"] .tab-header {
     width: 100%;
     justify-content: center;
   }
@@ -321,11 +321,11 @@ onMounted(async () => {
   }
 }
 
-.page-header {
+[data-theme="vscode"] .page-header {
   animation: slideIn 0.3s ease-out;
 }
 
-.rag-tabs {
+[data-theme="vscode"] .rag-tabs {
   animation: slideIn 0.3s ease-out 0.1s both;
 }
 </style>

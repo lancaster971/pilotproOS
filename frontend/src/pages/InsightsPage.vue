@@ -72,8 +72,8 @@
                 </td>
                 <td class="border-r border-gray-700 px-2 py-1">
                   <span class="text-xs font-bold"
-                        :class="workflow.success_rate >= 95 ? 'text-green-300' :
-                                workflow.success_rate >= 80 ? 'text-yellow-300' : 'text-red-300'">
+                        :class="workflow.success_rate >= 95 ? 'text-green' :
+                                workflow.success_rate >= 80 ? 'text-yellow' : 'text-red'">
                     {{ workflow.success_rate }}%
                   </span>
                 </td>
@@ -85,7 +85,7 @@
                 </td>
                 <td class="px-2 py-1">
                   <span v-if="workflow.is_active"
-                        class="text-xs text-green-300 font-bold">
+                        class="text-xs text-green font-bold">
                     ACTIVE
                   </span>
                   <span v-else
@@ -442,40 +442,40 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Clean Professional Design */
-.insights-container {
+/* Clean Professional Design - VS Code Theme Applied */
+[data-theme="vscode"] .insights-container {
   width: 100%;
   padding: 20px;
-  background: #0a0a0a;
+  background: var(--vscode-bg-primary);
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
   max-height: calc(100vh - 40px);
 }
 
-.header-bar {
+[data-theme="vscode"] .header-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
   padding: 16px 0;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+  border-bottom: 1px solid var(--vscode-border);
 }
 
-.page-title {
+[data-theme="vscode"] .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e5e7eb;
+  color: var(--vscode-text-inverse);
   margin: 0;
 }
 
-.last-update {
+[data-theme="vscode"] .last-update {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--vscode-text-muted);
 }
 
 /* Metrics Grid - Responsive */
-.metrics-grid {
+[data-theme="vscode"] .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
@@ -483,110 +483,111 @@ onUnmounted(() => {
 }
 
 @media (min-width: 1440px) {
-  .metrics-grid {
+  [data-theme="vscode"] .metrics-grid {
     grid-template-columns: repeat(4, 1fr); /* 4 columns on wide screens */
   }
 }
 
 @media (min-width: 768px) and (max-width: 1439px) {
-  .metrics-grid {
+  [data-theme="vscode"] .metrics-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on medium */
   }
 }
 
 @media (max-width: 767px) {
-  .metrics-grid {
+  [data-theme="vscode"] .metrics-grid {
     grid-template-columns: 1fr; /* 1 column on mobile */
   }
 }
 
-.metric-tile {
-  background: rgba(15, 15, 15, 0.6);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+[data-theme="vscode"] .metric-tile {
+  background: var(--vscode-glass-bg);
+  border: 1px solid var(--vscode-border);
   border-radius: 8px;
   padding: 16px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: var(--vscode-glass-blur);
 }
 
-.metric-label {
+[data-theme="vscode"] .metric-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--vscode-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 
-.metric-value {
+[data-theme="vscode"] .metric-value {
   font-size: 28px;
   font-weight: 600;
-  color: #fff;
+  color: var(--vscode-text-inverse);
   margin-bottom: 4px;
 }
 
-.metric-subtext {
+[data-theme="vscode"] .metric-subtext {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--vscode-text-secondary);
 }
 
 /* Section Containers */
-.section-container {
-  background: rgba(10, 10, 15, 0.9);
-  border: 1px solid rgba(31, 41, 55, 0.5);
+[data-theme="vscode"] .section-container {
+  background: var(--vscode-glass-bg);
+  border: 1px solid var(--vscode-border);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  backdrop-filter: var(--vscode-glass-blur);
+  box-shadow: var(--vscode-shadow-md);
 }
 
-.section-title {
+[data-theme="vscode"] .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--vscode-text-secondary);
   margin: 0 0 20px 0;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+  border-bottom: 1px solid var(--vscode-border);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* Table */
-.workflow-table {
+[data-theme="vscode"] .workflow-table {
   overflow-x: auto;
 }
 
-table {
+[data-theme="vscode"] table {
   width: 100%;
   border-collapse: collapse;
 }
 
-th {
+[data-theme="vscode"] th {
   text-align: left;
   padding: 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--vscode-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.3);
+  border-bottom: 1px solid var(--vscode-border);
 }
 
-td {
+[data-theme="vscode"] td {
   padding: 12px;
   font-size: 13px;
-  color: #e5e7eb;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.2);
+  color: var(--vscode-text-primary);
+  border-bottom: 1px solid var(--vscode-border);
 }
 
-tr:hover {
-  background: rgba(31, 41, 55, 0.1);
+[data-theme="vscode"] tr:hover {
+  background: var(--vscode-highlight-bg);
 }
 
-.text-green { color: #10b981; }
-.text-yellow { color: #f59e0b; }
-.text-red { color: #ef4444; }
+/* VS Code Dark Modern Colors */
+[data-theme="vscode"] .text-green { color: var(--vscode-success); }
+[data-theme="vscode"] .text-yellow { color: var(--vscode-warning); }
+[data-theme="vscode"] .text-red { color: var(--vscode-error); }
 
-.status-badge {
+[data-theme="vscode"] .status-badge {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
@@ -594,95 +595,92 @@ tr:hover {
   font-weight: 600;
 }
 
-.status-badge.active {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+[data-theme="vscode"] .status-badge.active {
+  background: var(--vscode-success-bg);
+  color: var(--vscode-success);
+  border: 1px solid var(--vscode-success);
 }
 
-.status-badge.inactive {
-  background: rgba(107, 114, 128, 0.1);
-  color: #6b7280;
-  border: 1px solid rgba(107, 114, 128, 0.3);
+[data-theme="vscode"] .status-badge.inactive {
+  background: var(--vscode-input-bg);
+  color: var(--vscode-text-muted);
+  border: 1px solid var(--vscode-border);
 }
 
 /* Integrations Grid - Fully Responsive */
-.integrations-grid {
+[data-theme="vscode"] .integrations-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
-/* Excel-style table zebra striping */
-.bg-gray-850 {
-  background-color: #1a1a1a;
-}
+/* Excel-style table zebra striping - uses global utilities-vscode.css (#222222) */
 
 /* Responsive breakpoints for System Components */
 @media (min-width: 1920px) {
-  .integrations-grid {
+  [data-theme="vscode"] .integrations-grid {
     grid-template-columns: repeat(5, 1fr); /* 5 columns on ultra-wide */
   }
 }
 
 @media (min-width: 1440px) and (max-width: 1919px) {
-  .integrations-grid {
+  [data-theme="vscode"] .integrations-grid {
     grid-template-columns: repeat(5, 1fr); /* 5 columns on desktop */
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1439px) {
-  .integrations-grid {
+  [data-theme="vscode"] .integrations-grid {
     grid-template-columns: repeat(3, 1fr); /* 3 columns on laptop */
   }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-  .integrations-grid {
+  [data-theme="vscode"] .integrations-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on tablet */
   }
 }
 
 @media (max-width: 767px) {
-  .integrations-grid {
+  [data-theme="vscode"] .integrations-grid {
     grid-template-columns: 1fr; /* 1 column on mobile */
   }
 }
 
-.integration-card {
+[data-theme="vscode"] .integration-card {
   padding: 16px;
-  background: rgba(31, 41, 55, 0.2);
+  background: var(--vscode-glass-bg);
   border-radius: 8px;
-  border: 1px solid rgba(31, 41, 55, 0.3);
+  border: 1px solid var(--vscode-border);
   transition: all 0.2s;
 }
 
-.integration-card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
+[data-theme="vscode"] .integration-card:hover {
+  border-color: var(--vscode-accent);
   transform: translateY(-1px);
 }
 
-.integration-header {
+[data-theme="vscode"] .integration-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-.status-dot {
+[data-theme="vscode"] .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #6b7280;
+  background: var(--vscode-text-muted);
 }
 
-.status-dot.green {
-  background: #10b981;
+[data-theme="vscode"] .status-dot.green {
+  background: var(--vscode-success);
   animation: pulse-green 2s infinite;
 }
 
-.status-dot.yellow {
-  background: #f59e0b;
+[data-theme="vscode"] .status-dot.yellow {
+  background: var(--vscode-warning);
 }
 
 @keyframes pulse-green {
@@ -690,151 +688,151 @@ tr:hover {
   50% { opacity: 0.5; }
 }
 
-.integration-name {
+[data-theme="vscode"] .integration-name {
   font-size: 13px;
-  color: #e5e7eb;
+  color: var(--vscode-text-primary);
   font-weight: 500;
 }
 
-.integration-metrics {
+[data-theme="vscode"] .integration-metrics {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.metric-item {
+[data-theme="vscode"] .metric-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.metric-val {
+[data-theme="vscode"] .metric-val {
   font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: var(--vscode-text-inverse);
 }
 
-.metric-lbl {
+[data-theme="vscode"] .metric-lbl {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--vscode-text-muted);
   text-transform: uppercase;
 }
 
-.status-text {
+[data-theme="vscode"] .status-text {
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 3px;
   text-transform: uppercase;
 }
 
-.status-text.green {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+[data-theme="vscode"] .status-text.green {
+  background: var(--vscode-success-bg);
+  color: var(--vscode-success);
+  border: 1px solid var(--vscode-success);
 }
 
-.status-text.yellow {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+[data-theme="vscode"] .status-text.yellow {
+  background: var(--vscode-warning-bg);
+  color: var(--vscode-warning);
+  border: 1px solid var(--vscode-warning);
 }
 
 /* Professional KPI Bar */
-.professional-kpi-bar {
+[data-theme="vscode"] .professional-kpi-bar {
   display: flex;
   gap: 0;
-  background: rgba(10, 10, 15, 0.8);
-  border: 1px solid rgba(31, 41, 55, 0.4);
+  background: var(--vscode-glass-bg);
+  border: 1px solid var(--vscode-border);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
+  box-shadow: var(--vscode-shadow-md);
+  backdrop-filter: var(--vscode-glass-blur);
 }
 
-.kpi-card {
+[data-theme="vscode"] .kpi-card {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(15, 15, 20, 0.6);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+  background: var(--vscode-bg-tertiary);
+  border: 1px solid var(--vscode-border);
   border-radius: 8px;
   margin-right: 16px;
   position: relative;
 }
 
-.kpi-card:last-child {
+[data-theme="vscode"] .kpi-card:last-child {
   margin-right: 0;
 }
 
-.kpi-card.highlight {
-  background: rgba(16, 185, 129, 0.05);
-  border-color: rgba(16, 185, 129, 0.2);
+[data-theme="vscode"] .kpi-card.highlight {
+  background: var(--vscode-success-bg);
+  border-color: var(--vscode-success);
 }
 
-.kpi-card.highlight .kpi-card-value {
-  color: #10b981;
+[data-theme="vscode"] .kpi-card.highlight .kpi-card-value {
+  color: var(--vscode-success);
 }
 
-.kpi-card-icon {
+[data-theme="vscode"] .kpi-card-icon {
   font-size: 24px;
-  color: #64748b;
+  color: var(--vscode-text-muted);
   opacity: 0.8;
 }
 
-.kpi-card.highlight .kpi-card-icon {
-  color: #10b981;
+[data-theme="vscode"] .kpi-card.highlight .kpi-card-icon {
+  color: var(--vscode-success);
 }
 
-.kpi-card-content {
+[data-theme="vscode"] .kpi-card-content {
   flex: 1;
 }
 
-.kpi-card-value {
+[data-theme="vscode"] .kpi-card-value {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--vscode-text-inverse);
   line-height: 1;
   margin-bottom: 4px;
   letter-spacing: -0.5px;
 }
 
-.kpi-card-label {
+[data-theme="vscode"] .kpi-card-label {
   font-size: 10px;
-  color: #64748b;
+  color: var(--vscode-text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 500;
 }
 
-.kpi-card-trend {
+[data-theme="vscode"] .kpi-card-trend {
   position: absolute;
   bottom: 8px;
   right: 12px;
   font-size: 11px;
   font-weight: 600;
-  color: #10b981;
+  color: var(--vscode-success);
 }
 
-.kpi-card-trend.positive {
-  color: #10b981;
+[data-theme="vscode"] .kpi-card-trend.positive {
+  color: var(--vscode-success);
 }
 
-.kpi-card-trend.negative {
-  color: #ef4444;
+[data-theme="vscode"] .kpi-card-trend.negative {
+  color: var(--vscode-error);
 }
 
 
 
 /* Chart */
-.chart-wrapper {
+[data-theme="vscode"] .chart-wrapper {
   height: 200px;
 }
 
 /* Charts Grid - BIGGER */
-.charts-grid {
+[data-theme="vscode"] .charts-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
@@ -842,25 +840,25 @@ tr:hover {
 }
 
 @media (max-width: 1200px) {
-  .charts-grid {
+  [data-theme="vscode"] .charts-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 767px) {
-  .charts-grid {
+  [data-theme="vscode"] .charts-grid {
     grid-template-columns: 1fr; /* 1 chart per row on mobile */
   }
 }
 
-.small-chart-wrapper {
+[data-theme="vscode"] .small-chart-wrapper {
   height: 180px;
   position: relative;
   padding: 10px;
 }
 
 /* Two Column Grid */
-.two-column-grid {
+[data-theme="vscode"] .two-column-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
@@ -868,158 +866,158 @@ tr:hover {
 }
 
 /* Details List */
-.details-list {
+[data-theme="vscode"] .details-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.detail-row {
+[data-theme="vscode"] .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.2);
+  border-bottom: 1px solid var(--vscode-border);
 }
 
-.detail-row:last-child {
+[data-theme="vscode"] .detail-row:last-child {
   border-bottom: none;
 }
 
-.detail-row span {
+[data-theme="vscode"] .detail-row span {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--vscode-text-secondary);
 }
 
-.detail-row strong {
+[data-theme="vscode"] .detail-row strong {
   font-size: 14px;
-  color: #e5e7eb;
+  color: var(--vscode-text-primary);
   font-weight: 600;
 }
 
 /* Navigation Grid */
-.nav-grid {
+[data-theme="vscode"] .nav-grid {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.nav-button {
+[data-theme="vscode"] .nav-button {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(31, 41, 55, 0.3);
-  border: 1px solid rgba(31, 41, 55, 0.4);
+  background: var(--vscode-button-secondary-bg);
+  border: 1px solid var(--vscode-border);
   border-radius: 6px;
-  color: #e5e7eb;
+  color: var(--vscode-text-primary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.nav-button:hover {
-  background: rgba(31, 41, 55, 0.5);
-  border-color: rgba(59, 130, 246, 0.3);
+[data-theme="vscode"] .nav-button:hover {
+  background: var(--vscode-button-secondary-hover);
+  border-color: var(--vscode-accent);
   transform: translateX(2px);
 }
 
-.nav-button.refresh {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
+[data-theme="vscode"] .nav-button.refresh {
+  background: var(--vscode-info-bg);
+  border-color: var(--vscode-info);
 }
 
-.nav-button svg {
+[data-theme="vscode"] .nav-button svg {
   font-size: 18px;
   opacity: 0.7;
 }
 
 /* Empty State */
-.empty-state {
+[data-theme="vscode"] .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--vscode-text-secondary);
 }
 
-.empty-icon {
+[data-theme="vscode"] .empty-icon {
   font-size: 48px;
-  color: #6b7280;
+  color: var(--vscode-text-muted);
   margin-bottom: 16px;
 }
 
-.empty-state h3 {
+[data-theme="vscode"] .empty-state h3 {
   font-size: 18px;
-  color: #e5e7eb;
+  color: var(--vscode-text-primary);
   margin-bottom: 8px;
 }
 
-.empty-state p {
+[data-theme="vscode"] .empty-state p {
   font-size: 14px;
   margin-bottom: 20px;
 }
 
-.primary-button {
+[data-theme="vscode"] .primary-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--vscode-button-primary-bg);
+  border: 1px solid var(--vscode-accent);
   border-radius: 6px;
-  color: #93bbfc;
+  color: var(--vscode-button-primary-text);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.primary-button:hover {
-  background: rgba(59, 130, 246, 0.2);
+[data-theme="vscode"] .primary-button:hover {
+  background: var(--vscode-button-primary-hover);
   transform: translateY(-1px);
 }
 
 /* Responsive */
 @media (max-width: 1400px) {
-  .professional-kpi-bar {
+  [data-theme="vscode"] .professional-kpi-bar {
     padding: 20px 16px;
   }
 
-  .kpi-card {
+  [data-theme="vscode"] .kpi-card {
     padding: 12px 14px;
     margin-right: 12px;
   }
 
-  .kpi-card-value {
+  [data-theme="vscode"] .kpi-card-value {
     font-size: 24px;
   }
 }
 
 @media (max-width: 1200px) {
-  .professional-kpi-bar {
+  [data-theme="vscode"] .professional-kpi-bar {
     flex-wrap: wrap;
     gap: 12px;
   }
 
-  .kpi-card {
+  [data-theme="vscode"] .kpi-card {
     min-width: calc(50% - 6px);
     margin-right: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .two-column-grid {
+  [data-theme="vscode"] .two-column-grid {
     grid-template-columns: 1fr;
   }
 
-  .professional-kpi-bar {
+  [data-theme="vscode"] .professional-kpi-bar {
     padding: 16px;
   }
 
-  .kpi-card {
+  [data-theme="vscode"] .kpi-card {
     width: 100%;
     min-width: 100%;
   }
 
-  .kpi-card-value {
+  [data-theme="vscode"] .kpi-card-value {
     font-size: 22px;
   }
 }

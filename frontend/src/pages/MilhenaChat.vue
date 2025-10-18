@@ -15,29 +15,29 @@ import AppLayout from '../layouts/AppLayout.vue'
 </script>
 
 <style scoped>
-.chat-page {
+[data-theme="vscode"] .chat-page {
   padding: 40px;
   max-width: 800px;
   margin: 0 auto;
 }
 
-.info-box {
-  background: #f3f4f6;
+[data-theme="vscode"] .info-box {
+  background: var(--vscode-bg-secondary);
   padding: 32px;
   border-radius: 12px;
   text-align: center;
 }
 
-.info-box h2 {
+[data-theme="vscode"] .info-box h2 {
   font-size: 24px;
   font-weight: 600;
-  color: #111;
+  color: var(--vscode-text-inverse);
   margin-bottom: 16px;
 }
 
-.info-box p {
+[data-theme="vscode"] .info-box p {
   font-size: 14px;
-  color: #666;
+  color: var(--vscode-text-secondary);
   margin-bottom: 8px;
 }
 </style>

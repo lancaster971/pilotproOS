@@ -1,0 +1,584 @@
+/* ============================================
+   INSIGHTS THEME - VS Code Dark Modern Edition
+   Applied ONLY when data-theme="vscode"
+   Priority: Maximum - Overrides all other styles
+   IMPORTANTE: NON tocca LoginPage (data-theme="original")!
+   ============================================ */
+
+/* Scope ALL rules to data-theme="vscode" */
+[data-theme="vscode"] {
+  /* FORCE OVERRIDE: Apply to ALL PrimeVue Components */
+  .p-component,
+  .p-card,
+  .p-panel,
+  .p-dialog,
+  .p-tabview,
+  .p-datatable,
+  .p-dropdown,
+  .p-inputtext {
+    font-family: inherit !important;
+  }
+
+  /* Override PrimeVue Card styles - MAXIMUM SPECIFICITY */
+  .p-card,
+  .p-card.premium-glass,
+  Card.premium-glass,
+  .premium-glass,
+  .control-card,
+  .stat-card,
+  div.premium-glass {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+    box-shadow: none !important;
+  }
+
+  /* Force dark background on card content */
+  .p-card .p-card-content,
+  .premium-glass .p-card-content {
+    background: transparent !important;
+  }
+
+  .p-card:hover,
+  .p-card.premium-glass:hover,
+  .premium-glass:hover,
+  .control-card:hover,
+  .premium-hover-lift:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: var(--vscode-shadow-md) !important;
+  }
+
+  /* Specific overrides for WorkflowCommandCenter KPI cards */
+  .grid.grid-cols-6 .p-card,
+  .grid.grid-cols-6 Card {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  /* Override Badge styling */
+  .p-badge,
+  Badge {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  .p-badge[data-severity="info"],
+  Badge[severity="info"] {
+    background: var(--vscode-info-bg) !important;
+    border: 1px solid var(--vscode-info) !important;
+    color: var(--vscode-info) !important;
+  }
+
+  .p-badge[data-severity="success"],
+  Badge[severity="success"] {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+    color: var(--vscode-success) !important;
+  }
+
+  .p-badge[data-severity="danger"],
+  Badge[severity="danger"] {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+    color: var(--vscode-error) !important;
+  }
+
+  /* Override TabView styling */
+  .p-tabview,
+  .premium-tabs {
+    background: transparent !important;
+  }
+
+  .p-tabview-nav {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 8px 8px 0 0 !important;
+  }
+
+  .p-tabview-header {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .p-tabview-header.p-highlight .p-tabview-nav-link {
+    background: var(--vscode-selection-bg) !important;
+    border-color: var(--vscode-accent) !important;
+    color: var(--vscode-accent) !important;
+  }
+
+  .p-tabview-panels {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-top: none !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  /* Override DataTable styling */
+  .p-datatable {
+    background: var(--vscode-bg-tertiary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 8px !important;
+  }
+
+  .p-datatable .p-datatable-thead > tr > th {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    color: var(--vscode-text-muted) !important;
+    border-color: var(--vscode-border) !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr {
+    background: transparent !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background: var(--vscode-highlight-bg) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr > td {
+    border-color: var(--vscode-border) !important;
+  }
+
+  /* Override Button styling */
+  .p-button,
+  .premium-button,
+  .btn-control {
+    background: var(--vscode-button-secondary-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 6px !important;
+    color: var(--vscode-button-secondary-text) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+  }
+
+  .p-button:hover:not(:disabled),
+  .premium-button:hover:not(:disabled),
+  .btn-control:hover:not(:disabled) {
+    background: var(--vscode-button-secondary-hover) !important;
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .p-button-success {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+    color: var(--vscode-success) !important;
+  }
+
+  .p-button-danger {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+    color: var(--vscode-error) !important;
+  }
+}
+
+/* Base Container Styling - FORCE ALL PAGES (body level) */
+[data-theme="vscode"] body,
+[data-theme="vscode"] #app,
+[data-theme="vscode"] .page-container,
+[data-theme="vscode"] .main-content,
+[data-theme="vscode"] .dashboard-container,
+[data-theme="vscode"] .workflow-container,
+[data-theme="vscode"] .settings-container,
+[data-theme="vscode"] .executions-container,
+[data-theme="vscode"] [class*="h-[calc(100vh"],
+[data-theme="vscode"] div[class*="overflow-auto"] {
+  background: var(--vscode-bg-primary) !important;
+  color: var(--vscode-text-primary) !important;
+}
+
+/* WorkflowCommandCenter specific background */
+[data-theme="vscode"] .h-\[calc\(100vh-4rem\)\] {
+  background: transparent !important;
+}
+
+/* Sidebar backgrounds */
+[data-theme="vscode"] .sidebar,
+[data-theme="vscode"] aside,
+[data-theme="vscode"] [class*="w-64"],
+[data-theme="vscode"] [class*="flex-shrink-0"]:not(.p-card) {
+  background: var(--vscode-bg-tertiary) !important;
+  border-right: 1px solid var(--vscode-border) !important;
+}
+
+/* Section Containers - Glassmorphism Effect */
+[data-theme="vscode"] .section,
+[data-theme="vscode"] .card,
+[data-theme="vscode"] .panel,
+[data-theme="vscode"] .widget,
+[data-theme="vscode"] .content-block,
+[data-theme="vscode"] .data-card,
+[data-theme="vscode"] .workflow-card,
+[data-theme="vscode"] .execution-card,
+[data-theme="vscode"] .settings-section,
+[data-theme="vscode"] .analytics-card {
+  background: var(--vscode-glass-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  backdrop-filter: var(--vscode-glass-blur) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Hover Effects for Cards */
+[data-theme="vscode"] .card:hover,
+[data-theme="vscode"] .workflow-card:hover,
+[data-theme="vscode"] .execution-card:hover,
+[data-theme="vscode"] .data-card:hover {
+  border-color: var(--vscode-accent) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--vscode-shadow-md);
+}
+
+/* Metric Cards - Compact Dark Style */
+[data-theme="vscode"] .metric,
+[data-theme="vscode"] .stat,
+[data-theme="vscode"] .kpi,
+[data-theme="vscode"] .counter,
+[data-theme="vscode"] .summary-item {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  min-height: 80px;
+}
+
+/* Value Typography */
+[data-theme="vscode"] .value,
+[data-theme="vscode"] .metric-value,
+[data-theme="vscode"] .stat-value,
+[data-theme="vscode"] .count,
+[data-theme="vscode"] .number {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: var(--vscode-text-inverse) !important;
+  margin-bottom: 4px;
+}
+
+/* Label Typography */
+[data-theme="vscode"] .label,
+[data-theme="vscode"] .metric-label,
+[data-theme="vscode"] .stat-label,
+[data-theme="vscode"] .description {
+  font-size: 12px !important;
+  color: var(--vscode-text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px;
+}
+
+/* Status Badges */
+[data-theme="vscode"] .status,
+[data-theme="vscode"] .badge,
+[data-theme="vscode"] .tag,
+[data-theme="vscode"] .chip {
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  display: inline-block;
+}
+
+[data-theme="vscode"] .status.active,
+[data-theme="vscode"] .badge.success,
+[data-theme="vscode"] .tag.online {
+  background: var(--vscode-success-bg) !important;
+  color: var(--vscode-success) !important;
+  border: 1px solid var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .status.warning,
+[data-theme="vscode"] .badge.pending {
+  background: var(--vscode-warning-bg) !important;
+  color: var(--vscode-warning) !important;
+  border: 1px solid var(--vscode-warning) !important;
+}
+
+[data-theme="vscode"] .status.error,
+[data-theme="vscode"] .badge.failed {
+  background: var(--vscode-error-bg) !important;
+  color: var(--vscode-error) !important;
+  border: 1px solid var(--vscode-error) !important;
+}
+
+/* Progress Bars */
+[data-theme="vscode"] .progress,
+[data-theme="vscode"] .progress-bar,
+[data-theme="vscode"] .meter {
+  height: 4px !important;
+  background: var(--vscode-bg-elevated) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+[data-theme="vscode"] .progress-fill,
+[data-theme="vscode"] .bar-fill {
+  height: 100% !important;
+  background: var(--vscode-success) !important;
+  border-radius: 2px !important;
+  transition: width 0.3s ease !important;
+}
+
+/* Tables - Dark Theme */
+[data-theme="vscode"] table,
+[data-theme="vscode"] .data-table,
+[data-theme="vscode"] .list-table {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+[data-theme="vscode"] th {
+  background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+  color: var(--vscode-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] td {
+  padding: 12px 16px !important;
+  color: var(--vscode-text-primary) !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] tr:hover {
+  background: var(--vscode-highlight-bg) !important;
+}
+
+/* Buttons - VS Code Style */
+[data-theme="vscode"] button,
+[data-theme="vscode"] .btn {
+  background: var(--vscode-button-secondary-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 6px !important;
+  color: var(--vscode-button-secondary-text) !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme="vscode"] button:hover,
+[data-theme="vscode"] .btn:hover {
+  background: var(--vscode-button-secondary-hover) !important;
+  border-color: var(--vscode-accent) !important;
+  transform: translateY(-1px);
+}
+
+[data-theme="vscode"] .btn-primary {
+  background: var(--vscode-button-primary-bg) !important;
+  border: 1px solid var(--vscode-accent) !important;
+  color: var(--vscode-button-primary-text) !important;
+}
+
+[data-theme="vscode"] .btn-primary:hover {
+  background: var(--vscode-button-primary-hover) !important;
+  border-color: var(--vscode-accent-hover) !important;
+}
+
+/* Input Fields */
+[data-theme="vscode"] input,
+[data-theme="vscode"] textarea,
+[data-theme="vscode"] select {
+  background: var(--vscode-input-bg) !important;
+  border: 1px solid var(--vscode-input-border) !important;
+  border-radius: 6px !important;
+  color: var(--vscode-text-primary) !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
+[data-theme="vscode"] input::placeholder,
+[data-theme="vscode"] textarea::placeholder {
+  color: var(--vscode-input-placeholder) !important;
+}
+
+[data-theme="vscode"] input:focus,
+[data-theme="vscode"] textarea:focus,
+[data-theme="vscode"] select:focus {
+  outline: none !important;
+  border-color: var(--vscode-input-focus) !important;
+  background: var(--vscode-input-bg) !important;
+}
+
+/* Headers and Titles */
+[data-theme="vscode"] h1,
+[data-theme="vscode"] h2,
+[data-theme="vscode"] h3,
+[data-theme="vscode"] h4 {
+  color: var(--vscode-text-inverse) !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="vscode"] .section-title,
+[data-theme="vscode"] .card-title,
+[data-theme="vscode"] .panel-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: var(--vscode-text-inverse) !important;
+  margin-bottom: 16px !important;
+}
+
+[data-theme="vscode"] .section-subtitle {
+  font-size: 13px !important;
+  color: var(--vscode-text-muted) !important;
+  margin-top: 4px !important;
+}
+
+/* Icons */
+[data-theme="vscode"] .icon {
+  color: var(--vscode-text-muted) !important;
+}
+
+[data-theme="vscode"] .icon.primary {
+  color: var(--vscode-accent) !important;
+}
+
+[data-theme="vscode"] .icon.success {
+  color: var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .icon.warning {
+  color: var(--vscode-warning) !important;
+}
+
+[data-theme="vscode"] .icon.error {
+  color: var(--vscode-error) !important;
+}
+
+/* Tooltips */
+[data-theme="vscode"] .tooltip {
+  position: absolute;
+  background: var(--vscode-bg-elevated) !important;
+  color: var(--vscode-text-primary) !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  border: 1px solid var(--vscode-border) !important;
+  box-shadow: var(--vscode-shadow-md) !important;
+  z-index: 1000;
+}
+
+/* Charts Container */
+[data-theme="vscode"] .chart-container {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+}
+
+/* Grid Layouts */
+[data-theme="vscode"] .grid {
+  display: grid;
+  gap: 16px;
+}
+
+[data-theme="vscode"] .grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+[data-theme="vscode"] .grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+[data-theme="vscode"] .grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  [data-theme="vscode"] .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  [data-theme="vscode"] .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  [data-theme="vscode"] .grid-4,
+  [data-theme="vscode"] .grid-3,
+  [data-theme="vscode"] .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-theme="vscode"] .fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Loading States */
+[data-theme="vscode"] .loading,
+[data-theme="vscode"] .skeleton {
+  background: linear-gradient(90deg,
+    var(--vscode-bg-elevated) 0%,
+    var(--vscode-bg-secondary) 50%,
+    var(--vscode-bg-elevated) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Dividers */
+[data-theme="vscode"] hr,
+[data-theme="vscode"] .divider {
+  border: none !important;
+  border-top: 1px solid var(--vscode-border) !important;
+  margin: 20px 0 !important;
+}
+
+/* Empty States */
+[data-theme="vscode"] .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--vscode-text-muted);
+}
+
+[data-theme="vscode"] .empty-state-icon {
+  font-size: 48px;
+  color: var(--vscode-text-muted);
+  margin-bottom: 16px;
+}
+
+[data-theme="vscode"] .empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-text-secondary);
+  margin-bottom: 8px;
+}
+
+[data-theme="vscode"] .empty-state-description {
+  font-size: 14px;
+  color: var(--vscode-text-muted);
+}

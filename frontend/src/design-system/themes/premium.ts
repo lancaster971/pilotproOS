@@ -17,8 +17,8 @@ export const premiumTheme = {
     },
     background: {
       ...baseColors.background,
-      glass: 'rgba(17, 24, 39, 0.8)',
-      'glass-intense': 'rgba(17, 24, 39, 0.95)'
+      glass: 'rgba(26, 26, 26, 0.8)',
+      'glass-intense': 'rgba(26, 26, 26, 0.95)'
     }
   },
   shadows: {

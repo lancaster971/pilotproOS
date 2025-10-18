@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen main-layout-container">
     <!-- Slim Premium Header -->
     <header class="premium-glass sticky top-0 z-50 h-10 border-b border-border/50">
       <div class="flex items-center justify-between h-full px-4">
@@ -50,7 +50,7 @@
       <!-- Premium Enterprise Sidebar -->
       <aside
         :class="sidebarCollapsed ? 'w-16' : 'w-64'"
-        class="flex-shrink-0 fixed left-0 top-10 h-screen bg-gray-900 z-40"
+        class="flex-shrink-0 fixed left-0 top-10 h-screen sidebar-aside z-40"
         style="height: calc(100vh - 2.5rem);"
       >
         <!-- Glass morphism backdrop -->
@@ -293,7 +293,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Premium Sidebar Styles - Enterprise Design */
+/* Premium Sidebar Styles - VS Code Dark Modern Edition */
+
+/* Main Layout Container - VS Code Background */
+[data-theme="vscode"] .main-layout-container {
+  background: var(--vscode-bg-primary);
+  min-height: 100vh;
+}
+
+/* Sidebar Aside - Darker VS Code Color */
+[data-theme="vscode"] .sidebar-aside {
+  background: var(--vscode-bg-primary) !important; /* #1E1E1E - Darker sidebar */
+}
 
 /* Container principale */
 .sidebar-container-main {
@@ -315,20 +326,15 @@ onMounted(() => {
 }
 
 /* Backdrop con glass morphism premium */
-.sidebar-backdrop-main {
+[data-theme="vscode"] .sidebar-backdrop-main {
   @apply absolute inset-0;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 15, 15, 0.95) 0%,
-    rgba(15, 15, 15, 0.98) 50%,
-    rgba(10, 10, 10, 0.99) 100%
-  );
+  background: var(--vscode-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgba(31, 41, 55, 0.3);
+  border-right: 1px solid var(--vscode-border);
   box-shadow:
-    4px 0 24px rgba(0, 0, 0, 0.4),
-    inset -1px 0 0 rgba(255, 255, 255, 0.05);
+    4px 0 24px rgba(0, 0, 0, 0.6),
+    inset -1px 0 0 rgba(255, 255, 255, 0.02);
 }
 
 /* Content */
@@ -337,10 +343,10 @@ onMounted(() => {
 }
 
 /* Header con logo */
-.sidebar-header-main {
+[data-theme="vscode"] .sidebar-header-main {
   @apply p-6 pb-4;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.2);
-  background: linear-gradient(180deg, rgba(31, 41, 55, 0.1) 0%, transparent 100%);
+  border-bottom: 1px solid var(--vscode-border);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
   animation: fadeInDown 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
   transform: translateZ(0);
 }
@@ -352,18 +358,18 @@ onMounted(() => {
 }
 
 /* Logo icon con pulse effect */
-.logo-icon-main {
+[data-theme="vscode"] .logo-icon-main {
   @apply relative w-10 h-10 flex items-center justify-center;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--vscode-bg-elevated) 0%, var(--vscode-bg-secondary) 100%);
   border-radius: 12px;
   box-shadow:
-    0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 4px 12px rgba(26, 26, 26, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .logo-pulse-main {
   @apply absolute inset-0;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--vscode-bg-elevated) 0%, var(--vscode-bg-secondary) 100%);
   border-radius: 12px;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   opacity: 0.4;
@@ -396,7 +402,7 @@ onMounted(() => {
 }
 
 /* Nav items */
-.nav-item-main {
+[data-theme="vscode"] .nav-item-main {
   @apply relative flex items-center px-3 py-2.5 rounded-xl;
   background: transparent;
   animation: slideInLeft var(--delay) cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
@@ -409,24 +415,42 @@ onMounted(() => {
   transform: translateZ(0); /* GPU acceleration */
 }
 
-.nav-item-main:hover {
-  background: rgba(31, 41, 55, 0.2);
+[data-theme="vscode"] .nav-item-main:hover {
+  background: var(--vscode-highlight-bg);
   transform: translateX(3px) translateZ(0);
-  border-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--vscode-border);
 }
 
-.nav-item-active-main {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+[data-theme="vscode"] .nav-item-active-main {
+  background: rgba(26, 26, 26, 0.9) !important;
+  border: 1px solid var(--vscode-border-light) !important;
   box-shadow:
-    0 0 20px rgba(59, 130, 246, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 0 15px rgba(26, 26, 26, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Remove ALL blue focus outlines */
+[data-theme="vscode"] .nav-item-main:focus,
+[data-theme="vscode"] .nav-item-main:focus-visible,
+[data-theme="vscode"] .nav-item-main:active {
+  outline: none !important;
+  border-color: var(--vscode-border-light) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="vscode"] .nav-item-active-main:focus,
+[data-theme="vscode"] .nav-item-active-main:focus-visible {
+  outline: none !important;
+  border: 1px solid var(--vscode-border-light) !important;
+  box-shadow:
+    0 0 15px rgba(26, 26, 26, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
 }
 
 /* Active indicator semplice */
-.active-indicator-main {
+[data-theme="vscode"] .active-indicator-main {
   @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full;
-  background: #3b82f6;
+  background: var(--vscode-border-light);
 }
 
 /* Icon wrapper */
@@ -446,9 +470,9 @@ onMounted(() => {
   opacity: 1;
 }
 
-.nav-icon-main {
+[data-theme="vscode"] .nav-icon-main {
   @apply w-5 h-5 relative z-10;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--vscode-text-muted);
   transition:
     color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
     transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -456,14 +480,14 @@ onMounted(() => {
   transform: translateZ(0);
 }
 
-.nav-item-main:hover .nav-icon-main {
-  color: #93bbfc;
+[data-theme="vscode"] .nav-item-main:hover .nav-icon-main {
+  color: var(--vscode-text-primary);
   transform: scale(1.1);
 }
 
-.nav-item-active-main .nav-icon-main {
-  color: #3b82f6;
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+[data-theme="vscode"] .nav-item-active-main .nav-icon-main {
+  color: var(--vscode-text-inverse);
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
 }
 
 /* Content area */
@@ -471,25 +495,25 @@ onMounted(() => {
   @apply flex-1 ml-3;
 }
 
-.nav-label-main {
+[data-theme="vscode"] .nav-label-main {
   @apply text-sm font-medium;
-  color: rgba(229, 231, 235, 0.9);
+  color: var(--vscode-text-primary);
   transition: color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   will-change: color;
 }
 
-.nav-item-main:hover .nav-label-main {
-  color: #ffffff;
+[data-theme="vscode"] .nav-item-main:hover .nav-label-main {
+  color: var(--vscode-text-inverse);
 }
 
-.nav-item-active-main .nav-label-main {
-  color: #ffffff;
+[data-theme="vscode"] .nav-item-active-main .nav-label-main {
+  color: var(--vscode-text-inverse);
   font-weight: 600;
 }
 
-.nav-description-main {
+[data-theme="vscode"] .nav-description-main {
   @apply text-xs mt-0.5;
-  color: rgba(148, 163, 184, 0.6);
+  color: var(--vscode-text-muted);
 }
 
 /* Badges */
@@ -517,10 +541,10 @@ onMounted(() => {
 }
 
 /* Footer */
-.sidebar-footer-main {
+[data-theme="vscode"] .sidebar-footer-main {
   @apply p-4 mt-auto;
-  border-top: 1px solid rgba(31, 41, 55, 0.2);
-  background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 10, 0.5) 100%);
+  border-top: 1px solid var(--vscode-border);
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
 }
 
 .status-container-main {
@@ -540,9 +564,9 @@ onMounted(() => {
   animation: pulse 2s ease-in-out infinite;
 }
 
-.status-text-main {
+[data-theme="vscode"] .status-text-main {
   @apply text-xs font-medium;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--vscode-text-muted);
   letter-spacing: 0.5px;
 }
 
@@ -588,22 +612,22 @@ onMounted(() => {
 }
 
 /* Scrollbar */
-.sidebar-content-main::-webkit-scrollbar {
+[data-theme="vscode"] .sidebar-content-main::-webkit-scrollbar {
   width: 4px;
 }
 
-.sidebar-content-main::-webkit-scrollbar-track {
-  background: rgba(31, 41, 55, 0.2);
+[data-theme="vscode"] .sidebar-content-main::-webkit-scrollbar-track {
+  background: var(--vscode-bg-elevated);
   border-radius: 2px;
 }
 
-.sidebar-content-main::-webkit-scrollbar-thumb {
-  background: rgba(107, 114, 128, 0.3);
+[data-theme="vscode"] .sidebar-content-main::-webkit-scrollbar-thumb {
+  background: var(--vscode-border);
   border-radius: 2px;
 }
 
-.sidebar-content-main::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.5);
+[data-theme="vscode"] .sidebar-content-main::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-text-muted);
 }
 
 </style>

@@ -261,168 +261,168 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.learning-dashboard {
+[data-theme="vscode"] .learning-dashboard {
   padding: 24px;
   width: 100%;
-  background: #0a0a0a;
+  background: var(--vscode-bg-primary);
   min-height: 100vh;
 }
 
 /* Error Alert */
-.error-alert {
+[data-theme="vscode"] .error-alert {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 16px 20px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(244, 113, 113, 0.1);
+  border: 1px solid var(--vscode-error);
   border-radius: 8px;
-  color: #ef4444;
+  color: var(--vscode-error);
   margin-bottom: 24px;
   font-size: 14px;
 }
 
-.error-alert .iconify {
+[data-theme="vscode"] .error-alert .iconify {
   font-size: 20px;
 }
 
-.retry-btn {
+[data-theme="vscode"] .retry-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
   padding: 6px 12px;
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(244, 113, 113, 0.2);
+  border: 1px solid var(--vscode-error);
   border-radius: 6px;
-  color: #ef4444;
+  color: var(--vscode-error);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.retry-btn:hover {
-  background: rgba(239, 68, 68, 0.3);
+[data-theme="vscode"] .retry-btn:hover {
+  background: rgba(244, 113, 113, 0.3);
 }
 
 /* Loading State */
-.loading-state {
+[data-theme="vscode"] .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 20px;
   padding: 100px 20px;
-  color: #888888;
+  color: var(--vscode-text-muted);
 }
 
-.loading-state p {
+[data-theme="vscode"] .loading-state p {
   margin: 0;
   font-size: 16px;
 }
 
 /* Dashboard Content */
-.dashboard-content {
+[data-theme="vscode"] .dashboard-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
 /* Professional KPI Bar (2 Rows - 7 KPIs) */
-.professional-kpi-bar {
+[data-theme="vscode"] .professional-kpi-bar {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: rgba(10, 10, 15, 0.8);
-  border: 1px solid rgba(31, 41, 55, 0.4);
+  background: var(--vscode-bg-secondary);
+  border: 1px solid var(--vscode-border);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
+  box-shadow: var(--vscode-shadow-md);
+  backdrop-filter: var(--vscode-glass-blur);
 }
 
-.kpi-row {
+[data-theme="vscode"] .kpi-row {
   display: flex;
   gap: 16px;
 }
 
-.kpi-card {
+[data-theme="vscode"] .kpi-card {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(15, 15, 20, 0.6);
-  border: 1px solid rgba(31, 41, 55, 0.3);
+  background: var(--vscode-bg-tertiary);
+  border: 1px solid var(--vscode-border);
   border-radius: 8px;
   max-height: 100px;
 }
 
-.kpi-card-icon {
+[data-theme="vscode"] .kpi-card-icon {
   font-size: 24px;
-  color: #64748b;
+  color: var(--vscode-text-secondary);
   opacity: 0.8;
   flex-shrink: 0;
 }
 
-.kpi-card-content {
+[data-theme="vscode"] .kpi-card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.kpi-card-value {
+[data-theme="vscode"] .kpi-card-value {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--vscode-text-inverse);
   line-height: 1;
   letter-spacing: -0.5px;
 }
 
-.kpi-card-value.category-name {
+[data-theme="vscode"] .kpi-card-value.category-name {
   font-size: 20px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.kpi-card-label {
+[data-theme="vscode"] .kpi-card-label {
   font-size: 10px;
-  color: #64748b;
+  color: var(--vscode-text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 500;
 }
 
-.kpi-card-detail {
+[data-theme="vscode"] .kpi-card-detail {
   font-size: 11px;
-  color: #666666;
+  color: var(--vscode-text-muted);
 }
 
-.kpi-card-detail .auto {
-  color: #10b981;
+[data-theme="vscode"] .kpi-card-detail .auto {
+  color: var(--vscode-success);
 }
 
-.kpi-card-detail .hardcoded {
-  color: #9ca3af;
+[data-theme="vscode"] .kpi-card-detail .hardcoded {
+  color: var(--vscode-text-secondary);
 }
 
-.kpi-card-detail .positive {
-  color: #10b981;
+[data-theme="vscode"] .kpi-card-detail .positive {
+  color: var(--vscode-success);
 }
 
-.kpi-card-detail .negative {
-  color: #ef4444;
+[data-theme="vscode"] .kpi-card-detail .negative {
+  color: var(--vscode-error);
 }
 
-.kpi-card-detail .separator {
+[data-theme="vscode"] .kpi-card-detail .separator {
   margin: 0 4px;
 }
 
 /* Dashboard Grid 1x2 (2 widgets side by side) */
-.dashboard-grid {
+[data-theme="vscode"] .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
@@ -430,63 +430,63 @@ onMounted(async () => {
 }
 
 /* Admin Section - Full Width Pattern Management (between KPI and Grid) */
-.admin-section,
-.admin-section-empty {
+[data-theme="vscode"] .admin-section,
+[data-theme="vscode"] .admin-section-empty {
   width: 100%;
 }
 
-.admin-section-empty {
-  background: #1a1a1a;
+[data-theme="vscode"] .admin-section-empty {
+  background: var(--vscode-bg-secondary);
   border-radius: 12px;
   padding: 40px 20px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--vscode-border);
   text-align: center;
-  color: #888888;
+  color: var(--vscode-text-muted);
   font-size: 14px;
 }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .dashboard-grid {
+  [data-theme="vscode"] .dashboard-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 1024px) {
-  .kpi-row {
+  [data-theme="vscode"] .kpi-row {
     flex-wrap: wrap;
     gap: 12px;
   }
 
-  .kpi-card {
+  [data-theme="vscode"] .kpi-card {
     min-width: calc(50% - 6px);
   }
 }
 
 @media (max-width: 768px) {
-  .learning-dashboard {
+  [data-theme="vscode"] .learning-dashboard {
     padding: 16px;
   }
 
-  .professional-kpi-bar {
+  [data-theme="vscode"] .professional-kpi-bar {
     padding: 16px;
   }
 
-  .kpi-row {
+  [data-theme="vscode"] .kpi-row {
     flex-direction: column;
     gap: 12px;
   }
 
-  .kpi-card {
+  [data-theme="vscode"] .kpi-card {
     width: 100%;
     min-width: 100%;
   }
 
-  .kpi-card-value {
+  [data-theme="vscode"] .kpi-card-value {
     font-size: 22px;
   }
 
-  .kpi-card-value.category-name {
+  [data-theme="vscode"] .kpi-card-value.category-name {
     font-size: 18px;
   }
 }

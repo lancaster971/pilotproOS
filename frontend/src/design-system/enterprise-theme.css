@@ -1,58 +1,62 @@
-/* 🎨 ENTERPRISE THEME - Professional Rebrand */
-/* NO GREEN - Complete departure from n8n visual identity */
+/* 🎨 ENTERPRISE THEME - VS Code Professional Rebrand */
+/* Uses official Microsoft VS Code Dark Modern color palette */
+/* Reference: vscode-palette.css (import FIRST in main.ts) */
 
 :root {
-  /* Primary Palette - Enterprise Blue/Purple */
-  --color-primary: #3b82f6;        /* Bright Blue - Main actions */
-  --color-primary-dark: #2563eb;   /* Deep Blue - Hover states */
-  --color-primary-light: #60a5fa;  /* Light Blue - Highlights */
+  /* Primary Palette - GRAY (neutral) not blue! */
+  /* These are COMMENTED OUT to use GRAY from utilities-vscode.css */
+  /* --color-primary is now GRAY (#9CA3AF) for neutral elements (avatars, icons) */
+  /* Blue accent (#0078D4) reserved ONLY for active states (borders, focus) */
+  /* --color-primary: var(--vscode-accent); */           /* DISABLED - was too blue */
+  /* --color-primary-dark: var(--vscode-accent-active); */ /* DISABLED */
+  /* --color-primary-light: var(--vscode-accent-hover); */ /* DISABLED */
 
-  /* Secondary Palette - Royal Purple */
-  --color-secondary: #8b5cf6;      /* Purple - AI/Logic nodes */
-  --color-secondary-dark: #7c3aed; /* Deep Purple */
-  --color-secondary-light: #a78bfa;/* Light Purple */
+  /* Secondary Palette - VS Code Syntax Colors */
+  --color-secondary: var(--vscode-type);           /* #4EC9B0 Teal - AI/Logic nodes */
+  --color-secondary-dark: #3AA794;                 /* Darker teal */
+  --color-secondary-light: #6DD4BC;                /* Lighter teal */
 
-  /* Accent Colors - Professional */
-  --color-accent-cyan: #06b6d4;    /* Cyan - Success (NOT green) */
-  --color-accent-amber: #f59e0b;   /* Amber - Warnings */
-  --color-accent-rose: #f43f5e;    /* Rose - Errors */
-  --color-accent-slate: #64748b;   /* Slate - Neutral */
+  /* Accent Colors - VS Code Status Colors */
+  --color-accent-cyan: var(--vscode-info);         /* #3794FF - Info */
+  --color-accent-amber: var(--vscode-warning);     /* #CCA700 - Warnings */
+  --color-accent-rose: var(--vscode-error);        /* #F48771 - Errors */
+  --color-accent-slate: var(--vscode-text-muted);  /* #858585 - Neutral */
 
-  /* Node Type Colors - Enterprise Palette */
-  --node-trigger: #3b82f6;         /* Blue - Process Initiators */
-  --node-processor: #8b5cf6;        /* Purple - Processing/Logic */
-  --node-transformer: #06b6d4;     /* Cyan - Data Transform */
-  --node-output: #f59e0b;           /* Amber - Output/Actions */
-  --node-storage: #64748b;          /* Slate - Database/Storage */
-  --node-ai: #ec4899;               /* Pink - AI/ML Operations */
+  /* Node Type Colors - VS Code Semantic Colors */
+  --node-trigger: var(--vscode-keyword);           /* #569CD6 Blue - Process Initiators */
+  --node-processor: var(--vscode-function);        /* #DCDCAA Yellow - Processing/Logic */
+  --node-transformer: var(--vscode-type);          /* #4EC9B0 Teal - Data Transform */
+  --node-output: var(--vscode-string);             /* #CE9178 Orange - Output/Actions */
+  --node-storage: var(--vscode-comment);           /* #6A9955 Green - Database/Storage */
+  --node-ai: var(--vscode-variable);               /* #9CDCFE Cyan - AI/ML Operations */
 
-  /* Backgrounds - Dark Professional */
-  --bg-primary: #0f172a;            /* Deep Slate */
-  --bg-secondary: #1e293b;          /* Slate 800 */
-  --bg-surface: #334155;            /* Slate 700 */
-  --bg-elevated: #475569;           /* Slate 600 */
+  /* Backgrounds - VS Code Dark Modern */
+  --bg-primary: var(--vscode-bg-primary);          /* #1E1E1E - Editor */
+  --bg-secondary: var(--vscode-bg-secondary);      /* #252526 - Sidebar */
+  --bg-surface: var(--vscode-bg-elevated);         /* #2D2D30 - Dropdowns */
+  --bg-elevated: var(--vscode-tab-active);         /* #222222 - Active tabs */
 
-  /* Glass Morphism Effects */
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(148, 163, 184, 0.2);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  /* Glass Morphism Effects - VS Code Adapted */
+  --glass-bg: var(--vscode-glass-bg);              /* rgba(37, 37, 38, 0.7) */
+  --glass-border: var(--vscode-glass-border);      /* rgba(108, 108, 108, 0.2) */
+  --glass-shadow: var(--vscode-shadow-lg);         /* 0 8px 16px rgba(0,0,0,0.5) */
 
-  /* Connection Lines - Professional */
-  --edge-default: #475569;          /* Muted slate */
-  --edge-active: #3b82f6;           /* Blue when active */
-  --edge-data-flow: #06b6d4;        /* Cyan for data */
-  --edge-error: #f43f5e;            /* Rose for errors */
+  /* Connection Lines - VS Code Colors */
+  --edge-default: var(--vscode-border);            /* #3C3C3C - Muted */
+  --edge-active: var(--vscode-accent);             /* #0078D4 - Blue when active */
+  --edge-data-flow: var(--vscode-info);            /* #3794FF - Data flow */
+  --edge-error: var(--vscode-error);               /* #F48771 - Errors */
 
-  /* Text Colors */
-  --text-primary: #f1f5f9;          /* Slate 100 */
-  --text-secondary: #cbd5e1;        /* Slate 300 */
-  --text-muted: #94a3b8;            /* Slate 400 */
+  /* Text Colors - VS Code Hierarchy */
+  --text-primary: var(--vscode-text-primary);      /* #D4D4D4 */
+  --text-secondary: var(--vscode-text-secondary);  /* #CCCCCC */
+  --text-muted: var(--vscode-text-muted);          /* #858585 */
 
-  /* Status Colors - Business Friendly */
-  --status-active: #06b6d4;         /* Cyan (not green!) */
-  --status-pending: #f59e0b;        /* Amber */
-  --status-error: #f43f5e;          /* Rose */
-  --status-disabled: #64748b;       /* Slate */
+  /* Status Colors - VS Code Status System */
+  --status-active: var(--vscode-success);          /* #89D185 - Success */
+  --status-pending: var(--vscode-warning);         /* #CCA700 - Pending */
+  --status-error: var(--vscode-error);             /* #F48771 - Error */
+  --status-disabled: var(--vscode-text-muted);     /* #858585 - Disabled */
 }
 
 /* Node Shape Classes - Professional Forms */

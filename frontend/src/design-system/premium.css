@@ -6,10 +6,10 @@
 
 /* === SUBTLE PREMIUM GLASSMORPHISM === */
 .premium-glass {
-  background: rgba(17, 24, 39, 0.8) !important;
+  background: rgba(26, 26, 26, 0.85) !important; /* #1A1A1A grigio VS Code scuro */
   backdrop-filter: blur(12px) saturate(120%) !important;
   border: 1px solid rgba(16, 185, 129, 0.15) !important;
-  box-shadow: 
+  box-shadow:
     0 8px 25px rgba(0, 0, 0, 0.1),
     0 1px 0 rgba(255, 255, 255, 0.03) inset !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -32,7 +32,7 @@
 }
 
 .premium-modal .p-dialog {
-  background: rgba(17, 24, 39, 0.95) !important;
+  background: rgba(26, 26, 26, 0.95) !important;
   backdrop-filter: blur(20px) saturate(130%) !important;
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
   animation: modalSlideIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
@@ -83,7 +83,7 @@
 
 /* === PREMIUM FORM CONTROLS === */
 .p-radiobutton .p-radiobutton-box {
-  background: rgba(17, 24, 39, 0.8) !important;
+  background: rgba(26, 26, 26, 0.8) !important;
   border: 2px solid rgba(156, 163, 175, 0.5) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   transition: all 0.2s ease !important;
@@ -91,7 +91,7 @@
 
 .p-radiobutton .p-radiobutton-box:hover {
   border-color: rgba(16, 185, 129, 0.6) !important;
-  background: rgba(17, 24, 39, 0.9) !important;
+  background: rgba(26, 26, 26, 0.9) !important;
 }
 
 .p-radiobutton .p-radiobutton-box.p-highlight {
@@ -106,7 +106,7 @@
 }
 
 .p-checkbox .p-checkbox-box {
-  background: rgba(17, 24, 39, 0.8) !important;
+  background: rgba(26, 26, 26, 0.8) !important;
   border: 2px solid rgba(156, 163, 175, 0.5) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   transition: all 0.2s ease !important;
@@ -114,7 +114,7 @@
 
 .p-checkbox .p-checkbox-box:hover {
   border-color: rgba(16, 185, 129, 0.6) !important;
-  background: rgba(17, 24, 39, 0.9) !important;
+  background: rgba(26, 26, 26, 0.9) !important;
 }
 
 .p-checkbox .p-checkbox-box.p-highlight {
@@ -243,7 +243,7 @@
 
 /* === PREMIUM DATA VISUALIZATION === */
 .premium-metric-card {
-  background: rgba(17, 24, 39, 0.8) !important;
+  background: rgba(26, 26, 26, 0.8) !important;
   backdrop-filter: blur(15px) saturate(150%) !important;
   border: 1px solid rgba(16, 185, 129, 0.25) !important;
   box-shadow: 
@@ -353,7 +353,7 @@
 
 /* === PREMIUM CHART CONTAINERS === */
 .premium-chart-container {
-  background: rgba(17, 24, 39, 0.9) !important;
+  background: rgba(26, 26, 26, 0.9) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
   border-radius: 16px !important;
@@ -413,7 +413,7 @@
 /* === PREMIUM MODAL EFFECTS === */
 .premium-modal {
   backdrop-filter: blur(25px) saturate(200%) !important;
-  background: rgba(17, 24, 39, 0.95) !important;
+  background: rgba(26, 26, 26, 0.95) !important;
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
   box-shadow: 
     0 40px 80px rgba(0, 0, 0, 0.3),

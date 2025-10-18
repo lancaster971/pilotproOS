@@ -580,7 +580,8 @@ const techBadge = computed(() => {
 })
 </script>
 
-<style scoped>
+<style>
+/* Removed scoped to allow modern theme CSS override */
 .ultra-card-wrapper {
   position: relative;
 }
@@ -597,6 +598,7 @@ const techBadge = computed(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Allow modern theme CSS to override with !important */
 }
 
 /* Wider cards for AI/Langchain agents - same height, more width */
@@ -774,21 +776,21 @@ const techBadge = computed(() => {
 .main-icon {
   width: 36px;
   height: 36px;
-  color: white !important;
-  fill: white !important;
+  color: white;
+  fill: white;
   z-index: 1;
   position: relative;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
-/* Force all SVG icons to be white */
+/* Force all SVG icons to be white (UNLESS modern theme active) */
 .main-icon :deep(svg) {
-  fill: white !important;
-  color: white !important;
+  fill: currentColor;
+  color: currentColor;
 }
 
 .main-icon :deep(path) {
-  fill: white !important;
+  fill: currentColor;
 }
 
 .text-content {

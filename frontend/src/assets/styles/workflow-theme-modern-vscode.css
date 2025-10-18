@@ -1,0 +1,425 @@
+/**
+
+/* Scope ALL workflow styles to data-theme="vscode" */
+[data-theme="vscode"] {
+   * WORKFLOW THEME MODERN - VS Code Dark Modern Variables Edition
+   *
+   * Design: Complete override using VS Code CSS variables
+   * Target: .workflow-flow-modern .ultra-card (conditional activation)
+   * Typography: Inter font system
+   * Colors: --vscode-* CSS variables from vscode-palette.css
+   *
+   * Rollback: Set USE_MODERN_THEME = false in WorkflowCommandCenter.vue
+   *
+   * Created: 2025-10-18
+   * Version: 4.0.0 (VS Code variables)
+   */
+
+  /* ============================================
+     1. BACKGROUND - VS Code Editor Dark
+     ============================================ */
+
+  /* Remove VueFlow default dots background */
+  .workflow-flow-modern :deep(.vue-flow__background) {
+    display: none !important;
+  }
+
+  /* Apply VS Code background + subtle grid pattern */
+  .workflow-flow-modern {
+    background:
+      /* Subtle grid pattern for glassmorphism visibility */
+      repeating-linear-gradient(
+        0deg,
+        rgba(108, 108, 108, 0.03) 0px,
+        transparent 1px,
+        transparent 40px,
+        rgba(108, 108, 108, 0.03) 41px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(108, 108, 108, 0.03) 0px,
+        transparent 1px,
+        transparent 40px,
+        rgba(108, 108, 108, 0.03) 41px
+      ),
+      /* VS Code main background */
+      var(--vscode-bg-primary) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* ============================================
+     2. NODE CARDS - Glassmorphism Override
+     ============================================ */
+
+  /* MAIN CARD - VS Code glassmorphism */
+  .workflow-flow-modern .ultra-card {
+    background: var(--vscode-glass-bg) !important;
+    backdrop-filter: var(--vscode-glass-blur) saturate(180%) !important;
+    -webkit-backdrop-filter: var(--vscode-glass-blur) saturate(180%) !important;
+
+    border: 1px solid var(--vscode-glass-border) !important;
+    border-radius: 16px !important;
+
+    box-shadow: var(--vscode-shadow-lg) !important;
+    background-image: none !important;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* Hover state - Lift + glow */
+  .workflow-flow-modern .ultra-card:hover {
+    background: var(--vscode-bg-secondary) !important;
+    border-color: var(--vscode-border-light) !important;
+    transform: translateY(-6px) scale(1.02) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Selected state - Accent glow */
+  .workflow-flow-modern .card-selected {
+    border: 2px solid var(--vscode-accent) !important;
+    box-shadow:
+      0 0 0 3px rgba(0, 120, 212, 0.2),
+      var(--vscode-shadow-lg) !important;
+  }
+
+  /* Executing state - Success glow */
+  .workflow-flow-modern .card-executing {
+    border: 2px solid var(--vscode-success) !important;
+    animation: vscode-pulse 1.5s ease-in-out infinite !important;
+  }
+
+  @keyframes vscode-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 0 rgba(137, 209, 133, 0.4),
+        0 0 20px rgba(137, 209, 133, 0.3);
+    }
+    50% {
+      box-shadow:
+        0 0 0 8px rgba(137, 209, 133, 0),
+        0 0 40px rgba(137, 209, 133, 0.5);
+    }
+  }
+
+  /* Error state - Error glow */
+  .workflow-flow-modern .card-error {
+    border-color: var(--vscode-error) !important;
+    box-shadow: var(--vscode-shadow-lg) !important;
+  }
+
+  /* ============================================
+     3. RIBBON - HIDDEN
+     ============================================ */
+
+  .workflow-flow-modern .card-ribbon {
+    display: none !important;
+  }
+
+  /* ============================================
+     4. CARD CONTENT - VS Code glass
+     ============================================ */
+
+  .workflow-flow-modern .card-content {
+    background: rgba(255, 255, 255, 0.02) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Icon container - Sidebar background */
+  .workflow-flow-modern .icon-container {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Balanced */
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid var(--vscode-border) !important;
+    box-shadow: var(--vscode-shadow-sm) !important;
+  }
+
+  /* Icon pulse - Softer animation */
+  .workflow-flow-modern .icon-pulse {
+    background: linear-gradient(135deg, var(--vscode-info-bg), var(--vscode-success-bg)) !important;
+    animation: soft-pulse 4s infinite !important;
+  }
+
+  @keyframes soft-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0;
+    }
+  }
+
+  /* Main icon - Colored with VS Code semantic colors */
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon,
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon path {
+    color: var(--vscode-type) !important;
+    fill: var(--vscode-type) !important;
+    filter: drop-shadow(0 2px 8px rgba(78, 201, 176, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-ai .main-icon,
+  .workflow-flow-modern .ultra-card.card-ai .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-ai .main-icon path,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon path {
+    color: var(--vscode-variable) !important;
+    fill: var(--vscode-variable) !important;
+    filter: drop-shadow(0 2px 8px rgba(156, 220, 254, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-storage .main-icon,
+  .workflow-flow-modern .ultra-card.card-storage .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-storage .main-icon path {
+    color: var(--vscode-comment) !important;
+    fill: var(--vscode-comment) !important;
+    filter: drop-shadow(0 2px 8px rgba(106, 153, 85, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-integration .main-icon,
+  .workflow-flow-modern .ultra-card.card-integration .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-integration .main-icon path {
+    color: var(--vscode-string) !important;
+    fill: var(--vscode-string) !important;
+    filter: drop-shadow(0 2px 8px rgba(206, 145, 120, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-logic .main-icon,
+  .workflow-flow-modern .ultra-card.card-logic .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-logic .main-icon path {
+    color: var(--vscode-text-muted) !important;
+    fill: var(--vscode-text-muted) !important;
+    filter: drop-shadow(0 2px 8px rgba(133, 133, 133, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-transform .main-icon,
+  .workflow-flow-modern .ultra-card.card-transform .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-transform .main-icon path {
+    color: var(--vscode-info) !important;
+    fill: var(--vscode-info) !important;
+    filter: drop-shadow(0 2px 8px rgba(55, 148, 255, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-process .main-icon,
+  .workflow-flow-modern .ultra-card.card-process .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-process .main-icon path,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon path {
+    color: var(--vscode-text-primary) !important;
+    fill: var(--vscode-text-primary) !important;
+    filter: drop-shadow(0 2px 8px rgba(212, 212, 212, 0.3)) !important;
+  }
+
+  /* Typography - Inter font + VS Code colors */
+  .workflow-flow-modern .card-title {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--vscode-text-primary) !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.3 !important;
+  }
+
+  .workflow-flow-modern .card-subtitle {
+    font-family: 'Inter', sans-serif !important;
+    color: var(--vscode-text-muted) !important;
+    font-size: 11px !important;
+  }
+
+  /* ============================================
+     5. TECH STRIP - HIDDEN
+     ============================================ */
+
+  .workflow-flow-modern .tech-strip {
+    display: none !important;
+  }
+
+  /* ============================================
+     6. HANDLES - VS Code connection points
+     ============================================ */
+
+  .workflow-flow-modern .ultra-handle {
+    width: 12px !important;
+    height: 12px !important;
+    background: linear-gradient(135deg, var(--vscode-info), var(--vscode-type)) !important;
+    border: 2px solid var(--vscode-bg-tertiary) !important;
+    box-shadow: var(--vscode-shadow-sm) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .workflow-flow-modern .ultra-handle:hover {
+    transform: scale(1.6) !important;
+    box-shadow: var(--vscode-shadow-md) !important;
+  }
+
+  /* Trigger handles - Type teal */
+  .workflow-flow-modern .handle-trigger {
+    background: linear-gradient(135deg, var(--vscode-type), var(--vscode-variable)) !important;
+  }
+
+  /* Tool handles - Info blue */
+  .workflow-flow-modern .handle-tool-input,
+  .workflow-flow-modern .handle-tool-output {
+    background: linear-gradient(135deg, var(--vscode-info), var(--vscode-keyword)) !important;
+  }
+
+  /* ============================================
+     7. CATEGORY-SPECIFIC ACCENTS (VS Code)
+     ============================================ */
+
+  /* Trigger nodes - Type teal */
+  .workflow-flow-modern .card-trigger {
+    border-color: rgba(78, 201, 176, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-trigger:hover {
+    border-color: rgba(78, 201, 176, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* AI nodes - Variable cyan */
+  .workflow-flow-modern .card-ai,
+  .workflow-flow-modern .card-ai-wide {
+    border-color: rgba(156, 220, 254, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-ai:hover,
+  .workflow-flow-modern .card-ai-wide:hover {
+    border-color: rgba(156, 220, 254, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Storage nodes - Comment green */
+  .workflow-flow-modern .card-storage {
+    border-color: rgba(106, 153, 85, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-storage:hover {
+    border-color: rgba(106, 153, 85, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Integration nodes - String orange */
+  .workflow-flow-modern .card-integration {
+    border-color: rgba(206, 145, 120, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-integration:hover {
+    border-color: rgba(206, 145, 120, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Tool nodes (narrow cards) - Keyword blue */
+  .workflow-flow-modern .card-tool-narrow {
+    border-color: rgba(86, 156, 214, 0.25) !important;
+    background: var(--vscode-glass-bg) !important;
+  }
+
+  .workflow-flow-modern .card-tool-narrow:hover {
+    border-color: rgba(86, 156, 214, 0.4) !important;
+  }
+
+  /* ============================================
+     8. FALLBACK for NO backdrop-filter support
+     ============================================ */
+
+  @supports not (backdrop-filter: blur(16px)) {
+    .workflow-flow-modern .ultra-card {
+      background: var(--vscode-bg-secondary) !important;
+    }
+
+    .workflow-flow-modern .ultra-card:hover {
+      background: var(--vscode-bg-elevated) !important; /* #2D2D30 - Lighter hover */
+    }
+  }
+
+  /* ============================================
+     9. EDGES/CONNECTIONS - Ultra minimal elegant lines
+     ============================================ */
+
+  /* Override ALL edge styles with VS Code border color */
+  .workflow-flow-modern :deep(.vue-flow__edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.main-edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.secondary-edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.vue-flow__edge-default .vue-flow__edge-path) {
+    stroke: var(--vscode-border) !important;
+    stroke-width: 1px !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    stroke-dasharray: none !important;
+    opacity: 0.5 !important;
+    transition: all 0.3s ease !important;
+    filter: none !important;
+  }
+
+  /* Hover state - VS Code info blue */
+  .workflow-flow-modern :deep(.vue-flow__edge:hover .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.main-edge:hover .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.secondary-edge:hover .vue-flow__edge-path) {
+    stroke: var(--vscode-info) !important;
+    stroke-width: 1.5px !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 3px rgba(55, 148, 255, 0.3)) !important;
+  }
+
+  /* Selected edge - accent glow */
+  .workflow-flow-modern :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+    stroke: var(--vscode-accent) !important;
+    stroke-width: 1.5px !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 4px rgba(0, 120, 212, 0.4)) !important;
+  }
+
+  /* Animated edge for executing workflows - success */
+  .workflow-flow-modern :deep(.vue-flow__edge.animated .vue-flow__edge-path) {
+    stroke: var(--vscode-success) !important;
+    stroke-width: 1.5px !important;
+    stroke-dasharray: 4 3 !important;
+    animation: edge-flow 1.2s linear infinite !important;
+    filter: drop-shadow(0 0 2px rgba(137, 209, 133, 0.3)) !important;
+  }
+
+  @keyframes edge-flow {
+    0% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: 14;
+    }
+  }
+
+  /* Remove arrow markers - cleaner minimal look */
+  .workflow-flow-modern :deep(.vue-flow__edge-marker) {
+    display: none !important;
+  }
+
+  /* Edge labels - VS Code text */
+  .workflow-flow-modern :deep(.vue-flow__edge-textbg) {
+    fill: transparent !important;
+  }
+
+  .workflow-flow-modern :deep(.vue-flow__edge-text) {
+    fill: var(--vscode-text-secondary) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+  }
+
+  /* ============================================
+     10. CONTROLS - Match theme aesthetic
+     ============================================ */
+
+  .workflow-flow-modern button {
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  /* ============================================
+     END OF MODERN THEME (VS Code Variables)
+     ============================================ */
+}

@@ -255,9 +255,11 @@
               :min-zoom="0.2"
               :max-zoom="3"
               :connection-line-type="'default'"
-              class="workflow-flow h-full workflow-transition"
+              :class="['workflow-flow', 'h-full', 'workflow-transition', { 'workflow-flow-modern': USE_MODERN_THEME }]"
             >
+              <!-- Original background (hidden when modern theme active) -->
               <Background
+                v-if="!USE_MODERN_THEME"
                 pattern-color="#4b5563"
                 :size="2"
                 variant="dots"
@@ -859,6 +861,24 @@ import '@vue-flow/core/dist/style.css'
 // Removed default theme - using enterprise theme
 import '../design-system/enterprise-theme.css'
 
+// ============================================
+// WORKFLOW THEME TOGGLE
+// ============================================
+// 🎨 MODERN THEME: ENABLED - Glassmorphism dark theme active
+import '../assets/styles/workflow-theme-modern.css'
+
+/**
+ * Theme Switch Configuration
+ *
+ * ✅ CURRENTLY: Modern glassmorphism theme (dark slate, Inter font, professional)
+ *
+ * TO ROLLBACK TO ORIGINAL:
+ * 1. Set USE_MODERN_THEME = false
+ * 2. Comment out the CSS import above
+ * 3. No other changes needed!
+ */
+const USE_MODERN_THEME = true // ✅ MODERN THEME ENABLED
+
 // Stores
 const uiStore = useUIStore()
 const authStore = useAuthStore()
@@ -1371,26 +1391,27 @@ const createFlowFromRealData = (processDetails: any, workflowMetadata: any) => {
       id: `edge-${index}`,
       source: flow.from,
       target: flow.to,
-      type: 'smoothstep', // Changed from bezier to smoothstep for a different look
+      type: 'smoothstep',
       animated: workflowMetadata.is_active && isMainConnection,
-      style: {
+      // Remove inline styles when modern theme active - let CSS handle it
+      style: USE_MODERN_THEME ? {} : {
         stroke: isMainConnection ? '#10b981' : isAIConnection ? '#667eea' : '#3b82f6',
-        strokeWidth: isMainConnection ? 3 : 2, // Thicker lines
-        strokeDasharray: isMainConnection ? 'none' : '5 5', // Different dash pattern
+        strokeWidth: isMainConnection ? 3 : 2,
+        strokeDasharray: isMainConnection ? 'none' : '5 5',
         opacity: isMainConnection ? 1 : 0.7,
         strokeLinecap: 'round',
         strokeLinejoin: 'round',
-        filter: isMainConnection ? 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.5))' : 'none' // Glow effect for main
+        filter: isMainConnection ? 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.5))' : 'none'
       },
       sourceHandle,
       targetHandle,
       className: isMainConnection ? 'main-edge' : 'secondary-edge',
-      markerEnd: isMainConnection ? {
+      markerEnd: USE_MODERN_THEME ? undefined : (isMainConnection ? {
         type: 'arrowclosed',
         width: 20,
         height: 20,
         color: '#10b981'
-      } : undefined
+      } : undefined)
     }
   })
   
@@ -2341,10 +2362,10 @@ onMounted(async () => {
 
 <style scoped>
 /* Selected workflow - Professional subtle style with smooth animations */
-.selected-workflow {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.1) inset;
+[data-theme="vscode"] .selected-workflow {
+  background: linear-gradient(135deg, rgba(137, 209, 133, 0.05) 0%, rgba(137, 209, 133, 0.02) 100%);
+  border: 1px solid var(--vscode-success) !important;
+  box-shadow: 0 0 0 1px rgba(137, 209, 133, 0.1) inset;
   position: relative;
   animation: smoothSelection 0.3s ease-out;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2361,14 +2382,14 @@ onMounted(async () => {
   }
 }
 
-.selected-workflow::before {
+[data-theme="vscode"] .selected-workflow::before {
   content: '';
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(to bottom, #10b981, #059669);
+  background: linear-gradient(to bottom, var(--vscode-success), #059669);
   border-radius: 2px 0 0 2px;
   animation: slideInLeft 0.2s ease-out;
 }
@@ -2385,12 +2406,12 @@ onMounted(async () => {
 }
 
 /* Remove any white borders from theme */
-.selected-workflow * {
+[data-theme="vscode"] .selected-workflow * {
   border-color: transparent !important;
   outline: none !important;
 }
-.workflow-flow {
-  background: var(--color-background);
+[data-theme="vscode"] .workflow-flow {
+  background: var(--vscode-bg-primary);
 }
 
 /* Smooth transitions for workflow canvas */
@@ -2412,12 +2433,12 @@ onMounted(async () => {
 }
 
 /* Smooth transition for all workflow items in list */
-.p-2.rounded-md.cursor-pointer {
+[data-theme="vscode"] .p-2.rounded-md.cursor-pointer {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* VueFlow nodes smooth appearance */
-:deep(.vue-flow__node) {
+[data-theme="vscode"] :deep(.vue-flow__node) {
   animation: nodeAppear 0.3s ease-out;
   transition: transform 0.3s ease-out;
 }
@@ -2434,17 +2455,17 @@ onMounted(async () => {
 }
 
 /* Clear default VueFlow styles */
-:deep(.vue-flow__node-custom),
-:deep(.vue-flow__node-enterprise) {
+[data-theme="vscode"] :deep(.vue-flow__node-custom),
+[data-theme="vscode"] :deep(.vue-flow__node-enterprise) {
   background: transparent !important;
   border: none !important;
 }
 
 
 /* ===== AGENT NODES (n8n Style Rectangular) ===== */
-:deep(.premium-ai-node) {
-  background: #1f2937;
-  border: 0.5px solid #10b981;
+[data-theme="vscode"] :deep(.premium-ai-node) {
+  background: #1C1C1C; /* Grigio scuro - visibile su #141414 */
+  border: 0.5px solid var(--vscode-success);
   border-radius: 8px;
   width: 180px;
   height: 100px;
@@ -2459,32 +2480,32 @@ onMounted(async () => {
 }
 
 /* Badge con testo bianco per massima visibilità */
-.badge-white-text {
-  color: white !important;
+[data-theme="vscode"] .badge-white-text {
+  color: var(--vscode-text-inverse) !important;
 }
 
-:deep(.premium-ai-node:hover) {
+[data-theme="vscode"] :deep(.premium-ai-node:hover) {
   transform: translateY(-4px) rotateX(5deg);
-  box-shadow: 
+  box-shadow:
     0 16px 48px rgba(74, 85, 104, 0.4),
     0 0 24px rgba(45, 55, 72, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-:deep(.premium-ai-active) {
+[data-theme="vscode"] :deep(.premium-ai-active) {
   animation: aiPulse 2s ease-in-out infinite;
 }
 
-:deep(.premium-ai-icon) {
+[data-theme="vscode"] :deep(.premium-ai-icon) {
   position: relative;
-  color: white;
+  color: var(--vscode-text-inverse);
   margin-bottom: 0px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-:deep(.premium-ai-glow) {
+[data-theme="vscode"] :deep(.premium-ai-glow) {
   position: absolute;
   top: -2px;
   left: -2px;
@@ -2496,12 +2517,12 @@ onMounted(async () => {
   z-index: -1;
 }
 
-:deep(.premium-ai-content) {
+[data-theme="vscode"] :deep(.premium-ai-content) {
   text-align: center;
-  color: white;
+  color: var(--vscode-text-inverse);
 }
 
-:deep(.premium-ai-name) {
+[data-theme="vscode"] :deep(.premium-ai-name) {
   font-size: 11px;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -2509,7 +2530,7 @@ onMounted(async () => {
   line-height: 1.2;
 }
 
-:deep(.premium-ai-badge) {
+[data-theme="vscode"] :deep(.premium-ai-badge) {
   font-size: 8px;
   font-weight: 900;
   background: rgba(255, 255, 255, 0.2);
@@ -2519,16 +2540,16 @@ onMounted(async () => {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-:deep(.premium-ai-connections) {
+[data-theme="vscode"] :deep(.premium-ai-connections) {
   font-size: 8px;
   opacity: 0.8;
   margin-top: 2px;
 }
 
 /* ===== TOOL NODES (n8n Style Circular) ===== */
-:deep(.premium-tool-node) {
-  background: #1f2937;
-  border: 0.5px solid #10b981;
+[data-theme="vscode"] :deep(.premium-tool-node) {
+  background: #1C1C1C; /* Grigio scuro - visibile su #141414 */
+  border: 0.5px solid var(--vscode-success);
   border-radius: 50%;
   width: 90px;
   height: 90px;
@@ -2542,48 +2563,48 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-:deep(.premium-tool-node:hover) {
+[data-theme="vscode"] :deep(.premium-tool-node:hover) {
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-:deep(.premium-tool-active) {
+[data-theme="vscode"] :deep(.premium-tool-active) {
   animation: toolPulse 2s ease-in-out infinite;
 }
 
-:deep(.premium-tool-icon) {
-  color: white;
+[data-theme="vscode"] :deep(.premium-tool-icon) {
+  color: var(--vscode-text-inverse);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-:deep(.premium-tool-content) {
+[data-theme="vscode"] :deep(.premium-tool-content) {
   text-align: center;
-  color: white;
+  color: var(--vscode-text-inverse);
 }
 
-:deep(.premium-tool-name) {
+[data-theme="vscode"] :deep(.premium-tool-name) {
   font-size: 8px;
   font-weight: 600;
-  color: white;
+  color: var(--vscode-text-inverse);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   margin-bottom: 1px;
   line-height: 1.1;
 }
 
-:deep(.premium-tool-badge) {
+[data-theme="vscode"] :deep(.premium-tool-badge) {
   font-size: 6px;
   font-weight: 800;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--vscode-text-inverse);
   padding: 1px 3px;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /* ===== TRIGGER NODES (Exact n8n Style) ===== */
-:deep(.premium-trigger-node) {
-  background: #1f2937;
-  border: 0.5px solid #10b981;
+[data-theme="vscode"] :deep(.premium-trigger-node) {
+  background: #1C1C1C; /* Grigio scuro - visibile su #141414 */
+  border: 0.5px solid var(--vscode-success);
   border-radius: 50px 12px 12px 50px; /* Left side fully rounded, right side square */
   width: 100px;
   height: 80px;
@@ -2596,28 +2617,28 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-:deep(.premium-trigger-node:hover) {
+[data-theme="vscode"] :deep(.premium-trigger-node:hover) {
   transform: scale(1.05);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-:deep(.premium-trigger-active) {
-  background: #1f2937;
+[data-theme="vscode"] :deep(.premium-trigger-active) {
+  background: var(--vscode-bg-primary);
   border-color: rgba(16, 185, 129, 0.4);
 }
 
-:deep(.premium-trigger-inactive) {
-  background: #1f2937;
+[data-theme="vscode"] :deep(.premium-trigger-inactive) {
+  background: var(--vscode-bg-primary);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-:deep(.premium-trigger-icon) {
-  color: white;
+[data-theme="vscode"] :deep(.premium-trigger-icon) {
+  color: var(--vscode-text-inverse);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 /* Lightning bolt indicator (top-left corner) */
-:deep(.premium-trigger-node::before) {
+[data-theme="vscode"] :deep(.premium-trigger-node::before) {
   content: "⚡";
   position: absolute;
   top: -8px;
@@ -2633,16 +2654,16 @@ onMounted(async () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-:deep(.premium-trigger-content) {
+[data-theme="vscode"] :deep(.premium-trigger-content) {
   text-align: left;
   flex: 1;
   overflow: hidden;
 }
 
-:deep(.premium-trigger-name) {
+[data-theme="vscode"] :deep(.premium-trigger-name) {
   font-size: 10px;
   font-weight: 500;
-  color: #e0e0e0;
+  color: var(--vscode-text-secondary);
   margin-bottom: 0;
   line-height: 1.2;
   white-space: nowrap;
@@ -2650,7 +2671,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-:deep(.premium-trigger-badge) {
+[data-theme="vscode"] :deep(.premium-trigger-badge) {
   font-size: 7px;
   font-weight: 800;
   background: rgba(214, 51, 132, 0.1);
@@ -2661,9 +2682,9 @@ onMounted(async () => {
 }
 
 /* ===== STORAGE NODES (Exact n8n Style - Pill Shape) ===== */
-:deep(.premium-storage-node) {
-  background: #1f2937 !important;
-  border: 0.5px solid #10b981 !important;
+[data-theme="vscode"] :deep(.premium-storage-node) {
+  background: #1C1C1C !important; /* Grigio scuro - visibile su #141414 */
+  border: 0.5px solid var(--vscode-success) !important;
   border-radius: 50px !important; /* Perfect pill shape - half of height */
   width: 280px !important;
   height: 100px !important;
@@ -2678,42 +2699,42 @@ onMounted(async () => {
   padding: 0 20px !important;
 }
 
-:deep(.premium-storage-node:hover) {
+[data-theme="vscode"] :deep(.premium-storage-node:hover) {
   transform: scale(1.02);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-:deep(.premium-storage-icon) {
-  color: white;
+[data-theme="vscode"] :deep(.premium-storage-icon) {
+  color: var(--vscode-text-inverse);
   margin-right: 12px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   flex-shrink: 0;
 }
 
-:deep(.premium-storage-name) {
+[data-theme="vscode"] :deep(.premium-storage-name) {
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff !important; /* BIANCO VISIBILE */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important; /* OMBRA FORTE */
+  color: var(--vscode-text-inverse) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-:deep(.premium-storage-badge) {
+[data-theme="vscode"] :deep(.premium-storage-badge) {
   font-size: 7px;
   font-weight: 800;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--vscode-text-inverse);
   padding: 1px 4px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /* ===== PREMIUM PROCESS NODES ===== */
-:deep(.premium-process-node) {
-  background: #1f2937;
-  border: 0.5px solid #10b981;
+[data-theme="vscode"] :deep(.premium-process-node) {
+  background: #1C1C1C; /* Grigio scuro - visibile su #141414 */
+  border: 0.5px solid var(--vscode-success);
   border-radius: 8px; /* Square corners */
   width: 80px;
   height: 80px;
@@ -2726,18 +2747,18 @@ onMounted(async () => {
   box-shadow: 0 4px 16px rgba(74, 85, 104, 0.2);
 }
 
-:deep(.premium-process-node:hover) {
+[data-theme="vscode"] :deep(.premium-process-node:hover) {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(74, 85, 104, 0.4);
 }
 
-:deep(.premium-process-active) {
-  border-color: #10b981;
+[data-theme="vscode"] :deep(.premium-process-active) {
+  border-color: var(--vscode-success);
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
 }
 
-:deep(.premium-process-icon) {
-  color: #e2e8f0; /* Light gray icon */
+[data-theme="vscode"] :deep(.premium-process-icon) {
+  color: var(--vscode-text-secondary);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
@@ -2746,10 +2767,10 @@ onMounted(async () => {
 /* ===== PREMIUM HANDLES (Enhanced Visibility) ===== */
 
 /* Main flow handles (left/right) - VISIBLE */
-:deep(.premium-handle-ai-main) {
+[data-theme="vscode"] :deep(.premium-handle-ai-main) {
   width: 8px !important;
   height: 8px !important;
-  background: #ffffff !important;
+  background: var(--vscode-text-inverse) !important;
   border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
@@ -2758,14 +2779,14 @@ onMounted(async () => {
   z-index: 10 !important;
 }
 
-:deep(.premium-handle-ai-main:hover) {
+[data-theme="vscode"] :deep(.premium-handle-ai-main:hover) {
   opacity: 1 !important;
   transform: scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* AI Tool handles (bottom) - VISIBLE */
-:deep(.premium-handle-ai-tool) {
+[data-theme="vscode"] :deep(.premium-handle-ai-tool) {
   width: 8px !important;
   height: 8px !important;
   background: #a855f7 !important;
@@ -2777,57 +2798,57 @@ onMounted(async () => {
   z-index: 10 !important;
 }
 
-:deep(.premium-handle-ai-tool:hover) {
+[data-theme="vscode"] :deep(.premium-handle-ai-tool:hover) {
   opacity: 1 !important;
   transform: scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(168, 85, 247, 0.4) !important;
 }
 
 /* Handle type-specific colors */
-:deep(.premium-handle-memory) {
+[data-theme="vscode"] :deep(.premium-handle-memory) {
   background: linear-gradient(45deg, #ff6b6b, #ee5a24) !important;
 }
 
-:deep(.premium-handle-tool) {
+[data-theme="vscode"] :deep(.premium-handle-tool) {
   background: linear-gradient(45deg, #2ecc71, #27ae60) !important;
 }
 
-:deep(.premium-handle-language) {
+[data-theme="vscode"] :deep(.premium-handle-language) {
   background: linear-gradient(45deg, #f39c12, #e67e22) !important;
 }
 
-:deep(.premium-handle-ai) {
+[data-theme="vscode"] :deep(.premium-handle-ai) {
   background: linear-gradient(45deg, #9b59b6, #8e44ad) !important;
 }
 
-:deep(.premium-handle-main) {
+[data-theme="vscode"] :deep(.premium-handle-main) {
   background: linear-gradient(45deg, #3498db, #2980b9) !important;
 }
 
-:deep(.premium-handle-trigger) {
+[data-theme="vscode"] :deep(.premium-handle-trigger) {
   width: 6px !important;
   height: 6px !important;
-  background: #ffffff !important;
+  background: var(--vscode-text-inverse) !important;
   border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   opacity: 1 !important;
 }
 
-:deep(.premium-handle-tool) {
+[data-theme="vscode"] :deep(.premium-handle-tool) {
   width: 12px !important;
   height: 12px !important;
   background: linear-gradient(45deg, #a855f7, #8b5cf6) !important;
-  border: 2px solid white !important;
+  border: 2px solid var(--vscode-text-inverse) !important;
   border-radius: 50% !important;
   box-shadow: 0 2px 8px rgba(168, 85, 247, 0.5) !important;
   transition: all 0.3s ease !important;
 }
 
-:deep(.premium-handle-tool-top) {
+[data-theme="vscode"] :deep(.premium-handle-tool-top) {
   width: 8px !important;
   height: 8px !important;
-  background: #ffffff !important;
+  background: var(--vscode-text-inverse) !important;
   border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
@@ -2837,16 +2858,16 @@ onMounted(async () => {
   top: -7px !important;
 }
 
-:deep(.premium-handle-tool-top:hover) {
+[data-theme="vscode"] :deep(.premium-handle-tool-top:hover) {
   opacity: 1 !important;
   transform: translateX(-50%) scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-:deep(.premium-handle-tool-bottom) {
+[data-theme="vscode"] :deep(.premium-handle-tool-bottom) {
   width: 8px !important;
   height: 8px !important;
-  background: #ffffff !important;
+  background: var(--vscode-text-inverse) !important;
   border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
@@ -2855,16 +2876,16 @@ onMounted(async () => {
   z-index: 15 !important;
 }
 
-:deep(.premium-handle-tool-bottom:hover) {
+[data-theme="vscode"] :deep(.premium-handle-tool-bottom:hover) {
   opacity: 1 !important;
   transform: translateX(-50%) scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-:deep(.premium-handle-storage) {
+[data-theme="vscode"] :deep(.premium-handle-storage) {
   width: 8px !important;
   height: 8px !important;
-  background: #3b82f6 !important;
+  background: var(--vscode-accent) !important;
   border: 1px solid rgba(255, 255, 255, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
@@ -2872,16 +2893,16 @@ onMounted(async () => {
   opacity: 1 !important;
 }
 
-:deep(.premium-handle-storage:hover) {
+[data-theme="vscode"] :deep(.premium-handle-storage:hover) {
   opacity: 1 !important;
   transform: scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4) !important;
 }
 
-:deep(.premium-handle-process) {
+[data-theme="vscode"] :deep(.premium-handle-process) {
   width: 8px !important;
   height: 8px !important;
-  background: #ffffff !important;
+  background: var(--vscode-text-inverse) !important;
   border: 1px solid rgba(200, 200, 200, 0.8) !important;
   border-radius: 50% !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
@@ -2889,18 +2910,18 @@ onMounted(async () => {
   opacity: 1 !important;
 }
 
-:deep(.premium-handle-process:hover) {
+[data-theme="vscode"] :deep(.premium-handle-process:hover) {
   opacity: 1 !important;
   transform: scale(1.2) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Handle visibility: show only connected handles */
-:deep(.handle-connected) {
+[data-theme="vscode"] :deep(.handle-connected) {
   opacity: 1 !important;
 }
 
-:deep(.handle-disconnected) {
+[data-theme="vscode"] :deep(.handle-disconnected) {
   opacity: 0 !important;
 }
 
@@ -2945,12 +2966,12 @@ onMounted(async () => {
 /* ===== EDGE STYLES (Curved like n8n) ===== */
 
 /* Main flow edges (solid, thick, animated, curved) */
-:deep(.main-edge) {
+[data-theme="vscode"] :deep(.main-edge) {
   z-index: 10;
 }
 
-:deep(.main-edge .vue-flow__edge-path) {
-  stroke: #10b981 !important;
+[data-theme="vscode"] :deep(.main-edge .vue-flow__edge-path) {
+  stroke: var(--vscode-success) !important;
   stroke-width: 1px !important;
   opacity: 1 !important;
   stroke-linecap: round !important;
@@ -2958,11 +2979,11 @@ onMounted(async () => {
 }
 
 /* Secondary/AI tool edges (dashed, thinner, curved) */
-:deep(.secondary-edge) {
+[data-theme="vscode"] :deep(.secondary-edge) {
   z-index: 5;
 }
 
-:deep(.secondary-edge .vue-flow__edge-path) {
+[data-theme="vscode"] :deep(.secondary-edge .vue-flow__edge-path) {
   stroke-dasharray: 8 4 !important;
   stroke-width: 1px !important;
   opacity: 0.8 !important;
@@ -2971,34 +2992,74 @@ onMounted(async () => {
   stroke-linejoin: round !important;
 }
 
-:deep(.secondary-edge:hover .vue-flow__edge-path) {
+[data-theme="vscode"] :deep(.secondary-edge:hover .vue-flow__edge-path) {
   opacity: 1 !important;
   stroke-width: 1px !important;
 }
 
 /* Smooth bezier curves for all edges (like n8n) */
-:deep(.vue-flow__edge .vue-flow__edge-path) {
+[data-theme="vscode"] :deep(.vue-flow__edge .vue-flow__edge-path) {
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
 
 /* Ensure bezier curves render properly */
-:deep(.vue-flow__edge-default .vue-flow__edge-path) {
+[data-theme="vscode"] :deep(.vue-flow__edge-default .vue-flow__edge-path) {
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
 
 /* ALL handles stay invisible - clean workflow design */
-:deep(.premium-ai-node:hover .vue-flow__handle),
-:deep(.premium-tool-node:hover .vue-flow__handle),
-:deep(.premium-trigger-node:hover .vue-flow__handle),
-:deep(.premium-storage-node:hover .vue-flow__handle),
-:deep(.premium-process-node:hover .vue-flow__handle) {
+[data-theme="vscode"] :deep(.premium-ai-node:hover .vue-flow__handle),
+[data-theme="vscode"] :deep(.premium-tool-node:hover .vue-flow__handle),
+[data-theme="vscode"] :deep(.premium-trigger-node:hover .vue-flow__handle),
+[data-theme="vscode"] :deep(.premium-storage-node:hover .vue-flow__handle),
+[data-theme="vscode"] :deep(.premium-process-node:hover .vue-flow__handle) {
   opacity: 0 !important;
 }
 
+/* ===== FORCE DARK THEME - MAXIMUM SPECIFICITY OVERRIDE ===== */
+/* Target ALL PrimeVue Card components and glass elements */
+
+/* KPI Cards - PrimeVue Card component with all variations */
+[data-theme="vscode"] :deep(.premium-glass.premium-hover-lift),
+[data-theme="vscode"] :deep(.premium-glass.premium-hover-lift .p-card),
+[data-theme="vscode"] :deep(.premium-glass.premium-hover-lift .p-card-body),
+[data-theme="vscode"] :deep(.premium-glass.premium-hover-lift .p-card-content),
+[data-theme="vscode"] :deep(.premium-glass),
+[data-theme="vscode"] :deep(.p-card),
+[data-theme="vscode"] :deep(.p-card-body),
+[data-theme="vscode"] :deep(.p-card-content),
+[data-theme="vscode"] :deep(.glass),
+[data-theme="vscode"] :deep([class*="glass"]) {
+  background: rgba(26, 26, 26, 0.85) !important;
+  background-color: rgba(26, 26, 26, 0.85) !important;
+  border-color: rgba(60, 60, 60, 1) !important;
+}
+
+/* Target grid children (KPI stat cards container) */
+[data-theme="vscode"] .grid.grid-cols-6 > * {
+  background: transparent !important;
+}
+
+[data-theme="vscode"] .grid.grid-cols-6 :deep(.p-card) {
+  background: rgba(26, 26, 26, 0.85) !important;
+  background-color: rgba(26, 26, 26, 0.85) !important;
+  border-color: rgba(60, 60, 60, 1) !important;
+}
+
+/* Sidebar workflow list - Ultra aggressive with combined selectors */
+[data-theme="vscode"] .premium-glass.rounded-lg,
+[data-theme="vscode"] :deep(.premium-glass.rounded-lg),
+[data-theme="vscode"] .premium-glass.rounded-lg .p-card,
+[data-theme="vscode"] .flex.gap-4 > .premium-glass {
+  background: rgba(26, 26, 26, 0.85) !important;
+  background-color: rgba(26, 26, 26, 0.85) !important;
+  border-color: rgba(60, 60, 60, 1) !important;
+}
+
 /* ===== NODE WRAPPER & EXTERNAL LABELS (n8n Style) ===== */
-:deep(.premium-node-wrapper) {
+[data-theme="vscode"] :deep(.premium-node-wrapper) {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3008,10 +3069,10 @@ onMounted(async () => {
   height: fit-content;
 }
 
-:deep(.premium-external-label) {
+[data-theme="vscode"] :deep(.premium-external-label) {
   font-size: 11px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--vscode-text-inverse);
   text-align: center;
   margin-top: 6px;
   padding: 4px 8px;

@@ -26,7 +26,7 @@ p, span:not(.font-semibold):not(.font-bold), div:not(.font-semibold):not(.font-b
 
 /* PREMIUM Design System Component Styles */
 .control-card {
-  background: rgba(17, 24, 39, 0.8) !important;
+  background: rgba(26, 26, 26, 0.8) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
   border-radius: 12px !important;

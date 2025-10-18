@@ -21,7 +21,7 @@ const PremiumPreset = definePreset({
             colorScheme: {
                 dark: {
                     root: {
-                        background: 'rgba(17, 24, 39, 0.95)',
+                        background: 'rgba(26, 26, 26, 0.95)',
                         color: '{surface.0}',
                         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
                         borderRadius: '16px',
@@ -98,7 +98,7 @@ const PremiumPreset = definePreset({
                         borderColor: 'rgba(55, 65, 81, 0.3)'
                     },
                     header: {
-                        background: 'rgba(17, 24, 39, 0.8)',
+                        background: 'rgba(26, 26, 26, 0.8)',
                         borderColor: 'rgba(55, 65, 81, 0.3)',
                         color: '{surface.0}',
                         backdropFilter: 'blur(10px)'
@@ -121,7 +121,7 @@ const PremiumPreset = definePreset({
                         }
                     },
                     bodyRow: {
-                        background: 'rgba(17, 24, 39, 0.4)',
+                        background: 'rgba(26, 26, 26, 0.4)',
                         hoverBackground: 'rgba(31, 41, 55, 0.6)',
                         selectedBackground: 'rgba(34, 197, 94, 0.1)',
                         color: '{surface.0}',
