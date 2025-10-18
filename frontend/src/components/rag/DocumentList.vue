@@ -946,4 +946,59 @@ onMounted(() => {
 #rag-documents-table-vscode .p-paginator .p-dropdown:hover {
   border-color: #007ACC !important;
 }
+
+/* ⚡ COLUMN FILTER DROPDOWNS - Force VS Code theme */
+#rag-documents-table-vscode .p-column-filter .p-dropdown {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #E0E0E0 !important;
+}
+
+#rag-documents-table-vscode .p-column-filter .p-dropdown:hover {
+  border-color: #6B6B6B !important;
+}
+
+#rag-documents-table-vscode .p-column-filter .p-dropdown:focus,
+#rag-documents-table-vscode .p-column-filter .p-dropdown.p-focus {
+  border-color: #007ACC !important;
+  box-shadow: 0 0 0 1px #007ACC !important;
+}
+
+/* Dropdown label */
+#rag-documents-table-vscode .p-column-filter .p-dropdown .p-dropdown-label {
+  color: #E0E0E0 !important;
+  background: transparent !important;
+}
+
+#rag-documents-table-vscode .p-column-filter .p-dropdown .p-dropdown-label.p-placeholder {
+  color: #9E9E9E !important;
+}
+
+/* Dropdown trigger */
+#rag-documents-table-vscode .p-column-filter .p-dropdown .p-dropdown-trigger {
+  background: transparent !important;
+  color: #9E9E9E !important;
+}
+
+/* Dropdown panel */
+#rag-documents-table-vscode .p-column-filter .p-dropdown-panel {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+}
+
+/* Dropdown items */
+#rag-documents-table-vscode .p-column-filter .p-dropdown-panel .p-dropdown-item {
+  background: transparent !important;
+  color: #E0E0E0 !important;
+}
+
+#rag-documents-table-vscode .p-column-filter .p-dropdown-panel .p-dropdown-item:hover {
+  background: #3C3C3C !important;
+  color: #FFFFFF !important;
+}
+
+#rag-documents-table-vscode .p-column-filter .p-dropdown-panel .p-dropdown-item.p-highlight {
+  background: #007ACC !important;
+  color: #FFFFFF !important;
+}
 </style>
