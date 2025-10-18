@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
     res.cookie('access_token', accessToken, {
       httpOnly: true,          // Cannot be accessed by JavaScript
       secure: config.server.isProduction, // HTTPS only in production
-      sameSite: 'strict',      // CSRF protection
+      sameSite: 'lax',      // CSRF protection
       maxAge: 30 * 60 * 1000   // 30 minutes in milliseconds
     });
 
@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,          // Cannot be accessed by JavaScript
       secure: config.server.isProduction, // HTTPS only in production
-      sameSite: 'strict',      // CSRF protection
+      sameSite: 'lax',      // CSRF protection
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
 
@@ -228,7 +228,7 @@ router.post('/refresh', async (req, res) => {
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
       secure: config.server.isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 30 * 60 * 1000 // 30 minutes
     });
 
@@ -272,13 +272,13 @@ router.post('/logout', async (req, res) => {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: config.server.isProduction,
-      sameSite: 'strict'
+      sameSite: 'lax'
     });
 
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: config.server.isProduction,
-      sameSite: 'strict'
+      sameSite: 'lax'
     });
 
     res.json({
@@ -292,13 +292,13 @@ router.post('/logout', async (req, res) => {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: config.server.isProduction,
-      sameSite: 'strict'
+      sameSite: 'lax'
     });
 
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: config.server.isProduction,
-      sameSite: 'strict'
+      sameSite: 'lax'
     });
 
     res.status(500).json({
