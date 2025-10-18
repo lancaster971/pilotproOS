@@ -18,9 +18,6 @@ import './styles/toast-theme-vscode.css' // Toast notifications VS Code theme
 import './styles/rag-theme-vscode.css' // RAG components VS Code theme
 import './assets/styles/workflow-theme-modern-vscode.css' // Workflow nodes VS Code theme
 
-// ⚡ CRITICAL: LAST CSS IMPORT - Maximum Priority Override
-import './vscode-force-override.css' // FINAL OVERRIDE - Force VS Code colors everywhere (MUST be last!)
-
 // Inter Font - For Modern Workflow Theme
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -30,6 +27,9 @@ import '@fontsource/inter/600.css'
 import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import { toastOptions } from './config/toast-config'
+
+// ⚡ CRITICAL: ABSOLUTE LAST CSS IMPORT - Maximum Priority Override
+import './vscode-force-override.css' // FINAL OVERRIDE - Must be imported AFTER all other CSS!
 
 // Vue Advanced Chat
 import { register as registerAdvancedChat } from 'vue-advanced-chat'
