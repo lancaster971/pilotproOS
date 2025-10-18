@@ -3,9 +3,6 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 
-// ⚡ VS Code Dark Modern Theme - PRIMO import per priorità massima (2468 righe)
-import './vscode-theme.css'
-
 // Import clean CSS - Design System initialized in App.vue
 import './style.css'
 import './design-system/utilities.css'
@@ -22,12 +19,44 @@ import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import { toastOptions } from './config/toast-config'
 
+// ⚡ VS Code Dark Modern Theme - ULTIMO import = priorità MASSIMA (2491 righe)
+// MUST be last to override PrimeVue Nora runtime CSS!
+import './vscode-theme.css'
+
 // Vue Advanced Chat
 import { register as registerAdvancedChat } from 'vue-advanced-chat'
 
 // PrimeVue imports - CLEAN configuration
 import PrimeVue from 'primevue/config'
 import Nora from '@primevue/themes/nora'
+import { definePreset } from '@primeuix/themes'  // v4.3+ imports from @primeuix
+
+// Custom Preset - Force VS Code gray colors on dropdowns
+const VSCodePreset = definePreset(Nora, {
+  semantic: {
+    formField: {
+      color: '#9CA3AF',  // Gray text (not cyan)
+    }
+  },
+  components: {
+    select: {
+      root: {
+        color: '#9CA3AF',  // FORCE GRAY on closed dropdown label
+      },
+      placeholder: {
+        color: '#6B7280'
+      }
+    },
+    dropdown: {
+      root: {
+        color: '#9CA3AF',  // FORCE GRAY
+      },
+      placeholder: {
+        color: '#6B7280'
+      }
+    }
+  }
+})
 
 // Chart.js configuration for PrimeVue
 import {
@@ -142,10 +171,10 @@ const pinia = createPinia()
 // Register Pinia FIRST - before any service that might use stores
 app.use(pinia)
 
-// CLEAN PrimeVue Configuration - No more inline CSS chaos!
+// CLEAN PrimeVue Configuration - Custom VSCode Preset!
 app.use(PrimeVue, {
   theme: {
-    preset: Nora,
+    preset: VSCodePreset,  // 🎨 Custom preset with gray dropdown colors
     options: {
       prefix: 'p',
       darkModeSelector: 'system'
@@ -154,7 +183,6 @@ app.use(PrimeVue, {
     }
   },
   ripple: true
-  // NO MORE PT STYLES! Design system handles everything
 })
 
 // PrimeVue Services for RAG components

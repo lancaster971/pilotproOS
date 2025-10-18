@@ -39,6 +39,21 @@ onUnmounted(() => {
 /* Global styles are now handled by design-system and style.css */
 /* No more hardcoded colors! */
 
+/* ============================================
+   NUCLEAR OPTION: FORCE GRAY ON ALL DROPDOWNS
+   Highest specificity possible - beats everything
+   ============================================ */
+html body #app .p-select .p-select-label,
+html body #app span.p-select-label,
+html body #app .p-select span,
+html body #app .p-dropdown .p-dropdown-label,
+html body #app span.p-dropdown-label,
+html body #app .p-dropdown span,
+html body #app [role="combobox"],
+html body #app span[role="combobox"] {
+  color: #9CA3AF !important;
+}
+
 /* Page Transitions - VELOCI */
 .page-enter-active,
 .page-leave-active {

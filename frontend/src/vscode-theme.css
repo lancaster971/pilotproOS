@@ -43,6 +43,23 @@
   --vscode-divider: #2B2B2B;         /* Subtle dividers */
 
   /* ============================================
+     PRIMEVUE CSS VARIABLES OVERRIDE (v4.3.7 Nora)
+     Nuclear option: Override ALL possible dropdown color vars
+     ============================================ */
+  --p-select-color: #9CA3AF !important;
+  --p-select-placeholder-color: #6B7280 !important;
+  --p-select-option-color: #9CA3AF !important;
+  --p-select-option-focus-color: #9CA3AF !important;
+  --p-select-option-selected-color: #9CA3AF !important;
+  --p-dropdown-color: #9CA3AF !important;
+  --p-dropdown-option-color: #9CA3AF !important;
+
+  /* Form field semantic tokens (PrimeVue v4 hierarchy) */
+  --p-form-field-color: #9CA3AF !important;
+  --p-input-color: #9CA3AF !important;
+  --p-inputtext-color: #9CA3AF !important;
+
+  /* ============================================
      STATUS COLORS (Muted for UI)
      ============================================ */
   --vscode-success: #89D185;         /* Success states (muted green) */
