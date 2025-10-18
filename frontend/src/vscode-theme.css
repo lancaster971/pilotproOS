@@ -39,7 +39,7 @@
      ============================================ */
   --vscode-border: #3C3C3C;          /* Primary border color */
   --vscode-border-light: #6B6B6B;    /* Hover/active borders, emphasis */
-  --vscode-border-focus: #007ACC;    /* Focus ring (blue) */
+  --vscode-border-focus: #6B7280;    /* Focus ring (GRAY - was #007ACC) */
   --vscode-divider: #2B2B2B;         /* Subtle dividers */
 
   /* ============================================
@@ -62,7 +62,7 @@
   --vscode-string: #CE9178;          /* Orange - Strings, labels */
   --vscode-comment: #6A9955;         /* Green - Comments, hints */
   --vscode-number: #B5CEA8;          /* Light green - Numbers, metrics */
-  --vscode-variable: #9CDCFE;        /* Cyan - Variables, properties */
+  --vscode-variable: #9CA3AF;        /* GRAY - Variables, properties (was #9CDCFE cyan) */
   --vscode-type: #4EC9B0;            /* Teal - Types, classes */
   --vscode-constant: #4FC1FF;        /* Light blue - Constants */
 
@@ -71,7 +71,7 @@
      ============================================ */
   --vscode-input-bg: #3C3C3C;        /* Input field background */
   --vscode-input-border: #3C3C3C;    /* Input border */
-  --vscode-input-focus: #007ACC;     /* Input focus border */
+  --vscode-input-focus: #6B7280;     /* Input focus border (GRAY - was #007ACC) */
   --vscode-input-placeholder: #858585; /* Placeholder text */
 
   /* ============================================
@@ -2445,15 +2445,15 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
 
 .p-select:focus,
 .p-select.p-focus {
-  border-color: #007ACC !important;
-  box-shadow: 0 0 0 1px rgba(0, 122, 204, 0.5) !important;
+  border-color: #6B7280 !important;
+  box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.3) !important;
 }
 
 /* Select internal elements */
 .p-select .p-select-label,
 .p-select .p-select-trigger {
   background: transparent !important;
-  color: #E0E0E0 !important;
+  color: #9CA3AF !important;
 }
 
 .p-select .p-select-clear-icon {
@@ -2488,13 +2488,13 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
 
 .p-select-overlay .p-select-option.p-highlight,
 .p-select-overlay .p-select-item.p-highlight {
-  background: #007ACC !important;
+  background: #4B5563 !important;
   color: #FFFFFF !important;
 }
 
 .p-select-overlay .p-select-option.p-highlight.p-focus,
 .p-select-overlay .p-select-item.p-highlight.p-focus {
-  background: #005A9E !important;
+  background: #374151 !important;
 }
 
-/* Force reload Sat Oct 18 19:40:00 CEST 2025 */
+/* Force reload Sat Oct 18 20:48:00 CEST 2025 - GRAY DROPDOWN FIX */

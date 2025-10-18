@@ -1,30 +1,6 @@
 <template>
   <MainLayout>
     <div class="rag-manager-page">
-      <!-- Header con titolo e statistiche -->
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <Icon icon="lucide:database" class="title-icon" />
-            Base di Conoscenza
-          </h1>
-          <div class="header-stats" v-if="stats">
-            <div class="stat-badge">
-              <Icon icon="lucide:files" />
-              <span>{{ stats.total_documents || 0 }} documenti</span>
-            </div>
-            <div class="stat-badge">
-              <Icon icon="lucide:layers" />
-              <span>{{ stats.total_chunks || 0 }} frammenti</span>
-            </div>
-            <div class="stat-badge success" v-if="stats.total_documents > 0">
-              <Icon icon="lucide:check-circle" />
-              <span>Sistema attivo</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Tab Navigation -->
       <TabView v-model:activeIndex="activeTab" class="rag-tabs">
         <!-- Tab 1: Upload Documenti -->
@@ -156,64 +132,6 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
-/* Header */
-[data-theme="vscode"] .page-header {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: var(--vscode-glass-bg);
-  backdrop-filter: var(--vscode-glass-blur);
-  border-radius: 12px;
-  border: 1px solid var(--vscode-border);
-}
-
-[data-theme="vscode"] .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-}
-
-[data-theme="vscode"] .page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--vscode-text-inverse);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-[data-theme="vscode"] .title-icon {
-  font-size: 1.5rem;
-  color: var(--vscode-success);
-}
-
-/* Statistiche header */
-[data-theme="vscode"] .header-stats {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-[data-theme="vscode"] .stat-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--vscode-bg-secondary);
-  border: 1px solid var(--vscode-border);
-  border-radius: 8px;
-  color: var(--vscode-text-muted);
-  font-size: 0.9rem;
-}
-
-[data-theme="vscode"] .stat-badge.success {
-  background: var(--vscode-selection-bg);
-  border: 1px solid var(--vscode-border);
-  color: var(--vscode-success);
-}
-
 /* Tab styles */
 [data-theme="vscode"] .rag-tabs {
   background: transparent;
@@ -277,28 +195,6 @@ onMounted(async () => {
     padding: 1rem;
   }
 
-  [data-theme="vscode"] .page-header {
-    padding: 1rem;
-  }
-
-  [data-theme="vscode"] .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  [data-theme="vscode"] .page-title {
-    font-size: 1.5rem;
-  }
-
-  [data-theme="vscode"] .header-stats {
-    width: 100%;
-  }
-
-  [data-theme="vscode"] .stat-badge {
-    flex: 1;
-    justify-content: center;
-  }
-
   [data-theme="vscode"] .rag-tabs :deep(.p-tabview-nav) {
     flex-direction: column;
   }
@@ -321,11 +217,7 @@ onMounted(async () => {
   }
 }
 
-[data-theme="vscode"] .page-header {
-  animation: slideIn 0.3s ease-out;
-}
-
 [data-theme="vscode"] .rag-tabs {
-  animation: slideIn 0.3s ease-out 0.1s both;
+  animation: slideIn 0.3s ease-out both;
 }
 </style>

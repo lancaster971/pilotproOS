@@ -83,105 +83,89 @@
         </Card>
       </div>
 
-      <!-- Main Layout: Collapsible Sidebar + Flow + Details -->
+      <!-- Main Layout: Full Canvas (NO SIDEBAR) -->
       <div class="flex gap-4 h-[calc(100%-4rem)]">
-        
-        <!-- Collapsible Left Sidebar: Workflow List -->
-        <div 
-          :class="sidebarCollapsed ? 'w-12' : 'w-48'"
-          class="premium-glass rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0"
-        >
-          <!-- Sidebar Header -->
-          <div class="p-3 border-b border-border flex items-center justify-between">
-            <h3 v-if="!sidebarCollapsed" class="text-xs font-bold text-text">BUSINESS PROCESSES</h3>
-            <button 
-              @click="sidebarCollapsed = !sidebarCollapsed"
-              class="p-1 text-text-muted hover:text-text transition-colors"
-            >
-              <Icon icon="lucide:chevron-left" :class="{ 'rotate-180': sidebarCollapsed }" class="w-4 h-4 transition-transform" />
-            </button>
-          </div>
-          
-          <!-- Sidebar Content -->
-          <div v-if="!sidebarCollapsed" class="p-4 overflow-y-auto h-full">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs text-text-muted">{{ activeWorkflows }}/{{ totalWorkflows }} active</span>
-            </div>
-            
-            <!-- Real Workflow List -->
-            <div class="space-y-1.5">
-              <div
-                v-for="workflow in realWorkflows"
-                :key="workflow.id"
-                @click="selectWorkflow(workflow)"
-                class="p-2 rounded-md cursor-pointer transition-all text-xs"
-                :class="selectedWorkflowId === workflow.id
-                  ? 'selected-workflow'
-                  : 'bg-surface/50 hover:bg-surface border border-transparent hover:border-border'"
-              >
-                <div class="flex items-center gap-2 mb-1">
-                  <div 
-                    class="w-1.5 h-1.5 rounded-full"
-                    :class="workflow.is_active ? 'bg-primary animate-pulse' : 'bg-text-muted'"
-                  />
-                  <span class="font-medium text-text truncate flex-1 max-w-32" :title="workflow.process_name">
-                    {{ workflow.process_name }}
-                  </span>
-                </div>
-                <div class="text-xs text-text-muted pl-3.5">
-                  {{ workflow.executions_today }} today
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Collapsed State -->
-          <div v-else class="p-2 overflow-y-auto h-full">
-            <div class="space-y-2">
-              <div
-                v-for="workflow in realWorkflows"
-                :key="workflow.id"
-                @click="selectWorkflow(workflow)"
-                class="w-8 h-8 rounded-md cursor-pointer transition-all flex items-center justify-center"
-                :class="selectedWorkflowId === workflow.id 
-                  ? 'bg-primary/20 border border-primary/50' 
-                  : 'bg-surface/50 hover:bg-surface'"
-                :title="workflow.process_name"
-              >
-                <div 
-                  class="w-2 h-2 rounded-full"
-                  :class="workflow.is_active ? 'bg-primary' : 'bg-text-muted'"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Center: VueFlow Visualization -->
+        <!-- Center: VueFlow Visualization (FULL WIDTH) -->
         <div class="flex-1 premium-glass rounded-lg overflow-hidden">
-          <!-- Enhanced Header con indicatori business -->
-          <div class="bg-surface/30 border-b border-border px-4 py-3 flex items-center justify-between">
-            <!-- Left: Nome + Info -->
-            <div class="flex items-center gap-3">
-              <div>
-                <div class="text-sm font-bold text-white">
-                  {{ selectedWorkflowData?.process_name || 'Select a workflow to visualize' }}
-                </div>
-                <div v-if="workflowStats" class="flex items-center gap-3 text-xs text-text-muted mt-1">
-                  <span>{{ workflowStats.kpis?.totalExecutions || 0 }} executions</span>
-                  <span>•</span>
-                  <span class="flex items-center gap-1">
-                    <div :style="{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: (workflowStats.kpis?.successRate || 0) >= 80 ? '#10b981' : '#ef4444'
-                    }"></div>
-                    {{ workflowStats.kpis?.successRate || 0 }}% success
-                  </span>
-                  <span>•</span>
-                  <span>{{ workflowStats.kpis?.avgRunTime ? Math.round(workflowStats.kpis.avgRunTime) + 'ms' : 'N/A' }} avg</span>
-                </div>
+          <!-- Enhanced Header con Dropdown Workflow Selector -->
+          <div class="bg-surface/30 border-b border-border px-4 py-2.5 flex items-center justify-between">
+            <!-- Left: Dropdown Workflow Selector + Stats Inline -->
+            <div class="flex items-center gap-4">
+              <!-- Dropdown Compatto -->
+              <Dropdown
+                v-model="selectedWorkflowId"
+                :options="workflowDropdownOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select a workflow"
+                @change="onWorkflowChange"
+                class="workflow-dropdown"
+                :filter="true"
+                filterPlaceholder="Search workflows..."
+                :showClear="false"
+                scrollHeight="400px"
+              >
+                <!-- Custom option template con status badge -->
+                <template #option="slotProps">
+                  <div class="flex items-center gap-2 py-1">
+                    <!-- Status indicator -->
+                    <div
+                      class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      :class="slotProps.option.isActive ? 'bg-green-500' : 'bg-gray-500'"
+                    />
+
+                    <!-- Workflow name -->
+                    <span class="text-xs text-gray-200 font-normal flex-1 truncate" style="max-width: 200px;">
+                      {{ slotProps.option.label }}
+                    </span>
+
+                    <!-- Executions count (plain text, no badge) -->
+                    <span class="text-[10px] text-gray-500 font-normal px-1.5 py-0.5 bg-gray-800 rounded">
+                      {{ slotProps.option.executionsToday }}
+                    </span>
+                  </div>
+                </template>
+
+                <!-- Selected value template (compatto) -->
+                <template #value="slotProps">
+                  <div v-if="slotProps.value" class="flex items-center gap-1.5">
+                    <div
+                      class="w-1 h-1 rounded-full"
+                      :class="selectedWorkflowData?.is_active ? 'bg-green-500' : 'bg-gray-500'"
+                    />
+                    <span class="text-xs font-normal text-gray-400 truncate" style="max-width: 240px; color: #9CA3AF !important;">
+                      {{ selectedWorkflowData?.process_name }}
+                    </span>
+                  </div>
+                  <span v-else class="text-xs text-gray-500">Select a workflow</span>
+                </template>
+              </Dropdown>
+
+              <!-- Workflow Stats Inline -->
+              <div
+                v-if="workflowStats"
+                class="flex items-center gap-3 text-xs text-text-muted border-l border-border pl-4"
+              >
+                <span class="flex items-center gap-1.5">
+                  <Icon icon="lucide:bar-chart-4" class="w-3.5 h-3.5 text-cyan-400" />
+                  {{ workflowStats.kpis?.totalExecutions || 0 }} exec
+                </span>
+                <span class="text-text-muted/50">•</span>
+                <span class="flex items-center gap-1.5">
+                  <div :style="{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: (workflowStats.kpis?.successRate || 0) >= 80 ? '#10b981' : '#ef4444'
+                  }"></div>
+                  {{ workflowStats.kpis?.successRate || 0 }}%
+                </span>
+                <span class="text-text-muted/50">•</span>
+                <span class="flex items-center gap-1.5">
+                  <Icon icon="lucide:timer" class="w-3.5 h-3.5 text-amber-400" />
+                  {{ workflowStats.kpis?.avgRunTime ? Math.round(workflowStats.kpis.avgRunTime) + 'ms' : 'N/A' }}
+                </span>
               </div>
             </div>
 
@@ -844,6 +828,7 @@ import UltraModernCard from '../components/workflow/UltraModernCard.vue'
 // PrimeVue Components
 import Card from 'primevue/card'
 import Badge from 'primevue/badge'
+import Dropdown from 'primevue/dropdown'
 import Knob from 'primevue/knob'
 import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
@@ -889,7 +874,6 @@ console.log('🔔 Custom notification system initialized')
 // State
 const isLoading = ref(false)
 const tenantId = 'client_simulation_a'
-const sidebarCollapsed = ref(false)
 const showLogs = ref(false)
 const executionLogs = ref([
   {
@@ -968,6 +952,27 @@ const flowNodes = computed(() => flowElements.value.filter(el => !el.source))
 const flowEdges = computed(() => {
   return flowElements.value.filter(el => el.source)
 })
+
+// Dropdown workflow options computed property
+const workflowDropdownOptions = computed(() => {
+  return realWorkflows.value.map(workflow => ({
+    label: workflow.process_name,
+    value: workflow.id,
+    isActive: workflow.is_active,
+    executionsToday: workflow.executions_today || 0
+  }))
+})
+
+// Handler for workflow change via dropdown
+const onWorkflowChange = (event: any) => {
+  const workflowId = event.value
+  const workflow = realWorkflows.value.find(w => w.id === workflowId)
+
+  if (workflow) {
+    console.log('🔄 Workflow changed via dropdown:', workflow.process_name)
+    selectWorkflow(workflow)
+  }
+}
 
 // Helper function to check if a handle is connected  
 const isHandleConnected = (nodeId: string, handleId: string) => {
@@ -3076,5 +3081,190 @@ onMounted(async () => {
   overflow-wrap: break-word;
   background: none;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+   WORKFLOW DROPDOWN CUSTOM STYLING - MINIMAL
+   ============================================ */
+
+/* Dropdown container */
+:deep(.workflow-dropdown) {
+  min-width: 260px;
+  max-width: 300px;
+}
+
+/* Dropdown chiuso - GRAY THEME (NO CYAN) */
+:deep(.workflow-dropdown .p-dropdown) {
+  background: rgba(20, 20, 20, 0.9) !important;
+  border: 1px solid #3C3C3C !important;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.75rem !important;
+}
+
+:deep(.workflow-dropdown .p-dropdown:hover) {
+  border-color: #4B5563 !important;
+  background: rgba(30, 30, 30, 0.95) !important;
+  box-shadow: none !important;
+}
+
+:deep(.workflow-dropdown .p-dropdown:focus-within),
+:deep(.workflow-dropdown .p-dropdown:focus),
+:deep(.workflow-dropdown .p-dropdown.p-focus) {
+  border-color: #6B7280 !important;
+  box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.2) !important;
+  outline: none !important;
+}
+
+/* Dropdown trigger icon */
+:deep(.workflow-dropdown .p-dropdown-trigger) {
+  color: #9CA3AF !important;
+  width: 2rem !important;
+}
+
+/* Dropdown label (selected value text) - FORCE GRAY ON WRAPPER */
+:deep(.workflow-dropdown .p-select-label),
+:deep(.workflow-dropdown .p-dropdown-label),
+:deep(.workflow-dropdown .p-inputtext),
+:deep(.workflow-dropdown .p-select-label *),
+:deep(.workflow-dropdown .p-dropdown-label *),
+:deep(.workflow-dropdown span),
+:deep(.workflow-dropdown div) {
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+}
+
+/* Target the EXACT wrapper span that PrimeVue generates */
+:deep(.workflow-dropdown span.p-select-label),
+:deep(.workflow-dropdown span.p-select-label[role="combobox"]),
+:deep(.workflow-dropdown span.p-select-label div),
+:deep(.workflow-dropdown span.p-select-label div span),
+:deep(.workflow-dropdown span.p-select-label > *),
+:deep(.workflow-dropdown span.p-select-label *) {
+  color: #9CA3AF !important;
+}
+
+/* Override ANY cyan/blue inheritance */
+:deep(.workflow-dropdown *) {
+  --vscode-variable: #9CA3AF !important;
+  --vscode-accent: #6B7280 !important;
+  --vscode-border-focus: #6B7280 !important;
+  --primary: #6B7280 !important;
+}
+
+/* Dropdown panel (menu aperto) - DARKER */
+:deep(.p-dropdown-panel) {
+  background: rgba(20, 20, 20, 0.98) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid #3C3C3C !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  margin-top: 2px;
+}
+
+/* Override panel variable inheritance */
+:deep(.p-dropdown-panel *) {
+  --vscode-variable: #9CA3AF !important;
+  --vscode-accent: #6B7280 !important;
+  --vscode-border-focus: #6B7280 !important;
+  --primary: #6B7280 !important;
+}
+
+/* Dropdown items - COMPACT */
+:deep(.p-dropdown-item) {
+  color: #E5E7EB !important;
+  padding: 0.4rem 0.6rem !important;
+  transition: all 0.15s ease;
+  border-radius: 4px;
+  margin: 1px 4px;
+  font-size: 0.75rem !important;
+}
+
+:deep(.p-dropdown-item:hover) {
+  background: rgba(55, 65, 81, 0.5) !important;
+  color: #F3F4F6 !important;
+}
+
+:deep(.p-dropdown-item.p-highlight) {
+  background: rgba(75, 85, 99, 0.6) !important;
+  color: #F9FAFB !important;
+  font-weight: 500;
+}
+
+/* Filter input (search box) - COMPACT */
+:deep(.p-dropdown-filter) {
+  background: rgba(15, 15, 15, 0.8) !important;
+  border: 1px solid #374151 !important;
+  color: #E5E7EB !important;
+  padding: 0.35rem 0.6rem !important;
+  border-radius: 4px;
+  margin: 6px 6px 3px 6px !important;
+  font-size: 0.7rem !important;
+}
+
+:deep(.p-dropdown-filter:focus) {
+  border-color: #6B7280 !important;
+  box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.15) !important;
+  outline: none;
+}
+
+:deep(.p-dropdown-filter::placeholder) {
+  color: #6B7280 !important;
+  font-size: 0.7rem !important;
+}
+
+/* Empty message */
+:deep(.p-dropdown-empty-message) {
+  color: #9CA3AF;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+/* Scrollbar - THIN */
+:deep(.p-dropdown-items-wrapper) {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+:deep(.p-dropdown-items-wrapper)::-webkit-scrollbar {
+  width: 6px;
+}
+
+:deep(.p-dropdown-items-wrapper)::-webkit-scrollbar-track {
+  background: rgba(15, 15, 15, 0.5);
+  border-radius: 3px;
+}
+
+:deep(.p-dropdown-items-wrapper)::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
+  border-radius: 3px;
+}
+
+:deep(.p-dropdown-items-wrapper)::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+}
+
+/* NUCLEAR OPTION - Force gray on ALL dropdown elements */
+:deep(.workflow-dropdown),
+:deep(.workflow-dropdown) *,
+:deep(.workflow-dropdown) input,
+:deep(.workflow-dropdown) span,
+:deep(.workflow-dropdown) div,
+:deep(.workflow-dropdown) label,
+:deep(.workflow-dropdown) .p-inputtext,
+:deep(.p-dropdown-panel),
+:deep(.p-dropdown-panel) * {
+  border-color: #3C3C3C !important;
+}
+
+:deep(.workflow-dropdown) *:focus,
+:deep(.workflow-dropdown) *:focus-within,
+:deep(.p-dropdown-panel) *:focus,
+:deep(.p-dropdown-panel) *:focus-within {
+  border-color: #6B7280 !important;
+  box-shadow: 0 0 0 1px rgba(107, 114, 128, 0.2) !important;
+  outline: none !important;
 }
 </style>
