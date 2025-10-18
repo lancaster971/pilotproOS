@@ -858,14 +858,7 @@ import { useNotification } from '../composables/useNotification'
 
 // VueFlow styles
 import '@vue-flow/core/dist/style.css'
-// Removed default theme - using enterprise theme
-import '../design-system/enterprise-theme.css'
-
-// ============================================
-// WORKFLOW THEME TOGGLE
-// ============================================
-// 🎨 MODERN THEME: ENABLED - Glassmorphism dark theme active
-import '../assets/styles/workflow-theme-modern.css'
+// Theme CSS now consolidated in vscode-theme.css (imported in main.ts)
 
 /**
  * Theme Switch Configuration

@@ -174,6 +174,15 @@ const handleSubmit = async () => {
       // Login with any credentials
       console.log('🔐 Calling authStore.login...')
       await authStore.login(formData.value.email, formData.value.password)
+
+      // FADE OUT before redirect (router guard will handle theme change)
+      document.body.style.transition = 'opacity 0.2s ease-out'
+      document.body.style.opacity = '0'
+
+      // Small delay for fade animation
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Redirect (router guard will change theme + fade in)
       router.push('/dashboard')
     }
   } catch (error: any) {

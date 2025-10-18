@@ -6,7 +6,7 @@
 /* === CLEAN PREMIUM GLASSMORPHISM === */
 .premium-glass {
   background: rgba(26, 26, 26, 0.8) !important;
-  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid var(--vscode-focusBorder) !important;
   box-shadow:
     0 8px 25px rgba(0, 0, 0, 0.1),
     0 1px 0 rgba(255, 255, 255, 0.03) inset !important;
@@ -23,7 +23,7 @@
 
 .premium-modal .p-dialog {
   background: rgba(26, 26, 26, 0.95) !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border: 1px solid var(--vscode-focusBorder) !important;
   /* animations removed for performance */
 }
 
@@ -36,12 +36,12 @@
 
 /* === PREMIUM BUTTONS === */
 .premium-btn {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  background: var(--vscode-button-background) !important;
+  border: 1px solid var(--vscode-focusBorder) !important;
   box-shadow:
-    0 4px 12px rgba(16, 185, 129, 0.2),
+    0 4px 12px rgba(0, 122, 204, 0.2),
     0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
-  color: white !important;
+  color: var(--vscode-button-foreground) !important;
   font-weight: 500 !important;
   /* transitions removed for performance */
 }
@@ -51,7 +51,7 @@
 /* === PREMIUM CARDS === */
 .premium-card {
   background: rgba(26, 26, 26, 0.9) !important;
-  border: 1px solid rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid var(--vscode-focusBorder) !important;
   box-shadow:
     0 6px 20px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.02) inset !important;
@@ -62,7 +62,7 @@
 /* === PREMIUM INPUTS === */
 .premium-input {
   background: rgba(26, 26, 26, 0.6) !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border: 1px solid var(--vscode-focusBorder) !important;
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.05),
     0 1px 0 rgba(255, 255, 255, 0.02) inset !important;
@@ -71,10 +71,10 @@
 
 /* Focus effects without animations */
 .premium-input:focus {
-  border-color: rgba(16, 185, 129, 0.4) !important;
+  border-color: var(--vscode-focusBorder) !important;
   outline: none !important;
   box-shadow:
-    0 0 0 3px rgba(16, 185, 129, 0.1),
+    0 0 0 3px rgba(0, 122, 204, 0.1),
     0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 

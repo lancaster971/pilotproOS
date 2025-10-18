@@ -215,6 +215,10 @@ import Chip from 'primevue/chip'
 import Skeleton from 'primevue/skeleton'
 import { useToast } from 'primevue/usetoast'
 import ragApi from '../../api/rag'
+import { useForceVSCodeDropdown } from '../../composables/useForceVSCodeDropdown'
+
+// Force VS Code theme on dropdowns (CSS alone cannot override PrimeVue runtime styles)
+useForceVSCodeDropdown()
 
 // Emits
 const emit = defineEmits(['view-document'])

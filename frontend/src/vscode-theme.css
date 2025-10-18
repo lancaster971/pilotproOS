@@ -1,0 +1,2500 @@
+/**
+ * VS Code Dark Modern Palette
+ * Official Microsoft VS Code color scheme
+ * https://code.visualstudio.com/docs/getstarted/themes
+ *
+ * Usage: Import FIRST in main.ts before all other theme files
+ * Rollback: Comment out import to restore previous palette
+ */
+
+:root {
+  /* ============================================
+     BACKGROUND SYSTEM - DARKER VARIANT
+     ============================================ */
+  --vscode-bg-primary: #141414;      /* Editor background - DARKER */
+  --vscode-bg-secondary: #1A1A1A;    /* Sidebar, panels - DARKER */
+  --vscode-bg-tertiary: #0F0F0F;     /* Activity bar (darkest) - DARKER */
+  --vscode-bg-elevated: #202020;     /* Dropdowns, modals - DARKER */
+  --vscode-tab-active: #141414;      /* Active tab background - SAME as editor */
+  --vscode-tab-inactive: #1C1C1C;    /* Inactive tab background - DARKER */
+
+  /* ============================================
+     MICROSOFT BLUE (Primary Accent)
+     ============================================ */
+  --vscode-accent: #0078D4;          /* Primary accent - links, buttons, badges */
+  --vscode-accent-hover: #1890F1;    /* Hover state for accent elements */
+  --vscode-accent-active: #006CBE;   /* Active/pressed state */
+  --vscode-accent-disabled: #004578; /* Disabled accent elements */
+
+  /* ============================================
+     TEXT HIERARCHY
+     ============================================ */
+  --vscode-text-primary: #D4D4D4;    /* Main text, high contrast */
+  --vscode-text-secondary: #CCCCCC;  /* Labels, secondary text */
+  --vscode-text-muted: #858585;      /* Disabled, placeholders, hints */
+  --vscode-text-inverse: #FFFFFF;    /* Text on dark backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  --vscode-border: #3C3C3C;          /* Primary border color */
+  --vscode-border-light: #6B6B6B;    /* Hover/active borders, emphasis */
+  --vscode-border-focus: #007ACC;    /* Focus ring (blue) */
+  --vscode-divider: #2B2B2B;         /* Subtle dividers */
+
+  /* ============================================
+     STATUS COLORS (Muted for UI)
+     ============================================ */
+  --vscode-success: #89D185;         /* Success states (muted green) */
+  --vscode-success-bg: #1E3A1E;      /* Success background */
+  --vscode-warning: #CCA700;         /* Warning states (gold) */
+  --vscode-warning-bg: #3D3D1E;      /* Warning background */
+  --vscode-error: #F48771;           /* Error states (salmon) */
+  --vscode-error-bg: #3D1E1E;        /* Error background */
+  --vscode-info: #3794FF;            /* Info states (bright blue) */
+  --vscode-info-bg: #1E2D3D;         /* Info background */
+
+  /* ============================================
+     SYNTAX COLORS (Semantic UI Usage)
+     ============================================ */
+  --vscode-function: #DCDCAA;        /* Yellow - Functions, methods */
+  --vscode-keyword: #569CD6;         /* Blue - Keywords, controls */
+  --vscode-string: #CE9178;          /* Orange - Strings, labels */
+  --vscode-comment: #6A9955;         /* Green - Comments, hints */
+  --vscode-number: #B5CEA8;          /* Light green - Numbers, metrics */
+  --vscode-variable: #9CDCFE;        /* Cyan - Variables, properties */
+  --vscode-type: #4EC9B0;            /* Teal - Types, classes */
+  --vscode-constant: #4FC1FF;        /* Light blue - Constants */
+
+  /* ============================================
+     INPUT & INTERACTIVE ELEMENTS
+     ============================================ */
+  --vscode-input-bg: #3C3C3C;        /* Input field background */
+  --vscode-input-border: #3C3C3C;    /* Input border */
+  --vscode-input-focus: #007ACC;     /* Input focus border */
+  --vscode-input-placeholder: #858585; /* Placeholder text */
+
+  /* ============================================
+     BUTTONS
+     ============================================ */
+  --vscode-button-primary-bg: #0078D4;       /* Primary button */
+  --vscode-button-primary-hover: #1890F1;    /* Primary hover */
+  --vscode-button-primary-text: #FFFFFF;     /* Primary text */
+  --vscode-button-secondary-bg: #3C3C3C;     /* Secondary button */
+  --vscode-button-secondary-hover: #4C4C4C;  /* Secondary hover */
+  --vscode-button-secondary-text: #CCCCCC;   /* Secondary text */
+
+  /* ============================================
+     SCROLLBARS
+     ============================================ */
+  --vscode-scrollbar-thumb: #424242;         /* Scrollbar thumb */
+  --vscode-scrollbar-thumb-hover: #4E4E4E;   /* Scrollbar hover */
+  --vscode-scrollbar-bg: #1E1E1E;            /* Scrollbar track */
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     ============================================ */
+  --vscode-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --vscode-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --vscode-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+  --vscode-shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.6);
+
+  /* ============================================
+     GLASSMORPHISM (for Cards/Overlays) - DARKER
+     ============================================ */
+  --vscode-glass-bg: rgba(26, 26, 26, 0.85);      /* Darker bg with alpha */
+  --vscode-glass-border: rgba(108, 108, 108, 0.2); /* Subtle border */
+  --vscode-glass-blur: blur(10px);                  /* Backdrop filter */
+
+  /* ============================================
+     CHART COLORS (Based on Syntax Colors)
+     ============================================ */
+  --vscode-chart-1: #569CD6;  /* Keyword blue */
+  --vscode-chart-2: #4EC9B0;  /* Type teal */
+  --vscode-chart-3: #DCDCAA;  /* Function yellow */
+  --vscode-chart-4: #CE9178;  /* String orange */
+  --vscode-chart-5: #C586C0;  /* Magenta */
+  --vscode-chart-6: #9CDCFE;  /* Variable cyan */
+  --vscode-chart-7: #6A9955;  /* Comment green */
+  --vscode-chart-8: #B5CEA8;  /* Number light green */
+
+  /* ============================================
+     SELECTION & HIGHLIGHTS
+     ============================================ */
+  --vscode-selection-bg: #2A2A2A;     /* Text selection background - DARK GRAY */
+  --vscode-highlight-bg: #2A2D2E;     /* Subtle highlight */
+  --vscode-highlight-border: #6B6B6B; /* Highlight border - GRAY */
+
+  /* ============================================
+     LEGACY COMPATIBILITY (Alias for migration)
+     ============================================ */
+  --bg-primary: var(--vscode-bg-primary);
+  --bg-secondary: var(--vscode-bg-secondary);
+  --text-primary: var(--vscode-text-primary);
+  --text-secondary: var(--vscode-text-secondary);
+  --accent-primary: var(--vscode-accent);
+  --border-color: var(--vscode-border);
+}
+
+/* ============================================
+   DARK MODE ENFORCEMENT
+   ============================================ */
+body {
+  background-color: var(--vscode-bg-primary);
+  color: var(--vscode-text-primary);
+}
+
+/* ============================================
+   FORCE DARK BACKGROUND (HARDCODED) - NO GREEN FLASH!
+   ============================================ */
+html {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+body {
+  background: #141414 !important;
+  background-color: #141414 !important;
+  /* Smooth transition for login/navigation (prevents flash) */
+  transition: opacity 0.3s ease-in-out !important;
+}
+
+/* Force on all main containers */
+#app,
+.main-content,
+[data-theme="vscode"],
+[data-theme="vscode"] body,
+[data-theme="vscode"] #app {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+/* Force on Tailwind padding containers (cards, etc.) */
+[data-theme="vscode"] div.p-6,
+[data-theme="vscode"] .p-6 {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+/* ============================================
+   REMOVE BLUE FOCUS OUTLINES GLOBALLY
+   ============================================ */
+[data-theme="vscode"] a:focus,
+[data-theme="vscode"] a:focus-visible,
+[data-theme="vscode"] button:focus,
+[data-theme="vscode"] button:focus-visible {
+  outline: none !important;
+  outline-color: var(--vscode-border-light) !important;
+}
+
+/* ============================================
+   GLOBAL TEXT SELECTION
+   ============================================ */
+::selection {
+  background-color: var(--vscode-selection-bg);
+  color: var(--vscode-text-primary);
+}
+
+::-moz-selection {
+  background-color: var(--vscode-selection-bg);
+  color: var(--vscode-text-primary);
+}
+
+/* ============================================
+   GLOBAL SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbar-thumb);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbar-thumb-hover);
+}
+
+/* Firefox scrollbar (experimental) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vscode-scrollbar-thumb) var(--vscode-scrollbar-bg);
+}
+/**
+ * Utilities VS Code Override
+ * Maps design system variables to VS Code palette
+ * Import AFTER utilities.css
+ */
+
+/* ============================================
+   :root variables - ALWAYS available
+   ============================================ */
+:root {
+  /* ============================================
+     CORE COLOR SYSTEM → VS Code
+     NOTE: --color-primary is GRAY (neutral) not blue accent
+     Blue accent reserved for active states only
+     ============================================ */
+  --color-primary: var(--vscode-text-secondary); /* GRAY #9CA3AF instead of blue */
+  --color-primary-hover: var(--vscode-text-primary); /* Slightly brighter gray */
+
+  /* Semantic colors → VS Code status */
+  --success: var(--vscode-success);
+  --error: var(--vscode-error);
+  --warning: var(--vscode-warning);
+  --info: var(--vscode-info);
+
+  /* Text colors → VS Code text hierarchy */
+  --color-text: var(--vscode-text-primary);
+  --color-text-secondary: var(--vscode-text-secondary);
+  --color-text-muted: var(--vscode-text-muted);
+  --color-text-accent: var(--vscode-accent);
+
+  /* Backgrounds → VS Code bg system */
+  --color-background: var(--vscode-bg-primary);
+  --color-background-secondary: var(--vscode-bg-primary); /* #1E1E1E - Darker sidebar */
+  --color-surface: var(--vscode-bg-secondary); /* #252526 - Cards/surfaces */
+  --color-surface-hover: var(--vscode-highlight-bg);
+
+  /* Borders → VS Code borders */
+  --color-border: var(--vscode-border);
+  --color-border-hover: var(--vscode-border-light);
+  --color-border-accent: var(--vscode-accent);
+
+  /* Shadows → VS Code shadows */
+  --shadow-success-glow: 0 0 20px rgba(137, 209, 133, 0.3);
+  --shadow-error-glow: 0 0 20px rgba(244, 135, 113, 0.3);
+  --shadow-warning-glow: 0 0 20px rgba(204, 167, 0, 0.3);
+  --shadow-info-glow: 0 0 20px rgba(55, 148, 255, 0.3);
+}
+
+/* ============================================
+   OVERRIDE HARDCODED VALUES (scoped to vscode theme)
+   ============================================ */
+[data-theme="vscode"] {
+  /* Blue/Primary color alpha overrides → VS Code accent */
+  .bg-blue-400\/10,
+  .bg-blue-500\/10 {
+    background-color: rgba(0, 120, 212, 0.1) !important;
+  }
+
+  .border-blue-500\/30 {
+    border-color: rgba(0, 120, 212, 0.3) !important;
+  }
+
+  /* PrimeVue Tags → VS Code status colors */
+  .p-tag.p-tag-success {
+    background: var(--vscode-success) !important;
+    color: var(--vscode-text-inverse) !important;
+  }
+
+  .p-tag.p-tag-danger {
+    background: var(--vscode-error) !important;
+    color: var(--vscode-text-inverse) !important;
+  }
+
+  .p-tag.p-tag-info {
+    background: var(--vscode-info) !important;
+    color: var(--vscode-text-inverse) !important;
+  }
+
+  .p-tag.p-tag-warn {
+    background: var(--vscode-warning) !important;
+    color: var(--vscode-bg-primary) !important;
+  }
+
+  /* PrimeVue Buttons → VS Code accent */
+  .p-button-primary {
+    background: var(--vscode-button-primary-bg) !important;
+    border-color: var(--vscode-accent) !important;
+    color: var(--vscode-button-primary-text) !important;
+  }
+
+  .p-button-primary:hover {
+    background: var(--vscode-button-primary-hover) !important;
+    border-color: var(--vscode-accent-hover) !important;
+  }
+
+  /* PrimeVue Input Switch → VS Code success */
+  .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
+    background: var(--vscode-success) !important;
+  }
+
+  /* PrimeVue Paginator highlight → VS Code accent */
+  .p-paginator .p-paginator-element.p-highlight {
+    background: var(--vscode-accent) !important;
+    color: var(--vscode-button-primary-text) !important;
+  }
+
+  /* ============================================
+     TAILWIND GRAY OVERRIDES → VS Code palette
+     Used in ExecutionsPage, DatabasePage, etc.
+     ============================================ */
+
+  /* Background colors */
+  .bg-gray-900 {
+    background-color: var(--vscode-bg-primary) !important; /* #1E1E1E - Editor */
+  }
+
+  .bg-gray-850 {
+    background-color: var(--vscode-bg-secondary) !important; /* #252526 - Cards */
+  }
+
+  .bg-gray-800 {
+    background-color: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar */
+  }
+
+  /* Border colors */
+  .border-gray-700 {
+    border-color: var(--vscode-border) !important;
+  }
+
+  .border-gray-600 {
+    border-color: var(--vscode-border) !important;
+  }
+
+  /* Text colors */
+  .text-gray-100 {
+    color: var(--vscode-text-inverse) !important;
+  }
+
+  .text-gray-300 {
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .text-gray-400 {
+    color: var(--vscode-text-secondary) !important;
+  }
+
+  .text-gray-500,
+  .text-gray-600 {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* Hover states */
+  .hover\:bg-gray-800:hover {
+    background-color: var(--vscode-highlight-bg) !important;
+  }
+
+  .hover\:text-green-400:hover {
+    color: var(--vscode-success) !important;
+  }
+
+  /* Focus states (for inputs) */
+  .focus\:border-green-500:focus {
+    border-color: var(--vscode-success) !important;
+  }
+
+  /* Status colors for badges */
+  .text-green-300 {
+    color: var(--vscode-success) !important;
+  }
+
+  .text-red-300 {
+    color: var(--vscode-error) !important;
+  }
+
+  .text-yellow-300 {
+    color: var(--vscode-warning) !important;
+  }
+
+  .text-blue-300 {
+    color: var(--vscode-info) !important;
+  }
+
+  .text-orange-300 {
+    color: var(--vscode-warning) !important;
+  }
+
+  /* ============================================
+     PRIMARY COLOR OVERRIDES → Neutralize blue
+     Make primary colors more subtle (gray) instead of bright blue
+     ============================================ */
+
+  /* Avatar backgrounds - use sidebar gray */
+  .bg-primary {
+    background-color: var(--vscode-bg-secondary) !important; /* #252526 - Not too dark */
+  }
+
+  /* Icon colors - already handled by --color-primary override at :root */
+  .text-primary {
+    color: var(--color-primary) !important; /* Uses gray from :root */
+  }
+
+  /* EXCEPT for active states - keep accent blue */
+  .border-primary {
+    border-color: var(--vscode-accent) !important;
+  }
+
+  .hover\:border-primary:hover {
+    border-color: var(--vscode-accent) !important;
+  }
+
+  /* Focus ring - keep accent blue for accessibility */
+  .focus\:ring-primary:focus {
+    --tw-ring-color: var(--vscode-accent) !important;
+  }
+
+  /* Tabs active - keep accent blue for clarity */
+  [data-theme="vscode"] .p-tabview-nav-link.p-highlight {
+    color: var(--vscode-accent) !important;
+    border-bottom-color: var(--vscode-accent) !important;
+  }
+}
+/* 🎨 ENTERPRISE THEME - VS Code Professional Rebrand */
+/* Uses official Microsoft VS Code Dark Modern color palette */
+/* Reference: vscode-palette.css (import FIRST in main.ts) */
+
+:root {
+  /* Primary Palette - GRAY (neutral) not blue! */
+  /* These are COMMENTED OUT to use GRAY from utilities-vscode.css */
+  /* --color-primary is now GRAY (#9CA3AF) for neutral elements (avatars, icons) */
+  /* Blue accent (#0078D4) reserved ONLY for active states (borders, focus) */
+  /* --color-primary: var(--vscode-accent); */           /* DISABLED - was too blue */
+  /* --color-primary-dark: var(--vscode-accent-active); */ /* DISABLED */
+  /* --color-primary-light: var(--vscode-accent-hover); */ /* DISABLED */
+
+  /* Secondary Palette - VS Code Syntax Colors */
+  --color-secondary: var(--vscode-type);           /* #4EC9B0 Teal - AI/Logic nodes */
+  --color-secondary-dark: #3AA794;                 /* Darker teal */
+  --color-secondary-light: #6DD4BC;                /* Lighter teal */
+
+  /* Accent Colors - VS Code Status Colors */
+  --color-accent-cyan: var(--vscode-info);         /* #3794FF - Info */
+  --color-accent-amber: var(--vscode-warning);     /* #CCA700 - Warnings */
+  --color-accent-rose: var(--vscode-error);        /* #F48771 - Errors */
+  --color-accent-slate: var(--vscode-text-muted);  /* #858585 - Neutral */
+
+  /* Node Type Colors - VS Code Semantic Colors */
+  --node-trigger: var(--vscode-keyword);           /* #569CD6 Blue - Process Initiators */
+  --node-processor: var(--vscode-function);        /* #DCDCAA Yellow - Processing/Logic */
+  --node-transformer: var(--vscode-type);          /* #4EC9B0 Teal - Data Transform */
+  --node-output: var(--vscode-string);             /* #CE9178 Orange - Output/Actions */
+  --node-storage: var(--vscode-comment);           /* #6A9955 Green - Database/Storage */
+  --node-ai: var(--vscode-variable);               /* #9CDCFE Cyan - AI/ML Operations */
+
+  /* Backgrounds - VS Code Dark Modern */
+  --bg-primary: var(--vscode-bg-primary);          /* #1E1E1E - Editor */
+  --bg-secondary: var(--vscode-bg-secondary);      /* #252526 - Sidebar */
+  --bg-surface: var(--vscode-bg-elevated);         /* #2D2D30 - Dropdowns */
+  --bg-elevated: var(--vscode-tab-active);         /* #222222 - Active tabs */
+
+  /* Glass Morphism Effects - VS Code Adapted */
+  --glass-bg: var(--vscode-glass-bg);              /* rgba(37, 37, 38, 0.7) */
+  --glass-border: var(--vscode-glass-border);      /* rgba(108, 108, 108, 0.2) */
+  --glass-shadow: var(--vscode-shadow-lg);         /* 0 8px 16px rgba(0,0,0,0.5) */
+
+  /* Connection Lines - VS Code Colors */
+  --edge-default: var(--vscode-border);            /* #3C3C3C - Muted */
+  --edge-active: var(--vscode-accent);             /* #0078D4 - Blue when active */
+  --edge-data-flow: var(--vscode-info);            /* #3794FF - Data flow */
+  --edge-error: var(--vscode-error);               /* #F48771 - Errors */
+
+  /* Text Colors - VS Code Hierarchy */
+  --text-primary: var(--vscode-text-primary);      /* #D4D4D4 */
+  --text-secondary: var(--vscode-text-secondary);  /* #CCCCCC */
+  --text-muted: var(--vscode-text-muted);          /* #858585 */
+
+  /* Status Colors - VS Code Status System */
+  --status-active: var(--vscode-success);          /* #89D185 - Success */
+  --status-pending: var(--vscode-warning);         /* #CCA700 - Pending */
+  --status-error: var(--vscode-error);             /* #F48771 - Error */
+  --status-disabled: var(--vscode-text-muted);     /* #858585 - Disabled */
+}
+
+/* Node Shape Classes - Professional Forms */
+.node-hexagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+  background: linear-gradient(135deg, var(--node-processor), var(--node-processor-dark));
+}
+
+.node-rounded-rect {
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--node-trigger), var(--node-trigger-dark));
+}
+
+.node-pill {
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--node-transformer), var(--node-transformer-dark));
+}
+
+.node-octagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: linear-gradient(135deg, var(--node-ai), var(--node-ai-dark));
+}
+
+.node-chevron {
+  clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%);
+  background: linear-gradient(135deg, var(--node-output), var(--node-output-dark));
+}
+
+.node-cylinder {
+  border-radius: 50px/25px;
+  background: linear-gradient(180deg, var(--node-storage), var(--node-storage-dark));
+}
+
+/* Enterprise Glass Effect */
+.enterprise-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Premium Hover Effects */
+.enterprise-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enterprise-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+  border-color: var(--color-primary);
+}
+
+/* Professional Edge Styles */
+.edge-manhattan {
+  stroke: var(--edge-default);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.edge-data-flow {
+  stroke: var(--edge-data-flow);
+  stroke-width: 3;
+  stroke-dasharray: 5, 5;
+  animation: data-flow 2s linear infinite;
+}
+
+@keyframes data-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -10; }
+}
+
+/* Remove ALL n8n Green References */
+.text-green-400,
+.text-green-500,
+.bg-green-400,
+.bg-green-500,
+.border-green-400,
+.border-green-500 {
+  display: none !important;
+}/* ============================================
+   INSIGHTS THEME - VS Code Dark Modern Edition
+   Applied ONLY when data-theme="vscode"
+   Priority: Maximum - Overrides all other styles
+   IMPORTANTE: NON tocca LoginPage (data-theme="original")!
+   ============================================ */
+
+/* Scope ALL rules to data-theme="vscode" */
+[data-theme="vscode"] {
+  /* FORCE OVERRIDE: Apply to ALL PrimeVue Components */
+  .p-component,
+  .p-card,
+  .p-panel,
+  .p-dialog,
+  .p-tabview,
+  .p-datatable,
+  .p-dropdown,
+  .p-inputtext {
+    font-family: inherit !important;
+  }
+
+  /* Override PrimeVue Card styles - MAXIMUM SPECIFICITY */
+  .p-card,
+  .p-card.premium-glass,
+  Card.premium-glass,
+  .premium-glass,
+  .control-card,
+  .stat-card,
+  div.premium-glass {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+    box-shadow: none !important;
+  }
+
+  /* Force dark background on card content */
+  .p-card .p-card-content,
+  .premium-glass .p-card-content {
+    background: transparent !important;
+  }
+
+  .p-card:hover,
+  .p-card.premium-glass:hover,
+  .premium-glass:hover,
+  .control-card:hover,
+  .premium-hover-lift:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: var(--vscode-shadow-md) !important;
+  }
+
+  /* Specific overrides for WorkflowCommandCenter KPI cards */
+  .grid.grid-cols-6 .p-card,
+  .grid.grid-cols-6 Card {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  /* Override Badge styling */
+  .p-badge,
+  Badge {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  .p-badge[data-severity="info"],
+  Badge[severity="info"] {
+    background: var(--vscode-info-bg) !important;
+    border: 1px solid var(--vscode-info) !important;
+    color: var(--vscode-info) !important;
+  }
+
+  .p-badge[data-severity="success"],
+  Badge[severity="success"] {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+    color: var(--vscode-success) !important;
+  }
+
+  .p-badge[data-severity="danger"],
+  Badge[severity="danger"] {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+    color: var(--vscode-error) !important;
+  }
+
+  /* Override TabView styling */
+  .p-tabview,
+  .premium-tabs {
+    background: transparent !important;
+  }
+
+  .p-tabview-nav {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 8px 8px 0 0 !important;
+  }
+
+  .p-tabview-header {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .p-tabview-header.p-highlight .p-tabview-nav-link {
+    background: var(--vscode-selection-bg) !important;
+    border-color: var(--vscode-accent) !important;
+    color: var(--vscode-accent) !important;
+  }
+
+  .p-tabview-panels {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-top: none !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  /* Override DataTable styling */
+  .p-datatable {
+    background: var(--vscode-bg-tertiary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 8px !important;
+  }
+
+  .p-datatable .p-datatable-thead > tr > th {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    color: var(--vscode-text-muted) !important;
+    border-color: var(--vscode-border) !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr {
+    background: transparent !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background: var(--vscode-highlight-bg) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr > td {
+    border-color: var(--vscode-border) !important;
+  }
+
+  /* Override Button styling */
+  .p-button,
+  .premium-button,
+  .btn-control {
+    background: var(--vscode-button-secondary-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 6px !important;
+    color: var(--vscode-button-secondary-text) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+  }
+
+  .p-button:hover:not(:disabled),
+  .premium-button:hover:not(:disabled),
+  .btn-control:hover:not(:disabled) {
+    background: var(--vscode-button-secondary-hover) !important;
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .p-button-success {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+    color: var(--vscode-success) !important;
+  }
+
+  .p-button-danger {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+    color: var(--vscode-error) !important;
+  }
+}
+
+/* Base Container Styling - FORCE ALL PAGES (body level) */
+[data-theme="vscode"] body,
+[data-theme="vscode"] #app,
+[data-theme="vscode"] .page-container,
+[data-theme="vscode"] .main-content,
+[data-theme="vscode"] .dashboard-container,
+[data-theme="vscode"] .workflow-container,
+[data-theme="vscode"] .settings-container,
+[data-theme="vscode"] .executions-container,
+[data-theme="vscode"] [class*="h-[calc(100vh"],
+[data-theme="vscode"] div[class*="overflow-auto"] {
+  background: var(--vscode-bg-primary) !important;
+  color: var(--vscode-text-primary) !important;
+}
+
+/* WorkflowCommandCenter specific background */
+[data-theme="vscode"] .h-\[calc\(100vh-4rem\)\] {
+  background: transparent !important;
+}
+
+/* Sidebar backgrounds */
+[data-theme="vscode"] .sidebar,
+[data-theme="vscode"] aside,
+[data-theme="vscode"] [class*="w-64"],
+[data-theme="vscode"] [class*="flex-shrink-0"]:not(.p-card) {
+  background: var(--vscode-bg-tertiary) !important;
+  border-right: 1px solid var(--vscode-border) !important;
+}
+
+/* Section Containers - Glassmorphism Effect */
+[data-theme="vscode"] .section,
+[data-theme="vscode"] .card,
+[data-theme="vscode"] .panel,
+[data-theme="vscode"] .widget,
+[data-theme="vscode"] .content-block,
+[data-theme="vscode"] .data-card,
+[data-theme="vscode"] .workflow-card,
+[data-theme="vscode"] .execution-card,
+[data-theme="vscode"] .settings-section,
+[data-theme="vscode"] .analytics-card {
+  background: var(--vscode-glass-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  backdrop-filter: var(--vscode-glass-blur) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Hover Effects for Cards */
+[data-theme="vscode"] .card:hover,
+[data-theme="vscode"] .workflow-card:hover,
+[data-theme="vscode"] .execution-card:hover,
+[data-theme="vscode"] .data-card:hover {
+  border-color: var(--vscode-accent) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--vscode-shadow-md);
+}
+
+/* Metric Cards - Compact Dark Style */
+[data-theme="vscode"] .metric,
+[data-theme="vscode"] .stat,
+[data-theme="vscode"] .kpi,
+[data-theme="vscode"] .counter,
+[data-theme="vscode"] .summary-item {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  min-height: 80px;
+}
+
+/* Value Typography */
+[data-theme="vscode"] .value,
+[data-theme="vscode"] .metric-value,
+[data-theme="vscode"] .stat-value,
+[data-theme="vscode"] .count,
+[data-theme="vscode"] .number {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: var(--vscode-text-inverse) !important;
+  margin-bottom: 4px;
+}
+
+/* Label Typography */
+[data-theme="vscode"] .label,
+[data-theme="vscode"] .metric-label,
+[data-theme="vscode"] .stat-label,
+[data-theme="vscode"] .description {
+  font-size: 12px !important;
+  color: var(--vscode-text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px;
+}
+
+/* Status Badges */
+[data-theme="vscode"] .status,
+[data-theme="vscode"] .badge,
+[data-theme="vscode"] .tag,
+[data-theme="vscode"] .chip {
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  display: inline-block;
+}
+
+[data-theme="vscode"] .status.active,
+[data-theme="vscode"] .badge.success,
+[data-theme="vscode"] .tag.online {
+  background: var(--vscode-success-bg) !important;
+  color: var(--vscode-success) !important;
+  border: 1px solid var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .status.warning,
+[data-theme="vscode"] .badge.pending {
+  background: var(--vscode-warning-bg) !important;
+  color: var(--vscode-warning) !important;
+  border: 1px solid var(--vscode-warning) !important;
+}
+
+[data-theme="vscode"] .status.error,
+[data-theme="vscode"] .badge.failed {
+  background: var(--vscode-error-bg) !important;
+  color: var(--vscode-error) !important;
+  border: 1px solid var(--vscode-error) !important;
+}
+
+/* Progress Bars */
+[data-theme="vscode"] .progress,
+[data-theme="vscode"] .progress-bar,
+[data-theme="vscode"] .meter {
+  height: 4px !important;
+  background: var(--vscode-bg-elevated) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+[data-theme="vscode"] .progress-fill,
+[data-theme="vscode"] .bar-fill {
+  height: 100% !important;
+  background: var(--vscode-success) !important;
+  border-radius: 2px !important;
+  transition: width 0.3s ease !important;
+}
+
+/* Tables - Dark Theme */
+[data-theme="vscode"] table,
+[data-theme="vscode"] .data-table,
+[data-theme="vscode"] .list-table {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+[data-theme="vscode"] th {
+  background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+  color: var(--vscode-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] td {
+  padding: 12px 16px !important;
+  color: var(--vscode-text-primary) !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] tr:hover {
+  background: var(--vscode-highlight-bg) !important;
+}
+
+/* Buttons - VS Code Style */
+[data-theme="vscode"] button,
+[data-theme="vscode"] .btn {
+  background: var(--vscode-button-secondary-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 6px !important;
+  color: var(--vscode-button-secondary-text) !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme="vscode"] button:hover,
+[data-theme="vscode"] .btn:hover {
+  background: var(--vscode-button-secondary-hover) !important;
+  border-color: var(--vscode-accent) !important;
+  transform: translateY(-1px);
+}
+
+[data-theme="vscode"] .btn-primary {
+  background: var(--vscode-button-primary-bg) !important;
+  border: 1px solid var(--vscode-accent) !important;
+  color: var(--vscode-button-primary-text) !important;
+}
+
+[data-theme="vscode"] .btn-primary:hover {
+  background: var(--vscode-button-primary-hover) !important;
+  border-color: var(--vscode-accent-hover) !important;
+}
+
+/* Input Fields */
+[data-theme="vscode"] input,
+[data-theme="vscode"] textarea,
+[data-theme="vscode"] select {
+  background: var(--vscode-input-bg) !important;
+  border: 1px solid var(--vscode-input-border) !important;
+  border-radius: 6px !important;
+  color: var(--vscode-text-primary) !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
+[data-theme="vscode"] input::placeholder,
+[data-theme="vscode"] textarea::placeholder {
+  color: var(--vscode-input-placeholder) !important;
+}
+
+[data-theme="vscode"] input:focus,
+[data-theme="vscode"] textarea:focus,
+[data-theme="vscode"] select:focus {
+  outline: none !important;
+  border-color: var(--vscode-input-focus) !important;
+  background: var(--vscode-input-bg) !important;
+}
+
+/* Headers and Titles */
+[data-theme="vscode"] h1,
+[data-theme="vscode"] h2,
+[data-theme="vscode"] h3,
+[data-theme="vscode"] h4 {
+  color: var(--vscode-text-inverse) !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="vscode"] .section-title,
+[data-theme="vscode"] .card-title,
+[data-theme="vscode"] .panel-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: var(--vscode-text-inverse) !important;
+  margin-bottom: 16px !important;
+}
+
+[data-theme="vscode"] .section-subtitle {
+  font-size: 13px !important;
+  color: var(--vscode-text-muted) !important;
+  margin-top: 4px !important;
+}
+
+/* Icons */
+[data-theme="vscode"] .icon {
+  color: var(--vscode-text-muted) !important;
+}
+
+[data-theme="vscode"] .icon.primary {
+  color: var(--vscode-accent) !important;
+}
+
+[data-theme="vscode"] .icon.success {
+  color: var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .icon.warning {
+  color: var(--vscode-warning) !important;
+}
+
+[data-theme="vscode"] .icon.error {
+  color: var(--vscode-error) !important;
+}
+
+/* Tooltips */
+[data-theme="vscode"] .tooltip {
+  position: absolute;
+  background: var(--vscode-bg-elevated) !important;
+  color: var(--vscode-text-primary) !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  border: 1px solid var(--vscode-border) !important;
+  box-shadow: var(--vscode-shadow-md) !important;
+  z-index: 1000;
+}
+
+/* Charts Container */
+[data-theme="vscode"] .chart-container {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+}
+
+/* Grid Layouts */
+[data-theme="vscode"] .grid {
+  display: grid;
+  gap: 16px;
+}
+
+[data-theme="vscode"] .grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+[data-theme="vscode"] .grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+[data-theme="vscode"] .grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  [data-theme="vscode"] .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  [data-theme="vscode"] .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  [data-theme="vscode"] .grid-4,
+  [data-theme="vscode"] .grid-3,
+  [data-theme="vscode"] .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-theme="vscode"] .fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Loading States */
+[data-theme="vscode"] .loading,
+[data-theme="vscode"] .skeleton {
+  background: linear-gradient(90deg,
+    var(--vscode-bg-elevated) 0%,
+    var(--vscode-bg-secondary) 50%,
+    var(--vscode-bg-elevated) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Dividers */
+[data-theme="vscode"] hr,
+[data-theme="vscode"] .divider {
+  border: none !important;
+  border-top: 1px solid var(--vscode-border) !important;
+  margin: 20px 0 !important;
+}
+
+/* Empty States */
+[data-theme="vscode"] .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--vscode-text-muted);
+}
+
+[data-theme="vscode"] .empty-state-icon {
+  font-size: 48px;
+  color: var(--vscode-text-muted);
+  margin-bottom: 16px;
+}
+
+[data-theme="vscode"] .empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-text-secondary);
+  margin-bottom: 8px;
+}
+
+[data-theme="vscode"] .empty-state-description {
+  font-size: 14px;
+  color: var(--vscode-text-muted);
+}
+/* Toast Theme - VS Code Dark Modern Style */
+/* Applied ONLY when data-theme="vscode" */
+
+/* Container - ENSURE VISIBILITY (ALWAYS visible, no theme restriction) */
+.Vue-Toastification__container {
+  z-index: 99999 !important;
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+}
+
+/* Scope all VS Code toast styling to data-theme="vscode" */
+[data-theme="vscode"] {
+  /* Base toast to ensure visibility */
+  .Vue-Toastification__toast {
+    background: var(--vscode-bg-elevated) !important;
+    color: var(--vscode-text-primary) !important;
+    z-index: 99999 !important;
+  }
+
+  /* Base Toast Style - VS Code */
+  .insights-toast {
+    background: var(--vscode-bg-elevated) !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+    -webkit-backdrop-filter: var(--vscode-glass-blur) !important;
+    border: 1px solid var(--vscode-border) !important;
+    box-shadow: var(--vscode-shadow-lg) !important;
+    color: var(--vscode-text-primary) !important;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    min-height: 64px !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  /* Toast Body */
+  .insights-toast-body {
+    color: var(--vscode-text-primary) !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Success Toast - VS Code Green */
+  .Vue-Toastification__toast--success.insights-toast {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+    box-shadow:
+      0 8px 32px rgba(137, 209, 133, 0.2),
+      inset 0 1px 0 rgba(137, 209, 133, 0.2) !important;
+  }
+
+  .Vue-Toastification__toast--success.insights-toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--vscode-success);
+  }
+
+  .Vue-Toastification__toast--success .Vue-Toastification__icon {
+    color: var(--vscode-success) !important;
+    filter: drop-shadow(0 0 8px rgba(137, 209, 133, 0.5));
+  }
+
+  /* Error Toast - VS Code Salmon */
+  .Vue-Toastification__toast--error.insights-toast {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+    box-shadow:
+      0 8px 32px rgba(244, 135, 113, 0.2),
+      inset 0 1px 0 rgba(244, 135, 113, 0.2) !important;
+  }
+
+  .Vue-Toastification__toast--error.insights-toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--vscode-error);
+  }
+
+  .Vue-Toastification__toast--error .Vue-Toastification__icon {
+    color: var(--vscode-error) !important;
+    filter: drop-shadow(0 0 8px rgba(244, 135, 113, 0.5));
+  }
+
+  /* Info Toast - VS Code Microsoft Blue */
+  .Vue-Toastification__toast--info.insights-toast {
+    background: var(--vscode-info-bg) !important;
+    border: 1px solid var(--vscode-info) !important;
+    box-shadow:
+      0 8px 32px rgba(55, 148, 255, 0.2),
+      inset 0 1px 0 rgba(55, 148, 255, 0.2) !important;
+  }
+
+  .Vue-Toastification__toast--info.insights-toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--vscode-info);
+  }
+
+  .Vue-Toastification__toast--info .Vue-Toastification__icon {
+    color: var(--vscode-info) !important;
+    filter: drop-shadow(0 0 8px rgba(55, 148, 255, 0.5));
+  }
+
+  /* Warning Toast - VS Code Gold */
+  .Vue-Toastification__toast--warning.insights-toast {
+    background: var(--vscode-warning-bg) !important;
+    border: 1px solid var(--vscode-warning) !important;
+    box-shadow:
+      0 8px 32px rgba(204, 167, 0, 0.2),
+      inset 0 1px 0 rgba(204, 167, 0, 0.2) !important;
+  }
+
+  .Vue-Toastification__toast--warning.insights-toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--vscode-warning);
+  }
+
+  .Vue-Toastification__toast--warning .Vue-Toastification__icon {
+    color: var(--vscode-warning) !important;
+    filter: drop-shadow(0 0 8px rgba(204, 167, 0, 0.5));
+  }
+
+  /* Progress Bar - VS Code Style */
+  .insights-toast-progress {
+    background: linear-gradient(90deg,
+      rgba(212, 212, 212, 0.3) 0%,
+      rgba(212, 212, 212, 0.6) 50%,
+      rgba(212, 212, 212, 0.3) 100%) !important;
+    height: 3px !important;
+    opacity: 0.8 !important;
+  }
+
+  .Vue-Toastification__toast--success .insights-toast-progress {
+    background: linear-gradient(90deg,
+      var(--vscode-success) 0%,
+      rgba(137, 209, 133, 0.7) 50%,
+      var(--vscode-success) 100%) !important;
+  }
+
+  .Vue-Toastification__toast--error .insights-toast-progress {
+    background: linear-gradient(90deg,
+      var(--vscode-error) 0%,
+      rgba(244, 135, 113, 0.7) 50%,
+      var(--vscode-error) 100%) !important;
+  }
+
+  .Vue-Toastification__toast--info .insights-toast-progress {
+    background: linear-gradient(90deg,
+      var(--vscode-info) 0%,
+      rgba(55, 148, 255, 0.7) 50%,
+      var(--vscode-info) 100%) !important;
+  }
+
+  .Vue-Toastification__toast--warning .insights-toast-progress {
+    background: linear-gradient(90deg,
+      var(--vscode-warning) 0%,
+      rgba(204, 167, 0, 0.7) 50%,
+      var(--vscode-warning) 100%) !important;
+  }
+
+  /* Close Button */
+  .Vue-Toastification__close-button {
+    color: var(--vscode-text-muted) !important;
+    opacity: 1 !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .Vue-Toastification__close-button:hover {
+    color: var(--vscode-text-primary) !important;
+    transform: rotate(90deg);
+  }
+
+  /* Toast Title */
+  .insights-toast .toast-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--vscode-text-inverse);
+  }
+}
+
+/* Animations - GLOBAL (no theme restriction) */
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.Vue-Toastification__fade-enter-active {
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+.Vue-Toastification__fade-leave-active {
+  animation: toastSlideIn 0.3s ease-out reverse;
+}
+
+/* Pulse animation for new toasts */
+[data-theme="vscode"] .insights-toast {
+  animation: toastPulse 0.5s ease-out;
+}
+
+@keyframes toastPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Icon animations */
+[data-theme="vscode"] .Vue-Toastification__icon {
+  animation: iconRotate 0.5s ease-out;
+}
+
+@keyframes iconRotate {
+  0% {
+    transform: rotate(-180deg) scale(0);
+  }
+  100% {
+    transform: rotate(0) scale(1);
+  }
+}
+/* ============================================
+   RAG COMPONENTS - VS Code Dark Modern Theme
+   Applied ONLY when data-theme="vscode"
+   Uses VS Code color palette variables
+   ============================================ */
+
+/* Scope ALL RAG styles to data-theme="vscode" */
+[data-theme="vscode"] {
+  /* RAG Manager Container */
+  .rag-manager {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  /* RAG Header - VS Code glass pattern */
+  .rag-header {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .rag-title {
+    color: var(--vscode-text-primary) !important;
+    font-size: 1.5rem !important;
+  }
+
+  .rag-description {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* Stats Cards - VS Code KPI pattern */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: var(--vscode-glass-blur) !important;
+  }
+
+  .stat-card:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  /* Icon backgrounds - VS Code semantic colors */
+  .stat-icon-primary,
+  .card-icon.primary {
+    background: linear-gradient(135deg, var(--vscode-keyword) 0%, var(--vscode-accent) 100%) !important;
+  }
+
+  .stat-icon-success,
+  .card-icon.success {
+    background: linear-gradient(135deg, var(--vscode-success) 0%, var(--vscode-comment) 100%) !important;
+  }
+
+  .stat-icon-info,
+  .card-icon.info {
+    background: linear-gradient(135deg, var(--vscode-info) 0%, var(--vscode-variable) 100%) !important;
+  }
+
+  .stat-icon-warning,
+  .card-icon.warning {
+    background: linear-gradient(135deg, var(--vscode-warning) 0%, var(--vscode-string) 100%) !important;
+  }
+
+  /* TabView - VS Code theme */
+  .p-tabview-nav {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-bottom: none !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  .p-tabview-panels {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+
+  /* Search Panel */
+  .rag-search-panel,
+  .search-form {
+    background: transparent !important;
+  }
+
+  .search-form {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+  }
+
+  /* Result Cards */
+  .result-card,
+  .document-table {
+    background: var(--vscode-glass-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  .result-card:hover {
+    border-color: var(--vscode-accent) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Upload Zone - VS Code dark glass */
+  .upload-zone,
+  .zip-upload-zone {
+    background: var(--vscode-input-bg) !important;
+    border: 2px dashed var(--vscode-border-light) !important;
+    border-radius: 12px !important;
+  }
+
+  .upload-zone.drag-over,
+  .zip-upload-zone.drag-over {
+    border-color: var(--vscode-success) !important;
+    background: var(--vscode-success-bg) !important;
+  }
+
+  /* File Items */
+  .file-item {
+    background: var(--vscode-input-bg) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  /* Text colors - VS Code hierarchy */
+  .rag-manager h2,
+  .rag-manager h3,
+  .rag-manager h4,
+  .title-text,
+  .file-name,
+  .document-title {
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .rag-manager p,
+  .file-meta,
+  .title-meta,
+  .date-info {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* Empty states */
+  .empty-state,
+  .initial-state,
+  .empty-table-state {
+    background: var(--vscode-bg-secondary) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .empty-icon,
+  .initial-icon {
+    color: var(--vscode-text-muted) !important;
+  }
+
+  /* WebSocket Status */
+  .websocket-status {
+    background: var(--vscode-error-bg) !important;
+    border: 1px solid var(--vscode-error) !important;
+  }
+
+  .websocket-status.connected {
+    background: var(--vscode-success-bg) !important;
+    border: 1px solid var(--vscode-success) !important;
+  }
+
+  /* Dialog/Sidebar */
+  .p-dialog,
+  .p-sidebar {
+    background: var(--vscode-bg-elevated) !important;
+    border: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-dialog .p-dialog-header,
+  .p-sidebar .p-sidebar-header {
+    background: var(--vscode-bg-secondary) !important;
+    border-bottom: 1px solid var(--vscode-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  /* Input fields */
+  .p-inputtext,
+  .p-dropdown,
+  .p-textarea {
+    background: var(--vscode-input-bg) !important;
+    border: 1px solid var(--vscode-input-border) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-inputtext:focus,
+  .p-dropdown:focus,
+  .p-textarea:focus {
+    border-color: var(--vscode-input-focus) !important;
+    box-shadow: 0 0 0 1px var(--vscode-border-focus) !important;
+  }
+
+  /* DataTable */
+  .p-datatable .p-datatable-thead > tr > th {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Sidebar gray */
+    color: var(--vscode-text-primary) !important;
+    border-color: var(--vscode-border) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr {
+    background: var(--vscode-bg-secondary) !important;
+    color: var(--vscode-text-primary) !important;
+  }
+
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background: var(--vscode-highlight-bg) !important;
+  }
+
+  /* Progress bars */
+  .p-progressbar {
+    background: var(--vscode-input-bg) !important;
+  }
+
+  .p-progressbar .p-progressbar-value {
+    background: linear-gradient(90deg, var(--vscode-success) 0%, var(--vscode-comment) 100%) !important;
+  }
+
+  /* Chips */
+  .p-chip {
+    background: var(--vscode-input-bg) !important;
+    color: var(--vscode-text-primary) !important;
+    border: 1px solid var(--vscode-border) !important;
+  }
+
+  /* Category colors - VS Code semantic palette */
+  .category-business {
+    background: var(--vscode-success-bg) !important;
+    color: var(--vscode-success) !important;
+    border-color: var(--vscode-success) !important;
+  }
+
+  .category-docs {
+    background: var(--vscode-info-bg) !important;
+    color: var(--vscode-info) !important;
+    border-color: var(--vscode-info) !important;
+  }
+
+  .category-training {
+    background: var(--vscode-warning-bg) !important;
+    color: var(--vscode-warning) !important;
+    border-color: var(--vscode-warning) !important;
+  }
+
+  .category-policy {
+    background: rgba(200, 140, 200, 0.2) !important;
+    color: #C896C8 !important;
+    border-color: rgba(200, 140, 200, 0.4) !important;
+  }
+
+  .category-general {
+    background: var(--vscode-input-bg) !important;
+    color: var(--vscode-text-muted) !important;
+    border-color: var(--vscode-border) !important;
+  }
+
+  /* Remove all light backgrounds */
+  .rag-manager *[style*="background: white"],
+  .rag-manager *[style*="background: linear-gradient"] {
+    background: var(--vscode-glass-bg) !important;
+  }
+}
+/**
+
+/* Scope ALL workflow styles to data-theme="vscode" */
+[data-theme="vscode"] {
+   * WORKFLOW THEME MODERN - VS Code Dark Modern Variables Edition
+   *
+   * Design: Complete override using VS Code CSS variables
+   * Target: .workflow-flow-modern .ultra-card (conditional activation)
+   * Typography: Inter font system
+   * Colors: --vscode-* CSS variables from vscode-palette.css
+   *
+   * Rollback: Set USE_MODERN_THEME = false in WorkflowCommandCenter.vue
+   *
+   * Created: 2025-10-18
+   * Version: 4.0.0 (VS Code variables)
+   */
+
+  /* ============================================
+     1. BACKGROUND - VS Code Editor Dark
+     ============================================ */
+
+  /* Remove VueFlow default dots background */
+  .workflow-flow-modern :deep(.vue-flow__background) {
+    display: none !important;
+  }
+
+  /* Apply VS Code background + subtle grid pattern */
+  .workflow-flow-modern {
+    background:
+      /* Subtle grid pattern for glassmorphism visibility */
+      repeating-linear-gradient(
+        0deg,
+        rgba(108, 108, 108, 0.03) 0px,
+        transparent 1px,
+        transparent 40px,
+        rgba(108, 108, 108, 0.03) 41px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(108, 108, 108, 0.03) 0px,
+        transparent 1px,
+        transparent 40px,
+        rgba(108, 108, 108, 0.03) 41px
+      ),
+      /* VS Code main background */
+      var(--vscode-bg-primary) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* ============================================
+     2. NODE CARDS - Glassmorphism Override
+     ============================================ */
+
+  /* MAIN CARD - VS Code glassmorphism */
+  .workflow-flow-modern .ultra-card {
+    background: var(--vscode-glass-bg) !important;
+    backdrop-filter: var(--vscode-glass-blur) saturate(180%) !important;
+    -webkit-backdrop-filter: var(--vscode-glass-blur) saturate(180%) !important;
+
+    border: 1px solid var(--vscode-glass-border) !important;
+    border-radius: 16px !important;
+
+    box-shadow: var(--vscode-shadow-lg) !important;
+    background-image: none !important;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* Hover state - Lift + glow */
+  .workflow-flow-modern .ultra-card:hover {
+    background: var(--vscode-bg-secondary) !important;
+    border-color: var(--vscode-border-light) !important;
+    transform: translateY(-6px) scale(1.02) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Selected state - Accent glow */
+  .workflow-flow-modern .card-selected {
+    border: 2px solid var(--vscode-accent) !important;
+    box-shadow:
+      0 0 0 3px rgba(0, 120, 212, 0.2),
+      var(--vscode-shadow-lg) !important;
+  }
+
+  /* Executing state - Success glow */
+  .workflow-flow-modern .card-executing {
+    border: 2px solid var(--vscode-success) !important;
+    animation: vscode-pulse 1.5s ease-in-out infinite !important;
+  }
+
+  @keyframes vscode-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 0 rgba(137, 209, 133, 0.4),
+        0 0 20px rgba(137, 209, 133, 0.3);
+    }
+    50% {
+      box-shadow:
+        0 0 0 8px rgba(137, 209, 133, 0),
+        0 0 40px rgba(137, 209, 133, 0.5);
+    }
+  }
+
+  /* Error state - Error glow */
+  .workflow-flow-modern .card-error {
+    border-color: var(--vscode-error) !important;
+    box-shadow: var(--vscode-shadow-lg) !important;
+  }
+
+  /* ============================================
+     3. RIBBON - HIDDEN
+     ============================================ */
+
+  .workflow-flow-modern .card-ribbon {
+    display: none !important;
+  }
+
+  /* ============================================
+     4. CARD CONTENT - VS Code glass
+     ============================================ */
+
+  .workflow-flow-modern .card-content {
+    background: rgba(255, 255, 255, 0.02) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Icon container - Sidebar background */
+  .workflow-flow-modern .icon-container {
+    background: var(--vscode-bg-secondary) !important; /* #252526 - Balanced */
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid var(--vscode-border) !important;
+    box-shadow: var(--vscode-shadow-sm) !important;
+  }
+
+  /* Icon pulse - Softer animation */
+  .workflow-flow-modern .icon-pulse {
+    background: linear-gradient(135deg, var(--vscode-info-bg), var(--vscode-success-bg)) !important;
+    animation: soft-pulse 4s infinite !important;
+  }
+
+  @keyframes soft-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0;
+    }
+  }
+
+  /* Main icon - Colored with VS Code semantic colors */
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon,
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-trigger .main-icon path {
+    color: var(--vscode-type) !important;
+    fill: var(--vscode-type) !important;
+    filter: drop-shadow(0 2px 8px rgba(78, 201, 176, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-ai .main-icon,
+  .workflow-flow-modern .ultra-card.card-ai .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-ai .main-icon path,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-ai-wide .main-icon path {
+    color: var(--vscode-variable) !important;
+    fill: var(--vscode-variable) !important;
+    filter: drop-shadow(0 2px 8px rgba(156, 220, 254, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-storage .main-icon,
+  .workflow-flow-modern .ultra-card.card-storage .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-storage .main-icon path {
+    color: var(--vscode-comment) !important;
+    fill: var(--vscode-comment) !important;
+    filter: drop-shadow(0 2px 8px rgba(106, 153, 85, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-integration .main-icon,
+  .workflow-flow-modern .ultra-card.card-integration .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-integration .main-icon path {
+    color: var(--vscode-string) !important;
+    fill: var(--vscode-string) !important;
+    filter: drop-shadow(0 2px 8px rgba(206, 145, 120, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-logic .main-icon,
+  .workflow-flow-modern .ultra-card.card-logic .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-logic .main-icon path {
+    color: var(--vscode-text-muted) !important;
+    fill: var(--vscode-text-muted) !important;
+    filter: drop-shadow(0 2px 8px rgba(133, 133, 133, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-transform .main-icon,
+  .workflow-flow-modern .ultra-card.card-transform .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-transform .main-icon path {
+    color: var(--vscode-info) !important;
+    fill: var(--vscode-info) !important;
+    filter: drop-shadow(0 2px 8px rgba(55, 148, 255, 0.4)) !important;
+  }
+
+  .workflow-flow-modern .ultra-card.card-process .main-icon,
+  .workflow-flow-modern .ultra-card.card-process .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-process .main-icon path,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon svg,
+  .workflow-flow-modern .ultra-card.card-communication .main-icon path {
+    color: var(--vscode-text-primary) !important;
+    fill: var(--vscode-text-primary) !important;
+    filter: drop-shadow(0 2px 8px rgba(212, 212, 212, 0.3)) !important;
+  }
+
+  /* Typography - Inter font + VS Code colors */
+  .workflow-flow-modern .card-title {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--vscode-text-primary) !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.3 !important;
+  }
+
+  .workflow-flow-modern .card-subtitle {
+    font-family: 'Inter', sans-serif !important;
+    color: var(--vscode-text-muted) !important;
+    font-size: 11px !important;
+  }
+
+  /* ============================================
+     5. TECH STRIP - HIDDEN
+     ============================================ */
+
+  .workflow-flow-modern .tech-strip {
+    display: none !important;
+  }
+
+  /* ============================================
+     6. HANDLES - VS Code connection points
+     ============================================ */
+
+  .workflow-flow-modern .ultra-handle {
+    width: 12px !important;
+    height: 12px !important;
+    background: linear-gradient(135deg, var(--vscode-info), var(--vscode-type)) !important;
+    border: 2px solid var(--vscode-bg-tertiary) !important;
+    box-shadow: var(--vscode-shadow-sm) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .workflow-flow-modern .ultra-handle:hover {
+    transform: scale(1.6) !important;
+    box-shadow: var(--vscode-shadow-md) !important;
+  }
+
+  /* Trigger handles - Type teal */
+  .workflow-flow-modern .handle-trigger {
+    background: linear-gradient(135deg, var(--vscode-type), var(--vscode-variable)) !important;
+  }
+
+  /* Tool handles - Info blue */
+  .workflow-flow-modern .handle-tool-input,
+  .workflow-flow-modern .handle-tool-output {
+    background: linear-gradient(135deg, var(--vscode-info), var(--vscode-keyword)) !important;
+  }
+
+  /* ============================================
+     7. CATEGORY-SPECIFIC ACCENTS (VS Code)
+     ============================================ */
+
+  /* Trigger nodes - Type teal */
+  .workflow-flow-modern .card-trigger {
+    border-color: rgba(78, 201, 176, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-trigger:hover {
+    border-color: rgba(78, 201, 176, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* AI nodes - Variable cyan */
+  .workflow-flow-modern .card-ai,
+  .workflow-flow-modern .card-ai-wide {
+    border-color: rgba(156, 220, 254, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-ai:hover,
+  .workflow-flow-modern .card-ai-wide:hover {
+    border-color: rgba(156, 220, 254, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Storage nodes - Comment green */
+  .workflow-flow-modern .card-storage {
+    border-color: rgba(106, 153, 85, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-storage:hover {
+    border-color: rgba(106, 153, 85, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Integration nodes - String orange */
+  .workflow-flow-modern .card-integration {
+    border-color: rgba(206, 145, 120, 0.25) !important;
+  }
+
+  .workflow-flow-modern .card-integration:hover {
+    border-color: rgba(206, 145, 120, 0.4) !important;
+    box-shadow: var(--vscode-shadow-xl) !important;
+  }
+
+  /* Tool nodes (narrow cards) - Keyword blue */
+  .workflow-flow-modern .card-tool-narrow {
+    border-color: rgba(86, 156, 214, 0.25) !important;
+    background: var(--vscode-glass-bg) !important;
+  }
+
+  .workflow-flow-modern .card-tool-narrow:hover {
+    border-color: rgba(86, 156, 214, 0.4) !important;
+  }
+
+  /* ============================================
+     8. FALLBACK for NO backdrop-filter support
+     ============================================ */
+
+  @supports not (backdrop-filter: blur(16px)) {
+    .workflow-flow-modern .ultra-card {
+      background: var(--vscode-bg-secondary) !important;
+    }
+
+    .workflow-flow-modern .ultra-card:hover {
+      background: var(--vscode-bg-elevated) !important; /* #2D2D30 - Lighter hover */
+    }
+  }
+
+  /* ============================================
+     9. EDGES/CONNECTIONS - Ultra minimal elegant lines
+     ============================================ */
+
+  /* Override ALL edge styles with VS Code border color */
+  .workflow-flow-modern :deep(.vue-flow__edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.main-edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.secondary-edge .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.vue-flow__edge-default .vue-flow__edge-path) {
+    stroke: var(--vscode-border) !important;
+    stroke-width: 1px !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    stroke-dasharray: none !important;
+    opacity: 0.5 !important;
+    transition: all 0.3s ease !important;
+    filter: none !important;
+  }
+
+  /* Hover state - VS Code info blue */
+  .workflow-flow-modern :deep(.vue-flow__edge:hover .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.main-edge:hover .vue-flow__edge-path),
+  .workflow-flow-modern :deep(.secondary-edge:hover .vue-flow__edge-path) {
+    stroke: var(--vscode-info) !important;
+    stroke-width: 1.5px !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 3px rgba(55, 148, 255, 0.3)) !important;
+  }
+
+  /* Selected edge - accent glow */
+  .workflow-flow-modern :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+    stroke: var(--vscode-accent) !important;
+    stroke-width: 1.5px !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 4px rgba(0, 120, 212, 0.4)) !important;
+  }
+
+  /* Animated edge for executing workflows - success */
+  .workflow-flow-modern :deep(.vue-flow__edge.animated .vue-flow__edge-path) {
+    stroke: var(--vscode-success) !important;
+    stroke-width: 1.5px !important;
+    stroke-dasharray: 4 3 !important;
+    animation: edge-flow 1.2s linear infinite !important;
+    filter: drop-shadow(0 0 2px rgba(137, 209, 133, 0.3)) !important;
+  }
+
+  @keyframes edge-flow {
+    0% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: 14;
+    }
+  }
+
+  /* Remove arrow markers - cleaner minimal look */
+  .workflow-flow-modern :deep(.vue-flow__edge-marker) {
+    display: none !important;
+  }
+
+  /* Edge labels - VS Code text */
+  .workflow-flow-modern :deep(.vue-flow__edge-textbg) {
+    fill: transparent !important;
+  }
+
+  .workflow-flow-modern :deep(.vue-flow__edge-text) {
+    fill: var(--vscode-text-secondary) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+  }
+
+  /* ============================================
+     10. CONTROLS - Match theme aesthetic
+     ============================================ */
+
+  .workflow-flow-modern button {
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  /* ============================================
+     END OF MODERN THEME (VS Code Variables)
+     ============================================ */
+}
+/**
+ * VS Code Force Override - Maximum Specificity
+ * Import LAST in main.ts to force VS Code colors everywhere
+ * Overrides all Tailwind, inline styles, and hardcoded colors
+ *
+ * ⚠️ CRITICAL: ALL selectors MUST be scoped to [data-theme="vscode"]
+ * to avoid breaking LoginPage (data-theme="original")
+ */
+
+/* ============================================
+   FORCE OVERRIDE - Green/Teal to VS Code Accent
+   ============================================ */
+
+/* Success badges - Force VS Code muted green */
+[data-theme="vscode"] [class*="success"],
+[data-theme="vscode"] [class*="active"],
+[data-theme="vscode"] .p-badge-success,
+[data-theme="vscode"] Badge[severity="success"],
+[data-theme="vscode"] span[class*="bg-green"],
+[data-theme="vscode"] div[class*="bg-green"],
+[data-theme="vscode"] .status-active {
+  background: var(--vscode-success-bg) !important;
+  color: var(--vscode-success) !important;
+  border-color: var(--vscode-success) !important;
+}
+
+/* Card borders - Force VS Code accent blue (not green!) */
+[data-theme="vscode"] [class*="border-green"],
+[data-theme="vscode"] [class*="border-teal"],
+[data-theme="vscode"] .card:hover,
+[data-theme="vscode"] .stat-card:hover,
+[data-theme="vscode"] .premium-glass:hover {
+  border-color: var(--vscode-accent) !important;
+}
+
+/* Force remove all green gradients */
+[data-theme="vscode"] [class*="from-green"],
+[data-theme="vscode"] [class*="to-green"],
+[data-theme="vscode"] [class*="via-green"] {
+  background: linear-gradient(135deg, var(--vscode-accent), var(--vscode-accent-hover)) !important;
+}
+
+/* ============================================
+   TAILWIND COLOR OVERRIDES
+   ============================================ */
+
+/* Green classes → VS Code success */
+[data-theme="vscode"] .text-green-300,
+[data-theme="vscode"] .text-green-400,
+[data-theme="vscode"] .text-green-500 {
+  color: var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .bg-green-400,
+[data-theme="vscode"] .bg-green-500,
+[data-theme="vscode"] .bg-green-600 {
+  background-color: var(--vscode-success) !important;
+}
+
+[data-theme="vscode"] .border-green-400,
+[data-theme="vscode"] .border-green-500 {
+  border-color: var(--vscode-success) !important;
+}
+
+/* Teal classes → VS Code info blue */
+[data-theme="vscode"] .text-teal-400,
+[data-theme="vscode"] .text-teal-500 {
+  color: var(--vscode-info) !important;
+}
+
+[data-theme="vscode"] .bg-teal-400,
+[data-theme="vscode"] .bg-teal-500 {
+  background-color: var(--vscode-info) !important;
+}
+
+[data-theme="vscode"] .border-teal-400,
+[data-theme="vscode"] .border-teal-500 {
+  border-color: var(--vscode-info) !important;
+}
+
+/* Purple/Violet → VS Code type teal */
+[data-theme="vscode"] .text-purple-400,
+[data-theme="vscode"] .text-purple-500,
+[data-theme="vscode"] .text-violet-400 {
+  color: var(--vscode-type) !important;
+}
+
+[data-theme="vscode"] .bg-purple-400,
+[data-theme="vscode"] .bg-purple-500,
+[data-theme="vscode"] .bg-violet-500 {
+  background-color: var(--vscode-type) !important;
+}
+
+/* ============================================
+   CHART.JS COLOR OVERRIDES (CSS approach)
+   ============================================ */
+
+/* Force chart canvas colors via CSS filters */
+[data-theme="vscode"] canvas {
+  /* This won't change JS-rendered colors, but helps */
+  filter: saturate(0.7) !important;
+}
+
+/* Chart legends */
+[data-theme="vscode"] .chart-legend span,
+[data-theme="vscode"] .legend-item {
+  background: var(--vscode-chart-1) !important;
+}
+
+/* ============================================
+   KPI CARDS - Force VS Code Colors
+   ============================================ */
+
+/* Top KPI cards */
+[data-theme="vscode"] .kpi-card,
+[data-theme="vscode"] .metric-card,
+[data-theme="vscode"] [class*="grid-cols-6"] > div {
+  border: 1px solid var(--vscode-border) !important;
+  background: var(--vscode-glass-bg) !important;
+}
+
+[data-theme="vscode"] .kpi-card:hover,
+[data-theme="vscode"] .metric-card:hover {
+  border-color: var(--vscode-accent) !important;
+  box-shadow: var(--vscode-shadow-md) !important;
+}
+
+/* KPI icons - Remove green glow */
+[data-theme="vscode"] .kpi-icon,
+[data-theme="vscode"] .metric-icon {
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================
+   DATA TABLES - ULTRA FORCE VS CODE (MAXIMUM SPECIFICITY)
+   ============================================ */
+
+/* PrimeVue Design Tokens - Force VS Code colors at ROOT level */
+[data-theme="vscode"] {
+  /* DataTable backgrounds */
+  --p-datatable-background: var(--vscode-bg-primary) !important;
+  --p-datatable-row-background: var(--vscode-bg-secondary) !important;
+  --p-datatable-row-hover-background: var(--vscode-highlight-bg) !important;
+  --p-datatable-header-background: var(--vscode-bg-elevated) !important;
+  --p-datatable-header-cell-background: var(--vscode-bg-elevated) !important;
+  --p-datatable-body-cell-background: var(--vscode-bg-secondary) !important;
+
+  /* DataTable borders */
+  --p-datatable-border-color: var(--vscode-border) !important;
+  --p-datatable-header-border-color: var(--vscode-border) !important;
+
+  /* DataTable text colors */
+  --p-datatable-header-cell-color: var(--vscode-text-muted) !important;
+  --p-datatable-body-cell-color: var(--vscode-text-primary) !important;
+
+  /* Force ALL component backgrounds to VS Code */
+  --p-content-background: var(--vscode-bg-primary) !important;
+  --p-surface-0: var(--vscode-bg-primary) !important;
+  --p-surface-50: var(--vscode-bg-secondary) !important;
+  --p-surface-100: var(--vscode-bg-elevated) !important;
+}
+
+/* DataTable container - ULTRA FORCE DARK GRAY */
+[data-theme="vscode"] .p-datatable,
+[data-theme="vscode"] .p-datatable-wrapper,
+[data-theme="vscode"] table,
+[data-theme="vscode"] .premium-table .p-datatable,
+[data-theme="vscode"] .premium-table .p-datatable-wrapper,
+body[data-theme="vscode"] .p-datatable,
+html[data-theme="vscode"] .p-datatable {
+  background: var(--vscode-bg-primary) !important;
+  background-color: var(--vscode-bg-primary) !important;
+  border-color: var(--vscode-border) !important;
+}
+
+/* Table rows - ULTRA SPECIFIC */
+[data-theme="vscode"] table tr,
+[data-theme="vscode"] .p-datatable-tbody > tr,
+[data-theme="vscode"] .premium-table .p-datatable-tbody > tr,
+[data-theme="vscode"] .p-datatable .p-datatable-tbody > tr,
+body[data-theme="vscode"] .p-datatable-tbody > tr {
+  background: var(--vscode-bg-secondary) !important;
+  background-color: var(--vscode-bg-secondary) !important;
+  border-color: var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] table tr:hover,
+[data-theme="vscode"] .p-datatable-tbody > tr:hover,
+[data-theme="vscode"] .premium-table .p-datatable-tbody > tr:hover {
+  background: var(--vscode-highlight-bg) !important;
+  background-color: var(--vscode-highlight-bg) !important;
+}
+
+/* Table cells - ULTRA SPECIFIC */
+[data-theme="vscode"] table td,
+[data-theme="vscode"] .p-datatable-tbody > tr > td,
+[data-theme="vscode"] .premium-table .p-datatable-tbody > tr > td,
+[data-theme="vscode"] .p-datatable .p-datatable-tbody > tr > td {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--vscode-text-primary) !important;
+  border-color: var(--vscode-border) !important;
+}
+
+/* Table headers - ULTRA SPECIFIC */
+[data-theme="vscode"] table th,
+[data-theme="vscode"] .p-datatable-thead > tr > th,
+[data-theme="vscode"] .premium-table .p-datatable-thead > tr > th,
+[data-theme="vscode"] .p-datatable .p-datatable-thead > tr > th {
+  background: var(--vscode-bg-elevated) !important;
+  background-color: var(--vscode-bg-elevated) !important;
+  color: var(--vscode-text-muted) !important;
+  border-color: var(--vscode-border) !important;
+}
+
+/* Status badges in tables */
+[data-theme="vscode"] table .status,
+[data-theme="vscode"] table .badge,
+[data-theme="vscode"] .p-datatable .p-tag {
+  background: var(--vscode-input-bg) !important;
+  color: var(--vscode-text-secondary) !important;
+  border: 1px solid var(--vscode-border) !important;
+}
+
+[data-theme="vscode"] table .status.success,
+[data-theme="vscode"] table .badge.success,
+[data-theme="vscode"] .p-tag-success {
+  background: var(--vscode-success-bg) !important;
+  color: var(--vscode-success) !important;
+  border-color: var(--vscode-success) !important;
+}
+
+/* ============================================
+   SYSTEM COMPONENTS - Force VS Code
+   ============================================ */
+
+/* Component cards */
+[data-theme="vscode"] .system-component,
+[data-theme="vscode"] .component-card {
+  background: var(--vscode-glass-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+}
+
+/* Active badges on components */
+[data-theme="vscode"] .system-component .badge,
+[data-theme="vscode"] .component-card .badge {
+  background: var(--vscode-success-bg) !important;
+  color: var(--vscode-success) !important;
+  border: 1px solid var(--vscode-success) !important;
+}
+
+/* ============================================
+   FORCE OVERRIDE INLINE STYLES
+   ============================================ */
+
+/* Override legacy green inline styles to VS Code blue accent */
+[data-theme="vscode"] [style*="background: rgb(16, 185, 129)"],
+[data-theme="vscode"] [style*="background: #10b981"],
+[data-theme="vscode"] [style*="background: rgb(6, 182, 212)"],
+[data-theme="vscode"] [style*="background: #06b6d4"] {
+  background: var(--vscode-button-background) !important;
+}
+
+[data-theme="vscode"] [style*="color: rgb(16, 185, 129)"],
+[data-theme="vscode"] [style*="color: #10b981"] {
+  color: var(--vscode-textLink-foreground) !important;
+}
+
+[data-theme="vscode"] [style*="border-color: rgb(16, 185, 129)"],
+[data-theme="vscode"] [style*="border-color: #10b981"] {
+  border-color: var(--vscode-focusBorder) !important;
+}
+
+/* ============================================
+   PROGRESS BARS
+   ============================================ */
+
+[data-theme="vscode"] .progress-bar,
+[data-theme="vscode"] .p-progressbar-value {
+  background: linear-gradient(90deg, var(--vscode-success), var(--vscode-comment)) !important;
+}
+
+/* ============================================
+   GLOW EFFECTS - Replace green glows with VS Code blue
+   ============================================ */
+
+[data-theme="vscode"] [class*="glow"],
+[data-theme="vscode"] [class*="shadow-green"],
+[data-theme="vscode"] [style*="box-shadow"][style*="rgb(16, 185, 129)"] {
+  box-shadow: 0 0 10px rgba(0, 122, 204, 0.4) !important;
+}
+
+/* ============================================
+   PERCENTAGE/SUCCESS TEXT
+   ============================================ */
+
+/* Force percentage text to VS Code colors */
+[data-theme="vscode"] .percentage,
+[data-theme="vscode"] .success-rate,
+[data-theme="vscode"] [class*="text-"][class*="green"] {
+  color: var(--vscode-success) !important;
+}
+
+/* ============================================
+   DROPDOWNS - VS Code Gray Theme (CORRECTED SELECTORS)
+   PrimeVue v4 uses .p-select not .p-dropdown!
+   ============================================ */
+
+/* Select/Dropdown button (PrimeVue v4) */
+.p-select {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+  color: #E0E0E0 !important;
+}
+
+.p-select:not(.p-disabled):hover {
+  border-color: #6B6B6B !important;
+}
+
+.p-select:focus,
+.p-select.p-focus {
+  border-color: #007ACC !important;
+  box-shadow: 0 0 0 1px rgba(0, 122, 204, 0.5) !important;
+}
+
+/* Select internal elements */
+.p-select .p-select-label,
+.p-select .p-select-trigger {
+  background: transparent !important;
+  color: #E0E0E0 !important;
+}
+
+.p-select .p-select-clear-icon {
+  color: #9E9E9E !important;
+}
+
+/* Select overlay/panel (menu a tendina) */
+.p-select-overlay,
+.p-select-panel {
+  background: #2A2A2A !important;
+  border: 1px solid #3C3C3C !important;
+}
+
+/* Select items/options */
+.p-select-overlay .p-select-option,
+.p-select-overlay .p-select-item {
+  background: transparent !important;
+  color: #E0E0E0 !important;
+}
+
+.p-select-overlay .p-select-option:not(.p-disabled):hover,
+.p-select-overlay .p-select-item:not(.p-disabled):hover {
+  background: #3C3C3C !important;
+  color: #FFFFFF !important;
+}
+
+.p-select-overlay .p-select-option.p-focus,
+.p-select-overlay .p-select-item.p-focus {
+  background: #3C3C3C !important;
+  color: #FFFFFF !important;
+}
+
+.p-select-overlay .p-select-option.p-highlight,
+.p-select-overlay .p-select-item.p-highlight {
+  background: #007ACC !important;
+  color: #FFFFFF !important;
+}
+
+.p-select-overlay .p-select-option.p-highlight.p-focus,
+.p-select-overlay .p-select-item.p-highlight.p-focus {
+  background: #005A9E !important;
+}
+
+/* Force reload Sat Oct 18 19:40:00 CEST 2025 */

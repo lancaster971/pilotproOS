@@ -317,6 +317,10 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { FilterMatchMode } from '@primevue/core/api'
 import ragApi from '../../api/rag'
+import { useForceVSCodeDropdown } from '../../composables/useForceVSCodeDropdown'
+
+// Force VS Code theme on dropdowns (CSS alone cannot override PrimeVue runtime styles)
+useForceVSCodeDropdown()
 
 // Emits
 const emit = defineEmits<{

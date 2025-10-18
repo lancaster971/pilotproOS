@@ -3,20 +3,14 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 
+// ⚡ VS Code Dark Modern Theme - PRIMO import per priorità massima (2468 righe)
+import './vscode-theme.css'
+
 // Import clean CSS - Design System initialized in App.vue
 import './style.css'
 import './design-system/utilities.css'
 import './design-system/premium-no-animations.css'
 import './disable-animations.css'
-
-// VS Code Dark Modern Theme - Applied via data-theme attribute
-import './assets/styles/vscode-palette.css' // Core VS Code color variables
-import './design-system/utilities-vscode.css' // VS Code utility overrides
-import './design-system/enterprise-theme.css' // Enterprise theme (uses VS Code vars)
-import './styles/insights-theme-vscode.css' // Insights page VS Code theme
-import './styles/toast-theme-vscode.css' // Toast notifications VS Code theme
-import './styles/rag-theme-vscode.css' // RAG components VS Code theme
-import './assets/styles/workflow-theme-modern-vscode.css' // Workflow nodes VS Code theme
 
 // Inter Font - For Modern Workflow Theme
 import '@fontsource/inter/400.css'
@@ -27,9 +21,6 @@ import '@fontsource/inter/600.css'
 import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import { toastOptions } from './config/toast-config'
-
-// ⚡ CRITICAL: ABSOLUTE LAST CSS IMPORT - Maximum Priority Override
-import './vscode-force-override.css' // FINAL OVERRIDE - Must be imported AFTER all other CSS!
 
 // Vue Advanced Chat
 import { register as registerAdvancedChat } from 'vue-advanced-chat'
@@ -114,13 +105,7 @@ router.beforeEach(async (to, from, next) => {
 
   await authStore.ensureInitialized()
 
-  // Apply VS Code theme to authenticated pages, preserve original for LoginPage
-  if (to.name === 'login') {
-    document.body.setAttribute('data-theme', 'original')
-  } else if (to.meta.requiresAuth) {
-    document.body.setAttribute('data-theme', 'vscode')
-  }
-
+  // Check redirects FIRST (before changing theme to avoid flash)
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return
@@ -129,6 +114,22 @@ router.beforeEach(async (to, from, next) => {
   if (to.name === 'login' && authStore.isAuthenticated) {
     next({ name: 'insights' })
     return
+  }
+
+  // Apply VS Code theme ONLY after redirect check (prevents flash on login)
+  if (to.name === 'login') {
+    document.body.setAttribute('data-theme', 'original')
+    document.body.style.opacity = '1'
+  } else if (to.meta.requiresAuth) {
+    document.body.setAttribute('data-theme', 'vscode')
+
+    // SMOOTH FADE IN after theme change (prevents flash)
+    document.body.style.transition = 'opacity 0.3s ease-in'
+
+    // Small delay to ensure CSS is applied before fade in
+    setTimeout(() => {
+      document.body.style.opacity = '1'
+    }, 50)
   }
 
   next()
@@ -141,10 +142,18 @@ const pinia = createPinia()
 // Register Pinia FIRST - before any service that might use stores
 app.use(pinia)
 
-// CLEAN PrimeVue Configuration - UNSTYLED mode (CSS from our files only)
+// CLEAN PrimeVue Configuration - No more inline CSS chaos!
 app.use(PrimeVue, {
-  unstyled: true, // ⚡ CRITICAL: No PrimeVue CSS generation! Our CSS has full control
-  ripple: false
+  theme: {
+    preset: Nora,
+    options: {
+      prefix: 'p',
+      darkModeSelector: 'system'
+      // ⚠️ cssLayer REMOVED - App CSS without layer has highest specificity!
+      // This allows our VS Code theme overrides to work properly
+    }
+  },
+  ripple: true
   // NO MORE PT STYLES! Design system handles everything
 })
 
