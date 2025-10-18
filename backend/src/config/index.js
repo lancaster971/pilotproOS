@@ -93,6 +93,7 @@ const config = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'default-refresh-secret-change-in-production',
     refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '30d',
+    serviceAuthToken: process.env.SERVICE_AUTH_TOKEN || 'intelligence-engine-service-token-2025',
   },
 
   // ============================================================================
@@ -229,8 +230,14 @@ const validateConfig = () => {
     if (config.security.jwtSecret === 'default-jwt-secret-change-in-production') {
       errors.push('JWT_SECRET must be set in production');
     }
+    if (config.security.jwtSecret.length < 32) {
+      errors.push('JWT_SECRET must be at least 32 characters long in production');
+    }
     if (config.security.refreshTokenSecret === 'default-refresh-secret-change-in-production') {
       errors.push('REFRESH_TOKEN_SECRET must be set in production');
+    }
+    if (config.security.refreshTokenSecret.length < 32) {
+      errors.push('REFRESH_TOKEN_SECRET must be at least 32 characters long in production');
     }
   }
 
