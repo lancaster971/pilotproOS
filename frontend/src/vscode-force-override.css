@@ -304,14 +304,33 @@ body[data-theme="vscode"] .p-datatable-tbody > tr {
 
 /* ============================================
    DROPDOWNS - Force VS Code theme (MAXIMUM SPECIFICITY)
+   PRIMEVUE DESIGN TOKENS OVERRIDE (Nora preset)
    ============================================ */
+
+/* Override PrimeVue Nora design tokens for Dropdown */
+:root {
+  --p-dropdown-background: #2A2A2A !important;
+  --p-dropdown-border-color: #3C3C3C !important;
+  --p-dropdown-color: #E0E0E0 !important;
+  --p-dropdown-hover-background: #2A2A2A !important;
+  --p-dropdown-hover-border-color: #6B6B6B !important;
+  --p-dropdown-focus-border-color: #007ACC !important;
+  --p-dropdown-focus-ring-color: rgba(0, 122, 204, 0.2) !important;
+  --p-dropdown-option-focus-background: #3C3C3C !important;
+  --p-dropdown-option-selected-background: #007ACC !important;
+  --p-dropdown-option-selected-focus-background: #005A9E !important;
+  --p-dropdown-panel-background: #2A2A2A !important;
+  --p-dropdown-panel-border-color: #3C3C3C !important;
+}
 
 /* Dropdown container - ALL dropdowns in vscode theme */
 [data-theme="vscode"] .p-dropdown,
 body[data-theme="vscode"] .p-dropdown,
 html[data-theme="vscode"] .p-dropdown {
   background: #2A2A2A !important;
+  background-color: #2A2A2A !important;
   border: 1px solid #3C3C3C !important;
+  border-color: #3C3C3C !important;
   color: #E0E0E0 !important;
 }
 
