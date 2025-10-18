@@ -7,13 +7,24 @@ import App from './App.vue'
 import './style.css'
 import './design-system/utilities.css'
 import './design-system/premium-no-animations.css'
-import './design-system/enterprise-theme.css' // Enterprise rebrand - NO GREEN!
 import './disable-animations.css'
-import './styles/insights-theme.css' // Global Insights theme applied to all pages
-import './styles/toast-theme.css' // Toast glassmorphism theme
-import './styles/rag-theme.css' // RAG components enterprise dark theme
-// Milhena theme removed - chat integrated into ChatWidget
-// import './styles/milhena-theme.css' // Milhena chat enterprise dark theme
+
+// VS Code Dark Modern Theme - Applied via data-theme attribute
+import './assets/styles/vscode-palette.css' // Core VS Code color variables
+import './design-system/utilities-vscode.css' // VS Code utility overrides
+import './design-system/enterprise-theme.css' // Enterprise theme (uses VS Code vars)
+import './styles/insights-theme-vscode.css' // Insights page VS Code theme
+import './styles/toast-theme-vscode.css' // Toast notifications VS Code theme
+import './styles/rag-theme-vscode.css' // RAG components VS Code theme
+import './assets/styles/workflow-theme-modern-vscode.css' // Workflow nodes VS Code theme
+
+// ⚡ CRITICAL: LAST CSS IMPORT - Maximum Priority Override
+import './vscode-force-override.css' // FINAL OVERRIDE - Force VS Code colors everywhere (MUST be last!)
+
+// Inter Font - For Modern Workflow Theme
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
 
 // Vue Toastification - Battle-tested toast system
 import Toast, { POSITION } from 'vue-toastification'
@@ -103,6 +114,13 @@ router.beforeEach(async (to, from, next) => {
 
   await authStore.ensureInitialized()
 
+  // Apply VS Code theme to authenticated pages, preserve original for LoginPage
+  if (to.name === 'login') {
+    document.body.setAttribute('data-theme', 'original')
+  } else if (to.meta.requiresAuth) {
+    document.body.setAttribute('data-theme', 'vscode')
+  }
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return
@@ -129,11 +147,9 @@ app.use(PrimeVue, {
     preset: Nora,
     options: {
       prefix: 'p',
-      darkModeSelector: 'system',
-      cssLayer: {
-        name: 'primevue',
-        order: 'design-system, primevue, tailwind'
-      }
+      darkModeSelector: 'system'
+      // ⚠️ cssLayer REMOVED - App CSS without layer has highest specificity!
+      // This allows our VS Code theme overrides to work properly
     }
   },
   ripple: true

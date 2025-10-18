@@ -68,9 +68,11 @@
               </div>
             </template>
             <template #content>
-              <DataTable 
-                :value="users" 
-                class="premium-table"
+              <DataTable
+                id="users-datatable-vscode"
+                ref="usersTable"
+                :value="users"
+                class="premium-table vscode-forced-table"
                 :paginator="true"
                 :rows="10"
                 responsiveLayout="scroll"
@@ -977,116 +979,117 @@ onMounted(() => {
 
 <style scoped>
 /* Import Insights Theme Consistency */
-.settings-container {
+[data-theme="vscode"] .settings-container {
   width: 100%;
   padding: 20px;
-  background: #0a0a0a;
+  background: var(--vscode-bg-primary);
   min-height: 100vh;
 }
 
 /* Override PrimeVue Components to match Insights */
-:deep(.p-tabview) {
+[data-theme="vscode"] :deep(.p-tabview) {
   background: transparent !important;
 }
 
-:deep(.p-tabview-nav) {
-  background: rgba(15, 15, 15, 0.6) !important;
-  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tabview-nav) {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
   border-radius: 8px 8px 0 0 !important;
   backdrop-filter: blur(10px) !important;
 }
 
-:deep(.p-tabview-header) {
+[data-theme="vscode"] :deep(.p-tabview-header) {
   background: transparent !important;
   border: none !important;
 }
 
-:deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
-  color: #10b981 !important;
+[data-theme="vscode"] :deep(.p-tabview-header.p-highlight .p-tabview-nav-link) {
+  background: rgba(137, 209, 133, 0.1) !important;
+  border-color: var(--vscode-success) !important;
+  color: var(--vscode-success) !important;
 }
 
-:deep(.p-tabview-nav-link) {
-  color: #9ca3af !important;
+[data-theme="vscode"] :deep(.p-tabview-nav-link) {
+  color: var(--vscode-text-muted) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
 }
 
-:deep(.p-tabview-panels) {
-  background: rgba(15, 15, 15, 0.6) !important;
-  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tabview-panels) {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
   border-top: none !important;
   backdrop-filter: blur(10px) !important;
   padding: 24px !important;
 }
 
 /* Card Styling to match Insights */
-:deep(.p-card) {
-  background: rgba(10, 10, 15, 0.9) !important;
-  border: 1px solid rgba(31, 41, 55, 0.5) !important;
+[data-theme="vscode"] :deep(.p-card) {
+  background: var(--vscode-bg-secondary) !important;
+  border: 1px solid var(--vscode-border) !important;
   border-radius: 12px !important;
   backdrop-filter: blur(10px) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6) !important;
 }
 
-:deep(.p-card-title) {
+[data-theme="vscode"] :deep(.p-card-title) {
   font-size: 16px !important;
   font-weight: 600 !important;
-  color: #9ca3af !important;
+  color: var(--vscode-text-muted) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
   padding-bottom: 12px !important;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.5) !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
 }
 
-:deep(.p-card-content) {
+[data-theme="vscode"] :deep(.p-card-content) {
   background: transparent !important;
-  color: #e5e7eb !important;
+  color: var(--vscode-text-primary) !important;
 }
 
 /* Button Styling to match Insights */
-:deep(.p-button) {
-  background: rgba(31, 41, 55, 0.5) !important;
-  border: 1px solid rgba(107, 114, 128, 0.3) !important;
+[data-theme="vscode"] :deep(.p-button) {
+  background: var(--vscode-bg-secondary) !important;
+  border: 1px solid var(--vscode-border) !important;
   border-radius: 6px !important;
-  color: #e5e7eb !important;
+  color: var(--vscode-text-primary) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
   box-shadow: none !important;
 }
 
-:deep(.p-button:hover:not(:disabled)) {
-  background: rgba(31, 41, 55, 0.8) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+[data-theme="vscode"] :deep(.p-button:hover:not(:disabled)) {
+  background: var(--vscode-bg-tertiary) !important;
+  border-color: var(--vscode-success) !important;
   transform: translateY(-1px) !important;
 }
 
-:deep(.p-button-success) {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
-  color: #10b981 !important;
+[data-theme="vscode"] :deep(.p-button-success) {
+  background: rgba(137, 209, 133, 0.1) !important;
+  border: 1px solid var(--vscode-success) !important;
+  color: var(--vscode-success) !important;
 }
 
-:deep(.p-button-danger) {
-  background: rgba(239, 68, 68, 0.1) !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
-  color: #ef4444 !important;
+[data-theme="vscode"] :deep(.p-button-danger) {
+  background: rgba(244, 135, 113, 0.1) !important;
+  border: 1px solid var(--vscode-error) !important;
+  color: var(--vscode-error) !important;
 }
 
-/* DataTable Styling to match Insights */
-:deep(.p-datatable) {
+/* DataTable Styling - REMOVED - Let vscode-force-override.css handle it */
+/*
+[data-theme="vscode"] :deep(.p-datatable) {
   background: transparent !important;
   border: none !important;
 }
 
-:deep(.p-datatable .p-datatable-thead > tr > th) {
+[data-theme="vscode"] :deep(.p-datatable .p-datatable-thead > tr > th) {
   background: transparent !important;
-  color: #9ca3af !important;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.5) !important;
+  color: var(--vscode-text-muted) !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
@@ -1094,23 +1097,24 @@ onMounted(() => {
   padding: 12px !important;
 }
 
-:deep(.p-datatable .p-datatable-tbody > tr) {
+[data-theme="vscode"] :deep(.p-datatable .p-datatable-tbody > tr) {
   background: transparent !important;
-  color: #e5e7eb !important;
+  color: var(--vscode-text-primary) !important;
 }
 
-:deep(.p-datatable .p-datatable-tbody > tr:hover) {
-  background: rgba(31, 41, 55, 0.1) !important;
+[data-theme="vscode"] :deep(.p-datatable .p-datatable-tbody > tr:hover) {
+  background: var(--vscode-bg-tertiary) !important;
 }
 
-:deep(.p-datatable .p-datatable-tbody > tr > td) {
-  border-bottom: 1px solid rgba(31, 41, 55, 0.2) !important;
+[data-theme="vscode"] :deep(.p-datatable .p-datatable-tbody > tr > td) {
+  border-bottom: 1px solid var(--vscode-border) !important;
   padding: 12px !important;
   font-size: 13px !important;
 }
+*/
 
 /* Tag/Badge Styling */
-:deep(.p-tag) {
+[data-theme="vscode"] :deep(.p-tag) {
   padding: 2px 8px !important;
   border-radius: 4px !important;
   font-size: 10px !important;
@@ -1119,46 +1123,46 @@ onMounted(() => {
   border: 1px solid !important;
 }
 
-:deep(.p-tag-success) {
-  background: rgba(16, 185, 129, 0.1) !important;
-  color: #10b981 !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tag-success) {
+  background: rgba(137, 209, 133, 0.1) !important;
+  color: var(--vscode-success) !important;
+  border-color: var(--vscode-success) !important;
 }
 
-:deep(.p-tag-danger) {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #ef4444 !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tag-danger) {
+  background: rgba(244, 135, 113, 0.1) !important;
+  color: var(--vscode-error) !important;
+  border-color: var(--vscode-error) !important;
 }
 
-:deep(.p-tag-warning) {
-  background: rgba(245, 158, 11, 0.1) !important;
-  color: #f59e0b !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tag-warning) {
+  background: rgba(220, 220, 170, 0.1) !important;
+  color: var(--vscode-warning) !important;
+  border-color: var(--vscode-warning) !important;
 }
 
-:deep(.p-tag-info) {
-  background: rgba(59, 130, 246, 0.1) !important;
-  color: #93bbfc !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+[data-theme="vscode"] :deep(.p-tag-info) {
+  background: rgba(0, 120, 212, 0.1) !important;
+  color: var(--vscode-accent) !important;
+  border-color: var(--vscode-accent) !important;
 }
 
 /* Custom Classes matching Insights */
-.premium-glass {
-  background: rgba(15, 15, 15, 0.6) !important;
-  border: 1px solid rgba(31, 41, 55, 0.3) !important;
+[data-theme="vscode"] .premium-glass {
+  background: var(--vscode-bg-tertiary) !important;
+  border: 1px solid var(--vscode-border) !important;
   border-radius: 12px !important;
   backdrop-filter: blur(10px) !important;
 }
 
-.premium-hover-lift:hover {
-  border-color: rgba(16, 185, 129, 0.3) !important;
+[data-theme="vscode"] .premium-hover-lift:hover {
+  border-color: var(--vscode-success) !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Loading State */
-.animate-spin {
+[data-theme="vscode"] .animate-spin {
   animation: spin 1s linear infinite;
 }
 
@@ -1172,19 +1176,19 @@ onMounted(() => {
 }
 
 /* Empty State */
-:deep(.p-datatable-emptymessage) {
+[data-theme="vscode"] :deep(.p-datatable-emptymessage) {
   text-align: center !important;
   padding: 60px 20px !important;
-  color: #9ca3af !important;
+  color: var(--vscode-text-muted) !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  :deep(.p-tabview-nav-link) {
+  [data-theme="vscode"] :deep(.p-tabview-nav-link) {
     font-size: 11px !important;
   }
 
-  :deep(.p-card) {
+  [data-theme="vscode"] :deep(.p-card) {
     padding: 16px !important;
   }
 }
@@ -1192,30 +1196,40 @@ onMounted(() => {
 
 <style scoped>
 .premium-tabs :deep(.p-tabview-nav) {
-  @apply bg-surface border-b border-gray-600;
+  background: var(--vscode-bg-elevated) !important;
+  border-bottom: 1px solid var(--vscode-border) !important;
   backdrop-filter: blur(10px);
   border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .premium-tabs :deep(.p-tabview-nav-link) {
-  @apply text-text-muted hover:text-text transition-all duration-200;
+  color: var(--vscode-text-muted) !important;
+  transition: all 200ms;
+}
+
+.premium-tabs :deep(.p-tabview-nav-link):hover {
+  color: var(--vscode-text-primary) !important;
 }
 
 .premium-tabs :deep(.p-tabview-nav-link.p-highlight) {
-  @apply text-primary border-b-2 border-primary;
+  color: var(--vscode-text-inverse) !important;
+  border-bottom: 2px solid var(--vscode-border-light) !important;
 }
 
 .premium-tabs :deep(.p-tabview-panels) {
-  @apply bg-surface text-text p-4;
+  background: var(--vscode-bg-secondary) !important;
+  color: var(--vscode-text-primary) !important;
+  padding: 1rem;
   backdrop-filter: blur(5px);
   border-radius: 0 0 0.5rem 0.5rem;
 }
 
 .premium-glass {
-  @apply bg-surface backdrop-blur-xl border border-gray-600 shadow-2xl;
+  background: var(--vscode-glass-bg) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--vscode-border) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  background-color: rgba(var(--surface-rgb), 0.8);
 }
 
 .premium-hover-lift {
@@ -1227,23 +1241,37 @@ onMounted(() => {
   backdrop-filter: blur(10px);
 }
 
+/* REMOVED - Let vscode-force-override.css handle ALL table styling */
+/*
 .premium-table :deep(.p-datatable) {
-  @apply bg-transparent;
+  background: var(--vscode-bg-primary) !important;
+  border-color: var(--vscode-border) !important;
 }
 
 .premium-table :deep(.p-datatable-header) {
-  @apply bg-surface border-gray-600;
+  background: var(--vscode-bg-secondary) !important;
+  border-color: var(--vscode-border) !important;
   backdrop-filter: blur(10px);
 }
 
 .premium-table :deep(.p-datatable-tbody > tr) {
-  @apply border-gray-600 hover:bg-surface transition-colors duration-200;
+  background: var(--vscode-bg-secondary) !important;
+  border-color: var(--vscode-border) !important;
+  transition-property: background-color;
+  transition-duration: 200ms;
+}
+
+.premium-table :deep(.p-datatable-tbody > tr:hover) {
+  background: var(--vscode-highlight-bg) !important;
 }
 
 .premium-table :deep(.p-datatable-thead > tr > th) {
-  @apply bg-surface text-text border-gray-600;
+  background: var(--vscode-bg-elevated) !important;
+  color: var(--vscode-text-muted) !important;
+  border-color: var(--vscode-border) !important;
   backdrop-filter: blur(5px);
 }
+*/
 
 .premium-tag {
   @apply text-xs font-medium px-2 py-1 rounded-md;
@@ -1251,5 +1279,94 @@ onMounted(() => {
 
 .text-gradient {
   @apply bg-gradient-to-r from-primary via-primary to-primary bg-clip-text text-transparent;
+}
+</style>
+
+<!-- GLOBAL NUCLEAR OVERRIDE - NO SCOPED - MAXIMUM PRIORITY WITH ID -->
+<style>
+/* ⚡ ID SPECIFICITY - HIGHEST PRIORITY POSSIBLE */
+#users-datatable-vscode {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+#users-datatable-vscode .p-datatable-wrapper {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+#users-datatable-vscode .p-datatable-tbody > tr {
+  background: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+}
+
+#users-datatable-vscode .p-datatable-tbody > tr:hover {
+  background: #2A2D2E !important;
+  background-color: #2A2D2E !important;
+}
+
+#users-datatable-vscode .p-datatable-thead > tr > th {
+  background: #202020 !important;
+  background-color: #202020 !important;
+  color: #9E9E9E !important;
+}
+
+#users-datatable-vscode .p-datatable-tbody > tr > td {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #E0E0E0 !important;
+  border-color: #3C3C3C !important;
+}
+
+/* Force remove any wrapper backgrounds */
+#users-datatable-vscode .p-datatable-table-container,
+#users-datatable-vscode .p-datatable-scrollable-wrapper,
+#users-datatable-vscode .p-datatable-scrollable-view {
+  background: #141414 !important;
+  background-color: #141414 !important;
+}
+
+/* ⚡ PAGINATOR - Force VS Code gray (not blue!) */
+#users-datatable-vscode .p-paginator {
+  background: #1A1A1A !important;
+  background-color: #1A1A1A !important;
+  border-top: 1px solid #3C3C3C !important;
+}
+
+/* Paginator buttons - Gray background */
+#users-datatable-vscode .p-paginator .p-paginator-page,
+#users-datatable-vscode .p-paginator .p-paginator-first,
+#users-datatable-vscode .p-paginator .p-paginator-prev,
+#users-datatable-vscode .p-paginator .p-paginator-next,
+#users-datatable-vscode .p-paginator .p-paginator-last {
+  background: #2A2A2A !important;
+  background-color: #2A2A2A !important;
+  color: #9E9E9E !important;
+  border: 1px solid #3C3C3C !important;
+}
+
+/* Paginator buttons hover - Lighter gray */
+#users-datatable-vscode .p-paginator .p-paginator-page:hover,
+#users-datatable-vscode .p-paginator .p-paginator-first:hover,
+#users-datatable-vscode .p-paginator .p-paginator-prev:hover,
+#users-datatable-vscode .p-paginator .p-paginator-next:hover,
+#users-datatable-vscode .p-paginator .p-paginator-last:hover {
+  background: #3C3C3C !important;
+  background-color: #3C3C3C !important;
+  color: #E0E0E0 !important;
+  border-color: #6B6B6B !important;
+}
+
+/* Active page - VS Code accent blue (not green!) */
+#users-datatable-vscode .p-paginator .p-paginator-page.p-highlight {
+  background: #007ACC !important;
+  background-color: #007ACC !important;
+  color: #FFFFFF !important;
+  border-color: #007ACC !important;
+}
+
+#users-datatable-vscode .p-paginator .p-paginator-page.p-highlight:hover {
+  background: #005A9E !important;
+  background-color: #005A9E !important;
 }
 </style>
